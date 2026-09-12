@@ -1,0 +1,277 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+  }
+
+  html {
+    font-family: 'Plus Jakarta Sans', 'Lexend', system-ui, -apple-system, sans-serif;
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-[#07090E] text-slate-100 antialiased font-sans;
+    font-family: 'Plus Jakarta Sans', 'Lexend', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.012em;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    width: 100%;
+    min-height: 100%;
+    position: relative;
+    /* Prevent unwanted elastic bounce horizontal overflow on mobile Safari */
+    overscroll-behavior-x: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Safe Area Helper Utilities for Mobile Devices */
+  .pb-safe {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
+  .pt-safe {
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+  }
+  .pl-safe {
+    padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+  }
+  .pr-safe {
+    padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', 'Lexend', 'Plus Jakarta Sans', sans-serif !important;
+    letter-spacing: -0.028em;
+    font-weight: 700;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  p, span, div, a {
+    overflow-wrap: break-word;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Outfit', 'Lexend', 'Plus Jakarta Sans', sans-serif !important;
+    letter-spacing: -0.025em;
+  }
+  
+  .font-mono-numbers {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .glass-card {
+    background: linear-gradient(135deg, rgba(13, 17, 26, 0.85) 0%, rgba(9, 12, 22, 0.95) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-card-hover {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .glass-card-hover:hover {
+    border-color: rgba(255, 0, 80, 0.35);
+    box-shadow: 0 12px 36px -8px rgba(255, 0, 80, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .luxury-text-gradient {
+    background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 60%, #94A3B8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .neon-text-gradient {
+    background: linear-gradient(135deg, #FF0050 0%, #FF5E8E 40%, #00F2FE 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .gold-text-gradient {
+    background: linear-gradient(135deg, #FFD700 0%, #F59E0B 50%, #D97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Electric Circuit Board Animations & Flow */
+  .electric-circuit-panel {
+    position: relative;
+    background: radial-gradient(circle at 50% 50%, rgba(13, 20, 36, 0.95) 0%, rgba(7, 9, 14, 0.98) 100%);
+    border: 1px solid rgba(0, 242, 254, 0.25);
+    box-shadow: 0 0 30px -10px rgba(0, 242, 254, 0.2), inset 0 0 20px -10px rgba(255, 0, 80, 0.15);
+  }
+
+  .electric-border-flow {
+    position: relative;
+  }
+  .electric-border-flow::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(90deg, #FF0050, #9333EA, #00F2FE, #FF0050);
+    background-size: 300% 300%;
+    animation: electricBorderRotate 4s linear infinite;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Touch Zoom & Haptic Effects */
+  .touch-zoom-card {
+    transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.35s ease, border-color 0.2s ease;
+    will-change: transform;
+  }
+  .touch-zoom-card:hover {
+    transform: scale(1.035) translateY(-3px);
+    box-shadow: 0 16px 36px -10px rgba(0, 242, 254, 0.25), 0 0 20px rgba(255, 0, 80, 0.2);
+  }
+  .touch-zoom-card:active {
+    transform: scale(0.975);
+    transition-duration: 0.1s;
+  }
+
+  .haptic-tap:active {
+    animation: hapticShake 0.25s ease-in-out;
+  }
+
+  .electric-wire-flow {
+    background-image: repeating-linear-gradient(
+      90deg,
+      #00F2FE 0px,
+      #00F2FE 12px,
+      transparent 12px,
+      transparent 24px
+    );
+    background-size: 48px 100%;
+    animation: electricWireDash 1.2s linear infinite;
+  }
+}
+
+@keyframes electricBorderRotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes electricWireDash {
+  0% { background-position: 0 0; }
+  100% { background-position: 48px 0; }
+}
+
+@keyframes hapticShake {
+  0%, 100% { transform: scale(0.97) rotate(0deg); }
+  25% { transform: scale(0.97) rotate(-1.5deg) translateX(-1px); }
+  75% { transform: scale(0.97) rotate(1.5deg) translateX(1px); }
+}
+
+/* Luxury Glassmorphism & Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #07090E;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* LED Marquee Horizontal Ticker (Smooth Right to Left) */
+@keyframes ledMarquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-led-marquee {
+  display: flex;
+  width: max-content;
+  animation: ledMarquee 48s linear infinite;
+  will-change: transform;
+}
+
+.animate-led-marquee:hover {
+  animation-play-state: paused !important;
+}
+
+/* Celestial Rotating Sunburst */
+@keyframes sunburstSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-sunburst {
+  animation: sunburstSpin 25s linear infinite;
+}
+
+/* Floating 3D Soft Animation */
+@keyframes float3D {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-7px) rotate(0.5deg); }
+}
+
+.animate-float-soft {
+  animation: float3D 4s ease-in-out infinite;
+}
+
+/* Text Shimmer Diamond & Liquid Gold */
+@keyframes textShimmerSlide {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #FFD700 0%, #FFF 50%, #FFD700 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmerSlide 3.5s linear infinite;
+}
+
+.shimmer-rose {
+  background: linear-gradient(90deg, #FF0050 0%, #00F2FE 50%, #FF0050 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmerSlide 4s linear infinite;
+}
+
+/* Neon Pulse Glow */
+@keyframes neonPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px -5px rgba(255, 0, 80, 0.35), 0 0 35px -10px rgba(0, 242, 254, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 35px 2px rgba(255, 0, 80, 0.55), 0 0 55px -5px rgba(0, 242, 254, 0.45);
+  }
+}
+
+.animate-neon-pulse {
+  animation: neonPulse 3s ease-in-out infinite;
+}

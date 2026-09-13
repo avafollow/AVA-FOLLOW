@@ -147,7 +147,9 @@ interface TikTokAppContextType {
   closeRunner: () => void;
   
   isFeedRunnerOpen: boolean;
-  openFeedRunner: () => void;
+  feedRunnerFilter: 'all' | 'cross_follow' | 'community' | 'partner' | 'live';
+  setFeedRunnerFilter: (filter: 'all' | 'cross_follow' | 'community' | 'partner' | 'live') => void;
+  openFeedRunner: (filter?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | any) => void;
   closeFeedRunner: () => void;
 
   activeLiveTask: LivestreamTaskItem | null;
@@ -795,6 +797,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [runnerTask, setRunnerTask] = useState<TikTokTaskItem | null>(null);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
   const [isFeedRunnerOpen, setIsFeedRunnerOpen] = useState(false);
+  const [feedRunnerFilter, setFeedRunnerFilter] = useState<'all' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
   const [activeLiveTask, setActiveLiveTask] = useState<LivestreamTaskItem | null>(null);
   const [isLiveRunnerOpen, setIsLiveRunnerOpen] = useState(false);
   const [isLuckyWheelOpen, setIsLuckyWheelOpen] = useState(false);
@@ -960,8 +963,62 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => setIsAuthModalOpen(false);
 
+  // Quản lý Cookie Tiếp thị liên kết (30 Days Cookie Retention Window)
+  const REFERRAL_COOKIE_KEY = 'ava_referral_cookie';
+  const REFERRAL_COOKIE_DAYS = 30;
+
+  const saveReferralCookie = (refCode: string) => {
+    if (typeof window === 'undefined' || !refCode) return;
+    try {
+      const cleanCode = refCode.trim().toUpperCase();
+      const data = {
+        code: cleanCode,
+        expiresAt: Date.now() + REFERRAL_COOKIE_DAYS * 24 * 60 * 60 * 1000,
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem(REFERRAL_COOKIE_KEY, JSON.stringify(data));
+      document.cookie = `${REFERRAL_COOKIE_KEY}=${cleanCode}; max-age=${REFERRAL_COOKIE_DAYS * 24 * 60 * 60}; path=/`;
+    } catch (err) {
+      console.warn('Cannot save referral cookie:', err);
+    }
+  };
+
+  const getReferralCookie = (): string | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(REFERRAL_COOKIE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.expiresAt && Date.now() < parsed.expiresAt) {
+          return parsed.code;
+        } else {
+          localStorage.removeItem(REFERRAL_COOKIE_KEY);
+        }
+      }
+      const match = document.cookie.match(new RegExp('(^| )' + REFERRAL_COOKIE_KEY + '=([^;]+)'));
+      if (match && match[2]) return match[2];
+    } catch {}
+    return null;
+  };
+
   // Supabase Realtime Auth listener: auto-sync session if user logs in via Supabase OAuth redirect
   useEffect(() => {
+    // Ghi nhận mã giới thiệu từ URL params (?ref=... hoặc ?refCode=...) & đồng bộ link ref động
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const refQuery = searchParams.get('ref') || searchParams.get('refCode') || searchParams.get('r');
+      if (refQuery) {
+        saveReferralCookie(refQuery);
+        showToast(`🤝 Đã ghi nhận mã bảo trợ "${refQuery.toUpperCase()}" (Lưu trữ cookie 30 ngày)`);
+      }
+
+      // Cập nhật refLink động theo đúng origin hiện tại (local hoặc production)
+      setAffiliateData(prev => ({
+        ...prev,
+        refLink: `${window.location.origin}/?ref=${prev.refCode}`
+      }));
+    }
+
     // 1. Kiểm tra session hiện tại từ Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -1060,11 +1117,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch {}
 
     // Đồng bộ user lên Supabase Cloud
+    const activeRefSponsor = getReferralCookie() || 'THIENVUAAPP88';
     registerUserToSupabase({
       email: targetEmail,
       name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : 'Người Dùng Google',
       tiktokHandle: user.tiktokConnected,
-      referredBy: 'THIENVUAAPP88'
+      referredBy: activeRefSponsor
     });
 
     if (isAdmin) {
@@ -1077,6 +1135,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const loginWithEmail = (email: string, name: string, handle?: string) => {
     const formattedHandle = handle ? (handle.startsWith('@') ? handle : `@${handle}`) : user.tiktokConnected;
     const isAdmin = email === 'quocthiencr90@gmail.com';
+    const activeRefSponsor = getReferralCookie() || 'THIENVUAAPP88';
     setUser(prev => {
       const bonusWelcome = 5000;
       const nextCoins = prev.avaliveCoins + bonusWelcome;
@@ -1102,7 +1161,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       email,
       name,
       tiktokHandle: formattedHandle,
-      referredBy: 'THIENVUAAPP88'
+      referredBy: activeRefSponsor
     });
 
     syncTokenLedgerToSupabase({
@@ -1280,6 +1339,68 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       myOrders: [newOrder, ...(prev.myOrders || [])]
     }));
 
+    // Hoa hồng Tiếp thị liên kết (Affiliate Commission): Trích 20% - 35% cho đơn mua ĐẦU TIÊN của người được giới thiệu
+    const firstPurchaseKey = `ava_affiliate_awarded_${user.email || 'guest'}`;
+    const isFirstPurchase = !localStorage.getItem(firstPurchaseKey);
+
+    if (isFirstPurchase) {
+      try {
+        localStorage.setItem(firstPurchaseKey, 'true');
+        const activeRefCode = getReferralCookie() || affiliateData.refCode || 'THIENVUAAPP88';
+
+        // Tỷ lệ hoa hồng: Kim Cương: 35%, Vàng: 25%, Bạc: 20%, Đồng: 20%
+        let ratePercent = 35;
+        if (affiliateData.tier === 'Bạc') ratePercent = 20;
+        else if (affiliateData.tier === 'Vàng') ratePercent = 25;
+        else if (affiliateData.tier === 'Kim Cương') ratePercent = 35;
+
+        const commissionVND = Math.round((pkg.priceNum * ratePercent) / 100);
+
+        setAffiliateData(prev => {
+          const currentTotal = parseInt(prev.totalCommissionVND.replace(/\D/g, '') || '0', 10);
+          const currentMonth = parseInt(prev.monthlyCommission.replace(/\D/g, '') || '0', 10);
+          return {
+            ...prev,
+            totalCommissionVND: `${(currentTotal + commissionVND).toLocaleString()}đ`,
+            monthlyCommission: `${(currentMonth + commissionVND).toLocaleString()}đ`,
+            referralsList: [
+              {
+                id: `ref_order_${Date.now()}`,
+                username: user.name || 'Thành viên F1',
+                avatar: user.avatar,
+                tiktokHandle: user.tiktokConnected || '@f1_user',
+                joinedDate: 'Hôm nay',
+                hasCompletedTask: true,
+                taskCompletedType: `Đơn mua đầu tiên: ${pkg.title}`,
+                status: `Đã trả hoa hồng ${ratePercent}% (${commissionVND.toLocaleString()}đ)`,
+                bonusCoins: 5000,
+                isClaimed: true,
+                packageSpentVND: `${pkg.priceNum.toLocaleString()}đ`,
+                earnedVND: `+${commissionVND.toLocaleString()}đ`
+              },
+              ...prev.referralsList
+            ]
+          };
+        });
+
+        // Đồng bộ lên Supabase token_ledger
+        syncTokenLedgerToSupabase({
+          userId: activeRefCode,
+          txType: 'affiliate_commission',
+          tokenAmount: 0,
+          tokenBalanceAfter: 0,
+          vndEquivalent: commissionVND,
+          note: `Hoa hồng tiếp thị liên kết ${ratePercent}% (đơn đầu) từ người dùng F1 mua gói ${pkg.title} (+${commissionVND.toLocaleString()}đ)`
+        });
+
+        setTimeout(() => {
+          showToast(`💎 [HOA HỒNG BẢO TRỢ]: Đã tự động cộng ${ratePercent}% hoa hồng (+${commissionVND.toLocaleString()}đ) cho người giới thiệu (${activeRefCode})!`);
+        }, 1200);
+      } catch (err) {
+        console.warn('Affiliate commission calculation error:', err);
+      }
+    }
+
     showToast(`🎉 Kích hoạt thành công gói "${pkg.title}"! Đã đẩy ${pkg.targetQuantity.toLocaleString()} ${pkg.unit} lên hàng đợi cộng đồng trả gói.`);
     return true;
   };
@@ -1293,7 +1414,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setRunnerTask(null);
   };
 
-  const openFeedRunner = () => setIsFeedRunnerOpen(true);
+  const openFeedRunner = (filter?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | any) => {
+    if (typeof filter === 'string' && ['all', 'cross_follow', 'community', 'partner', 'live'].includes(filter)) {
+      setFeedRunnerFilter(filter as any);
+    }
+    setIsFeedRunnerOpen(true);
+  };
   const closeFeedRunner = () => setIsFeedRunnerOpen(false);
 
   const openLiveRunner = (task: LivestreamTaskItem) => {
@@ -3887,6 +4013,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         openRunner,
         closeRunner,
         isFeedRunnerOpen,
+        feedRunnerFilter,
+        setFeedRunnerFilter,
         openFeedRunner,
         closeFeedRunner,
         activeLiveTask,

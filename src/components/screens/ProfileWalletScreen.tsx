@@ -173,8 +173,12 @@ export const ProfileWalletScreen: React.FC<{
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  const currentRefLink = typeof window !== 'undefined' && window.location?.origin
+    ? `${window.location.origin}/?ref=${affiliateData.refCode}`
+    : (affiliateData.refLink || `https://avafollow.vn/?ref=${affiliateData.refCode}`);
+
   const handleCopyRef = () => {
-    if (navigator.clipboard) navigator.clipboard.writeText(affiliateData.refLink);
+    if (navigator.clipboard) navigator.clipboard.writeText(currentRefLink);
     setCopiedRef(true);
     showToast('Đã sao chép link tiếp thị liên kết vào bộ nhớ tạm!');
     setTimeout(() => setCopiedRef(false), 2000);
@@ -1274,7 +1278,7 @@ export const ProfileWalletScreen: React.FC<{
             <div className="p-3 rounded-2xl bg-black/50 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs">
               <div className="flex items-center gap-2 truncate w-full">
                 <span className="text-slate-400 font-mono shrink-0">Link ref của bạn:</span>
-                <span className="font-mono text-amber-400 font-bold truncate">{affiliateData.refLink}</span>
+                <span className="font-mono text-amber-400 font-bold truncate">{currentRefLink}</span>
               </div>
               <button
                 onClick={handleCopyRef}

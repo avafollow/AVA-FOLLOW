@@ -24,7 +24,9 @@ export const ShareVideoModal: React.FC = () => {
 
   const videoUrl = shareVideoData.targetUrl || 'https://www.tiktok.com/@creator/video/example';
   const videoTitle = shareVideoData.title || 'Video chiến dịch TikTok';
-  const affiliateRefLink = affiliateData?.refLink || `https://tiktokfollow.vn/ref/${affiliateData?.refCode || 'KOC888'}`;
+  const affiliateRefLink = typeof window !== 'undefined' && window.location?.origin
+    ? `${window.location.origin}/?ref=${affiliateData?.refCode || 'THIENVUAAPP88'}`
+    : (affiliateData?.refLink || 'https://avafollow.vn/?ref=THIENVUAAPP88');
 
   const copyToClipboard = (text: string, type: 'video' | 'affiliate') => {
     navigator.clipboard.writeText(text);

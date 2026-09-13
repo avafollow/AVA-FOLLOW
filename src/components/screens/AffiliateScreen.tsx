@@ -33,12 +33,16 @@ export const AffiliateScreen: React.FC<{
   } = useTikTokApp();
   const [copied, setCopied] = useState(false);
 
+  const currentRefLink = typeof window !== 'undefined' && window.location?.origin
+    ? `${window.location.origin}/?ref=${affiliateData.refCode}`
+    : (affiliateData.refLink || `https://avafollow.vn/?ref=${affiliateData.refCode}`);
+
   const handleCopyLink = () => {
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(affiliateData.refLink);
+      navigator.clipboard.writeText(currentRefLink);
     }
     setCopied(true);
-    showToast('Đã sao chép link tiếp thị liên kết vào bộ nhớ tạm!');
+    showToast('✓ Đã sao chép link tiếp thị liên kết (đã bao gồm mã bảo trợ)!');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -71,19 +75,36 @@ export const AffiliateScreen: React.FC<{
         </div>
 
         {/* Ref Link Bar */}
-        <div className="p-3.5 rounded-2xl bg-black/50 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 truncate w-full">
-            <span className="text-slate-400 font-mono shrink-0">Link ref của bạn:</span>
-            <span className="font-mono text-amber-400 font-bold truncate">{affiliateData.refLink}</span>
+        <div className="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-3 text-xs">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 truncate flex-1 bg-black/40 px-3 py-2 rounded-xl border border-white/5">
+              <span className="text-slate-400 font-mono shrink-0">Link ref của bạn:</span>
+              <span className="font-mono text-amber-400 font-bold truncate select-all">{currentRefLink}</span>
+            </div>
+
+            <button
+              onClick={handleCopyLink}
+              className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold shrink-0 transition-all font-mono cursor-pointer border border-amber-500/30"
+            >
+              {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+              <span>{copied ? 'Đã sao chép link' : 'Sao chép link ref'}</span>
+            </button>
           </div>
 
-          <button
-            onClick={handleCopyLink}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold shrink-0 transition-all font-mono"
-          >
-            {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-            <span>{copied ? 'Đã sao chép' : 'Sao chép link ref'}</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-white/5 text-[11px] font-mono">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+              <Clock className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Thời hạn lưu Cookie: <strong>30 Ngày</strong> (30-day retention)</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+              <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Hoa hồng bán gói: <strong>20% - 35%</strong> (Áp dụng 1 lần duy nhất / người)</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20">
+              <Gift className="w-3.5 h-3.5 text-amber-400" />
+              <span>Thành viên F1: <strong>+5,000 Xu</strong> chào mừng khi đăng ký</span>
+            </span>
+          </div>
         </div>
       </div>
 

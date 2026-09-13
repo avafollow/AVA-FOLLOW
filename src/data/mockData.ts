@@ -877,10 +877,18 @@ export const AFFILIATE_TIER_LEVELS: AffiliateTierInfo[] = [
   }
 ];
 
+// Hàm lấy Link giới thiệu động theo domain hiện tại
+export const getDynamicRefLink = (refCode: string = 'THIENVUAAPP88'): string => {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/?ref=${refCode}`;
+  }
+  return `https://avafollow.vn/?ref=${refCode}`;
+};
+
 // Dữ liệu Tiếp thị liên kết (Affiliate Hub)
 export const AFFILIATE_DATA: AffiliateStats = {
   refCode: 'THIENVUAAPP88',
-  refLink: 'https://tiktokfollow.app/ref/THIENVUAAPP88',
+  refLink: getDynamicRefLink('THIENVUAAPP88'),
   totalClicks: 3420,
   totalSignups: 428,
   // 1. Quỹ Xu Tặng Giới Thiệu (5,000 Xu / bạn kích hoạt làm 1 nhiệm vụ)

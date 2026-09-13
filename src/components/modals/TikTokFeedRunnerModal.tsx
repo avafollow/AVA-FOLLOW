@@ -23,10 +23,12 @@ import {
   Eye,
   Send,
   Layers,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS, TikTokTaskItem, LivestreamTaskItem } from '../../types';
+import { INITIAL_CROSS_FOLLOW_ITEMS } from '../../data/crossFollowData';
 
 interface UnifiedFeedItem {
   id: string;
@@ -63,10 +65,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     claimTaskAction,
     showToast,
     openShareModal,
-    interactWithLiveBroadcast
+    interactWithLiveBroadcast,
+    feedRunnerFilter
   } = useTikTokApp();
 
-  const [filterMode, setFilterMode] = useState<'all' | 'community' | 'partner' | 'live'>('all');
+  const [filterMode, setFilterMode] = useState<'all' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(15);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
@@ -112,6 +115,33 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     isUrgent: t.isUrgent
   }));
 
+  // Feed items từ kho Follow Chéo Cộng Đồng Creator
+  const crossFollowFeedItems: UnifiedFeedItem[] = INITIAL_CROSS_FOLLOW_ITEMS.map((cf, idx) => ({
+    id: cf.id,
+    kind: 'video',
+    title: cf.title,
+    type: cf.type,
+    channelName: cf.channelName,
+    channelHandle: cf.channelHandle,
+    channelAvatar: cf.channelAvatar,
+    targetUrl: cf.targetUrl,
+    rewardCoins: cf.rewardXu || 200,
+    videoUrl: idx % 2 === 0 
+      ? 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4' 
+      : 'https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-laptop-keyboard-42475-large.mp4',
+    sampleComments: [
+      'Đã follow chéo ủng hộ kênh bạn nhé!',
+      'Nội dung hay quá, chúc kênh sớm triệu follow!',
+      'Tương tác chéo uy tín nha bạn ơi!'
+    ],
+    guide: `Follow kênh & tương tác chéo với ${cf.channelHandle} để cùng nhận Xu thưởng.`,
+    campaignCategory: 'community',
+    partnerName: 'Follow Chéo Tự Do',
+    partnerBadge: 'Cộng Đồng Chéo',
+    totalSlots: cf.followersCount || 10000,
+    remainingSlots: Math.max(10, (cf.followersCount || 10000) - (cf.completedByUsersCount || 0))
+  }));
+
   const liveFeedItems: UnifiedFeedItem[] = livestreamTasks.map(l => ({
     id: l.id,
     kind: 'livestream',
@@ -135,13 +165,22 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   }));
 
   const combinedFeed: UnifiedFeedItem[] = 
+    filterMode === 'cross_follow' ? crossFollowFeedItems :
     filterMode === 'community' ? videoFeedItems.filter(i => i.campaignCategory === 'community') :
     filterMode === 'partner' ? videoFeedItems.filter(i => i.campaignCategory === 'partner') :
     filterMode === 'live' ? liveFeedItems :
-    [...videoFeedItems, ...liveFeedItems];
+    [...crossFollowFeedItems, ...videoFeedItems, ...liveFeedItems];
 
   const currentItem = combinedFeed[currentIndex] || combinedFeed[0];
   const currentClaimed = currentItem ? (taskClaimedMap[currentItem.id] || {}) : {};
+
+  // Sync filterMode when feed runner opens with a specific filter
+  useEffect(() => {
+    if (isFeedRunnerOpen && feedRunnerFilter) {
+      setFilterMode(feedRunnerFilter);
+      setCurrentIndex(0);
+    }
+  }, [isFeedRunnerOpen, feedRunnerFilter]);
 
   // Reset timer on item change or open
   useEffect(() => {
@@ -337,6 +376,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             {/* Filter mode tabs */}
             <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-full backdrop-blur-md text-[10px] font-mono overflow-x-auto max-w-[80%]">
               <button
+                onClick={() => { setFilterMode('cross_follow'); setCurrentIndex(0); }}
+                className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  filterMode === 'cross_follow' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                🔄 Follow Chéo ({crossFollowFeedItems.length})
+              </button>
+              <button
                 onClick={() => { setFilterMode('community'); setCurrentIndex(0); }}
                 className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer ${
                   filterMode === 'community' ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:text-white'
@@ -366,7 +413,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   filterMode === 'all' ? 'bg-rose-600 text-white shadow' : 'text-slate-300 hover:text-white'
                 }`}
               >
-                Tất Cả ({tasks.length + livestreamTasks.length})
+                Tất Cả ({crossFollowFeedItems.length + tasks.length + livestreamTasks.length})
               </button>
             </div>
 

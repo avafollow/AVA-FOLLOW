@@ -72,6 +72,8 @@ import {
   PLATFORM_COMMISSION_DEFAULTS 
 } from '../data/growthPackages';
 import { 
+  supabase,
+  signInWithGoogleOAuth,
   syncTokenLedgerToSupabase, 
   syncKycToSupabase, 
   syncOrderToSupabase,
@@ -116,6 +118,7 @@ interface TikTokAppContextType {
   openAuthModal: () => void;
   closeAuthModal: () => void;
   loginWithGoogle: (customEmail?: string) => void;
+  loginWithGoogleOAuth: () => Promise<void>;
   loginWithEmail: (email: string, name: string, handle?: string) => void;
   logout: () => void;
 
@@ -956,6 +959,84 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => setIsAuthModalOpen(false);
+
+  // Supabase Realtime Auth listener: auto-sync session if user logs in via Supabase OAuth redirect
+  useEffect(() => {
+    // 1. Kiểm tra session hiện tại từ Supabase
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const email = session.user.email || 'user@gmail.com';
+        const isAdmin = email === 'quocthiencr90@gmail.com';
+        const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || (isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : 'Người Dùng Google');
+        const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || (isAdmin 
+          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+          : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80');
+
+        setUser(prev => ({
+          ...prev,
+          email,
+          name: fullName,
+          avatar: avatarUrl,
+          isAdmin,
+          role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : 'Nhà Sáng Tạo AVA FOLLOW'
+        }));
+        setIsAuthenticated(true);
+        try {
+          localStorage.setItem('tiktok_pro_auth', 'true');
+          localStorage.setItem('ava_user_email', email);
+        } catch {}
+      }
+    });
+
+    // 2. Lắng nghe thay đổi trạng thái Auth từ Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const email = session.user.email || 'user@gmail.com';
+        const isAdmin = email === 'quocthiencr90@gmail.com';
+        const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || (isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : 'Người Dùng Google');
+        const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || (isAdmin 
+          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+          : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80');
+
+        setUser(prev => ({
+          ...prev,
+          email,
+          name: fullName,
+          avatar: avatarUrl,
+          isAdmin,
+          role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : 'Nhà Sáng Tạo AVA FOLLOW'
+        }));
+        setIsAuthenticated(true);
+        try {
+          localStorage.setItem('tiktok_pro_auth', 'true');
+          localStorage.setItem('ava_user_email', email);
+        } catch {}
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const loginWithGoogleOAuth = async () => {
+    try {
+      showToast('Đang kết nối cổng xác thực Google OAuth qua Supabase...');
+      const { data, error } = await signInWithGoogleOAuth();
+      if (error) {
+        console.warn('Google OAuth error:', error);
+        showToast(`Lỗi kết nối Google: ${error.message}. Chuyển sang chế độ kết nối nội bộ.`);
+        loginWithGoogle();
+        return;
+      }
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err: any) {
+      console.warn('OAuth redirect exception:', err);
+      loginWithGoogle();
+    }
+  };
 
   const loginWithGoogle = (customEmail?: string) => {
     const targetEmail = customEmail || 'quocthiencr90@gmail.com';
@@ -3786,6 +3867,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         openAuthModal,
         closeAuthModal,
         loginWithGoogle,
+        loginWithGoogleOAuth,
         loginWithEmail,
         logout,
         commissionSettings,

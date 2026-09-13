@@ -269,3 +269,20 @@ export async function registerUserToSupabase(user: {
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * 6. KẾT NỐI ĐĂNG NHẬP GOOGLE OAUTH QUA SUPABASE
+ */
+export async function signInWithGoogleOAuth() {
+  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5050';
+  return await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: redirectOrigin,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      }
+    }
+  });
+}

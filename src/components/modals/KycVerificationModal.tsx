@@ -11,7 +11,8 @@ import {
   Clock, 
   FileText,
   Lock,
-  Sparkles
+  Sparkles,
+  Camera
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
@@ -28,15 +29,16 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
   const { user, submitKyc } = useTikTokApp();
 
   const [fullName, setFullName] = useState(user.name || '');
-  const [idNumber, setIdNumber] = useState(user.kycData?.idNumber || '');
+  const [idNumber, setIdNumber] = useState(user.kycData?.idNumber || user.citizenId || '');
   const [dateOfBirth, setDateOfBirth] = useState(user.kycData?.dateOfBirth || '1995-08-15');
   const [bankName, setBankName] = useState(user.bankInfo?.bankName || 'MB Bank (Quân Đội)');
   const [bankAccountNumber, setBankAccountNumber] = useState(user.bankInfo?.accountNumber || '');
   const [bankAccountHolder, setBankAccountHolder] = useState(user.bankInfo?.accountHolder || user.name.toUpperCase());
   
-  // Sample card image previews
+  // Sample card image previews + Selfie
   const [frontCardPreview, setFrontCardPreview] = useState(user.kycData?.frontIdCardUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop&q=80');
   const [backCardPreview, setBackCardPreview] = useState(user.kycData?.backIdCardUrl || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&auto=format&fit=crop&q=80');
+  const [selfiePreview, setSelfiePreview] = useState(user.kycData?.selfiePhotoUrl || user.selfiePhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
 
@@ -70,11 +72,13 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
         dateOfBirth,
         frontIdCardUrl: frontCardPreview,
         backIdCardUrl: backCardPreview,
+        selfiePhotoUrl: selfiePreview,
         bankName,
         bankAccountNumber: bankAccountNumber.trim(),
         bankAccountHolder: bankAccountHolder.toUpperCase(),
         submittedAt: 'Vừa xong',
-        status: 'pending'
+        status: 'pending',
+        isCitizenIdUnique: true
       });
       setIsSubmitting(false);
       setSubmittedSuccess(true);
@@ -262,18 +266,23 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
 
             {/* ID Card Photos Upload Previews */}
             <div className="space-y-2 pt-2 border-t border-white/10">
-              <label className="font-bold text-white block">
-                Ảnh Chụp CCCD / Hộ Chiếu 2 Mặt (Rõ nét, không lóa sáng):
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-white block">
+                  Ảnh Chụp CCCD 2 Mặt & Ảnh Chụp Khuôn Mặt Chính Chủ (Rõ nét, không lóa sáng):
+                </label>
+                <span className="text-[10px] text-amber-400 font-mono font-bold">
+                  🛡️ 1 CCCD chỉ KYC 1 tài khoản
+                </span>
+              </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Front Photo */}
                 <div className="p-3 rounded-2xl bg-slate-900/80 border border-white/10 space-y-2 text-center">
-                  <span className="text-[11px] font-bold text-slate-300 block">Mặt Trước CCCD</span>
+                  <span className="text-[11px] font-bold text-slate-300 block font-mono">1. Mặt Trước CCCD</span>
                   <div className="relative h-28 rounded-xl overflow-hidden bg-black/40 border border-white/5 group">
                     <img src={frontCardPreview} alt="Front ID" className="w-full h-full object-cover" />
-                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px]">
-                      <UploadCloud className="w-5 h-5 mb-1" />
+                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                      <UploadCloud className="w-5 h-5 text-rose-400" />
                       <span>Đổi Ảnh Khác</span>
                       <input 
                         type="file" 
@@ -292,11 +301,11 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
 
                 {/* Back Photo */}
                 <div className="p-3 rounded-2xl bg-slate-900/80 border border-white/10 space-y-2 text-center">
-                  <span className="text-[11px] font-bold text-slate-300 block">Mặt Sau CCCD</span>
+                  <span className="text-[11px] font-bold text-slate-300 block font-mono">2. Mặt Sau CCCD</span>
                   <div className="relative h-28 rounded-xl overflow-hidden bg-black/40 border border-white/5 group">
                     <img src={backCardPreview} alt="Back ID" className="w-full h-full object-cover" />
-                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px]">
-                      <UploadCloud className="w-5 h-5 mb-1" />
+                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                      <UploadCloud className="w-5 h-5 text-rose-400" />
                       <span>Đổi Ảnh Khác</span>
                       <input 
                         type="file" 
@@ -312,13 +321,39 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
                     </label>
                   </div>
                 </div>
+
+                {/* Selfie Face Photo */}
+                <div className="p-3 rounded-2xl bg-gradient-to-b from-purple-950/40 to-slate-900/80 border border-purple-500/30 space-y-2 text-center">
+                  <span className="text-[11px] font-bold text-purple-300 block font-mono flex items-center justify-center gap-1">
+                    <Camera className="w-3.5 h-3.5 text-pink-400" />
+                    <span>3. Ảnh Selfie Khuôn Mặt</span>
+                  </span>
+                  <div className="relative h-28 rounded-xl overflow-hidden bg-black/40 border border-purple-500/30 group">
+                    <img src={selfiePreview} alt="Ảnh selfie" className="w-full h-full object-cover" />
+                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                      <Camera className="w-5 h-5 text-pink-400" />
+                      <span>Chụp / Đổi Selfie</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            const url = URL.createObjectURL(e.target.files[0]);
+                            setSelfiePreview(url);
+                          }
+                        }} 
+                      />
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Privacy & Security Note */}
-            <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-500/20 text-[11px] text-purple-200 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-purple-400 shrink-0" />
-              <span>Dữ liệu cá nhân được mã hóa AES-256 an toàn và chỉ phục vụ đối soát chi trả tiền thưởng.</span>
+            <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-500/20 text-[11px] text-purple-200 flex items-start gap-2 font-mono">
+              <Lock className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+              <span>Dữ liệu CCCD & hình ảnh cá nhân được mã hóa AES-256 an toàn tuyệt đối. Mỗi CCCD chỉ được đăng ký 01 tài khoản để chống bot gian lận.</span>
             </div>
 
             {/* Submit Action */}

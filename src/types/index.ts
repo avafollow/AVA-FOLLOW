@@ -617,7 +617,41 @@ export type CampaignType =
   | 'like_comment'
   | 'livestream_viewers'
   | 'affiliate_sales'
+  | 'product_launch'     // Chiến dịch Tung Sản Phẩm Mới (Launch Viral)
+  | 'mega_live'          // Đại Tiệc Mega Livestream Doanh Nghiệp
   | 'multi_target';
+
+// Báo cáo đo lường chi tiết tệp khán giả chiến dịch (Mở khóa tốn 200,000 Xu, Admin xem miễn phí)
+export interface CampaignDemographicsReport {
+  totalViewers: number;
+  realUserScore: number; // Điểm số tài khoản thật 100% người dùng KYC (vd: 98.7)
+  genderDistribution: {
+    male: number;      // % Nam
+    female: number;    // % Nữ
+    other: number;     // % Khác
+  };
+  ageGroups: {
+    '18-24': number;   // %
+    '25-34': number;   // %
+    '35-44': number;   // %
+    '45+': number;     // %
+  };
+  topLocations: {
+    province: string;
+    percentage: number;
+    viewerCount: number;
+  }[];
+  interestNiches: {
+    niche: string;
+    percentage: number;
+  }[];
+  engagementRate: number;       // % Tỷ lệ tương tác thực
+  avgWatchSeconds: number;      // Thời gian xem trung bình
+  peakLiveViewers?: number;     // Đỉnh mắt xem đồng thời (với Mega Live)
+  generatedRevenueEstimateVND?: string; // Ước tính GMV tạo ra
+  accuracyLevel: string;        // 'Chuẩn xác 100% đối soát từ KYC'
+  lastUpdatedAt: string;
+}
 
 export interface MultiTargetConfig {
   type: 'follow' | 'watch' | 'like' | 'comment' | 'share' | 'livestream';
@@ -641,6 +675,10 @@ export interface CampaignAudienceTargeting {
   viewingHabits?: string[]; // ['Reviewer TikTok Shop', 'Livestream bán hàng', 'ASMR Ăn uống', 'Drama giải trí', 'Tips công nghệ']
   targetCriteriaSummary?: string;
   estimatedAudienceSize?: number; // Ước tính quy mô tệp phù hợp
+  productName?: string;          // Tên sản phẩm tung ra
+  productPrice?: string;         // Giá niêm yết
+  scheduledBroadcastTime?: string; // Ngày & giờ phát sóng Mega Live
+  pinnedOffer?: string;          // Ưu đãi ghim trong phiên live
 }
 
 // Chiến dịch do khách hàng tạo
@@ -660,6 +698,9 @@ export interface CampaignItem {
   livestreamMinutes?: number;
   multiTargets?: MultiTargetConfig[];
   audienceTargeting?: CampaignAudienceTargeting;
+  videoPreviewUrl?: string;
+  demographicsReport?: CampaignDemographicsReport;
+  isAnalyticsUnlocked?: boolean; // True nếu người dùng đã trả 200,000 Xu để xem phân tích chi tiết
 }
 
 // Bảng khung hình phạt & chế tài xử lý vi phạm hợp đồng KOC Escrow
@@ -828,10 +869,11 @@ export interface KycVerificationData {
   userId: string;
   userEmail: string;
   fullName: string;
-  idNumber: string;               // Số CCCD / Hộ chiếu
+  idNumber: string;               // Số CCCD / Hộ chiếu (12 số)
   dateOfBirth: string;
   frontIdCardUrl: string;         // Link ảnh mặt trước CCCD
   backIdCardUrl: string;          // Link ảnh mặt sau CCCD
+  selfiePhotoUrl?: string;        // Link ảnh chụp selfie khuôn mặt cá nhân (cầm CCCD / chụp rõ nét)
   bankName: string;               // Tên ngân hàng nhận tiền
   bankAccountNumber: string;      // Số tài khoản ngân hàng
   bankAccountHolder: string;      // Tên chủ tài khoản (phải trùng tên CCCD)
@@ -839,6 +881,7 @@ export interface KycVerificationData {
   reviewedAt?: string;
   status: KycStatus;
   rejectionReason?: string;
+  isCitizenIdUnique?: boolean;    // Chống trùng lặp CCCD, mỗi người chỉ 1 tài khoản
 }
 
 // Ứng dụng & Phần mềm Xây Kênh TikTok (Chợ Marketplace Phần Mềm)
@@ -936,6 +979,8 @@ export interface UserProfileWallet {
   rankLevel: 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương';
   kycStatus: KycStatus;
   kycData?: KycVerificationData;
+  citizenId?: string;
+  selfiePhotoUrl?: string;
   bankInfo?: BankAccountInfo;
   transactions: TransactionRecord[];
   myOrders?: ServiceOrder[];

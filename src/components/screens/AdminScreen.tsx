@@ -48,9 +48,11 @@ import {
   Rocket,
   Trophy,
   Target,
+  BarChart3,
   Calendar,
   UserPlus,
-  Play
+  Play,
+  Camera
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { AdminUserManagementItem, GrowthServiceItem, SoftwareAppItem } from '../../types';
@@ -627,6 +629,101 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 </div>
               </div>
 
+            </div>
+          </div>
+
+          {/* Thống Kê Tiến Độ Hoàn Thành & Tỷ Lệ Rơi Rụng Nhiệm Vụ Hàng Ngày */}
+          <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-5 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-emerald-400" />
+                    Thống Kê Tiến Độ Hoàn Thành &amp; Tỷ Lệ Rơi Rụng Nhiệm Vụ (Daily Task Analytics)
+                  </h3>
+                  <FeatureGuideTooltip
+                    title="Phân Tích Hoàn Thành & Rơi Rụng Nhiệm Vụ"
+                    description="Giám sát tỷ lệ thành công của các nhiệm vụ trong ngày, tỷ lệ rơi rụng (drop-off), thời gian hoàn thành trung bình để phát hiện sớm các chiến dịch có vấn đề hoặc hành vi bất thường."
+                    steps={[
+                      "1. Tỷ lệ hoàn thành (Completion Rate): Đo lường % người dùng thực hiện đủ yêu cầu và nhận Xu thưởng thành công",
+                      "2. Tỷ lệ rơi rụng (Drop-off Rate): Người nhận task nhưng thoát giữa chừng hoặc không bấm nút xác nhận",
+                      "3. Phân bổ theo loại hình: So sánh hiệu quả giữa Follow, Xem FYP 15s, Like, Comment, Share và Livestream",
+                      "4. Xu hướng 7 ngày: Đánh giá độ ổn định của hệ sinh thái và cộng đồng người dùng thật"
+                    ]}
+                    badge="Hiệu Suất Task Real-Time"
+                  />
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Báo cáo trực quan % nhiệm vụ hoàn thành nhận Xu vs tỷ lệ bỏ dở theo từng khung giờ và loại tương tác
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold">
+                  ● 89.4% Hoàn Thành Toàn Sàn
+                </span>
+                <span className="px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-mono font-bold">
+                  10.6% Rơi Rụng / Hủy
+                </span>
+              </div>
+            </div>
+
+            {/* 4 Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-1 text-center">
+                <div className="text-[10px] text-slate-400 font-mono uppercase">Tổng Task Đã Nhận (24h)</div>
+                <div className="text-xl font-black text-white font-mono">24,850</div>
+                <div className="text-[10px] text-emerald-400 font-mono">+12.4% so với hôm qua</div>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-emerald-500/30 space-y-1 text-center">
+                <div className="text-[10px] text-emerald-300 font-mono uppercase">Hoàn Thành &amp; Nhận Xu</div>
+                <div className="text-xl font-black text-emerald-400 font-mono">22,215</div>
+                <div className="text-[10px] text-emerald-300 font-mono font-bold">89.4% Thành Công</div>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-rose-500/30 space-y-1 text-center">
+                <div className="text-[10px] text-rose-300 font-mono uppercase">Rơi Rụng / Hết Hạn 60s</div>
+                <div className="text-xl font-black text-rose-400 font-mono">2,635</div>
+                <div className="text-[10px] text-rose-300 font-mono font-bold">10.6% Tỷ Lệ Drop</div>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-purple-500/30 space-y-1 text-center">
+                <div className="text-[10px] text-purple-300 font-mono uppercase">Thời Gian Trung Bình/Task</div>
+                <div className="text-xl font-black text-purple-300 font-mono">18.2s</div>
+                <div className="text-[10px] text-slate-400 font-mono">Chuẩn tự nhiên FYP</div>
+              </div>
+            </div>
+
+            {/* Breakdown by Interaction Type */}
+            <div className="p-4 rounded-2xl bg-black/30 border border-white/5 space-y-3">
+              <div className="text-xs font-bold text-white uppercase font-mono flex items-center justify-between">
+                <span>Chi Tiết Theo Từng Loại Tương Tác:</span>
+                <span className="text-[10px] text-slate-400 font-normal">Cập nhật lúc {new Date().toLocaleTimeString('vi-VN')}</span>
+              </div>
+
+              <div className="space-y-2.5">
+                {[
+                  { label: 'Kết Nối Bạn Bè (Follow Người Thật)', completed: 92.5, drop: 7.5, total: '8,420 task', color: 'from-emerald-500 to-teal-400' },
+                  { label: 'Xem & Đánh Giá (Thả Tim Video)', completed: 94.2, drop: 5.8, total: '7,150 task', color: 'from-pink-500 to-rose-400' },
+                  { label: 'Tiếp Cận Người Xem (Xem FYP 15s)', completed: 91.0, drop: 9.0, total: '4,890 task', color: 'from-blue-500 to-cyan-400' },
+                  { label: 'Giới Thiệu Bạn Bè (Share Ngoại Sàn)', completed: 86.8, drop: 13.2, total: '1,840 task', color: 'from-purple-500 to-indigo-400' },
+                  { label: 'Trả Lời Câu Hỏi (Comment Seeding)', completed: 84.6, drop: 15.4, total: '1,450 task', color: 'from-amber-500 to-yellow-400' },
+                  { label: 'Xem LIVE & Trả Lời (Giữ Mắt 3-30p)', completed: 81.3, drop: 18.7, total: '1,100 task', color: 'from-red-500 to-orange-400' },
+                ].map((item, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-slate-300 font-bold">{item.label}</span>
+                      <div className="flex items-center gap-3 text-[11px]">
+                        <span className="text-slate-400 font-normal">{item.total}</span>
+                        <span className="text-emerald-400 font-bold">✓ {item.completed}% hoàn thành</span>
+                        <span className="text-rose-400 font-bold">✗ {item.drop}% drop</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden flex">
+                      <div className={`bg-gradient-to-r ${item.color} h-full transition-all duration-500`} style={{ width: `${item.completed}%` }} />
+                      <div className="bg-rose-500/40 h-full transition-all duration-500" style={{ width: `${item.drop}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1794,19 +1891,24 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   </span>
                 </div>
 
-                {/* Bank Details & Photos */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Bank Details & Photos (Front, Back, Selfie) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {/* Bank Info */}
                   <div className="p-3 bg-slate-800/60 rounded-xl space-y-1">
                     <span className="text-slate-400 block font-semibold text-[11px]">Tài Khoản Ngân Hàng:</span>
                     <p className="text-white font-bold">{req.bankName}</p>
                     <p className="text-cyan-400 font-mono font-bold text-[12px]">{req.bankAccountNumber}</p>
                     <p className="text-slate-300 text-[11px]">Chủ tài khoản: <strong>{req.bankAccountHolder}</strong></p>
+                    <div className="pt-1">
+                      <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">
+                        ✓ 1 CCCD / 1 Tài khoản duy nhất
+                      </span>
+                    </div>
                   </div>
 
                   {/* Front Photo */}
                   <div className="space-y-1">
-                    <span className="text-slate-400 block text-[11px] font-semibold">Ảnh Mặt Trước CCCD:</span>
+                    <span className="text-slate-400 block text-[11px] font-semibold font-mono">1. Mặt Trước CCCD:</span>
                     <a href={req.frontIdCardUrl} target="_blank" rel="noreferrer" className="block h-28 rounded-xl overflow-hidden border border-white/10 bg-black/40 group">
                       <img src={req.frontIdCardUrl} alt="Front ID" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     </a>
@@ -1814,9 +1916,20 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
                   {/* Back Photo */}
                   <div className="space-y-1">
-                    <span className="text-slate-400 block text-[11px] font-semibold">Ảnh Mặt Sau CCCD:</span>
+                    <span className="text-slate-400 block text-[11px] font-semibold font-mono">2. Mặt Sau CCCD:</span>
                     <a href={req.backIdCardUrl} target="_blank" rel="noreferrer" className="block h-28 rounded-xl overflow-hidden border border-white/10 bg-black/40 group">
                       <img src={req.backIdCardUrl} alt="Back ID" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    </a>
+                  </div>
+
+                  {/* Selfie Photo */}
+                  <div className="space-y-1">
+                    <span className="text-purple-300 block text-[11px] font-semibold font-mono flex items-center gap-1">
+                      <Camera className="w-3.5 h-3.5 text-pink-400" />
+                      <span>3. Ảnh Chụp Selfie:</span>
+                    </span>
+                    <a href={req.selfiePhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'} target="_blank" rel="noreferrer" className="block h-28 rounded-xl overflow-hidden border border-purple-500/40 bg-black/40 group">
+                      <img src={req.selfiePhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'} alt="Selfie" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     </a>
                   </div>
                 </div>

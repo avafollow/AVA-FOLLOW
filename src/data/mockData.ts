@@ -797,6 +797,104 @@ export const GROWTH_SERVICES: GrowthServiceItem[] = COMPREHENSIVE_GROWTH_PACKAGE
 // Danh sách chiến dịch đang chạy trong hệ thống
 export const ACTIVE_CAMPAIGNS: CampaignItem[] = [
   {
+    id: 'camp_mega_1',
+    title: 'Đại Tiệc Mega Live Ra Mắt BST Mỹ Phẩm Mùa Thu (Target 15.000 Mắt Xem Thật)',
+    type: 'mega_live',
+    channelHandle: '@zenskin_vietnam',
+    targetUrl: 'https://www.tiktok.com/@zenskin_vietnam/live',
+    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-talking-on-a-video-call-42318-large.mp4',
+    targetQuantity: 15000,
+    completedQuantity: 12850,
+    budgetTotal: '15,000,000đ',
+    pricePerAction: '1,000đ / mắt live',
+    status: 'running',
+    createdAt: 'Hôm nay',
+    instructions: 'Tham gia phiên Mega Live, xem tối thiểu 3 phút, thả tim và bình luận mã voucher.',
+    livestreamMinutes: 30,
+    isAnalyticsUnlocked: true,
+    audienceTargeting: {
+      mode: 'niche_targeted',
+      gender: 'female',
+      ageRanges: ['18-24', '25-34'],
+      regions: ['hcm', 'hanoi', 'mien_nam'],
+      interests: ['Mỹ Phẩm & Làm Đẹp', 'Thời Trang & OOTD'],
+      productName: 'BST Son Kem Lì Mùa Thu ZenSkin Velvet',
+      productPrice: '289.000đ',
+      scheduledBroadcastTime: '20:00 - 22:30 (Thứ 6 Tuần Này)',
+      pinnedOffer: 'Flash Sale Giảm 50% + Tặng Kèm Túi Xách'
+    },
+    demographicsReport: {
+      totalViewers: 12850,
+      realUserScore: 99.2,
+      genderDistribution: { male: 14, female: 83, other: 3 },
+      ageGroups: { '18-24': 48, '25-34': 39, '35-44': 10, '45+': 3 },
+      topLocations: [
+        { province: 'Hồ Chí Minh', percentage: 42, viewerCount: 5397 },
+        { province: 'Hà Nội', percentage: 28, viewerCount: 3598 },
+        { province: 'Đà Nẵng', percentage: 14, viewerCount: 1799 },
+        { province: 'Cần Thơ & Miền Tây', percentage: 16, viewerCount: 2056 }
+      ],
+      interestNiches: [
+        { niche: 'Mỹ phẩm & Chăm sóc da', percentage: 88 },
+        { niche: 'Thời trang nữ', percentage: 76 },
+        { niche: 'Săn Deal TikTok Shop', percentage: 92 }
+      ],
+      engagementRate: 24.8,
+      avgWatchSeconds: 285,
+      peakLiveViewers: 4250,
+      generatedRevenueEstimateVND: '185.000.000đ',
+      accuracyLevel: 'Chuẩn xác 100% đối soát từ KYC',
+      lastUpdatedAt: 'Vừa xong'
+    }
+  },
+  {
+    id: 'camp_launch_1',
+    title: 'Chiến Dịch Tung Sản Phẩm Mới: Tai Nghe AI Noise Cancelling Pro (Phủ Toàn Sàn)',
+    type: 'product_launch',
+    channelHandle: '@techzone_vietnam',
+    targetUrl: 'https://www.tiktok.com/@techzone_vietnam/video/7345678901234567890',
+    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-laptop-keyboard-42475-large.mp4',
+    targetQuantity: 20000,
+    completedQuantity: 16400,
+    budgetTotal: '10,000,000đ',
+    pricePerAction: '500đ / lượt tương tác',
+    status: 'running',
+    createdAt: 'Hôm qua',
+    instructions: 'Xem đủ 15s video review, thả tim và bình luận công nghệ chống ồn.',
+    isAnalyticsUnlocked: false,
+    audienceTargeting: {
+      mode: 'niche_targeted',
+      gender: 'all',
+      ageRanges: ['18-24', '25-34', '35-44'],
+      regions: ['all'],
+      interests: ['Công Nghệ & Điện Tử', 'Reviewer TikTok Shop'],
+      productName: 'Tai Nghe True Wireless SoundCore AI Pro Max',
+      productPrice: '799.000đ'
+    },
+    demographicsReport: {
+      totalViewers: 16400,
+      realUserScore: 98.6,
+      genderDistribution: { male: 68, female: 29, other: 3 },
+      ageGroups: { '18-24': 52, '25-34': 36, '35-44': 9, '45+': 3 },
+      topLocations: [
+        { province: 'Hà Nội', percentage: 38, viewerCount: 6232 },
+        { province: 'Hồ Chí Minh', percentage: 36, viewerCount: 5904 },
+        { province: 'Đà Nẵng & Miền Trung', percentage: 15, viewerCount: 2460 },
+        { province: 'Hải Phòng & Bắc Ninh', percentage: 11, viewerCount: 1804 }
+      ],
+      interestNiches: [
+        { niche: 'Công nghệ & Điện thoại', percentage: 91 },
+        { niche: 'Gaming & Đồ họa', percentage: 74 },
+        { niche: 'Phụ kiện văn phòng', percentage: 65 }
+      ],
+      engagementRate: 18.5,
+      avgWatchSeconds: 42,
+      generatedRevenueEstimateVND: '124.500.000đ',
+      accuracyLevel: 'Chuẩn xác 100% đối soát từ KYC',
+      lastUpdatedAt: '10 phút trước'
+    }
+  },
+  {
     id: 'camp_1',
     title: 'Chiến dịch Kéo 5,000 Follow cho Kênh Mỹ Phẩm ZenSkin',
     type: 'follow',
@@ -808,7 +906,8 @@ export const ACTIVE_CAMPAIGNS: CampaignItem[] = [
     pricePerAction: '300đ / follow',
     status: 'running',
     createdAt: '2 ngày trước',
-    instructions: 'Follow kênh và giữ follow tối thiểu 30 ngày.'
+    instructions: 'Follow kênh và giữ follow tối thiểu 30 ngày.',
+    isAnalyticsUnlocked: false
   },
   {
     id: 'camp_2',
@@ -822,7 +921,8 @@ export const ACTIVE_CAMPAIGNS: CampaignItem[] = [
     pricePerAction: '300đ / tương tác',
     status: 'running',
     createdAt: '1 ngày trước',
-    instructions: 'Xem video 15s, thả tim và bình luận khen mẫu áo.'
+    instructions: 'Xem video 15s, thả tim và bình luận khen mẫu áo.',
+    isAnalyticsUnlocked: false
   },
   {
     id: 'camp_3',
@@ -836,7 +936,8 @@ export const ACTIVE_CAMPAIGNS: CampaignItem[] = [
     pricePerAction: '500,000đ / video review',
     status: 'running',
     createdAt: '3 ngày trước',
-    instructions: 'Đến quán trải nghiệm, quay video 60s và gắn vị trí quán.'
+    instructions: 'Đến quán trải nghiệm, quay video 60s và gắn vị trí quán.',
+    isAnalyticsUnlocked: false
   }
 ];
 

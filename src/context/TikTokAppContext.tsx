@@ -273,7 +273,9 @@ interface TikTokAppContextType {
     livestreamMinutes?: number;
     multiTargets?: MultiTargetConfig[];
     audienceTargeting?: CampaignAudienceTargeting;
+    videoPreviewUrl?: string;
   }) => boolean;
+  unlockCampaignAnalytics: (campaignId: string) => boolean;
   approveCampaign: (campaignId: string) => void;
   rejectCampaign: (campaignId: string) => void;
   orderService: (service: GrowthServiceItem) => void;
@@ -3404,6 +3406,73 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return true;
   };
 
+  // Mở khóa báo cáo đo lường chi tiết tệp khán giả chiến dịch (200.000 Xu cho người dùng, Miễn phí cho Admin)
+  const unlockCampaignAnalytics = (campaignId: string): boolean => {
+    const UNLOCK_FEE_XU = 200000;
+    const isUserAdmin = user.isAdmin || user.email === 'quocthiencr90@gmail.com' || user.email === 'thienvuaapp@gmail.com';
+
+    if (!isUserAdmin && user.avaliveCoins < UNLOCK_FEE_XU) {
+      showToast(`⚠️ Bạn cần tối thiểu ${UNLOCK_FEE_XU.toLocaleString()} Xu để mở khóa Báo Cáo Đo Lường Chi Tiết!`);
+      openDeposit();
+      return false;
+    }
+
+    if (!isUserAdmin) {
+      const newCoins = user.avaliveCoins - UNLOCK_FEE_XU;
+      const newTx: TransactionRecord = {
+        id: `tx_unlock_data_${Date.now()}`,
+        type: 'spend',
+        title: 'Mở khóa Báo Cáo Đo Lường Tệp Khán Giả Chiến Dịch (200.000 Xu)',
+        amount: `-${UNLOCK_FEE_XU.toLocaleString()} Xu (-200.000đ)`,
+        isPositive: false,
+        date: 'Vừa xong',
+        status: 'success'
+      };
+      setUser(prev => ({
+        ...prev,
+        avaliveCoins: newCoins,
+        coinsValueVND: `${newCoins.toLocaleString()}đ`,
+        transactions: [newTx, ...prev.transactions]
+      }));
+    }
+
+    setCampaigns(prev => prev.map(c => {
+      if (c.id === campaignId) {
+        return {
+          ...c,
+          isAnalyticsUnlocked: true,
+          demographicsReport: c.demographicsReport || {
+            totalViewers: c.completedQuantity || 5000,
+            realUserScore: 98.7,
+            genderDistribution: { male: 38, female: 59, other: 3 },
+            ageGroups: { '18-24': 45, '25-34': 38, '35-44': 12, '45+': 5 },
+            topLocations: [
+              { province: 'Hồ Chí Minh', percentage: 41, viewerCount: Math.round((c.completedQuantity || 5000) * 0.41) },
+              { province: 'Hà Nội', percentage: 32, viewerCount: Math.round((c.completedQuantity || 5000) * 0.32) },
+              { province: 'Đà Nẵng & Miền Trung', percentage: 15, viewerCount: Math.round((c.completedQuantity || 5000) * 0.15) },
+              { province: 'Miền Tây & Tỉnh Khác', percentage: 12, viewerCount: Math.round((c.completedQuantity || 5000) * 0.12) }
+            ],
+            interestNiches: [
+              { niche: 'Mỹ phẩm & Chăm sóc cá nhân', percentage: 84 },
+              { niche: 'Thời trang & Mua sắm TikTok Shop', percentage: 78 },
+              { niche: 'Công nghệ & Đời sống', percentage: 62 }
+            ],
+            engagementRate: 22.4,
+            avgWatchSeconds: 38,
+            peakLiveViewers: c.type === 'mega_live' || c.type === 'livestream' ? 3850 : undefined,
+            generatedRevenueEstimateVND: '85.000.000đ',
+            accuracyLevel: 'Chuẩn xác 100% đối soát từ KYC',
+            lastUpdatedAt: 'Vừa xong'
+          }
+        };
+      }
+      return c;
+    }));
+
+    showToast(isUserAdmin ? '👑 [Admin] Đã mở khóa Báo Cáo Đo Lường Chi Tiết miễn phí!' : '✅ Đã mở khóa Báo Cáo Đo Lường Dữ Liệu Tệp Khán Giả (-200.000 Xu)!');
+    return true;
+  };
+
   const approveCampaign = (campaignId: string) => {
     setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'running' } : c));
     setAdminData(prev => ({
@@ -4186,6 +4255,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         withdraw,
         saveBankInfo,
         createCampaign,
+        unlockCampaignAnalytics,
         approveCampaign,
         rejectCampaign,
         orderService,

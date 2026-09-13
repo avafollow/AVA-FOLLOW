@@ -21,7 +21,19 @@ import {
   Layers,
   Calculator,
   Sliders,
-  ExternalLink
+  ExternalLink,
+  Lock,
+  Unlock,
+  BarChart3,
+  PieChart,
+  Building2,
+  ShoppingBag,
+  Tag,
+  Calendar,
+  Megaphone,
+  Target,
+  Users,
+  Rocket
 } from 'lucide-react';
 import { CampaignItem, FLEXIBLE_LIVESTREAM_TIERS, MultiTargetConfig } from '../../types';
 import { useTikTokApp } from '../../context/TikTokAppContext';
@@ -40,9 +52,9 @@ interface TargetOptionDef {
 const TARGET_OPTIONS: TargetOptionDef[] = [
   { 
     id: 'follow', 
-    label: 'Follow Kênh Thật', 
+    label: 'Kết Nối Follow Người Thật', 
     icon: UserPlus, 
-    desc: '500 Xu / follow', 
+    desc: '500 Xu / follow thật', 
     unitPrice: 500, 
     minQuantity: 1, 
     defaultQty: 10, 
@@ -50,9 +62,9 @@ const TARGET_OPTIONS: TargetOptionDef[] = [
   },
   { 
     id: 'watch', 
-    label: 'Xem Video FYP 15s', 
+    label: 'Kết Nối Lượt Xem FYP 15s', 
     icon: Play, 
-    desc: '500 Xu / lượt', 
+    desc: '500 Xu / view thật', 
     unitPrice: 500, 
     minQuantity: 1, 
     defaultQty: 10, 
@@ -60,9 +72,9 @@ const TARGET_OPTIONS: TargetOptionDef[] = [
   },
   { 
     id: 'like', 
-    label: 'Thả Tim Video', 
+    label: 'Kết Nối Thả Tim Tương Tác', 
     icon: Heart, 
-    desc: '250 Xu / tim', 
+    desc: '250 Xu / tim thật', 
     unitPrice: 250, 
     minQuantity: 1, 
     defaultQty: 20, 
@@ -70,9 +82,9 @@ const TARGET_OPTIONS: TargetOptionDef[] = [
   },
   { 
     id: 'comment', 
-    label: 'Bình Luận Seeding', 
+    label: 'Kết Nối Bình Luận Seeding', 
     icon: MessageSquare, 
-    desc: '500 Xu / cmt', 
+    desc: '500 Xu / cmt chất lượng', 
     unitPrice: 500, 
     minQuantity: 1, 
     defaultQty: 10, 
@@ -80,9 +92,9 @@ const TARGET_OPTIONS: TargetOptionDef[] = [
   },
   { 
     id: 'share', 
-    label: 'Chia Sẻ Video', 
+    label: 'Kết Nối Chia Sẻ Lan Tỏa', 
     icon: Share2, 
-    desc: '600 Xu / share', 
+    desc: '600 Xu / share thật', 
     unitPrice: 600, 
     minQuantity: 1, 
     defaultQty: 10, 
@@ -90,9 +102,9 @@ const TARGET_OPTIONS: TargetOptionDef[] = [
   },
   { 
     id: 'livestream', 
-    label: 'Mắt Live Linh Hoạt', 
+    label: 'Kết Nối Mắt Live Giữ Chân', 
     icon: Eye, 
-    desc: 'Từ 350 Xu / mắt', 
+    desc: 'Từ 350 Xu / mắt xem thật', 
     unitPrice: 350, 
     minQuantity: 1, 
     defaultQty: 15, 
@@ -100,7 +112,7 @@ const TARGET_OPTIONS: TargetOptionDef[] = [
   },
   { 
     id: 'booking_review', 
-    label: 'Booking KOC / Review', 
+    label: 'Booking KOC Trải Nghiệm', 
     icon: Sparkles, 
     desc: '1.5M Xu / video', 
     unitPrice: 1500000, 
@@ -117,6 +129,7 @@ export const CreateCampaignScreen: React.FC<{
   const { 
     user, 
     createCampaign, 
+    unlockCampaignAnalytics,
     openDeposit, 
     campaigns, 
     showToast,
@@ -124,6 +137,20 @@ export const CreateCampaignScreen: React.FC<{
     endMarqueeItem,
     marqueeTickerList
   } = useTikTokApp();
+
+  // Tab: Standard vs Mega Live & Product Launch
+  const [activeMainTab, setActiveMainTab] = useState<'standard' | 'mega_launch'>('standard');
+
+  // Mega Live & Launch Form States
+  const [megaType, setMegaType] = useState<'mega_live' | 'product_launch'>('mega_live');
+  const [megaProductName, setMegaProductName] = useState('');
+  const [megaProductCategory, setMegaProductCategory] = useState('Mỹ Phẩm & Làm Đẹp');
+  const [megaProductPrice, setMegaProductPrice] = useState('299.000đ');
+  const [megaVoucher, setMegaVoucher] = useState('Mã MGG50 - Giảm 50% Cho Người Xem Live');
+  const [megaLiveDateTime, setMegaLiveDateTime] = useState('20:00 Tối Nay');
+  const [megaLiveGoal, setMegaLiveGoal] = useState<number>(10000);
+  const [megaLiveDuration, setMegaLiveDuration] = useState<number>(60);
+  const [megaPushNotification, setMegaPushNotification] = useState<boolean>(true);
 
   // Add-on: Đẩy lên Bảng Điện LED Toàn Sàn (100.000 Xu)
   const [includeMarqueeBoost, setIncludeMarqueeBoost] = useState(false);
@@ -328,24 +355,114 @@ export const CreateCampaignScreen: React.FC<{
     }
   };
 
+  // Handler for Mega Live & Product Launch Campaign
+  const handleMegaSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const isMegaLive = megaType === 'mega_live';
+    const basePricePerUnit = isMegaLive ? 1000 : 500;
+    const megaCostXu = (megaLiveGoal * basePricePerUnit) + (includeMarqueeBoost ? MARQUEE_FEE : 0);
+    const megaCostVND = megaCostXu.toLocaleString('vi-VN') + 'đ';
+
+    if ((user.avaliveCoins || 0) < megaCostXu) {
+      showToast(`⚠️ Bạn cần tối thiểu ${megaCostXu.toLocaleString()} Xu (${megaCostVND}) để kích hoạt gói VIP Doanh Nghiệp này!`);
+      openDeposit();
+      return;
+    }
+
+    const campaignTitle = isMegaLive
+      ? `Đại Tiệc Mega Live: ${megaProductName || 'Sản Phẩm Mới'} (@${channelHandle.replace('@', '')})`
+      : `Chiến Dịch Tung Sản Phẩm: ${megaProductName || 'Sản Phẩm Mới'} (@${channelHandle.replace('@', '')})`;
+
+    const success = createCampaign({
+      title: campaignTitle,
+      type: megaType,
+      channelHandle: channelHandle.startsWith('@') ? channelHandle : `@${channelHandle}`,
+      targetUrl,
+      targetQuantity: megaLiveGoal,
+      budgetTotal: `${megaCostXu.toLocaleString()} Xu (${megaCostVND})`,
+      pricePerAction: `${basePricePerUnit.toLocaleString('vi-VN')} Xu`,
+      instructions: isMegaLive
+        ? `Xem phiên Mega Live tối thiểu ${megaLiveDuration} phút, thả tim, bình luận và nhận mã ưu đãi ${megaVoucher}.`
+        : `Xem video review ${megaProductName}, tương tác tự nhiên và khám phá sản phẩm mới.`,
+      livestreamMinutes: isMegaLive ? megaLiveDuration : undefined,
+      audienceTargeting: {
+        mode: 'niche_targeted',
+        gender: targetGender,
+        ageRanges: selectedAgeRanges,
+        regions: [selectedRegion],
+        interests: [megaProductCategory, ...selectedInterests],
+        productName: megaProductName || 'Sản phẩm cao cấp',
+        productPrice: megaProductPrice,
+        scheduledBroadcastTime: megaLiveDateTime,
+        pinnedOffer: megaVoucher,
+        targetCriteriaSummary: `Nhắm tệp ${megaProductCategory} • ${targetGender === 'all' ? 'Nam & Nữ' : targetGender === 'male' ? 'Nam' : 'Nữ'} (${selectedAgeRanges.join(', ')}) • ${selectedRegion === 'all' ? 'Toàn quốc' : selectedRegion}`,
+        estimatedAudienceSize: 154200
+      }
+    });
+
+    if (success) {
+      if (includeMarqueeBoost) {
+        boostToMarquee(`camp_mega_${Date.now()}`, 'campaign', {
+          title: campaignTitle,
+          handle: channelHandle,
+          url: targetUrl,
+          targetQuantity: megaLiveGoal,
+          rewardText: isMegaLive ? 'Mega Live VIP' : 'Launch Viral'
+        });
+      }
+      showToast(`🚀 Đã khởi tạo thành công chiến dịch ${isMegaLive ? 'Mega Live' : 'Tung Sản Phẩm'} cho ${channelHandle}!`);
+      setMegaProductName('');
+      setIncludeMarqueeBoost(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-16">
       {/* Header */}
       <div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-rose-500/20 to-purple-500/20 text-pink-300 text-xs font-mono mb-2 border border-pink-500/30">
           <Sparkles className="h-3.5 w-3.5 text-pink-400" />
-          <span className="font-bold">TỰ DO KHỞI CHẠY CHIẾN DỊCH • CHỈ CẦN TỪ 5.000 XU TRỞ LÊN</span>
+          <span className="font-bold">KẾT NỐI TƯƠNG TÁC THẬT • 100% NGƯỜI DÙNG XÁC MINH KYC</span>
         </div>
         <div className="flex items-center gap-2">
           <PlusCircle className="h-6 w-6 text-pink-500" />
-          <h2 className="text-xl sm:text-2xl font-black text-white">Tạo Chiến Dịch Tăng Trưởng &amp; Tương Tác TikTok</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-white">Tạo Chiến Dịch Tăng Trưởng &amp; Kết Nối Tệp Khách Hàng Thật</h2>
         </div>
         <p className="text-xs text-slate-300 mt-1">
-          Chỉ cần có Xu trong ví, bạn có thể chạy bất kỳ số lượng tương tác nào (10 follow, 20 tim, 50 view, mắt live...). Ngân sách tối thiểu mỗi chiến dịch là <strong>5.000 Xu</strong>.
+          Hệ thống kết nối người dùng thật, kết nối follow, kết nối view và mắt livestream chất lượng cao đúng tệp khách hàng tiềm năng.
         </p>
-        <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-          Tùy chọn kết hợp nhiều mục tiêu cùng lúc: Follow, Xem Video FYP, Thả Tim, Bình Luận, Chia Sẻ hoặc Mắt Live. Hệ thống sẽ cộng dồn số Xu và trừ một lần từ ví để chạy đồng thời!
-        </p>
+      </div>
+
+      {/* Main Mode Tabs Switcher */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-1.5 bg-[#0D111E] rounded-3xl border border-white/10 shadow-xl">
+        <button
+          type="button"
+          onClick={() => setActiveMainTab('standard')}
+          className={`py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-black font-mono transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            activeMainTab === 'standard'
+              ? 'bg-gradient-to-r from-rose-600 to-purple-600 text-white shadow-lg shadow-rose-600/30'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Sliders className="w-4 h-4 text-pink-300" />
+          <span>Chiến Dịch Tăng Trưởng Tiêu Chuẩn</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveMainTab('mega_launch')}
+          className={`py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-black font-mono transition-all flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden ${
+            activeMainTab === 'mega_launch'
+              ? 'bg-gradient-to-r from-amber-500 via-rose-600 to-purple-600 text-white shadow-lg shadow-amber-500/30'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Rocket className="w-4 h-4 text-yellow-300 animate-bounce" />
+          <span>Chiến Dịch Tung Sản Phẩm &amp; Mega Live</span>
+          <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-black text-[9px] font-black uppercase">
+            VIP GÓI LỚN
+          </span>
+        </button>
       </div>
 
       {/* Wallet Balance & Instant Recharge */}
@@ -376,6 +493,7 @@ export const CreateCampaignScreen: React.FC<{
       </div>
 
       {/* Main Campaign Form */}
+      {activeMainTab === 'standard' && (
       <form onSubmit={handleSubmit} className="p-6 sm:p-8 rounded-3xl bg-[#0D111E] border border-white/10 space-y-6 text-xs shadow-2xl">
         
         {/* 1. Multi-Target Selector */}
@@ -1144,6 +1262,360 @@ export const CreateCampaignScreen: React.FC<{
           </div>
         </div>
       </form>
+      )}
+
+      {/* Mega Live & Product Launch Campaign Form */}
+      {activeMainTab === 'mega_launch' && (
+        <form onSubmit={handleMegaSubmit} className="p-6 sm:p-8 rounded-3xl bg-[#0D111E] border border-amber-500/30 space-y-6 text-xs shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-500/10 via-rose-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+          {/* 1. Mega Type Switcher */}
+          <div className="space-y-2">
+            <label className="block text-zinc-300 font-mono font-black uppercase text-[11px]">
+              1. Chọn Loại Hình Chiến Dịch Đặc Biệt:
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setMegaType('mega_live')}
+                className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                  megaType === 'mega_live'
+                    ? 'bg-rose-950/40 border-rose-500 ring-2 ring-rose-500 text-white shadow-lg shadow-rose-900/30'
+                    : 'bg-white/[0.02] border-white/10 text-slate-400 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
+                    <Radio className="w-5 h-5 animate-pulse" />
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono">
+                    Mega Live Hot
+                  </span>
+                </div>
+                <div className="mt-3">
+                  <div className="font-bold text-white text-sm">🔴 Phiên Đại Tiệc Mega Live</div>
+                  <p className="text-[11px] text-slate-300 mt-1">
+                    Kéo hàng ngàn mắt xem thật, giữ mắt liên tục 30-120 phút, kích hoạt đề xuất tab Live và đẩy doanh số chốt đơn thần tốc.
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMegaType('product_launch')}
+                className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                  megaType === 'product_launch'
+                    ? 'bg-purple-950/40 border-purple-500 ring-2 ring-purple-500 text-white shadow-lg shadow-purple-900/30'
+                    : 'bg-white/[0.02] border-white/10 text-slate-400 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+                    <Megaphone className="w-5 h-5" />
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono">
+                    Product Launch
+                  </span>
+                </div>
+                <div className="mt-3">
+                  <div className="font-bold text-white text-sm">🚀 Chiến Dịch Tung &amp; Ra Mắt Sản Phẩm Mới</div>
+                  <p className="text-[11px] text-slate-300 mt-1">
+                    Phủ sóng video viral ra mắt sản phẩm mới, kéo tương tác bình luận seeding giỏ hàng, phủ sóng thị trường đúng tệp khách.
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* 2. Product Details & Deal */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-zinc-300 font-mono font-bold text-[11px]">
+                🏷️ Tên Sản Phẩm / Bộ Sưu Tập Chính:
+              </label>
+              <input
+                type="text"
+                value={megaProductName}
+                onChange={(e) => setMegaProductName(e.target.value)}
+                placeholder="VD: BST Son Kem Lì Mùa Thu, Tai Nghe AI Pro..."
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-zinc-300 font-mono font-bold text-[11px]">
+                📦 Ngành Hàng / Ngách Sản Phẩm:
+              </label>
+              <select
+                value={megaProductCategory}
+                onChange={(e) => setMegaProductCategory(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
+              >
+                <option value="Mỹ Phẩm & Làm Đẹp">Mỹ Phẩm &amp; Làm Đẹp</option>
+                <option value="Thời Trang & Phụ Kiện">Thời Trang &amp; Phụ Kiện</option>
+                <option value="Công Nghệ & Điện Tử">Công Nghệ &amp; Điện Tử</option>
+                <option value="Gia Dụng & Đời Sống">Gia Dụng &amp; Đời Sống</option>
+                <option value="Ẩm Thực & F&B">Ẩm Thực &amp; F&amp;B</option>
+                <option value="Mẹ & Bé">Mẹ &amp; Bé</option>
+                <option value="Sức Khỏe & Thể Thao">Sức Khỏe &amp; Thể Thao</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-zinc-300 font-mono font-bold text-[11px]">
+                💰 Giá Bán Niêm Yết / Khuyến Mãi:
+              </label>
+              <input
+                type="text"
+                value={megaProductPrice}
+                onChange={(e) => setMegaProductPrice(e.target.value)}
+                placeholder="VD: 299.000đ (Giá gốc 599.000đ)"
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-zinc-300 font-mono font-bold text-[11px]">
+                🎁 Deal Độc Quyền / Voucher Ghim Live:
+              </label>
+              <input
+                type="text"
+                value={megaVoucher}
+                onChange={(e) => setMegaVoucher(e.target.value)}
+                placeholder="VD: Mua 1 Tặng 1 + Voucher Giảm 50K"
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          </div>
+
+          {/* 3. Link Video / Live & Channel */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-zinc-300 font-mono font-bold text-[11px]">
+                🔗 Link Video / Phiên Live TikTok:
+              </label>
+              <input
+                type="url"
+                value={targetUrl}
+                onChange={(e) => handleTargetUrlChange(e.target.value)}
+                placeholder="https://www.tiktok.com/@username/live hoặc video"
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-mono"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-zinc-300 font-mono font-bold text-[11px]">
+                👤 Kênh TikTok / Chủ Phòng Live:
+              </label>
+              <input
+                type="text"
+                value={channelHandle}
+                onChange={(e) => setChannelHandle(e.target.value)}
+                placeholder="@username"
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-rose-400 font-mono font-bold focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          </div>
+
+          {/* 4. Target Scale & Duration */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-zinc-300 font-mono font-bold text-[11px]">
+                🎯 Chỉ Tiêu Mắt Xem / Tương Tác:
+              </label>
+              <select
+                value={megaLiveGoal}
+                onChange={(e) => setMegaLiveGoal(Number(e.target.value))}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+              >
+                <option value={2000}>2,000 Người Xem Thật</option>
+                <option value={5000}>5,000 Người Xem Thật (Khuyên Dùng)</option>
+                <option value={10000}>10,000 Người Xem Thật (Mega Live VIP)</option>
+                <option value={20000}>20,000 Người Xem Thật (Sự Kiện Toàn Quốc)</option>
+                <option value={50000}>50,000 Người Xem Thật (Đại Tiệc Triệu View)</option>
+              </select>
+            </div>
+
+            {megaType === 'mega_live' ? (
+              <div className="space-y-1.5">
+                <label className="block text-zinc-300 font-mono font-bold text-[11px]">
+                  ⏱️ Thời Lượng Giữ Chân Khán Giả:
+                </label>
+                <select
+                  value={megaLiveDuration}
+                  onChange={(e) => setMegaLiveDuration(Number(e.target.value))}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+                >
+                  <option value={15}>15 Phút Khởi Động</option>
+                  <option value={30}>30 Phút Giờ Vàng</option>
+                  <option value={60}>60 Phút Trọn Ca Live (Bán Chạy Nhất)</option>
+                  <option value={120}>120 Phút Toàn Bộ Sự Kiện Mega</option>
+                </select>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="block text-zinc-300 font-mono font-bold text-[11px]">
+                  📅 Lịch Trình Phát Sóng / Tung Clip:
+                </label>
+                <input
+                  type="text"
+                  value={megaLiveDateTime}
+                  onChange={(e) => setMegaLiveDateTime(e.target.value)}
+                  placeholder="VD: 20:00 Tối Nay"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* 5. Deep Audience Targeting */}
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-amber-400" />
+              <span className="font-bold text-white text-xs font-mono uppercase">
+                Nhắm Đúng Tệp Khán Giả Tiềm Năng (Targeting Tự Động)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-slate-400 text-[10px] font-mono mb-1">Giới Tính:</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {[
+                    { id: 'all', label: 'Tất cả' },
+                    { id: 'female', label: 'Nữ' },
+                    { id: 'male', label: 'Nam' }
+                  ].map(g => (
+                    <button
+                      type="button"
+                      key={g.id}
+                      onClick={() => setTargetGender(g.id as any)}
+                      className={`py-1.5 rounded-lg text-[10px] font-mono font-bold transition-all ${
+                        targetGender === g.id
+                          ? 'bg-amber-500 text-black shadow'
+                          : 'bg-white/5 text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 text-[10px] font-mono mb-1">Khu Vực Địa Lý:</label>
+                <select
+                  value={selectedRegion}
+                  onChange={(e) => setSelectedRegion(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none"
+                >
+                  <option value="all">Toàn Quốc (63 Tỉnh Thành)</option>
+                  <option value="north">Miền Bắc (Hà Nội, Hải Phòng...)</option>
+                  <option value="central">Miền Trung (Đà Nẵng, Huế...)</option>
+                  <option value="south">Miền Nam (TP.HCM, Cần Thơ...)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 text-[10px] font-mono mb-1">Độ Tuổi Chủ Đạo:</label>
+                <div className="flex items-center gap-1">
+                  {['18-24', '25-34', '35-44'].map(age => {
+                    const isChecked = selectedAgeRanges.includes(age);
+                    return (
+                      <button
+                        type="button"
+                        key={age}
+                        onClick={() => {
+                          setSelectedAgeRanges(prev => 
+                            isChecked ? prev.filter(a => a !== age) : [...prev, age]
+                          );
+                        }}
+                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-mono font-bold transition-all ${
+                          isChecked
+                            ? 'bg-purple-600 text-white shadow'
+                            : 'bg-white/5 text-slate-300 hover:text-white'
+                        }`}
+                      >
+                        {age}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 6. Push Notification & LED Add-on */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/30 to-teal-950/30 border border-emerald-500/30 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={megaPushNotification}
+                onChange={(e) => setMegaPushNotification(e.target.checked)}
+                className="w-4 h-4 rounded text-emerald-500 bg-black/40 border-white/20"
+              />
+              <div className="flex-1">
+                <div className="font-bold text-emerald-300 text-xs flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  Gửi Thông Báo Đẩy (Push Notification) Tới 128.000+ Thành Viên Trước Giờ G (Miễn Phí)
+                </div>
+                <div className="text-[10px] text-slate-300 mt-0.5">
+                  Hệ thống tự động thông báo trước 15 phút tới toàn bộ thành viên đang online để tập trung vào xem.
+                </div>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/30 to-rose-950/30 border border-amber-500/30 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeMarqueeBoost}
+                onChange={(e) => setIncludeMarqueeBoost(e.target.checked)}
+                className="w-4 h-4 rounded text-amber-500 bg-black/40 border-white/20"
+              />
+              <div className="flex-1">
+                <div className="font-bold text-amber-300 text-xs flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-amber-400 animate-pulse" />
+                  ĐẨY LÊN BẢNG ĐIỆN LED TOÀN SÀN (+100.000 Xu)
+                </div>
+                <div className="text-[10px] text-slate-300 mt-0.5">
+                  Chạy chữ nổi bật liên tục 24/7 đầu ứng dụng để tối đa hóa lượt tiếp cận.
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-xs font-mono font-bold text-amber-400">+100.000 Xu</span>
+              </div>
+            </label>
+          </div>
+
+          {/* 7. Cost & Submission */}
+          {(() => {
+            const isMegaLive = megaType === 'mega_live';
+            const basePrice = isMegaLive ? 1000 : 500;
+            const megaTotalXu = (megaLiveGoal * basePrice) + (includeMarqueeBoost ? MARQUEE_FEE : 0);
+            return (
+              <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="text-slate-400 text-xs font-mono">Tổng ngân sách chiến dịch VIP:</div>
+                  <div className="text-2xl font-black text-amber-400 font-mono mt-0.5 flex items-baseline gap-2">
+                    <span>{megaTotalXu.toLocaleString()} Xu</span>
+                    <span className="text-xs text-emerald-400 font-bold">≈ {megaTotalXu.toLocaleString('vi-VN')}đ</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    ● Đã bao gồm phí phân phối 100% người thật KYC và hệ thống chống tụt.
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="py-3.5 px-8 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider bg-gradient-to-r from-amber-500 via-rose-600 to-purple-600 hover:opacity-95 text-white shadow-xl shadow-amber-500/20 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  🚀 KÍCH HOẠT GÓI {isMegaLive ? 'MEGA LIVE' : 'TUNG SẢN PHẨM'} (-{megaTotalXu.toLocaleString()} XU)
+                </button>
+              </div>
+            );
+          })()}
+        </form>
+      )}
 
       {/* Active campaigns list with progress tracking */}
       <div className="space-y-3">
@@ -1215,6 +1687,133 @@ export const CreateCampaignScreen: React.FC<{
                     style={{ width: `${percent}%` }}
                   />
                 </div>
+
+                {/* Báo Cáo Đo Lường Dữ Liệu Tệp Khán Giả (Demographics Report) */}
+                {(() => {
+                  const isAdmin = user.isAdmin || user.email === 'quocthiencr90@gmail.com' || user.email === 'thienvuaapp@gmail.com';
+                  const isUnlocked = camp.isAnalyticsUnlocked || isAdmin;
+                  const demo = camp.demographicsReport;
+                  const femalePct = demo?.genderDistribution?.female ?? 58;
+                  const malePct = demo?.genderDistribution?.male ?? 42;
+                  const realScore = demo?.realUserScore ?? 99.2;
+                  const peakViewers = demo?.peakLiveViewers || (camp.targetQuantity ? Math.round(camp.targetQuantity * 1.25) : 8500);
+                  const gmv = demo?.generatedRevenueEstimateVND || '45.000.000đ - 120.000.000đ';
+                  const ageList = demo?.ageGroups ? [
+                    { range: '18-24 tuổi', percent: demo.ageGroups['18-24'] || 46 },
+                    { range: '25-34 tuổi', percent: demo.ageGroups['25-34'] || 38 },
+                    { range: '35-44 tuổi', percent: demo.ageGroups['35-44'] || 12 },
+                    { range: '45+ tuổi', percent: demo.ageGroups['45+'] || 4 },
+                  ] : [
+                    { range: '18-24 tuổi', percent: 46 },
+                    { range: '25-34 tuổi', percent: 38 },
+                    { range: '35-44 tuổi', percent: 12 },
+                    { range: 'Khác', percent: 4 },
+                  ];
+                  const locList = demo?.topLocations?.map(l => `${l.province} (${l.percentage}%)`) || [
+                    'TP. Hồ Chí Minh (42%)', 'Hà Nội (31%)', 'Đà Nẵng (12%)', 'Hải Phòng (9%)', 'Cần Thơ (6%)'
+                  ];
+
+                  return (
+                    <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-black font-display text-white">
+                          <BarChart3 className="w-4 h-4 text-cyan-400" />
+                          <span>Báo Cáo Đo Lường Tệp Khán Giả Thực Tế</span>
+                        </div>
+                        {isUnlocked ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-mono font-bold flex items-center gap-1">
+                            <Unlock className="w-3 h-3 text-emerald-400" />
+                            {isAdmin ? '👑 Admin Toàn Quyền' : 'Đã Mở Khóa Real-Time'}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-amber-400" />
+                            Báo Cáo Khóa (200.000 Xu)
+                          </span>
+                        )}
+                      </div>
+
+                      {isUnlocked ? (
+                        <div className="p-3 rounded-2xl bg-white/[0.02] border border-cyan-500/30 space-y-3">
+                          {/* Key Metrics Grid */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
+                              <div className="text-[10px] text-slate-400 font-mono">Điểm Người Thật KYC</div>
+                              <div className="text-sm font-black text-emerald-400 font-mono">{realScore}% ✓</div>
+                            </div>
+                            <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
+                              <div className="text-[10px] text-slate-400 font-mono">Tỷ Lệ Giới Tính</div>
+                              <div className="text-xs font-bold text-pink-300 font-mono">{femalePct}% Nữ / {malePct}% Nam</div>
+                            </div>
+                            <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
+                              <div className="text-[10px] text-slate-400 font-mono">Mắt Xem Đỉnh Điểm</div>
+                              <div className="text-sm font-black text-amber-400 font-mono">{peakViewers.toLocaleString()}</div>
+                            </div>
+                            <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
+                              <div className="text-[10px] text-slate-400 font-mono">Ước Tính Doanh Thu GMV</div>
+                              <div className="text-[11px] font-bold text-cyan-300 font-mono">{gmv}</div>
+                            </div>
+                          </div>
+
+                          {/* Age and Region Breakdown */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] font-mono">
+                            <div className="p-2.5 rounded-xl bg-black/30 border border-white/5 space-y-1.5">
+                              <div className="text-slate-400 text-[10px] font-bold flex items-center gap-1">
+                                <Users className="w-3 h-3 text-indigo-400" /> Phân Bố Độ Tuổi
+                              </div>
+                              {ageList.map((ag, i) => (
+                                <div key={i} className="flex items-center justify-between">
+                                  <span className="text-slate-300">{ag.range}</span>
+                                  <div className="flex items-center gap-2 flex-1 max-w-[120px] ml-2">
+                                    <div className="flex-1 bg-white/10 rounded-full h-1.5 overflow-hidden">
+                                      <div className="bg-cyan-400 h-full rounded-full" style={{ width: `${ag.percent}%` }} />
+                                    </div>
+                                    <span className="text-white font-bold w-7 text-right">{ag.percent}%</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="p-2.5 rounded-xl bg-black/30 border border-white/5 space-y-1">
+                              <div className="text-slate-400 text-[10px] font-bold flex items-center gap-1">
+                                <Building2 className="w-3 h-3 text-pink-400" /> Top Tỉnh Thành Tiếp Cận
+                              </div>
+                              <div className="flex flex-wrap gap-1 pt-1">
+                                {locList.map((prov, i) => (
+                                  <span key={i} className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 text-[10px]">
+                                    {prov}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/30 to-purple-950/30 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <div className="text-white font-bold text-xs flex items-center gap-1.5">
+                              <Lock className="w-3.5 h-3.5 text-amber-400" />
+                              Mở Khóa Toàn Bộ Dữ Liệu Tệp Khán Giả &amp; Phân Tích Chuyên Sâu
+                            </div>
+                            <p className="text-[10px] text-slate-400">
+                              Xem chi tiết độ tuổi, giới tính, tỉnh thành tiếp cận, điểm uy tín 99.2% người thật và ước tính doanh thu GMV của chiến dịch này.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              unlockCampaignAnalytics(camp.id);
+                            }}
+                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-black text-xs font-mono shadow-md shadow-amber-500/20 shrink-0 cursor-pointer transition-transform active:scale-95 flex items-center gap-1.5 justify-center"
+                          >
+                            <Unlock className="w-3.5 h-3.5" />
+                            <span>Mở Khóa Báo Cáo (200.000 Xu)</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Marquee Ticker Controls for Campaign */}
                 {(() => {

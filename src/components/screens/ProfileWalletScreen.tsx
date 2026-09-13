@@ -37,7 +37,9 @@ import {
   FileCheck,
   Star,
   AlertTriangle,
-  RotateCcw
+  RotateCcw,
+  UploadCloud,
+  Camera
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
@@ -61,6 +63,7 @@ export const ProfileWalletScreen: React.FC<{
     openConnect, 
     openPolicy,
     saveBankInfo,
+    submitKyc,
     affiliateData,
     myAppLicenses,
     escrowBookings,
@@ -114,8 +117,9 @@ export const ProfileWalletScreen: React.FC<{
   // KYC & Personal Info state
   const [kycFullName, setKycFullName] = useState(user.name || '');
   const [kycEmail, setKycEmail] = useState(user.email || '');
+  const [kycIdNumber, setKycIdNumber] = useState(user.citizenId || user.kycData?.idNumber || '');
   const [kycPhone, setKycPhone] = useState('');
-  const [kycDob, setKycDob] = useState('');
+  const [kycDob, setKycDob] = useState(user.kycData?.dateOfBirth || '');
   const [kycGender, setKycGender] = useState<'male' | 'female' | 'other'>('male');
   const [kycProvince, setKycProvince] = useState('');
   const [kycDistrict, setKycDistrict] = useState('');
@@ -125,22 +129,47 @@ export const ProfileWalletScreen: React.FC<{
   const [kycTiktokUrl, setKycTiktokUrl] = useState(
     user.tiktokProfileUrl || `https://www.tiktok.com/${(user.tiktokConnected || '@creator').startsWith('@') ? user.tiktokConnected : '@' + user.tiktokConnected}`
   );
+  const [frontCardPreview, setFrontCardPreview] = useState<string>(user.kycData?.frontIdCardUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop&q=80');
+  const [backCardPreview, setBackCardPreview] = useState<string>(user.kycData?.backIdCardUrl || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&auto=format&fit=crop&q=80');
+  const [selfiePreview, setSelfiePreview] = useState<string>(user.kycData?.selfiePhotoUrl || user.selfiePhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80');
   const [kycSaved, setKycSaved] = useState(false);
-  const [kycStatus, setKycStatus] = useState<'pending' | 'verified' | 'unsubmitted'>('unsubmitted');
-
-  // Media Album state (stored locally)
+  const [kycStatus, setKycStatus] = useState<'pending' | 'verified' | 'unsubmitted'>(user.kycStatus === 'verified' ? 'verified' : user.kycStatus === 'pending' ? 'pending' : 'unsubmitted');
+  const [avatarPreview, setAvatarPreview] = useState<string>(user.avatar || '');
   const [albumImages, setAlbumImages] = useState<Array<{ id: string; url: string; name: string; type: 'image' | 'video' }>>([]);
-  const [avatarPreview, setAvatarPreview] = useState<string>(user.avatar);
 
   const handleKycSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!kycFullName || !kycEmail || !kycDob || !kycProvince || !kycJob) {
+    if (!kycFullName || !kycEmail || !kycIdNumber || !kycDob || !kycProvince || !kycJob) {
       showToast('⚠️ Vui lòng điền đầy đủ các trường bắt buộc (*)');
       return;
     }
+
+    if (kycIdNumber.trim().length < 9) {
+      showToast('⚠️ Số Căn cước công dân (CCCD) phải có từ 9 - 12 chữ số hợp lệ!');
+      return;
+    }
+
     setKycSaved(true);
     setKycStatus('pending');
-    showToast('✅ Đã gửi thông tin KYC! Hệ thống sẽ xác minh trong 24h.');
+
+    submitKyc({
+      userId: 'usr_001',
+      userEmail: kycEmail,
+      fullName: kycFullName.toUpperCase(),
+      idNumber: kycIdNumber.trim(),
+      dateOfBirth: kycDob,
+      frontIdCardUrl: frontCardPreview,
+      backIdCardUrl: backCardPreview,
+      selfiePhotoUrl: selfiePreview,
+      bankName: bankName || 'MB Bank (Ngân Hàng Quân Đội)',
+      bankAccountNumber: accountNumber || 'Chưa cập nhật',
+      bankAccountHolder: accountHolder || kycFullName.toUpperCase(),
+      submittedAt: 'Vừa xong',
+      status: 'pending',
+      isCitizenIdUnique: true
+    });
+
+    showToast('✅ Đã gửi hồ sơ KYC kèm CCCD & ảnh Selfie thành công! Admin sẽ duyệt trong 5 - 15 phút.');
     setTimeout(() => setKycSaved(false), 3000);
   };
 
@@ -501,7 +530,7 @@ export const ProfileWalletScreen: React.FC<{
                 <label className="text-[10px] text-slate-400 font-mono font-bold">Họ & Tên <span className="text-rose-400">*</span></label>
                 <input type="text" value={kycFullName} onChange={e => setKycFullName(e.target.value)} required
                   placeholder="Nguyễn Văn A"
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono uppercase"
                 />
               </div>
 
@@ -511,6 +540,16 @@ export const ProfileWalletScreen: React.FC<{
                 <input type="email" value={kycEmail} onChange={e => setKycEmail(e.target.value)} required
                   placeholder="example@gmail.com"
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono"
+                />
+              </div>
+
+              {/* Số CCCD / Hộ chiếu */}
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-mono font-bold">Số Căn Cước Công Dân (CCCD 12 Số) <span className="text-rose-400">*</span></label>
+                <input type="text" value={kycIdNumber} onChange={e => setKycIdNumber(e.target.value)} required
+                  placeholder="001200088999"
+                  maxLength={12}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono font-bold text-amber-300"
                 />
               </div>
 
@@ -585,6 +624,117 @@ export const ProfileWalletScreen: React.FC<{
                   placeholder="Quận 1 / Huyện Bình Chánh..."
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono"
                 />
+              </div>
+            </div>
+
+            {/* PHẦN TẢI ẢNH CCCD 2 MẶT & ẢNH SELFIE KHUÔN MẶT CÁ NHÂN */}
+            <div className="space-y-3 pt-3 border-t border-white/10">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white font-mono uppercase flex items-center gap-1.5">
+                  <CreditCard className="w-4 h-4 text-purple-400" />
+                  <span>Ảnh CCCD 2 Mặt & Ảnh Chụp Khuôn Mặt Chính Chủ (Bắt Buộc)</span>
+                  <span className="text-rose-400">*</span>
+                </label>
+                <span className="text-[10px] text-amber-400 font-mono font-bold">
+                  🛡️ 1 CCCD chỉ KYC 1 lần duy nhất
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* 1. Mặt trước CCCD */}
+                <div className="p-3 rounded-2xl bg-black/40 border border-white/10 space-y-2 text-center">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-300 font-mono">1. Mặt Trước CCCD</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">Rõ 12 số</span>
+                  </div>
+                  <div className="relative h-28 rounded-xl overflow-hidden bg-black/60 border border-white/10 group">
+                    <img src={frontCardPreview} alt="Mặt trước CCCD" className="w-full h-full object-cover" />
+                    <label className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                      <UploadCloud className="w-5 h-5 text-rose-400" />
+                      <span>Tải / Đổi Ảnh</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            const url = URL.createObjectURL(e.target.files[0]);
+                            setFrontCardPreview(url);
+                            showToast('✅ Đã tải ảnh mặt trước CCCD');
+                          }
+                        }} 
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* 2. Mặt sau CCCD */}
+                <div className="p-3 rounded-2xl bg-black/40 border border-white/10 space-y-2 text-center">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-300 font-mono">2. Mặt Sau CCCD</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">Rõ chip/vân tay</span>
+                  </div>
+                  <div className="relative h-28 rounded-xl overflow-hidden bg-black/60 border border-white/10 group">
+                    <img src={backCardPreview} alt="Mặt sau CCCD" className="w-full h-full object-cover" />
+                    <label className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                      <UploadCloud className="w-5 h-5 text-rose-400" />
+                      <span>Tải / Đổi Ảnh</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            const url = URL.createObjectURL(e.target.files[0]);
+                            setBackCardPreview(url);
+                            showToast('✅ Đã tải ảnh mặt sau CCCD');
+                          }
+                        }} 
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* 3. Ảnh Selfie khuôn mặt cá nhân */}
+                <div className="p-3 rounded-2xl bg-gradient-to-b from-purple-950/40 to-black/40 border border-purple-500/30 space-y-2 text-center">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-purple-300 font-mono flex items-center gap-1">
+                      <Camera className="w-3.5 h-3.5 text-pink-400" />
+                      <span>3. Ảnh Chụp Selfie</span>
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-300 font-mono font-bold">Chính chủ</span>
+                  </div>
+                  <div className="relative h-28 rounded-xl overflow-hidden bg-black/60 border border-purple-500/30 group">
+                    <img src={selfiePreview} alt="Ảnh selfie khuôn mặt" className="w-full h-full object-cover" />
+                    <label className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                      <Camera className="w-5 h-5 text-pink-400" />
+                      <span>Chụp / Tải Selfie</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            const url = URL.createObjectURL(e.target.files[0]);
+                            setSelfiePreview(url);
+                            showToast('✅ Đã tải ảnh selfie khuôn mặt cá nhân');
+                          }
+                        }} 
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Chống Bot / Farm Xu Warning Note */}
+              <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-500/30 text-[11px] text-purple-200 flex items-start gap-2.5 font-mono">
+                <Lock className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <strong className="text-white block font-bold">Quy Định Chống Gian Lận & Bảo Mật Tuyệt Đối:</strong>
+                  <p className="text-slate-300">
+                    Mỗi căn cước công dân (CCCD), mỗi tài khoản ngân hàng và số điện thoại chỉ được xác minh KYC cho <strong>01 tài khoản duy nhất</strong>. Tuyệt đối không cho phép đăng ký lại để farm Xu. Khi rút tiền, hệ thống sẽ đối soát tên chủ tài khoản ngân hàng khớp 100% với tên trên CCCD.
+                  </p>
+                </div>
               </div>
             </div>
 

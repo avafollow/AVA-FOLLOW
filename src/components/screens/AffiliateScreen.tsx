@@ -28,8 +28,7 @@ export const AffiliateScreen: React.FC<{
   const { 
     affiliateData, 
     openWithdraw, 
-    showToast,
-    simulateFriendTaskAction 
+    showToast
   } = useTikTokApp();
   const [copied, setCopied] = useState(false);
 
@@ -358,15 +357,8 @@ export const AffiliateScreen: React.FC<{
                     <div className="flex items-center gap-2">
                       <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-flex items-center gap-1">
                         <Clock className="w-3 h-3 text-amber-400 animate-spin" />
-                        <span>Chờ làm 1 nhiệm vụ</span>
+                        <span>Chờ hoàn thành 1 nhiệm vụ</span>
                       </span>
-                      <button
-                        onClick={() => simulateFriendTaskAction(ref.id)}
-                        className="px-2.5 py-1 rounded-lg bg-purple-600/40 hover:bg-purple-600 text-purple-200 hover:text-white text-[10px] font-bold transition-all shadow-sm"
-                        title="Bấm để mô phỏng bạn bè vừa vào làm nhiệm vụ xem video 15s để nhận +5,000 Xu ngay"
-                      >
-                        Mô phỏng làm nv
-                      </button>
                     </div>
                   )}
                 </div>

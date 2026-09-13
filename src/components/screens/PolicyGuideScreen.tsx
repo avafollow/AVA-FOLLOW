@@ -341,7 +341,7 @@ export const PolicyGuideScreen: React.FC<{ darkMode: boolean }> = ({ darkMode })
             <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2">
               <div className="font-bold text-white text-sm">3. Bảo hành chống tụt 15 - 30 ngày</div>
               <p className="text-slate-400 leading-relaxed">
-                Hệ thống bot tự động kiểm tra định kỳ 48h. Cam kết bảo hành chống tụt từ 15 đến 30 ngày, tự động bù đủ 100% nếu có hao hụt.
+                Hệ thống thuật toán tự động kiểm tra định kỳ 48h. Cam kết bảo hành chống tụt từ 15 đến 30 ngày, tự động bù đủ 100% nếu có hao hụt.
               </p>
             </div>
           </div>

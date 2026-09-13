@@ -41,6 +41,7 @@ import { FeatureGuideTooltip } from "../common/FeatureGuideTooltip";
 import { WeeklyMissionsPanel } from "./WeeklyMissionsPanel";
 import { INITIAL_CROSS_FOLLOW_ITEMS, TIER_CROSS_FOLLOW_QUOTAS } from "../../data/crossFollowData";
 import { TokenSinkStrategyModal } from "../modals/TokenSinkStrategyModal";
+import { parseMediaUrl } from "../../data/videoSources";
 
 export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task: TikTokTaskItem) => void }> = ({
   darkMode
@@ -69,7 +70,8 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
     recordMissionProgress,
     claimTaskAction,
     openDeposit,
-    openShareModal
+    openShareModal,
+    campaigns
   } = useTikTokApp();
 
   // 5 TAB CHỨC NĂNG DẠNG LƯỚI HÀNG TRÊN CÙNG
@@ -89,6 +91,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
   const [crossFollowUsedCount, setCrossFollowUsedCount] = useState<number>(12);
   const [crossFollowTypeFilter, setCrossFollowTypeFilter] = useState<"all" | "follow" | "watch" | "like" | "comment" | "share">("all");
   const [enterpriseFilter, setEnterpriseFilter] = useState<"all" | "follow" | "watch" | "like" | "comment" | "targeted">("all");
+  const [feedCategoryFilter, setFeedCategoryFilter] = useState<'all' | 'missions' | 'live' | 'partner' | 'cross_follow'>('all');
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Inline Quick Edit & Switch Account State (Thu gọn thanh trạng thái kết nối)
@@ -176,6 +179,103 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
 
   // Video Campaigns (all tasks with watch type or with videos)
   const videoCampaignTasks = tasks.filter(t => t.type === "watch" || t.videoPreviewUrl || t.campaignCategory === "partner");
+
+  // Map user created campaigns to feed cards
+  const createdFeedCards = (campaigns || []).map(c => {
+    const isLive = c.type === 'livestream' || c.type === 'livestream_viewers';
+    const stream = parseMediaUrl(c.targetUrl, c.channelHandle);
+    return {
+      id: c.id,
+      category: isLive ? ('live' as const) : ('partner' as const),
+      taskType: c.type,
+      title: c.title || `Chiến Dịch: ${c.channelHandle}`,
+      channelName: c.channelHandle,
+      channelHandle: c.channelHandle,
+      channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+      thumbnail: stream.streamUrl.endsWith('.jpg') || stream.streamUrl.endsWith('.png') ? stream.streamUrl : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=80',
+      rewardXu: 200,
+      durationBadge: isLive ? 'TRỰC TIẾP' : '15 GIÂY',
+      remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0)),
+      isRealCampaign: true,
+      targetUrl: c.targetUrl
+    };
+  });
+
+  // Map task items to feed cards
+  const missionFeedCards = tasks.map(t => ({
+    id: t.id,
+    category: (t.campaignCategory === 'partner' ? 'partner' : 'missions') as 'partner' | 'missions',
+    taskType: t.type,
+    title: t.title,
+    channelName: t.channelName,
+    channelHandle: t.channelHandle,
+    channelAvatar: t.channelAvatar,
+    thumbnail: t.videoPreviewUrl || t.channelAvatar,
+    rewardXu: t.rewardCoins || 200,
+    durationBadge: t.type === 'watch' ? '15 GIÂY' : 'NHẬN XU',
+    remainingSlots: t.remainingSlots || 50,
+    isRealCampaign: false,
+    targetUrl: t.targetUrl
+  }));
+
+  // Map live stream tasks to feed cards
+  const liveFeedCards = livestreamTasks.map(l => ({
+    id: l.id,
+    category: 'live' as const,
+    taskType: 'livestream',
+    title: l.roomTitle || `Live: ${l.channelName}`,
+    channelName: l.channelName,
+    channelHandle: l.channelHandle,
+    channelAvatar: l.channelAvatar,
+    thumbnail: l.channelAvatar,
+    rewardXu: l.totalRewardCoins || 400,
+    durationBadge: `${l.targetMinutes || 3} PHÚT`,
+    remainingSlots: 350,
+    isRealCampaign: false,
+    targetUrl: l.targetUrl
+  }));
+
+  // Map cross follow items to feed cards
+  const crossFeedCards = crossFollowItems.map(cf => ({
+    id: cf.id,
+    category: 'cross_follow' as const,
+    taskType: cf.type,
+    title: cf.title,
+    channelName: cf.channelName,
+    channelHandle: cf.channelHandle,
+    channelAvatar: cf.channelAvatar,
+    thumbnail: cf.channelAvatar,
+    rewardXu: cf.rewardXu || 200,
+    durationBadge: 'CHÉO KÊNH',
+    remainingSlots: Math.max(10, (cf.followersCount || 1000) - (cf.completedByUsersCount || 0)),
+    isRealCampaign: false,
+    targetUrl: cf.targetUrl
+  }));
+
+  // Unified all feed cards
+  const allUnifiedCards = [
+    ...createdFeedCards,
+    ...missionFeedCards,
+    ...liveFeedCards,
+    ...crossFeedCards
+  ];
+
+  // Counts for watch_feed categories
+  const feedCountAll = allUnifiedCards.length;
+  const feedCountMissions = missionFeedCards.filter(c => c.category === 'missions').length + createdFeedCards.filter(c => c.category !== 'live').length;
+  const feedCountLive = liveFeedCards.length + createdFeedCards.filter(c => c.category === 'live').length;
+  const feedCountPartner = createdFeedCards.length + missionFeedCards.filter(c => c.category === 'partner').length;
+  const feedCountCross = crossFeedCards.length;
+
+  // Filtered cards according to feedCategoryFilter
+  const filteredFeedCards = allUnifiedCards.filter(card => {
+    if (feedCategoryFilter === 'all') return true;
+    if (feedCategoryFilter === 'missions') return card.category === 'missions' || card.isRealCampaign;
+    if (feedCategoryFilter === 'live') return card.category === 'live';
+    if (feedCategoryFilter === 'partner') return card.category === 'partner' || card.isRealCampaign;
+    if (feedCategoryFilter === 'cross_follow') return card.category === 'cross_follow';
+    return true;
+  });
 
   // Filtered Cross Follow Items
   const filteredCrossFollowItems = crossFollowItems.filter(item => {
@@ -675,34 +775,73 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
             </div>
           </div>
 
+          {/* SMART SUB-FILTER MENU: CHỌN DANH MỤC CHIẾN DỊCH ĐỂ LƯỚT / LÀM NHIỆM VỤ */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+            {[
+              { id: 'all' as const, label: '⚡ Tất Cả', count: feedCountAll, color: 'from-cyan-500 to-blue-500' },
+              { id: 'missions' as const, label: '🎯 Làm Nhiệm Vụ', count: feedCountMissions, color: 'from-rose-500 to-pink-500' },
+              { id: 'live' as const, label: '🔴 Xem LiveStream', count: feedCountLive, color: 'from-pink-500 to-red-500' },
+              { id: 'partner' as const, label: '💎 Chiến Dịch Đối Tác', count: feedCountPartner, color: 'from-purple-500 to-indigo-500' },
+              { id: 'cross_follow' as const, label: '🔄 Follow Chéo', count: feedCountCross, color: 'from-emerald-500 to-teal-500' },
+            ].map((btn) => (
+              <button
+                key={btn.id}
+                onClick={() => setFeedCategoryFilter(btn.id)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black font-mono transition-all shrink-0 flex items-center gap-2 cursor-pointer ${
+                  feedCategoryFilter === btn.id
+                    ? `bg-gradient-to-r ${btn.color} text-white shadow-lg shadow-cyan-500/20 scale-[1.02]`
+                    : "bg-[#0A0D18] text-slate-300 hover:text-white border border-white/10 hover:border-white/20"
+                }`}
+              >
+                <span>{btn.label}</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${
+                  feedCategoryFilter === btn.id ? "bg-black/30 text-white" : "bg-white/10 text-slate-400"
+                }`}>
+                  {btn.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
           {/* LƯỚI CÁC Ô VUÔNG VIDEO CHIẾN DỊCH (SẮP XẾP Ô VUÔNG GỌN GÀNG) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Film className="w-4 h-4 text-cyan-400" />
                 <h4 className="text-sm font-black text-white font-mono uppercase">
-                  DANH SÁCH VIDEO CHIẾN DỊCH ĐANG CHẠY ({displayVideoTasks.length} Video Chọn Lọc)
+                  DANH SÁCH CHIẾN DỊCH &amp; VIDEO ĐANG CHẠY ({filteredFeedCards.length} Mục)
                 </h4>
               </div>
               <span className="text-[11px] font-mono text-cyan-300">
-                +200 Xu / Video 15s
+                +200 - 400 Xu / Lượt
               </span>
             </div>
 
             {/* Grid 2-3 cột các ô vuông Video */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {displayVideoTasks.map((task) => {
-                const completed = userCompletedActions[task.id];
+              {filteredFeedCards.map((card) => {
+                const completed = userCompletedActions[card.id];
+                const typeLabels: Record<string, string> = {
+                  follow: '👤 Follow Kênh',
+                  watch: '⏱️ Xem Video 15s',
+                  like: '❤️ Thả Tim',
+                  comment: '💬 Bình Luận',
+                  share: '🚀 Chia Sẻ',
+                  livestream: '🔴 Xem Live Giữ Mắt',
+                  livestream_viewers: '🔴 Mắt Live Thật'
+                };
+                const taskLabel = typeLabels[card.taskType] || '⚡ Làm Nhiệm Vụ';
+
                 return (
                   <div
-                    key={task.id}
-                    onClick={() => openRunner(task)}
+                    key={card.id}
+                    onClick={() => openFeedRunner(card.id)}
                     className="group p-3.5 rounded-2xl bg-[#090C16] border border-cyan-500/30 hover:border-cyan-400 transition-all flex flex-col justify-between space-y-3 shadow-lg cursor-pointer hover:scale-[1.01]"
                   >
                     {/* Ô VUÔNG THUMBNAIL VIDEO */}
                     <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-cyan-400/60 transition-all">
                       <img
-                        src={task.channelAvatar}
+                        src={card.thumbnail}
                         alt=""
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
                       />
@@ -712,32 +851,54 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
                         </div>
                       </div>
                       <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 text-cyan-300 font-mono text-[10px] font-bold border border-cyan-400/40">
-                        15 GIÂY
+                        {card.durationBadge}
                       </div>
                       <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-rose-600 text-white font-mono text-[10px] font-black shadow">
-                        +{task.rewardCoins.toLocaleString()} XU
+                        +{card.rewardXu.toLocaleString()} XU
                       </div>
+                      {card.isRealCampaign && (
+                        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-amber-500 text-black font-mono text-[9px] font-black shadow">
+                          THẬT 100%
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Task type badge */}
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] font-mono font-bold text-cyan-300">
+                        {taskLabel}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Còn {card.remainingSlots.toLocaleString()} suất
+                      </span>
                     </div>
 
                     {/* Channel & Title Info */}
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <img src={task.channelAvatar} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-cyan-400/50" />
+                        <img src={card.channelAvatar} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-cyan-400/50" />
                         <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
-                          {task.channelName}
+                          {card.channelHandle || card.channelName}
                         </span>
                         <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
                       </div>
-                      <h5 className="text-xs text-slate-200 line-clamp-1 font-medium">{task.title}</h5>
+                      <h5 className="text-xs text-slate-200 line-clamp-1 font-medium">{card.title}</h5>
                     </div>
 
                     {/* Actions */}
                     <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-slate-400">
-                        Còn {task.remainingSlots.toLocaleString()} suất
-                      </span>
                       <button
-                        onClick={(e) => { e.stopPropagation(); openRunner(task); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (card.targetUrl) window.open(card.targetUrl, '_blank');
+                        }}
+                        className="text-[10px] font-mono text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Mở TikTok</span>
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openFeedRunner(card.id); }}
                         className={`px-3 py-1.5 rounded-xl text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
                           completed
                             ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"

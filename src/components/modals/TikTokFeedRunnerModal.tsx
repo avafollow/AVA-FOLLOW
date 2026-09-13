@@ -73,7 +73,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     feedRunnerTargetId
   } = useTikTokApp();
 
-  const [filterMode, setFilterMode] = useState<'all' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
+  const [filterMode, setFilterMode] = useState<'all' | 'missions' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(15);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
@@ -196,12 +196,20 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     remainingSlots: 350
   }));
 
+  // Counts for each category
+  const countAll = createdCampaignFeedItems.length + videoFeedItems.length + crossFollowFeedItems.length + liveFeedItems.length;
+  const countMissions = videoFeedItems.length + createdCampaignFeedItems.filter(i => i.kind === 'video').length;
+  const countLive = liveFeedItems.length + createdCampaignFeedItems.filter(i => i.kind === 'livestream').length;
+  const countPartner = createdCampaignFeedItems.length + videoFeedItems.filter(i => i.campaignCategory === 'partner').length;
+  const countCross = crossFollowFeedItems.length;
+
   // CHUỖI TOÀN BỘ VIDEO & CHIẾN DỊCH HỆ THỐNG LIÊN KẾT ĐỒNG BỘ
   const combinedFeed: UnifiedFeedItem[] = 
+    filterMode === 'missions' ? [...createdCampaignFeedItems.filter(i => i.kind === 'video'), ...videoFeedItems] :
+    filterMode === 'live' ? [...createdCampaignFeedItems.filter(i => i.kind === 'livestream'), ...liveFeedItems] :
+    filterMode === 'partner' ? [...createdCampaignFeedItems, ...videoFeedItems.filter(i => i.campaignCategory === 'partner')] :
     filterMode === 'cross_follow' ? crossFollowFeedItems :
     filterMode === 'community' ? videoFeedItems.filter(i => i.campaignCategory === 'community') :
-    filterMode === 'partner' ? [...createdCampaignFeedItems, ...videoFeedItems.filter(i => i.campaignCategory === 'partner')] :
-    filterMode === 'live' ? [...createdCampaignFeedItems.filter(i => i.kind === 'livestream'), ...liveFeedItems] :
     [...createdCampaignFeedItems, ...videoFeedItems, ...crossFollowFeedItems, ...liveFeedItems];
 
   const currentItem = combinedFeed[currentIndex] || combinedFeed[0];
@@ -215,7 +223,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   // Sync filterMode when feed runner opens with a specific filter
   useEffect(() => {
     if (isFeedRunnerOpen && feedRunnerFilter) {
-      setFilterMode(feedRunnerFilter);
+      if (feedRunnerFilter === 'community') {
+        setFilterMode('missions');
+      } else {
+        setFilterMode(feedRunnerFilter as any);
+      }
     }
   }, [isFeedRunnerOpen, feedRunnerFilter]);
 
@@ -336,6 +348,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
   const handleFollowAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
+    // 1. Mở trực tiếp kênh TikTok để người dùng follow trên TikTok
+    if (currentItem.targetUrl) {
+      window.open(currentItem.targetUrl, '_blank');
+    }
+    // 2. Ghi nhận nhận Xu và đổi icon sang đã hoàn thành
     if (!currentClaimed.follow) {
       const reward = claimTaskAction(currentItem.id, 'follow');
       setSessionCoinsEarned(prev => prev + (reward || 200));
@@ -343,6 +360,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         ...prev,
         [currentItem.id]: { ...(prev[currentItem.id] || {}), follow: true }
       }));
+      showToast(`🎉 Đã mở TikTok & ghi nhận Follow kênh ${currentItem.channelHandle} (+${reward || 200} Xu cho ${user.tiktokConnected || user.name})!`);
+    } else {
+      showToast(`🔗 Đang mở kênh TikTok của ${currentItem.channelHandle}...`);
     }
   };
 
@@ -424,85 +444,113 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Floating Controls */}
-        <div className="absolute top-0 inset-x-0 z-30 p-3 bg-gradient-to-b from-black/90 via-black/60 to-transparent space-y-2">
-          {/* Top Row: Feed Switcher & Close */}
-          <div className="flex items-center justify-between">
-            {/* Filter mode tabs */}
-            <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-full backdrop-blur-md text-[10px] font-mono overflow-x-auto max-w-[80%]">
-              <button
-                onClick={() => { setFilterMode('cross_follow'); setCurrentIndex(0); }}
-                className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  filterMode === 'cross_follow' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                🔄 Follow Chéo ({crossFollowFeedItems.length})
-              </button>
-              <button
-                onClick={() => { setFilterMode('community'); setCurrentIndex(0); }}
-                className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  filterMode === 'community' ? 'bg-emerald-600 text-white shadow' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                🌐 Kênh Cộng Đồng ({videoFeedItems.filter(i => i.campaignCategory === 'community').length})
-              </button>
-              <button
-                onClick={() => { setFilterMode('partner'); setCurrentIndex(0); }}
-                className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  filterMode === 'partner' ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                💎 Chiến Dịch Đối Tác ({videoFeedItems.filter(i => i.campaignCategory === 'partner').length})
-              </button>
-              <button
-                onClick={() => { setFilterMode('live'); setCurrentIndex(0); }}
-                className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  filterMode === 'live' ? 'bg-purple-600 text-white shadow' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                🔴 Live Stream ({livestreamTasks.length})
-              </button>
-              <button
-                onClick={() => { setFilterMode('all'); setCurrentIndex(0); }}
-                className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  filterMode === 'all' ? 'bg-rose-600 text-white shadow' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                Tất Cả ({crossFollowFeedItems.length + tasks.length + livestreamTasks.length})
-              </button>
+        <div className="absolute top-0 inset-x-0 z-30 p-2.5 sm:p-3 bg-gradient-to-b from-black/95 via-black/80 to-transparent space-y-2">
+          {/* Top Row: User Connected TikTok Account & Action Buttons */}
+          <div className="flex items-center justify-between gap-2">
+            {/* User Connected TikTok Account Pill */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 border border-rose-500/40 text-[10px] font-mono backdrop-blur-md shadow-md">
+              <svg className="w-3 h-3 fill-pink-400 shrink-0" viewBox="0 0 24 24">
+                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.3 6.3 0 0 0 1.93-4.57V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76c-.31-.02-.62-.05-.94-.07z" />
+              </svg>
+              <span className="text-slate-400">Tài khoản:</span>
+              <span className="text-rose-300 font-bold truncate max-w-[120px] sm:max-w-[160px]">
+                {user.tiktokConnected || '@thienvuaapp_official'}
+              </span>
+              <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
             </div>
 
             {/* Right Buttons: Mute Toggle & Close */}
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={() => setIsMuted(!isMuted)}
-                className="p-1.5 rounded-full bg-black/60 hover:bg-white/20 text-white backdrop-blur-md transition-all cursor-pointer"
+                className="p-1.5 rounded-full bg-black/70 hover:bg-white/20 text-white backdrop-blur-md transition-all cursor-pointer border border-white/10"
                 title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
               >
-                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-emerald-400" />}
+                {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5 text-emerald-400" />}
               </button>
               <button
                 onClick={closeFeedRunner}
-                className="p-1.5 rounded-full bg-black/60 hover:bg-white/20 text-slate-300 hover:text-white backdrop-blur-md transition-all cursor-pointer"
+                className="p-1.5 rounded-full bg-black/70 hover:bg-white/20 text-slate-300 hover:text-white backdrop-blur-md transition-all cursor-pointer border border-white/10"
+                title="Đóng trình lướt video"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
 
+          {/* Row 2: 5 CATEGORY TABS (TẤT CẢ, NHIỆM VỤ, LIVE STREAM, CHIẾN DỊCH, FOLLOW CHÉO) */}
+          {/* Sắp xếp thành 1 thanh cuộn ngang cực mượt, hiển thị trọn vẹn, không bị cắt chữ */}
+          <div className="flex items-center gap-1 p-1 bg-black/60 rounded-2xl border border-white/10 backdrop-blur-md text-[10px] font-mono overflow-x-auto no-scrollbar scroll-smooth">
+            <button
+              onClick={() => { setFilterMode('all'); setCurrentIndex(0); }}
+              className={`px-2.5 py-1 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                filterMode === 'all' 
+                  ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md' 
+                  : 'text-slate-300 hover:text-white bg-white/5'
+              }`}
+            >
+              <span>⚡ Tất Cả ({countAll})</span>
+            </button>
+
+            <button
+              onClick={() => { setFilterMode('missions'); setCurrentIndex(0); }}
+              className={`px-2.5 py-1 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                filterMode === 'missions' 
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md' 
+                  : 'text-slate-300 hover:text-white bg-white/5'
+              }`}
+            >
+              <span>🎯 Làm Nhiệm Vụ ({countMissions})</span>
+            </button>
+
+            <button
+              onClick={() => { setFilterMode('live'); setCurrentIndex(0); }}
+              className={`px-2.5 py-1 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                filterMode === 'live' 
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md' 
+                  : 'text-slate-300 hover:text-white bg-white/5'
+              }`}
+            >
+              <span>🔴 Live Stream ({countLive})</span>
+            </button>
+
+            <button
+              onClick={() => { setFilterMode('partner'); setCurrentIndex(0); }}
+              className={`px-2.5 py-1 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                filterMode === 'partner' 
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md' 
+                  : 'text-slate-300 hover:text-white bg-white/5'
+              }`}
+            >
+              <span>💎 Đối Tác ({countPartner})</span>
+            </button>
+
+            <button
+              onClick={() => { setFilterMode('cross_follow'); setCurrentIndex(0); }}
+              className={`px-2.5 py-1 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                filterMode === 'cross_follow' 
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md' 
+                  : 'text-slate-300 hover:text-white bg-white/5'
+              }`}
+            >
+              <span>🔄 Follow Chéo ({countCross})</span>
+            </button>
+          </div>
+
           {/* Sub-Header: Realtime Campaign Info & Direct TikTok Link */}
-          <div className="flex items-center justify-between text-xs backdrop-blur-md bg-black/50 px-3 py-1.5 rounded-xl border border-white/10 gap-2">
+          <div className="flex items-center justify-between text-xs backdrop-blur-md bg-black/60 px-3 py-1.5 rounded-xl border border-white/10 gap-2">
             <div className="flex items-center gap-2 truncate">
               {currentItem.campaignCategory === 'partner' ? (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-mono text-[10px] font-black border border-amber-500/40 shrink-0">
-                  <Sparkles className="w-3 h-3 text-amber-400" /> ĐỐI TÁC (CÒN {currentItem.remainingSlots?.toLocaleString() || '580'} SUẤT)
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-mono text-[9px] font-black border border-amber-500/40 shrink-0">
+                  <Sparkles className="w-3 h-3 text-amber-400" /> ĐỐI TÁC ({currentItem.remainingSlots?.toLocaleString() || '580'} SUẤT)
                 </span>
               ) : currentItem.kind === 'livestream' ? (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-600 text-white font-mono text-[10px] font-black animate-pulse shrink-0">
-                  <Radio className="w-3 h-3" /> LIVE
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-600 text-white font-mono text-[9px] font-black animate-pulse shrink-0">
+                  <Radio className="w-3 h-3" /> LIVE MẮT THẬT
                 </span>
               ) : (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-600 text-white font-mono text-[10px] font-black shrink-0">
-                  <Play className="w-3 h-3 fill-white" /> CỘNG ĐỒNG
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-600 text-white font-mono text-[9px] font-black shrink-0">
+                  <Play className="w-3 h-3 fill-white" /> CHIẾN DỊCH
                 </span>
               )}
               <span className="text-white font-bold truncate text-[11px]">
@@ -516,7 +564,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             {/* 1-Tap Open Directly on TikTok */}
             <button
               onClick={handleOpenTikTokApp}
-              className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[10px] font-mono font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0 border border-white/20"
+              className="px-2.5 py-1 rounded-lg bg-rose-600/30 hover:bg-rose-600 text-rose-200 hover:text-white text-[10px] font-mono font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0 border border-rose-500/40"
               title="Mở kênh hoặc video này trên ứng dụng TikTok thật"
             >
               <span>Mở TikTok</span>
@@ -600,9 +648,53 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
           {/* Bottom-Left: Clean TikTok v2 Creator & Caption Info */}
           <div className="absolute left-3 bottom-14 z-30 space-y-2 max-w-[72%] pointer-events-auto text-left">
-            {/* Creator Handle + Verified Badge */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-white font-black text-sm drop-shadow-md tracking-wide">
+            {/* TASK ACTION BADGE - Hiển thị rõ ràng nhiệm vụ cần làm */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-neonGold/60 shadow-lg animate-in fade-in">
+              {currentItem.type === 'follow' ? (
+                <>
+                  <UserPlus className="w-3.5 h-3.5 text-rose-400" />
+                  <span className="text-[10px] font-mono font-black text-neonGold uppercase">Nhiệm vụ: Follow Kênh (+200 Xu)</span>
+                </>
+              ) : currentItem.type === 'watch' ? (
+                <>
+                  <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="text-[10px] font-mono font-black text-cyan-300 uppercase">Nhiệm vụ: Xem Đủ 15s (+200 Xu)</span>
+                </>
+              ) : currentItem.type === 'like' ? (
+                <>
+                  <Heart className="w-3.5 h-3.5 text-pink-400 fill-pink-400" />
+                  <span className="text-[10px] font-mono font-black text-pink-300 uppercase">Nhiệm vụ: Thả Tim Video (+100 Xu)</span>
+                </>
+              ) : currentItem.type === 'comment' ? (
+                <>
+                  <MessageCircle className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="text-[10px] font-mono font-black text-purple-300 uppercase">Nhiệm vụ: Viết Bình Luận (+200 Xu)</span>
+                </>
+              ) : currentItem.type === 'share' ? (
+                <>
+                  <Share2 className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="text-[10px] font-mono font-black text-blue-300 uppercase">Nhiệm vụ: Chia Sẻ Video (+240 Xu)</span>
+                </>
+              ) : currentItem.kind === 'livestream' ? (
+                <>
+                  <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                  <span className="text-[10px] font-mono font-black text-rose-300 uppercase">Nhiệm vụ: Xem Live Giữ Mắt (+400 Xu)</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-neonGold" />
+                  <span className="text-[10px] font-mono font-black text-neonGold uppercase">Nhiệm vụ: Tương Tác Thật (+200 Xu)</span>
+                </>
+              )}
+            </div>
+
+            {/* Creator Handle + Verified Badge (Bấm để nhảy về đúng kênh TikTok của người dùng) */}
+            <div 
+              onClick={handleOpenTikTokApp}
+              className="flex items-center gap-1.5 flex-wrap cursor-pointer group"
+              title="Bấm để mở trang TikTok chính thức của kênh này"
+            >
+              <span className="text-white font-black text-sm drop-shadow-md tracking-wide group-hover:text-cyan-300 transition-colors">
                 {currentItem.channelHandle}
               </span>
               <CheckCircle2 className="h-4 w-4 text-[#20D5EC] fill-[#20D5EC]/20 shrink-0" />
@@ -633,12 +725,19 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
           {/* Right Action Bar (Authentic TikTok v2 Layout) */}
           <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-4 pointer-events-auto">
-            {/* Creator Avatar with Follow Plus Badge */}
-            <div className="relative mb-1">
+            {/* Creator Avatar with Follow Plus Badge (Bấm avatar mở kênh TikTok, bấm + follow ghi nhận Xu) */}
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenTikTokApp();
+              }}
+              className="relative mb-1 cursor-pointer group"
+              title="Bấm avatar để mở kênh TikTok chính thức"
+            >
               <img 
                 src={currentItem.channelAvatar} 
                 alt="" 
-                className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-xl"
+                className="w-11 h-11 rounded-full object-cover border-2 border-white group-hover:border-rose-500 transition-all shadow-xl"
               />
               <button
                 onClick={(e) => {
@@ -650,7 +749,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                     ? 'bg-emerald-500 ring-2 ring-emerald-400/50 scale-100' 
                     : 'bg-[#FE2C55] hover:scale-110 active:scale-90'
                 }`}
-                title={currentClaimed.follow ? 'Đã Follow' : 'Follow nhận Xu'}
+                title={currentClaimed.follow ? 'Đã Follow trên TikTok' : 'Bấm Follow trên TikTok & nhận +200 Xu'}
               >
                 {currentClaimed.follow ? <Check className="w-3 h-3 stroke-[3]" /> : <UserPlus className="w-3 h-3 stroke-[2.5]" />}
               </button>

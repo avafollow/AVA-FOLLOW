@@ -70,7 +70,6 @@ export const ProfileWalletScreen: React.FC<{
     openBuyerPortal,
     openSubmitDemoModal,
     claimReferralReward,
-    simulateFriendTaskAction,
     showToast,
     getActivityReport,
     userCompletedActions,
@@ -358,7 +357,7 @@ export const ProfileWalletScreen: React.FC<{
         >
           <ShoppingBag className="w-5 h-5 shrink-0" />
           <span className="text-center leading-tight text-[10px]">Gói Đang Chạy</span>
-          <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-[9px] font-mono">{user.myOrders?.length || 2}</span>
+          <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-[9px] font-mono">{user.myOrders?.length || 0}</span>
         </button>
 
         {/* 2 */}
@@ -928,77 +927,41 @@ export const ProfileWalletScreen: React.FC<{
           </div>
 
           <div className="space-y-3 pt-2">
-            {/* Live streaming package */}
-            <div className="p-4 rounded-2xl bg-slate-900/90 border border-rose-500/30 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                    <span className="text-xs font-black text-white font-display">Gói 500 Mắt Xem Live 2 Tiếng Chốt Đơn Đỉnh Cao</span>
-                    <span className="px-2 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 font-mono">ĐANG PHÁT LIVE</span>
-                  </div>
-                  <div className="text-[11px] text-rose-300 font-mono mt-0.5">Phòng live: {user.tiktokConnected}/live • Mục tiêu: 500 mắt</div>
-                </div>
-                <div className="text-right font-mono">
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">
-                    Đã Giao: 340 / 500 Mắt (68%)
-                  </span>
-                </div>
-              </div>
-              <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 h-full w-[68%]" />
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
-                <span>❤️ Thả tim: 4,250 / 5,000</span>
-                <span>💬 Comment: 186 / 200</span>
-                <span className="text-emerald-400">● 100% Người Thật Lướt Live</span>
-              </div>
-            </div>
-
-            {/* Follow package */}
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
-                <div>
-                  <span className="text-xs font-bold text-white">Gói 1,000 Follower Mở Khóa TikTok Shop</span>
-                  <div className="text-[11px] text-cyan-400 font-mono">Kênh nhận: {user.tiktokConnected || '@kenh_chinh'}</div>
-                </div>
-                <div className="text-right">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono">
-                    Đang Trả Gói: 820 / 1,000 Follow (82%)
-                  </span>
-                </div>
-              </div>
-              <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                <div className="bg-gradient-to-r from-purple-500 to-emerald-400 h-full w-[82%]" />
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
-                <span>Bảo hành chống tụt: 60 ngày</span>
-                <span className="text-emerald-400">Tự động bù follow nếu tụt</span>
-              </div>
-            </div>
-
-            {/* Dynamic Orders from purchaseServicePackage */}
-            {user.myOrders && user.myOrders.map((ord) => (
-              <div key={ord.id} className="p-4 rounded-2xl bg-slate-900/80 border border-purple-800/40 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
-                  <div>
-                    <span className="text-xs font-bold text-white">{ord.packageTitle}</span>
-                    <div className="text-[11px] text-cyan-400 font-mono">Kênh/Video: {ord.targetUrl}</div>
-                  </div>
-                  <div className="text-right">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono">
-                      Đang Trả Gói: {ord.completedQuantity || 0} / {ord.targetQuantity.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-                <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                  <div className="bg-gradient-to-r from-purple-500 to-indigo-500 h-full w-[25%] animate-pulse" />
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Đã chuyển thành công sang hàng đợi nhiệm vụ cho cộng đồng lướt video thực hiện.
+            {(!user.myOrders || user.myOrders.length === 0) ? (
+              <div className="p-10 text-center bg-slate-900/40 rounded-2xl border border-white/5 space-y-3">
+                <ShoppingBag className="w-10 h-10 text-slate-600 mx-auto" />
+                <h4 className="text-sm font-bold text-white">Chưa Có Gói Tăng Trưởng Nào Đang Chạy</h4>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  Bạn chưa kích hoạt gói tăng trưởng nào. Khi mua gói follow, thả tim hoặc mắt xem live, tiến độ trả gói thực tế từ cộng đồng sẽ hiển thị chi tiết tại đây.
                 </p>
               </div>
-            ))}
+            ) : (
+              user.myOrders.map((ord) => (
+                <div key={ord.id} className="p-4 rounded-2xl bg-slate-900/80 border border-purple-800/40 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+                    <div>
+                      <span className="text-xs font-bold text-white">{ord.packageTitle}</span>
+                      <div className="text-[11px] text-cyan-400 font-mono">Kênh/Video: {ord.targetUrl}</div>
+                    </div>
+                    <div className="text-right">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono">
+                        Đang Trả Gói: {ord.completedQuantity || 0} / {ord.targetQuantity.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-purple-500 to-emerald-400 h-full" 
+                      style={{ width: `${Math.min(100, Math.round(((ord.completedQuantity || 0) / ord.targetQuantity) * 100))}%` }} 
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                    <span>Bảo hành chống tụt: 60 ngày</span>
+                    <span className="text-emerald-400">● 100% Người Thật Lướt Video</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -1578,14 +1541,6 @@ export const ProfileWalletScreen: React.FC<{
                               <Clock className="w-3 h-3 text-amber-400 animate-spin" />
                               <span>Chờ làm 1 nhiệm vụ</span>
                             </span>
-                            {/* Simulation test button */}
-                            <button
-                              onClick={() => simulateFriendTaskAction(ref.id)}
-                              className="px-2 py-0.5 rounded bg-purple-600/30 hover:bg-purple-600 text-purple-300 hover:text-white text-[10px] font-bold transition-all"
-                              title="Bấm để mô phỏng bạn bè vừa vào làm nhiệm vụ xem video 15s để nhận +5,000 Xu ngay"
-                            >
-                              Mô phỏng làm nv
-                            </button>
                           </div>
                         )}
                       </td>

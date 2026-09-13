@@ -32,6 +32,7 @@ import {
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS, LivestreamTaskItem } from '../../types';
 import { LIVE_SEEDING_TEMPLATES, LIVE_MILESTONE_REWARDS } from '../../data/livePolicyData';
+import { parseMediaUrl } from '../../data/videoSources';
 
 export const LivestreamRunnerModal: React.FC = () => {
   const { 
@@ -439,7 +440,7 @@ export const LivestreamRunnerModal: React.FC = () => {
             playsInline
             poster={activeLiveTask.channelAvatar}
             className="absolute inset-0 w-full h-full object-cover opacity-50 pointer-events-none"
-            src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+            src={parseMediaUrl(activeLiveTask.targetUrl, activeLiveTask.channelHandle).streamUrl}
           />
           <img
             src={activeLiveTask.channelAvatar}

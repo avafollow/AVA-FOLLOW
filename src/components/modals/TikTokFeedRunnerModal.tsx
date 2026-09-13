@@ -29,6 +29,7 @@ import {
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS, TikTokTaskItem, LivestreamTaskItem } from '../../types';
 import { INITIAL_CROSS_FOLLOW_ITEMS } from '../../data/crossFollowData';
+import { parseMediaUrl } from '../../data/videoSources';
 
 interface UnifiedFeedItem {
   id: string;
@@ -105,7 +106,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     channelAvatar: t.channelAvatar,
     targetUrl: t.targetUrl,
     rewardCoins: t.rewardCoins || 200,
-    videoUrl: t.videoPreviewUrl || 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4',
+    videoUrl: t.videoPreviewUrl || parseMediaUrl(t.targetUrl, t.channelHandle).streamUrl,
     sampleComments: t.sampleComments,
     guide: t.guide,
     campaignCategory: t.campaignCategory || 'community',
@@ -128,9 +129,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     channelAvatar: cf.channelAvatar,
     targetUrl: cf.targetUrl,
     rewardCoins: cf.rewardXu || 200,
-    videoUrl: idx % 2 === 0 
-      ? 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4' 
-      : 'https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-laptop-keyboard-42475-large.mp4',
+    videoUrl: parseMediaUrl(cf.targetUrl, cf.channelHandle).streamUrl,
     sampleComments: [
       'Đã follow chéo ủng hộ kênh bạn nhé!',
       'Nội dung hay quá, chúc kênh sớm triệu follow!',
@@ -155,7 +154,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     channelAvatar: l.channelAvatar,
     targetUrl: l.targetUrl,
     rewardCoins: l.totalRewardCoins || 400,
-    videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-talking-on-a-video-call-42318-large.mp4',
+    videoUrl: parseMediaUrl(l.targetUrl, l.channelHandle).streamUrl,
     guide: `Xem trực tiếp phiên live đủ ${l.targetMinutes || 3} phút để xác thực mắt xem.`,
     currentViewers: l.currentViewers || 580,
     roomTitle: l.roomTitle,

@@ -21,10 +21,13 @@ import {
   Wifi,
   Battery,
   Check,
-  Send
+  Send,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS } from '../../types';
+import { parseMediaUrl } from '../../data/videoSources';
 
 export const TikTokTaskRunnerModal: React.FC = () => {
   const { 
@@ -42,6 +45,10 @@ export const TikTokTaskRunnerModal: React.FC = () => {
 
   const [timeLeft, setTimeLeft] = useState<number>(15);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [isMuted, setIsMuted] = useState<boolean>(true);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const mediaInfo = runnerTask ? parseMediaUrl(runnerTask.targetUrl || runnerTask.videoPreviewUrl || '', runnerTask.channelHandle) : null;
   
   // Track claimed actions for this specific video session (Idempotent 1 time only)
   const [claimedActions, setClaimedActions] = useState<{
@@ -253,8 +260,15 @@ export const TikTokTaskRunnerModal: React.FC = () => {
             </span>
           </div>
 
-          {/* Right Controls: Mở App & Đóng */}
+          {/* Right Controls: Âm thanh, Mở App & Đóng */}
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className="p-1.5 rounded-full bg-black/60 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+            >
+              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+            </button>
             <button
               onClick={handleOpenTikTok}
               className="p-1.5 rounded-full bg-black/60 hover:bg-white/20 text-white transition-colors cursor-pointer"
@@ -293,20 +307,26 @@ export const TikTokTaskRunnerModal: React.FC = () => {
           </div>
         )}
 
-        {/* MAIN VIDEO PLAYER STAGE (MÔ PHỎNG VIDEO TIKTOK THỰC TẾ) */}
+        {/* MAIN VIDEO PLAYER STAGE (MÔ PHỎNG VIDEO TIKTOK THỰC TẾ SIÊU MƯỢT) */}
         <div 
-          className="relative flex-1 bg-gradient-to-b from-zinc-950 via-[#100818] to-black flex items-center justify-center overflow-hidden cursor-pointer select-none"
+          className="relative flex-1 bg-black flex items-center justify-center overflow-hidden cursor-pointer select-none"
           onClick={handleStageClick}
         >
-          {/* Video Background Simulation with ambient zoom */}
-          <img 
-            src={runnerTask.channelAvatar} 
-            alt="" 
-            className="absolute inset-0 w-full h-full object-cover opacity-35 filter blur-lg scale-125 transform transition-transform duration-1000"
-          />
+          {/* High-speed Realtime Video Player */}
+          {mediaInfo && (
+            <video
+              ref={videoRef}
+              src={mediaInfo.streamUrl}
+              autoPlay={isPlaying}
+              loop
+              playsInline
+              muted={isMuted}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          )}
 
           {/* Vignette Gradients for authentic TikTok viewability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 pointer-events-none" />
 
           {/* Floating Hearts Animation when double-tapping */}
           {floatingHearts.map(heart => (

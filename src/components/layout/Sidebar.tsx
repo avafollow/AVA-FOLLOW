@@ -46,12 +46,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems: NavItem[] = [
     { id: 'home', label: 'TRANG CHỦ', icon: Home },
-    { id: 'business_portal', label: 'ĐỐI TÁC KINH DOANH', icon: Building2, badge: 'VIP' },
+    { id: 'create_campaign', label: 'TẠO CHIẾN DỊCH', icon: PlusCircle, badge: 'HOT' },
     { id: 'tasks', label: 'KIẾM TIỀN NGAY', icon: UserCheck, badge: `${openTasksCount} MỚI` },
     { id: 'booking_escrow', label: 'KẾT NỐI KOC', icon: Video, badge: 'KOC' },
+    { id: 'business_portal', label: 'ĐỐI TÁC KINH DOANH', icon: Building2, badge: 'VIP' },
     { id: 'app_marketplace', label: 'APP KIẾM TIỀN', icon: Cpu, badge: 'HOT' },
-    { id: 'create_campaign', label: 'TẠO CHIẾN DỊCH', icon: PlusCircle },
-    { id: 'marketplace', label: 'GÓI TĂNG TRƯỞNG', icon: ShoppingBag, badge: 'HOT' },
+    { id: 'marketplace', label: 'GÓI TĂNG TRƯỞNG', icon: ShoppingBag },
     { id: 'analytics', label: 'BÁO CÁO THU NHẬP', icon: BarChart3 },
     { id: 'community', label: 'CỘNG ĐỒNG CREATOR', icon: Users },
     ...(user.email === 'quocthiencr90@gmail.com' ? [

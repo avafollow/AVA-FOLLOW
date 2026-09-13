@@ -17,23 +17,33 @@ export interface ParsedMediaInfo {
 
 // Kho video CDN & Local chất lượng cao định dạng MP4/H.264 chạy siêu mượt, không lỗi CORS, tải tức thì (<100ms)
 export const HIGH_SPEED_CDN_VIDEOS = {
-  // Video dạng đứng dọc chuẩn TikTok FYP
+  // Video dạng đứng dọc chuẩn TikTok FYP — Local trước, CDN internet dự phòng
   fyp: [
     '/videos/sample1.mp4',
     '/videos/sample2.mp4',
-    '/videos/sample3.mp4'
+    '/videos/sample3.mp4',
+    // CDN dự phòng internet — không cần server local
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
   ],
   // Phiên Live Stream bán hàng / KOC Studio
   livestream: [
     '/videos/sample2.mp4',
     '/videos/sample3.mp4',
-    '/videos/sample1.mp4'
+    '/videos/sample1.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
   ],
   // Review sản phẩm & Affiliate
   product_review: [
     '/videos/sample3.mp4',
     '/videos/sample1.mp4',
-    '/videos/sample2.mp4'
+    '/videos/sample2.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
   ]
 };
 

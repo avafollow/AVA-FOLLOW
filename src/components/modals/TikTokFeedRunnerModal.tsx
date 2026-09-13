@@ -531,21 +531,51 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           onDoubleClick={handleDoubleTap}
           onClick={() => setIsPlaying(!isPlaying)}
         >
-          {/* HTML5 Video Player */}
-          {currentItem.videoUrl && (
-            <video
-              key={currentItem.id + '_' + (currentItem.videoUrl || currentItem.targetUrl)}
-              ref={videoRef}
-              src={currentItem.videoUrl}
-              autoPlay
-              loop
-              playsInline
-              preload="auto"
-              crossOrigin="anonymous"
-              muted={isMuted}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          )}
+          {/* YouTube Video or Live Player */}
+          {(() => {
+            const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
+            if (itemMedia.isYouTube && itemMedia.youtubeId) {
+              return (
+                <iframe
+                  key={currentItem.id + '_yt_' + itemMedia.youtubeId + '_' + isMuted}
+                  src={`https://www.youtube.com/embed/${itemMedia.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${itemMedia.youtubeId}&modestbranding=1&rel=0`}
+                  title={currentItem.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
+                />
+              );
+            }
+            if (itemMedia.isFacebook && currentItem.targetUrl) {
+              return (
+                <iframe
+                  key={currentItem.id + '_fb_' + encodeURIComponent(currentItem.targetUrl) + '_' + isMuted}
+                  src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(currentItem.targetUrl)}&show_text=0&autoplay=1&muted=${isMuted ? 1 : 0}&allowfullscreen=true`}
+                  title={currentItem.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
+                />
+              );
+            }
+            if (currentItem.videoUrl) {
+              return (
+                <video
+                  key={currentItem.id + '_' + (currentItem.videoUrl || currentItem.targetUrl)}
+                  ref={videoRef}
+                  src={currentItem.videoUrl}
+                  autoPlay
+                  loop
+                  playsInline
+                  preload="auto"
+                  crossOrigin="anonymous"
+                  muted={isMuted}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              );
+            }
+            return null;
+          })()}
 
           {/* Overlay Gradient for readability */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/85 pointer-events-none" />

@@ -94,12 +94,15 @@ export function extractTikTokVideoId(url: string): string | null {
   return null;
 }
 
-// Hàm trích xuất Video ID từ YouTube URL (watch, shorts, live, youtu.be)
+// Hàm trích xuất Video ID từ YouTube URL (watch, shorts, live, youtu.be, embed)
 export function extractYouTubeVideoId(url: string): string | null {
   if (!url) return null;
-  const match = 
-    url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|live\/))([a-zA-Z0-9_-]{11})/i);
-  return match ? match[1] : null;
+  const clean = url.trim();
+  const match = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|live\/))([a-zA-Z0-9_-]{11})/i);
+  if (match && match[1]) return match[1];
+  const paramMatch = clean.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
+  if (paramMatch && paramMatch[1]) return paramMatch[1];
+  return null;
 }
 
 // Phân tích toàn diện URL dán vào để trả về bộ thông tin stream & embed
@@ -108,8 +111,8 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
   const handle = extractTikTokHandle(url) || defaultHandle || '@creator_tiktok';
   const isLive = url.includes('/live') || url.toLowerCase().includes('live');
   const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
-  const isFacebook = url.includes('facebook.com') || url.includes('fb.watch');
-  const isDirectVideo = /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url);
+  const isFacebook = url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com');
+  const isDirectVideo = /\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i.test(url);
   const isTikTok = !isYouTube && !isFacebook && (url.includes('tiktok.com') || url.includes('vt.tiktok.com') || url.startsWith('@') || !url.startsWith('http'));
 
   const videoId = extractTikTokVideoId(url);
@@ -133,7 +136,7 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
     sourceType = 'direct_stream';
   } else if (isYouTube && youtubeId) {
     streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];
-    embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=1&playsinline=1&controls=0&loop=1&playlist=${youtubeId}&modestbranding=1&enablejsapi=1`;
+    embedUrl = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`;
     sourceType = 'youtube_embed';
   } else if (isFacebook) {
     streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];

@@ -1415,7 +1415,7 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
     version: 'v2.8 Studio',
     developer: 'SoundWave AI',
     platformCompatibility: ['Web App', 'Windows', 'MacOS'],
-    badge: 'MC ẢO TRIỆU VIEW',
+    badge: 'MC AI TRIỆU VIEW',
     downloadUrl: 'https://tools.tiktokpro.vn/voice-cloner'
   },
   {
@@ -1510,7 +1510,7 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
   },
   {
     id: 'app_07',
-    title: 'Livestream Auto Assistant & Comment Pinning Bot',
+    title: 'Livestream Auto Assistant & Comment Pinning Pro',
     category: 'tiktok_shop',
     tag: 'Trợ Lý Phòng Live',
     priceXu: 1000000,
@@ -1519,7 +1519,7 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
     rating: 4.8,
     reviewCount: 225,
     downloadsCount: 890,
-    description: 'Trợ lý ảo thông minh trong phiên Live: Tự động ghim sản phẩm giỏ hàng, ghim bình luận mồi, gửi tin nhắn chào mừng và trả lời câu hỏi tự động.',
+    description: 'Trợ lý AI thông minh trong phiên Live: Tự động ghim sản phẩm giỏ hàng, ghim bình luận mồi, gửi tin nhắn chào mừng và trả lời câu hỏi tự động.',
     highlights: [
       'Tự động ghim Deal 1k, mã giảm giá kích thích mua hàng',
       'Trả lời thắc mắc về size số, phí ship, thời gian giao hàng',
@@ -1570,7 +1570,7 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
   }
 ];
 
-// Sổ cái biến động Token mẫu
+// Sổ cái biến động Token chính thức
 export const INITIAL_TOKEN_LEDGER: TokenLedgerRecord[] = [
   {
     id: 'tled_1',

@@ -66,7 +66,7 @@ const INITIAL_POSTS: CommunityPostItem[] = [
     },
     time: '25 phút trước',
     tag: 'Thuật toán FYP',
-    content: '🔥 BÍ QUYẾT LÊN XU HƯỚNG TIKTOK 2026 CHO KÊNH MỚI:\nĐừng buff bot ảo! Hãy dùng nhiệm vụ người dùng thật xem video 15s đầu kết hợp follow tự nhiên. Kênh mình vừa cán mốc 850k follow và video nào cũng cắn đề xuất For You Page (FYP)! Anh em nào cần trao đổi kinh nghiệm cứ bấm kết bạn và nhắn tin riêng với mình nhé!',
+    content: '🔥 BÍ QUYẾT LÊN XU HƯỚNG TIKTOK 2026 CHO KÊNH MỚI:\nXây kênh chuẩn bền vững: Hãy dùng nhiệm vụ người dùng thật xem video 15s đầu kết hợp follow tự nhiên. Kênh mình vừa cán mốc 850k follow và video nào cũng cắn đề xuất For You Page (FYP)! Anh em nào cần trao đổi kinh nghiệm cứ bấm kết bạn và nhắn tin riêng với mình nhé!',
     image: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&auto=format&fit=crop&q=80',
     likes: 342,
     commentsCount: 3,
@@ -217,7 +217,7 @@ export const CommunityScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) =
   // Quick preset photos
   const handleSelectPresetImage = (url: string, label: string) => {
     setUploadedImage(url);
-    showToast(`✓ Đã chọn ảnh mẫu: ${label}`);
+    showToast(`✓ Đã đính kèm ảnh: ${label}`);
   };
 
   const handleCreatePost = () => {

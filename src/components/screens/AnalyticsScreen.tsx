@@ -24,11 +24,11 @@ export const AnalyticsScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) =
   const { analytics, checkInDaily, user, openWithdraw, openLuckyWheel, getUserLiveQuota } = useTikTokApp();
 
   const quota = getUserLiveQuota();
-  const [simulatedHours, setSimulatedHours] = useState<number>(2);
+  const [workingHours, setWorkingHours] = useState<number>(2);
 
   // Income Calculator Formula
   // 1 hour = ~60 tasks (Follow + Like + Comment) ≈ 150,000đ + 1 live/review ≈ 300,000đ/hour
-  const estimatedDailyEarnings = simulatedHours * 250000;
+  const estimatedDailyEarnings = workingHours * 250000;
   const estimatedMonthlyEarnings = estimatedDailyEarnings * 30;
 
   const streakRewards = [
@@ -180,22 +180,22 @@ export const AnalyticsScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) =
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Interactive Daily Earnings Simulator */}
+        {/* Left: Real Working Earnings Calculator */}
         <div className="lg:col-span-6 p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-neonGold" />
             <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">
-              Máy Tính Thu Nhập Dự Kiến (Income Simulator)
+              Bảng Tính Thu Nhập Theo Thời Gian Làm Việc Thực Tế
             </h3>
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Kéo thanh trượt số giờ bạn rảnh mỗi ngày để ước tính nguồn thu nhập thực tế rút về tài khoản ngân hàng.
+            Kéo thanh trượt thời gian làm nhiệm vụ mỗi ngày để xem thu nhập chính thức rút về tài khoản ngân hàng.
           </p>
 
           <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-3">
             <div className="flex items-center justify-between text-xs font-mono">
               <span className="text-slate-400">Thời gian làm mỗi ngày:</span>
-              <span className="text-base font-black text-white">{simulatedHours} Tiếng / ngày</span>
+              <span className="text-base font-black text-white">{workingHours} Tiếng / ngày</span>
             </div>
 
             <input
@@ -203,8 +203,8 @@ export const AnalyticsScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) =
               min="1"
               max="6"
               step="1"
-              value={simulatedHours}
-              onChange={(e) => setSimulatedHours(parseInt(e.target.value))}
+              value={workingHours}
+              onChange={(e) => setWorkingHours(parseInt(e.target.value))}
               className="w-full accent-rose-500 cursor-pointer"
             />
             <div className="flex justify-between text-[10px] font-mono text-slate-500">
@@ -219,13 +219,13 @@ export const AnalyticsScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) =
 
           <div className="grid grid-cols-2 gap-3 pt-1">
             <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center">
-              <div className="text-[10px] text-slate-400 font-mono">Thu nhập mỗi ngày</div>
+              <div className="text-[10px] text-slate-400 font-mono">Thu nhập thực nhận mỗi ngày</div>
               <div className="text-lg font-black text-emerald-400 font-mono mt-0.5">
                 {estimatedDailyEarnings.toLocaleString()}đ
               </div>
             </div>
             <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-center">
-              <div className="text-[10px] text-slate-400 font-mono">Thu nhập mỗi tháng</div>
+              <div className="text-[10px] text-slate-400 font-mono">Thu nhập thực nhận mỗi tháng</div>
               <div className="text-lg font-black text-purple-300 font-mono mt-0.5">
                 {estimatedMonthlyEarnings.toLocaleString()}đ
               </div>

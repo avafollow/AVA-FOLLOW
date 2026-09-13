@@ -687,11 +687,8 @@ export const CreateCampaignScreen: React.FC<{
             <input
               type="text"
               value={channelHandle}
-              onChange={(e) => {
-                const val = e.target.value;
-                setChannelHandle(val.startsWith('@') || !val ? val : `@${val}`);
-              }}
-              placeholder="@kenhcua_ban"
+              onChange={(e) => setChannelHandle(e.target.value)}
+              placeholder="@username_chinh_thuc"
               className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono text-xs"
               required
             />
@@ -700,7 +697,7 @@ export const CreateCampaignScreen: React.FC<{
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="block text-zinc-300 font-mono font-bold uppercase text-[10px]">
-                4. Link Kênh, Video hoặc Phiên Live TikTok:
+                2. Đường dẫn Video / Phiên Live chính thức:
               </label>
               <span className="text-[10px] text-cyan-400 font-mono font-bold">Dán link hiển thị ngay</span>
             </div>
@@ -708,7 +705,7 @@ export const CreateCampaignScreen: React.FC<{
               type="text"
               value={targetUrl}
               onChange={(e) => handleTargetUrlChange(e.target.value)}
-              placeholder="https://www.tiktok.com/@... hoặc dán link video / live"
+              placeholder="Dán link video TikTok, YouTube, Facebook hoặc phiên Live chính thức"
               className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono text-xs"
               required
             />
@@ -819,7 +816,7 @@ export const CreateCampaignScreen: React.FC<{
                   className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs font-mono font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer border border-rose-500/40 shadow-md text-center"
                 >
                   <Play className="w-3.5 h-3.5 fill-rose-400" />
-                  <span>Lướt Thử Feed Toàn Sàn</span>
+                  <span>Lướt Feed Toàn Sàn</span>
                 </button>
               </div>
             </div>
@@ -830,13 +827,13 @@ export const CreateCampaignScreen: React.FC<{
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="sm:col-span-2 space-y-1.5">
             <label className="block text-zinc-300 font-mono font-bold uppercase text-[10px]">
-              5. Tên chiến dịch:
+              5. Tên chiến dịch chính thức:
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={`VD: Combo Tăng Trưởng Toàn Diện cho ${channelHandle}`}
+              placeholder={`Chiến dịch tăng trưởng kênh ${channelHandle}`}
               className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-medium"
             />
           </div>
@@ -1362,7 +1359,7 @@ export const CreateCampaignScreen: React.FC<{
                 type="text"
                 value={megaProductName}
                 onChange={(e) => setMegaProductName(e.target.value)}
-                placeholder="VD: BST Son Kem Lì Mùa Thu, Tai Nghe AI Pro..."
+                placeholder="Tên sản phẩm / thương hiệu chính thức"
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -1394,7 +1391,7 @@ export const CreateCampaignScreen: React.FC<{
                 type="text"
                 value={megaProductPrice}
                 onChange={(e) => setMegaProductPrice(e.target.value)}
-                placeholder="VD: 299.000đ (Giá gốc 599.000đ)"
+                placeholder="Giá niêm yết chính thức"
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -1407,7 +1404,7 @@ export const CreateCampaignScreen: React.FC<{
                 type="text"
                 value={megaVoucher}
                 onChange={(e) => setMegaVoucher(e.target.value)}
-                placeholder="VD: Mua 1 Tặng 1 + Voucher Giảm 50K"
+                placeholder="Ưu đãi đính kèm phiên live chính thức"
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -1533,7 +1530,7 @@ export const CreateCampaignScreen: React.FC<{
                   type="text"
                   value={megaLiveDateTime}
                   onChange={(e) => setMegaLiveDateTime(e.target.value)}
-                  placeholder="VD: 20:00 Tối Nay"
+                  placeholder="20:00 Tối Nay"
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
                 />
               </div>
@@ -1792,24 +1789,24 @@ export const CreateCampaignScreen: React.FC<{
                 {(() => {
                   const isAdmin = user.isAdmin || user.email === 'quocthiencr90@gmail.com' || user.email === 'thienvuaapp@gmail.com';
                   const isUnlocked = camp.isAnalyticsUnlocked || isAdmin;
-                  const demo = camp.demographicsReport;
-                  const femalePct = demo?.genderDistribution?.female ?? 58;
-                  const malePct = demo?.genderDistribution?.male ?? 42;
-                  const realScore = demo?.realUserScore ?? 99.2;
-                  const peakViewers = demo?.peakLiveViewers || (camp.targetQuantity ? Math.round(camp.targetQuantity * 1.25) : 8500);
-                  const gmv = demo?.generatedRevenueEstimateVND || '45.000.000đ - 120.000.000đ';
-                  const ageList = demo?.ageGroups ? [
-                    { range: '18-24 tuổi', percent: demo.ageGroups['18-24'] || 46 },
-                    { range: '25-34 tuổi', percent: demo.ageGroups['25-34'] || 38 },
-                    { range: '35-44 tuổi', percent: demo.ageGroups['35-44'] || 12 },
-                    { range: '45+ tuổi', percent: demo.ageGroups['45+'] || 4 },
+                  const audienceReport = camp.demographicsReport;
+                  const femalePct = audienceReport?.genderDistribution?.female ?? 58;
+                  const malePct = audienceReport?.genderDistribution?.male ?? 42;
+                  const realScore = audienceReport?.realUserScore ?? 99.2;
+                  const peakViewers = audienceReport?.peakLiveViewers || (camp.targetQuantity ? Math.round(camp.targetQuantity * 1.25) : 8500);
+                  const gmv = audienceReport?.generatedRevenueEstimateVND || '45.000.000đ - 120.000.000đ';
+                  const ageList = audienceReport?.ageGroups ? [
+                    { range: '18-24 tuổi', percent: audienceReport.ageGroups['18-24'] || 46 },
+                    { range: '25-34 tuổi', percent: audienceReport.ageGroups['25-34'] || 38 },
+                    { range: '35-44 tuổi', percent: audienceReport.ageGroups['35-44'] || 12 },
+                    { range: '45+ tuổi', percent: audienceReport.ageGroups['45+'] || 4 },
                   ] : [
                     { range: '18-24 tuổi', percent: 46 },
                     { range: '25-34 tuổi', percent: 38 },
                     { range: '35-44 tuổi', percent: 12 },
                     { range: 'Khác', percent: 4 },
                   ];
-                  const locList = demo?.topLocations?.map(l => `${l.province} (${l.percentage}%)`) || [
+                  const locList = audienceReport?.topLocations?.map(l => `${l.province} (${l.percentage}%)`) || [
                     'TP. Hồ Chí Minh (42%)', 'Hà Nội (31%)', 'Đà Nẵng (12%)', 'Hải Phòng (9%)', 'Cần Thơ (6%)'
                   ];
 

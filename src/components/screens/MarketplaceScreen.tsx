@@ -66,7 +66,8 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
     { id: 'share', label: `Chia Sẻ & Lan Tỏa (${growthServices.filter(s => s.category === 'share').length})`, icon: Share2 }
   ];
 
-  const filtered = growthServices.filter((srv) => {
+  const filtered = (growthServices || []).filter((srv) => {
+    if (!srv) return false;
     if (activeCategory !== 'all') {
       if (activeCategory === 'combo') {
         if (srv.category !== 'combo' && srv.category !== 'full_channel') return false;
@@ -74,14 +75,16 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
         return false;
       }
     }
-    if (priceFilter === 'under_1m' && srv.priceNum > 1000000) return false;
-    if (priceFilter === '1m_3m' && (srv.priceNum <= 1000000 || srv.priceNum > 3000000)) return false;
-    if (priceFilter === '3m_7m' && (srv.priceNum <= 3000000 || srv.priceNum > 7000000)) return false;
-    if (priceFilter === '7m_10m' && (srv.priceNum <= 7000000 || srv.priceNum > 10000000)) return false;
+    if (priceFilter === 'under_1m' && (srv.priceNum || 0) > 1000000) return false;
+    if (priceFilter === '1m_3m' && ((srv.priceNum || 0) <= 1000000 || (srv.priceNum || 0) > 3000000)) return false;
+    if (priceFilter === '3m_7m' && ((srv.priceNum || 0) <= 3000000 || (srv.priceNum || 0) > 7000000)) return false;
+    if (priceFilter === '7m_10m' && ((srv.priceNum || 0) <= 7000000 || (srv.priceNum || 0) > 10000000)) return false;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      return srv.title.toLowerCase().includes(q) || srv.description.toLowerCase().includes(q) || srv.tag.toLowerCase().includes(q);
+      return (srv.title || '').toLowerCase().includes(q) || 
+             (srv.description || '').toLowerCase().includes(q) || 
+             (srv.tag || '').toLowerCase().includes(q);
     }
     return true;
   });
@@ -145,7 +148,9 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
               />
             </div>
             <div className="text-[11px] text-slate-400 text-center font-mono">
-              Số dư ví: <strong className="text-amber-400">{user.avaliveCoins.toLocaleString()} Xu</strong>
+              Số dư ví: <strong className="text-amber-400">{(user?.avaliveCoins || 0).toLocaleString()} Xu</strong>
+              <span className="text-slate-500 mx-1">≈</span>
+              <strong className="text-emerald-400">{(user?.avaliveCoins || 0).toLocaleString('vi-VN')}đ</strong>
             </div>
           </div>
         </div>
@@ -319,7 +324,7 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
 
                 {/* Features List */}
                 <ul className="space-y-1.5 text-[11px] text-slate-300 pt-2 border-t border-slate-800/80">
-                  {srv.features.slice(0, 3).map((feat, i) => (
+                  {(srv.features || []).slice(0, 3).map((feat, i) => (
                     <li key={i} className="flex items-start gap-1.5">
                       <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
                       <span className="line-clamp-1">{feat}</span>

@@ -915,6 +915,9 @@ export interface UserProfileWallet {
   facebookConnected?: string;
   isFacebookVerified?: boolean;
   facebookFollowers?: number;
+  youtubeConnected?: string;
+  isYoutubeVerified?: boolean;
+  youtubeSubscribers?: number;
   bioVerificationCode: string;
   withdrawCount?: number; // Số lần đã rút tiền (Lần 1 miễn phí, lần 2 trở đi phí 5% & bắt buộc KYC)
   avaliveCoins: number;

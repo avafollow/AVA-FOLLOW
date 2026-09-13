@@ -5,11 +5,7 @@ export const MAX_TIKTOK_ACCOUNTS_PER_IP = 5;
 export const DEFAULT_CLIENT_IP = '118.69.182.45';
 
 export const INITIAL_IP_ACCOUNTS: Record<string, string[]> = {
-  '118.69.182.45': [
-    '@vietnam_creator_master',
-    '@phuongbeauty_koc',
-    '@zen_skincare_vn'
-  ],
+  '118.69.182.45': [],
   '14.161.42.108': [
     '@linhdan.vlog',
     '@streetwear_genz'

@@ -256,6 +256,8 @@ interface TikTokAppContextType {
   disconnectTikTok: () => void;
   connectFacebook: (urlOrHandle: string) => void;
   disconnectFacebook: () => void;
+  connectYoutube: (urlOrHandle: string) => void;
+  disconnectYoutube: () => void;
   deposit: (amountVND: number, method: string) => void;
   withdraw: (amountVND: number, bankInfo: BankAccountInfo) => boolean;
   saveBankInfo: (bankInfo: BankAccountInfo) => void;
@@ -2761,6 +2763,32 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast('Đã ngắt kết nối tài khoản Facebook.');
   };
 
+  const connectYoutube = (urlOrHandle: string) => {
+    const clean = urlOrHandle
+      .replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '')
+      .replace(/^@/, '')
+      .replace(/\/$/, '');
+
+    setUser(prev => ({
+      ...prev,
+      youtubeConnected: `@${clean}`,
+      isYoutubeVerified: true,
+      youtubeSubscribers: prev.youtubeSubscribers && prev.youtubeSubscribers > 0 ? prev.youtubeSubscribers : 12500
+    }));
+
+    showToast(`✅ Đã kết nối 1-chạm kênh YouTube @${clean}!`);
+    closeConnect();
+  };
+
+  const disconnectYoutube = () => {
+    setUser(prev => ({
+      ...prev,
+      youtubeConnected: '',
+      isYoutubeVerified: false
+    }));
+    showToast('Đã ngắt kết nối kênh YouTube.');
+  };
+
   // Deposit
   const deposit = (amountVND: number, method: string) => {
     const addedCoins = amountVND;
@@ -4144,6 +4172,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         disconnectTikTok,
         connectFacebook,
         disconnectFacebook,
+        connectYoutube,
+        disconnectYoutube,
         deposit,
         withdraw,
         saveBankInfo,

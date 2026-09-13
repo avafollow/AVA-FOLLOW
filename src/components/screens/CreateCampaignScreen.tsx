@@ -359,7 +359,7 @@ export const CreateCampaignScreen: React.FC<{
             <div className="text-base font-black text-white font-mono flex items-center gap-2">
               <span className="text-neonGold">{(user.avaliveCoins || 0).toLocaleString()} Xu</span>
               <span className="text-zinc-400 font-normal text-xs">≈</span>
-              <span className="text-emerald-400 font-bold">{user.coinsValueVND}</span>
+              <span className="text-emerald-400 font-bold">{(user.avaliveCoins || 0).toLocaleString('vi-VN')}đ</span>
             </div>
           </div>
         </div>

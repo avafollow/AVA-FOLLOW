@@ -51,6 +51,18 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
   // Livestream duration selection (1p, 3p, 10p, 30p, 90p)
   const [selectedDuration, setSelectedDuration] = useState<number>(3);
 
+  // Polling check SePay payment status
+  const [isCheckingApi, setIsCheckingApi] = useState(false);
+  const [checkCount, setCheckCount] = useState(0);
+  const [checkErrorMsg, setCheckErrorMsg] = useState('');
+  const pollingRef = React.useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
+
   // Auto-close success modal after 2 seconds
   useEffect(() => {
     if (stage === 'success') {
@@ -99,7 +111,7 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
     effectivePriceNum = Math.max(35000, effectivePriceNum);
   }
 
-  const isCoinsEnough = user.avaliveCoins >= effectivePriceNum;
+  const isCoinsEnough = (user?.avaliveCoins || 0) >= effectivePriceNum;
 
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -122,18 +134,6 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
     setError('');
     return true;
   };
-
-  // Polling check SePay payment status
-  const [isCheckingApi, setIsCheckingApi] = useState(false);
-  const [checkCount, setCheckCount] = useState(0);
-  const [checkErrorMsg, setCheckErrorMsg] = useState('');
-  const pollingRef = React.useRef<any>(null);
-
-  useEffect(() => {
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
-  }, []);
 
   const checkPaymentStatus = async (showFeedback = false) => {
     if (isCheckingApi) return;

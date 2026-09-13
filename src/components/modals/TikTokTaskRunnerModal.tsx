@@ -113,7 +113,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       setIsSubmitting(false);
       setFloatingHearts([]);
 
-      if (videoRef.current && !isYouTube && !isTikTokEmbed) {
+      if (videoRef.current && !isYouTube) {
         videoRef.current.defaultMuted = true;
         videoRef.current.muted = isMuted;
         videoRef.current.playsInline = true;
@@ -132,7 +132,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
         }
       }
     }
-  }, [isRunnerOpen, runnerTask, userCompletedActions, isMuted, isYouTube, isTikTokEmbed]);
+  }, [isRunnerOpen, runnerTask, userCompletedActions, isMuted, isYouTube]);
 
   // 15-second countdown timer
   useEffect(() => {
@@ -365,17 +365,8 @@ export const TikTokTaskRunnerModal: React.FC = () => {
           {/* Vignette Gradients for authentic TikTok viewability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 pointer-events-none z-[1]" />
 
-          {/* Real Video Player or TikTok Embed or YouTube Embed */}
-          {isTikTokEmbed && mediaInfo?.videoId ? (
-            <iframe
-              key={runnerTask.id + '_tt_' + mediaInfo.videoId}
-              src={`https://www.tiktok.com/embed/v2/${mediaInfo.videoId}?lang=vi-VN`}
-              title={runnerTask.title}
-              allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
-            />
-          ) : isYouTube && mediaInfo?.youtubeId ? (
+          {/* Real Video Player or YouTube Embed */}
+          {isYouTube && mediaInfo?.youtubeId ? (
             <iframe
               key={runnerTask.id + '_yt_' + mediaInfo.youtubeId}
               src={`https://www.youtube.com/embed/${mediaInfo.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${mediaInfo.youtubeId}&modestbranding=1&rel=0`}
@@ -398,7 +389,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
                   });
                 }
               }}
-              src={mediaInfo?.streamUrl || '/videos/sample1.mp4'}
+              src={mediaInfo?.streamUrl || '/videos/sample2.mp4'}
               autoPlay
               loop
               playsInline
@@ -406,8 +397,8 @@ export const TikTokTaskRunnerModal: React.FC = () => {
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onError={() => {
-                if (videoRef.current && videoRef.current.src !== '/videos/sample1.mp4') {
-                  videoRef.current.src = '/videos/sample1.mp4';
+                if (videoRef.current && videoRef.current.src !== '/videos/sample2.mp4') {
+                  videoRef.current.src = '/videos/sample2.mp4';
                   videoRef.current.play().catch(() => {});
                 }
               }}

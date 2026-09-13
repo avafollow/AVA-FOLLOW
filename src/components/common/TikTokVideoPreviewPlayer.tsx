@@ -69,7 +69,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const isYouTube = mediaInfo.isYouTube && Boolean(mediaInfo.youtubeId);
   const isFacebook = mediaInfo.isFacebook && Boolean(url);
   const isDirectVideo = mediaInfo.isDirectVideo;
-  const isTikTokEmbed = Boolean(mediaInfo.isTikTok && mediaInfo.videoId);
+  const hasTikTokVideoId = Boolean(mediaInfo.isTikTok && mediaInfo.videoId);
+  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>('stream');
 
   // Link đích chính xác của người dùng
   const displayHandle = mediaInfo.handle || channelHandle || '@creator.vietnam';
@@ -85,7 +86,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   // Đảm bảo video native tự động phát mượt mà khi dán link mới
   useEffect(() => {
     setCurrentStream(mediaInfo.streamUrl);
-    if (videoRef.current && !isYouTube && !isTikTokEmbed) {
+    if (videoRef.current && (!isYouTube || streamMode === 'stream') && streamMode !== 'embed') {
       videoRef.current.defaultMuted = true;
       videoRef.current.muted = isMuted;
       videoRef.current.playsInline = true;
@@ -106,13 +107,13 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
           });
       }
     }
-  }, [currentStream, mediaInfo.streamUrl, url, isMuted, autoPlay, isYouTube, isTikTokEmbed]);
+  }, [currentStream, mediaInfo.streamUrl, url, isMuted, autoPlay, isYouTube, streamMode]);
 
   const handleVideoError = () => {
     setCurrentStream((prev) => {
-      if (prev === '/videos/sample1.mp4') return '/videos/sample2.mp4';
       if (prev === '/videos/sample2.mp4') return '/videos/sample3.mp4';
-      return '/videos/sample1.mp4';
+      if (prev === '/videos/sample3.mp4') return '/videos/sample1.mp4';
+      return '/videos/sample2.mp4';
     });
   };
 
@@ -229,8 +230,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
     >
       {/* 1. PLAYER CONTAINER (Tự động thích ứng với YouTube, Facebook, TikTok hoặc Native Stream) */}
       <div className="relative w-full h-full flex-1 overflow-hidden bg-black flex items-center justify-center">
-        {/* TRƯỜNG HỢP A: TIKTOK CHÍNH THỨC VỚI VIDEO ID */}
-        {isTikTokEmbed ? (
+        {/* TRƯỜNG HỢP A: TIKTOK CHÍNH THỨC NẾU NGƯỜI DÙNG CHỌN XEM KHUNG EMBED */}
+        {streamMode === 'embed' && hasTikTokVideoId ? (
           <iframe
             key={`tt-${mediaInfo.videoId}`}
             src={`https://www.tiktok.com/embed/v2/${mediaInfo.videoId}`}
@@ -249,8 +250,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             allowFullScreen
             className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
           />
-        ) : isFacebook && url ? (
-          /* TRƯỜNG HỢP C: FACEBOOK VIDEO */
+        ) : streamMode === 'embed' && isFacebook && url ? (
+          /* TRƯỜNG HỢP C: FACEBOOK VIDEO EMBED */
           <iframe
             key={`fb-${encodeURIComponent(url)}`}
             src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=${isMuted ? 1 : 0}&allowfullscreen=true`}
@@ -281,7 +282,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             className="w-full h-full object-cover bg-black rounded-3xl"
           />
         ) : (
-          /* TRƯỜNG HỢP E: TIKTOK KÊNH, TIKTOK LIVE, NATIVE STREAM SIÊU MƯỢT */
+          /* TRƯỜNG HỢP E: TIKTOK KÊNH, TIKTOK VIDEO, TIKTOK LIVE, NATIVE STREAM SIÊU MƯỢT */
           <div className="relative w-full h-full cursor-pointer" onClick={togglePlay}>
             <video
               key={currentStream}
@@ -309,6 +310,18 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               onError={handleVideoError}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
+              onCanPlay={(e) => {
+                const v = e.currentTarget;
+                if (autoPlay && v.paused) {
+                  v.play().then(() => setIsPlaying(true)).catch(() => {
+                    v.muted = true;
+                    setIsMuted(true);
+                    v.play().then(() => setIsPlaying(true)).catch(() => {
+                      setIsPlaying(false);
+                    });
+                  });
+                }
+              }}
               className="w-full h-full object-cover transition-opacity duration-300"
             />
 
@@ -324,7 +337,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
                 <button
                   type="button"
                   onClick={togglePlay}
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-2xl transition-all cursor-pointer transform hover:scale-110 active:scale-95 border-2 border-white/40"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-2xl transition-all cursor-pointer transform hover:scale-110 active:scale-95 border-2 border-white/40 shadow-rose-500/50"
                   title={isPlaying ? 'Tạm dừng' : 'Bấm để phát video'}
                 >
                   {isPlaying ? (
@@ -336,7 +349,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
                 {!isPlaying && (
                   <span className="mt-3 px-4 py-1.5 rounded-full bg-black/85 text-white text-xs font-mono font-bold tracking-wide border border-rose-500/50 shadow-xl flex items-center gap-1.5 animate-pulse">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    ▶️ BẤM VÀO ĐÂY ĐỂ PHÁT VIDEO
+                    ▶️ BẤM ĐỂ PHÁT VIDEO LIÊN TỤC
                   </span>
                 )}
               </div>
@@ -350,15 +363,45 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         <div className="flex items-center gap-2 pointer-events-auto">
           {getPlatformBadge()}
           {effectiveIsLive && (
-            <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-mono text-white flex items-center gap-1 border border-white/10">
-              <Users className="w-3 h-3 text-rose-400" /> 2.8K mắt xem
+            <span className="px-2 py-0.5 rounded-md bg-rose-600 text-[9px] font-mono font-bold text-white flex items-center gap-1 border border-rose-400/30 animate-pulse">
+              <Radio className="w-3 h-3" /> ĐANG LIVE
             </span>
+          )}
+
+          {/* Switcher giữa Video Stream và Khung nhúng TikTok */}
+          {hasTikTokVideoId && (
+            <div className="flex items-center bg-black/75 backdrop-blur-md p-0.5 rounded-lg border border-white/20 shadow">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setStreamMode('stream'); }}
+                className={`px-2 py-0.5 rounded text-[9px] font-bold font-mono transition-all ${
+                  streamMode === 'stream'
+                    ? 'bg-rose-600 text-white shadow'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+                title="Phát video tự động liên tục"
+              >
+                ▶️ Video Live
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setStreamMode('embed'); }}
+                className={`px-2 py-0.5 rounded text-[9px] font-bold font-mono transition-all ${
+                  streamMode === 'embed'
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+                title="Xem khung nhúng TikTok gốc"
+              >
+                📱 Khung TikTok
+              </button>
+            </div>
           )}
         </div>
 
         <div className="flex items-center gap-1.5 pointer-events-auto">
           {/* Play/Pause Button in header */}
-          {!isYouTube && !isTikTokEmbed && (
+          {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && (
             <button
               type="button"
               onClick={togglePlay}
@@ -370,7 +413,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
           )}
 
           {/* Sound Mute/Unmute */}
-          {!isTikTokEmbed && (
+          {streamMode !== 'embed' && (
             <button
               type="button"
               onClick={toggleMute}
@@ -403,8 +446,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         </div>
       </div>
 
-      {/* 3. RIGHT ACTION BUTTONS (Hiển thị khi ở chế độ native / livestream hoặc khi cần tương tác) */}
-      {!isYouTube && (
+      {/* 3. RIGHT ACTION BUTTONS (Chỉ hiển thị khi đang ở chế độ Video Stream để không che Khung nhúng) */}
+      {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && (
         <div className="absolute right-3 bottom-20 z-20 flex flex-col items-center gap-3.5 pointer-events-auto">
           {/* Creator Avatar & Follow Button */}
           <div className="relative mb-1">
@@ -495,7 +538,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
       )}
 
       {/* 4. BOTTOM INFO OVERLAY (Dành cho Native & Livestream Player) */}
-      {!isYouTube && (
+      {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && (
         <div className="absolute bottom-3 left-3 right-16 z-20 pointer-events-none space-y-2">
           {/* Creator Handle */}
           <div 

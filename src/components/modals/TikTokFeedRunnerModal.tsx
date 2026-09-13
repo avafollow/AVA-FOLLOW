@@ -622,21 +622,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           onDoubleClick={handleDoubleTap}
           onClick={togglePlay}
         >
-          {/* YouTube, TikTok or Native Video Player */}
+          {/* YouTube or Native Video Player */}
           {(() => {
             const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
-            if (itemMedia.isTikTok && itemMedia.videoId) {
-              return (
-                <iframe
-                  key={currentItem.id + '_tt_' + itemMedia.videoId}
-                  src={`https://www.tiktok.com/embed/v2/${itemMedia.videoId}?lang=vi-VN`}
-                  title={currentItem.title}
-                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
-                />
-              );
-            }
             if (itemMedia.isYouTube && itemMedia.youtubeId) {
               return (
                 <iframe
@@ -649,7 +637,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 />
               );
             }
-            const videoSrc = currentItem.videoUrl || itemMedia.streamUrl || '/videos/sample1.mp4';
+            const videoSrc = currentItem.videoUrl || itemMedia.streamUrl || '/videos/sample2.mp4';
             return (
               <video
                 key={currentItem.id + '_' + videoSrc}

@@ -913,9 +913,12 @@ export interface UserProfileWallet {
   tiktokFollowers: number;
   isTikTokVerified: boolean;
   facebookConnected?: string;
+  facebookProfileUrl?: string;
+  facebookType?: 'personal' | 'fanpage' | 'group';
   isFacebookVerified?: boolean;
   facebookFollowers?: number;
   youtubeConnected?: string;
+  youtubeProfileUrl?: string;
   isYoutubeVerified?: boolean;
   youtubeSubscribers?: number;
   bioVerificationCode: string;

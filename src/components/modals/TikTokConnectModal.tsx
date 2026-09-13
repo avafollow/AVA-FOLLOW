@@ -11,13 +11,7 @@ import {
   Youtube,
   Lock, 
   Info, 
-  ShieldAlert, 
-  ChevronDown, 
-  ChevronUp, 
-  Trash2, 
-  Globe, 
-  Layers, 
-  AlertTriangle 
+  Trash2
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 
@@ -33,17 +27,12 @@ export const TikTokConnectModal: React.FC = () => {
     connectYoutube,
     disconnectYoutube,
     showToast,
-    clientIp,
-    maxAccountsPerIp,
     connectedAccountsOnIp,
-    canConnectMoreAccounts,
-    security7Layers,
     switchActiveTikTokAccount,
     removeAccountFromIp
   } = useTikTokApp();
 
   const [activeTab, setActiveTab] = useState<'tiktok' | 'facebook' | 'youtube'>('tiktok');
-  const [showSecurityDetails, setShowSecurityDetails] = useState<boolean>(false);
   
   // TikTok state
   const [handle, setHandle] = useState<string>(user.tiktokConnected || '');
@@ -266,176 +255,70 @@ export const TikTokConnectModal: React.FC = () => {
         {activeTab === 'tiktok' && (
           <div className="space-y-4 overflow-y-auto pr-1">
 
-            {/* BẢO MẬT AN TOÀN TUYỆT ĐỐI 7 LỚP & GIỚI HẠN 5 TÀI KHOẢN TIKTOK / 1 IP */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/60 via-slate-900 to-indigo-950/50 border border-purple-500/40 space-y-3 shadow-xl">
-              <div className="flex items-center justify-between">
+            {/* Tài khoản TikTok đã kết nối */}
+            {connectedAccountsOnIp.length > 0 && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900/90 to-rose-950/20 border border-rose-500/30 space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-300">
-                    <ShieldAlert className="w-4 h-4 text-emerald-400" />
+                  <div className="p-1.5 rounded-lg bg-rose-500/20">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-white font-mono uppercase tracking-wider flex items-center gap-1.5">
-                      <span>Bảo Mật 7 Lớp • Chống Bot &amp; Phá Web</span>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-mono">
-                        Active 100%
-                      </span>
+                    <h4 className="text-xs font-black text-white font-mono uppercase tracking-wider">
+                      Tài Khoản TikTok Đã Kết Nối
                     </h4>
                     <p className="text-[10px] text-slate-400 font-mono">
-                      Mỗi 1 địa chỉ IP chỉ cho đăng ký tối đa 5 tài khoản TikTok
+                      Nhấn "Chuyển" để đổi tài khoản đang hoạt động bất cứ lúc nào
                     </p>
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <span className={`px-2.5 py-1 rounded-xl text-xs font-black font-mono border ${
-                    connectedAccountsOnIp.length >= maxAccountsPerIp 
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' 
-                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                  }`}>
-                    {connectedAccountsOnIp.length}/{maxAccountsPerIp} Slot
-                  </span>
-                </div>
-              </div>
-
-              {/* IP Quota Visual Progress */}
-              <div className="space-y-1.5 bg-black/40 p-3 rounded-xl border border-white/5">
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <Globe className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Địa chỉ IP của bạn: <strong className="text-white">{clientIp}</strong></span>
-                  </span>
-                  <span className={`font-bold ${connectedAccountsOnIp.length >= maxAccountsPerIp ? 'text-rose-400' : 'text-emerald-400'}`}>
-                    {connectedAccountsOnIp.length >= maxAccountsPerIp ? '⚠️ Đã Đạt Giới Hạn 5/5' : `Còn ${maxAccountsPerIp - connectedAccountsOnIp.length} slot khả dụng`}
-                  </span>
-                </div>
-
-                {/* 5-Slot Bar */}
-                <div className="grid grid-cols-5 gap-1.5 pt-1">
-                  {[0, 1, 2, 3, 4].map((slotIdx) => {
-                    const acc = connectedAccountsOnIp[slotIdx];
-                    const isCurrent = acc === user.tiktokConnected;
+                <div className="space-y-1.5">
+                  {connectedAccountsOnIp.map((accHandle) => {
+                    const isActive = user.tiktokConnected === accHandle;
                     return (
                       <div
-                        key={slotIdx}
-                        className={`h-2 rounded-full transition-all ${
-                          acc 
-                            ? isCurrent 
-                              ? 'bg-gradient-to-r from-rose-500 to-pink-500 shadow-sm shadow-rose-500/50' 
-                              : 'bg-indigo-500' 
-                            : 'bg-white/10'
+                        key={accHandle}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-all ${
+                          isActive 
+                            ? 'bg-rose-500/10 border-rose-500/40 text-white' 
+                            : 'bg-black/30 border-white/5 text-slate-300 hover:bg-white/5'
                         }`}
-                        title={acc ? `Slot ${slotIdx + 1}: ${acc}` : `Slot ${slotIdx + 1}: Còn trống`}
-                      />
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                          <span className="font-mono font-bold truncate">{accHandle}</span>
+                          {isActive && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0">
+                              Đang hoạt động
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {!isActive && (
+                            <button
+                              type="button"
+                              onClick={() => switchActiveTikTokAccount(accHandle)}
+                              className="px-2 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white text-[10px] font-mono font-bold transition-all cursor-pointer"
+                            >
+                              Chuyển
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeAccountFromIp(accHandle)}
+                            className="p-1 rounded-lg hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
+                            title="Gỡ tài khoản này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
               </div>
+            )}
 
-              {/* Registered Accounts on this IP (Quick switch & slot manager) */}
-              {connectedAccountsOnIp.length > 0 && (
-                <div className="space-y-1.5 pt-1">
-                  <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between">
-                    <span>Tài khoản liên kết trên IP này ({connectedAccountsOnIp.length}/5):</span>
-                    <span className="text-slate-500 italic">Nhấn để chuyển đổi</span>
-                  </div>
-                  <div className="space-y-1">
-                    {connectedAccountsOnIp.map((accHandle) => {
-                      const isActive = user.tiktokConnected === accHandle;
-                      return (
-                        <div
-                          key={accHandle}
-                          className={`p-2 rounded-xl border flex items-center justify-between text-xs transition-all ${
-                            isActive 
-                              ? 'bg-rose-500/10 border-rose-500/40 text-white' 
-                              : 'bg-black/30 border-white/5 text-slate-300 hover:bg-white/5'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                            <span className="font-mono font-bold truncate">{accHandle}</span>
-                            {isActive && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0">
-                                Đang hoạt động
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {!isActive && (
-                              <button
-                                type="button"
-                                onClick={() => switchActiveTikTokAccount(accHandle)}
-                                className="px-2 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white text-[10px] font-mono font-bold transition-all cursor-pointer"
-                              >
-                                Chuyển
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => removeAccountFromIp(accHandle)}
-                              className="p-1 rounded-lg hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
-                              title="Gỡ tài khoản để giải phóng slot IP"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* 5/5 Reached Warning */}
-              {connectedAccountsOnIp.length >= maxAccountsPerIp && (
-                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px] flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="block font-bold">Lá chắn Lớp 1 (IP Limit) đang kích hoạt:</strong>
-                    <span>Địa chỉ IP này đã liên kết đủ 5/5 tài khoản tối đa. Hệ thống tự động kích hoạt chế độ chặn bot, gian lận và đánh phá web. Vui lòng bấm icon thùng rác bên trên để gỡ bớt 1 tài khoản nếu muốn thêm tài khoản mới.</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Collapsible 7 Security Layers View */}
-              <div className="pt-1 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setShowSecurityDetails(!showSecurityDetails)}
-                  className="w-full flex items-center justify-between text-[11px] font-mono text-purple-300 hover:text-purple-200 transition-colors py-1 cursor-pointer"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Xem Chi Tiết Cấu Trúc Bảo Mật 7 Lớp An Toàn Tuyệt Đối</span>
-                  </span>
-                  {showSecurityDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                </button>
-
-                {showSecurityDetails && (
-                  <div className="space-y-2 pt-2 animate-in fade-in duration-200">
-                    {security7Layers.map((layer) => (
-                      <div
-                        key={layer.layer}
-                        className="p-2.5 rounded-xl bg-black/50 border border-white/5 space-y-1 text-left"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
-                            <span>{layer.icon}</span>
-                            <span className="text-purple-300 font-mono">Lớp {layer.layer}:</span>
-                            <span>{layer.name}</span>
-                          </span>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
-                            ✓ {layer.shieldStatus.toUpperCase()}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 leading-normal font-sans">
-                          {layer.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
             {user.isTikTokVerified && user.tiktokConnected ? (
               /* Already verified state */
               <div className="space-y-4">
@@ -637,26 +520,26 @@ export const TikTokConnectModal: React.FC = () => {
                       <Facebook className="h-4 w-4 text-blue-400" />
                       <span>Kết Nối 1-Chạm Tài Khoản Facebook</span>
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold">
-                      Tặng +1,000 Xu
+                    <span className="px-2 py-0.5 rounded-full bg-slate-700/80 text-slate-300 text-[10px] font-mono font-bold border border-slate-600/50">
+                      Cài đặt sẵn
                     </span>
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-mono text-slate-300 block">
-                      Dán link Facebook cá nhân hoặc Fanpage bạn đang dùng:
+                      Dán link Facebook cá nhân, Fanpage hoặc Nhóm bạn đang dùng:
                     </label>
                     <input
                       type="text"
                       value={fbUrl}
                       onChange={(e) => setFbUrl(e.target.value)}
-                      placeholder="https://facebook.com/username hoặc username"
+                      placeholder="https://facebook.com/username hoặc facebook.com/groups/ten-nhom"
                       className="w-full bg-black/60 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
                   <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Đồng bộ 1-chạm tài khoản Facebook đang dùng trên máy để kích hoạt nhiệm vụ chia sẻ liên kết nhận hoa hồng Xu tự động.
+                    Kết nối tài khoản Facebook để sẵn sàng cho các tính năng tương tác sắp ra mắt. <span className="text-amber-400 font-bold">Hiện chưa tính Xu.</span>
                   </p>
 
                   <button
@@ -680,11 +563,12 @@ export const TikTokConnectModal: React.FC = () => {
 
                 {/* FB Success display */}
                 {fbSuccess && (
-                  <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 animate-in zoom-in-95">
+                  <div className="p-3 rounded-2xl bg-blue-500/20 border border-blue-500/40 text-blue-300 text-xs font-bold flex items-center justify-center gap-2 animate-in zoom-in-95">
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>Kết nối Facebook thành công! Đã cộng +1,000 Xu vào ví.</span>
+                    <span>Kết nối Facebook thành công! Cài đặt sẵn — tính năng sắp ra mắt.</span>
                   </div>
                 )}
+
               </div>
             )}
           </div>
@@ -738,8 +622,8 @@ export const TikTokConnectModal: React.FC = () => {
                       <Youtube className="h-4 w-4 text-red-400" />
                       <span>Kết Nối 1-Chạm Kênh YouTube</span>
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold">
-                      Tặng +1,000 Xu
+                    <span className="px-2 py-0.5 rounded-full bg-slate-700/80 text-slate-300 text-[10px] font-mono font-bold border border-slate-600/50">
+                      Cài đặt sẵn
                     </span>
                   </div>
 
@@ -757,7 +641,7 @@ export const TikTokConnectModal: React.FC = () => {
                   </div>
 
                   <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Đồng bộ 1-chạm kênh YouTube để làm nhiệm vụ xem video dài, sub chéo và tăng trưởng lượt đăng ký người thật.
+                    Kết nối kênh YouTube để sẵn sàng cho các tính năng sub chéo và tương tác sắp ra mắt. <span className="text-amber-400 font-bold">Hiện chưa tính Xu.</span>
                   </p>
 
                   <button
@@ -781,11 +665,12 @@ export const TikTokConnectModal: React.FC = () => {
 
                 {/* YouTube Success display */}
                 {ytSuccess && (
-                  <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 animate-in zoom-in-95">
+                  <div className="p-3 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold flex items-center justify-center gap-2 animate-in zoom-in-95">
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>Kết nối YouTube thành công! Đã cộng +1,000 Xu vào ví.</span>
+                    <span>Kết nối YouTube thành công! Cài đặt sẵn — tính năng sắp ra mắt.</span>
                   </div>
                 )}
+
               </div>
             )}
           </div>

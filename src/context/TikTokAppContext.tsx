@@ -254,7 +254,7 @@ interface TikTokAppContextType {
   checkInDaily: () => void;
   connectTikTok: (handle: string) => void;
   disconnectTikTok: () => void;
-  connectFacebook: (urlOrHandle: string) => void;
+  connectFacebook: (urlOrHandle: string, fbType?: 'personal' | 'fanpage' | 'group') => void;
   disconnectFacebook: () => void;
   connectYoutube: (urlOrHandle: string) => void;
   disconnectYoutube: () => void;
@@ -2677,19 +2677,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`Đã quy đổi ${tokenAmount} Token thành ${coinsToAdd.toLocaleString()} Xu theo giá thị trường!`);
   };
 
-  // Connect TikTok (Tối đa 5 tài khoản / 1 IP - Bảo Mật An Toàn 7 Lớp)
+  // Connect TikTok (Lưu danh sách tài khoản liên kết & linh hoạt chuyển đổi)
   const connectTikTok = (handle: string) => {
     const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
     
-    // BẢO MẬT 7 LỚP: Kiểm tra giới hạn 5 tài khoản / 1 IP
     const currentList = ipAccountsMap[clientIp] || [];
     const isAlreadyConnected = currentList.includes(cleanHandle);
-
-    if (!isAlreadyConnected && currentList.length >= MAX_TIKTOK_ACCOUNTS_PER_IP) {
-      showToast(`⛔ BẢO MẬT 7 LỚP: Địa chỉ IP ${clientIp} đã đạt tối đa ${MAX_TIKTOK_ACCOUNTS_PER_IP} tài khoản TikTok! Hệ thống đã kích hoạt lá chắn chống gian lận & bot.`);
-      alert(`⛔ CẢNH BÁO BẢO MẬT AN TOÀN 7 LỚP SÀN TIKTOK PRO:\n\nĐịa chỉ IP của bạn (${clientIp}) đã đăng ký đủ ${MAX_TIKTOK_ACCOUNTS_PER_IP}/${MAX_TIKTOK_ACCOUNTS_PER_IP} tài khoản TikTok.\n\nTheo quy định bảo mật 7 lớp chống gian lận, bot farm và phá hoại hệ thống web, mỗi địa chỉ IP chỉ được liên kết tối đa ${MAX_TIKTOK_ACCOUNTS_PER_IP} tài khoản TikTok.\n\nVui lòng xóa bớt tài khoản cũ trong bảng quản lý nếu muốn liên kết tài khoản mới, hoặc liên hệ Admin nếu là doanh nghiệp.`);
-      return;
-    }
 
     if (!isAlreadyConnected) {
       const updatedList = [...currentList, cleanHandle];
@@ -2703,7 +2696,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       id: `tx_connect_${Date.now()}`,
       type: 'earn',
       title: `Thưởng kết nối kênh TikTok thật ${cleanHandle}`,
-      amount: `+${bonusCoins.toLocaleString()} Xu (1,000đ)`,
+      amount: `+${bonusCoins.toLocaleString()} Xu`,
       isPositive: true,
       date: 'Vừa xong',
       status: 'success'
@@ -2718,6 +2711,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setUser(prev => ({
       ...prev,
       tiktokConnected: cleanHandle,
+      tiktokHandle: cleanHandle,
+      tiktokProfileUrl: `https://www.tiktok.com/${cleanHandle}`,
       isTikTokVerified: true,
       tiktokFollowers: prev.tiktokFollowers > 0 ? prev.tiktokFollowers : 248500,
       avaliveCoins: newCoins,
@@ -2725,7 +2720,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       transactions: [newTx, ...prev.transactions]
     }));
 
-    showToast(`✅ Đã kết nối & xác minh kênh TikTok ${cleanHandle} thành công! (${(isAlreadyConnected ? currentList.length : currentList.length + 1)}/${MAX_TIKTOK_ACCOUNTS_PER_IP} tài khoản trên IP này).`);
+    showToast(`✅ Đã kết nối & xác thực tài khoản TikTok ${cleanHandle} thành công! Nhận ngay +1,000 Xu.`);
     closeConnect();
   };
 
@@ -2743,17 +2738,23 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast('Đã ngắt kết nối tài khoản TikTok.');
   };
 
-  const connectFacebook = (urlOrHandle: string) => {
-    const clean = urlOrHandle.replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/\/$/, '');
+  // Connect Facebook (Trang cá nhân, Fanpage, Hội nhóm - Cài đặt sẵn, chưa cộng Xu)
+  const connectFacebook = (urlOrHandle: string, fbType: 'personal' | 'fanpage' | 'group' = 'personal') => {
+    const clean = urlOrHandle.trim()
+      .replace(/^https?:\/\/(www\.)?facebook\.com\//, '')
+      .replace(/\/$/, '');
 
     setUser(prev => ({
       ...prev,
       facebookConnected: clean,
+      facebookProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://facebook.com/${clean}`,
+      facebookType: fbType,
       isFacebookVerified: true,
       facebookFollowers: prev.facebookFollowers && prev.facebookFollowers > 0 ? prev.facebookFollowers : 15800
     }));
 
-    showToast(`✅ Đã kết nối & xác thực tài khoản Facebook fb.com/${clean}! (Lưu ý: Xu chỉ được nhận khi làm nhiệm vụ TikTok thực tế).`);
+    const typeName = fbType === 'fanpage' ? 'Fanpage' : fbType === 'group' ? 'Hội nhóm' : 'Trang cá nhân';
+    showToast(`✅ Đã ghi nhận ${typeName} Facebook: fb.com/${clean}! (Cài đặt sẵn • Chưa tính Xu).`);
     closeConnect();
   };
 
@@ -2761,11 +2762,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setUser(prev => ({
       ...prev,
       facebookConnected: '',
+      facebookProfileUrl: '',
       isFacebookVerified: false
     }));
     showToast('Đã ngắt kết nối tài khoản Facebook.');
   };
 
+  // Connect YouTube (Kênh YouTube - Cài đặt sẵn, chưa cộng Xu)
   const connectYoutube = (urlOrHandle: string) => {
     const clean = urlOrHandle
       .replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '')
@@ -2775,11 +2778,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setUser(prev => ({
       ...prev,
       youtubeConnected: `@${clean}`,
+      youtubeProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean}`,
       isYoutubeVerified: true,
       youtubeSubscribers: prev.youtubeSubscribers && prev.youtubeSubscribers > 0 ? prev.youtubeSubscribers : 12500
     }));
 
-    showToast(`✅ Đã kết nối 1-chạm kênh YouTube @${clean}!`);
+    showToast(`✅ Đã ghi nhận kênh YouTube @${clean}! (Cài đặt sẵn • Chưa tính Xu).`);
     closeConnect();
   };
 
@@ -2787,6 +2791,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setUser(prev => ({
       ...prev,
       youtubeConnected: '',
+      youtubeProfileUrl: '',
       isYoutubeVerified: false
     }));
     showToast('Đã ngắt kết nối kênh YouTube.');

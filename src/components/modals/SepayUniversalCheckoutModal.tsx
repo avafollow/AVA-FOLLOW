@@ -306,11 +306,43 @@ export const SepayUniversalCheckoutModal: React.FC<SepayUniversalCheckoutModalPr
                     src={activeQrUrl} 
                     alt="SePay VietQR Code" 
                     className="w-48 h-48 object-contain rounded-lg"
-                    onError={(e) => { (e.target as HTMLImageElement).src = vietQrUrl; }}
+                    onError={(e) => { 
+                      const img = e.target as HTMLImageElement;
+                      if (img.src !== vietQrUrl) {
+                        img.src = vietQrUrl;
+                      } else {
+                        // Both failed - show placeholder with bank info
+                        img.style.display = 'none';
+                        const parent = img.parentElement;
+                        if (parent && !parent.querySelector('.qr-fallback')) {
+                          const fallback = document.createElement('div');
+                          fallback.className = 'qr-fallback w-48 h-48 flex flex-col items-center justify-center bg-gray-100 rounded-lg text-gray-800 text-xs font-mono p-3 gap-1';
+                          fallback.innerHTML = `<div class="font-bold text-sm">TCB VietQR</div><div>${SEPAY_BANK_CONFIG.accountNumber}</div><div>${SEPAY_BANK_CONFIG.accountName}</div><div class="text-blue-600">${memoCode}</div>`;
+                          parent.appendChild(fallback);
+                        }
+                      }
+                    }}
                   />
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-mono text-[9px] font-bold uppercase shadow">
                     Techcombank 24/7
                   </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setQrProvider('sepay')}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition-all ${qrProvider === 'sepay' ? 'bg-rose-600 text-white' : 'bg-white/10 text-slate-400 hover:text-white'}`}
+                  >
+                    SePay QR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQrProvider('vietqr')}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition-all ${qrProvider === 'vietqr' ? 'bg-blue-600 text-white' : 'bg-white/10 text-slate-400 hover:text-white'}`}
+                  >
+                    VietQR
+                  </button>
                 </div>
 
                 <div className="text-xs text-slate-300 space-y-1">
@@ -318,6 +350,7 @@ export const SepayUniversalCheckoutModal: React.FC<SepayUniversalCheckoutModalPr
                   <p className="text-[11px] text-slate-400 font-mono">Số tiền &amp; nội dung đã được nhúng sẵn chính xác 100%</p>
                 </div>
               </div>
+
 
               {/* Right Column: Bank Details Table */}
               <div className="space-y-2.5 text-xs font-mono">

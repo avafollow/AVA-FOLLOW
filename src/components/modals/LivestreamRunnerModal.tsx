@@ -24,6 +24,8 @@ import {
   RefreshCw,
   Volume2,
   VolumeX,
+  Play,
+  Pause,
   Tv,
   Check,
   Layers,
@@ -66,6 +68,25 @@ export const LivestreamRunnerModal: React.FC = () => {
   const [showRoomSwitcher, setShowRoomSwitcher] = useState<boolean>(false);
   const [showShopProduct, setShowShopProduct] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(true);
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const mediaInfo = activeLiveTask ? parseMediaUrl(activeLiveTask.targetUrl, activeLiveTask.channelHandle) : null;
+  const isYouTube = Boolean(mediaInfo?.isYouTube && mediaInfo?.youtubeId);
+
+  const togglePlayLive = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!videoRef.current) {
+      setIsPlaying(p => !p);
+      return;
+    }
+    if (videoRef.current.paused) {
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    } else {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
 
   // Idempotent rewards for live actions
   const [claimedHeartReward, setClaimedHeartReward] = useState<boolean>(false);
@@ -95,7 +116,7 @@ export const LivestreamRunnerModal: React.FC = () => {
       (passedCaptcha ? 200 : 0)) * quota.multiplier
   );
 
-  // Reset state on open
+  // Reset state on open and auto-play
   useEffect(() => {
     if (isLiveRunnerOpen && activeLiveTask) {
       setSecondsInMinute(60);
@@ -113,8 +134,29 @@ export const LivestreamRunnerModal: React.FC = () => {
       setClaimedHeartReward(false);
       setClaimedCommentReward(false);
       setClaimedShareReward(false);
+      setIsPlaying(true);
+
+      if (videoRef.current && !isYouTube) {
+        videoRef.current.defaultMuted = true;
+        videoRef.current.muted = isMuted;
+        videoRef.current.playsInline = true;
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => setIsPlaying(true))
+            .catch(() => {
+              if (videoRef.current) {
+                videoRef.current.muted = true;
+                setIsMuted(true);
+                videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+              } else {
+                setIsPlaying(false);
+              }
+            });
+        }
+      }
     }
-  }, [isLiveRunnerOpen, activeLiveTask?.id]);
+  }, [isLiveRunnerOpen, activeLiveTask?.id, isMuted, isYouTube]);
 
   const handleOpenTikTokApp = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -431,32 +473,87 @@ export const LivestreamRunnerModal: React.FC = () => {
           className="flex-1 relative bg-slate-950 overflow-hidden cursor-pointer flex flex-col justify-end p-4"
           onClick={handleScreenTap}
         >
-          {/* Real Dynamic Stream Video with Fallback Backdrop */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-slate-900/60 to-black/30 pointer-events-none z-[1]" />
-          <video
-            autoPlay
-            loop
-            muted={isMuted}
-            playsInline
-            poster={activeLiveTask.channelAvatar}
-            className="absolute inset-0 w-full h-full object-cover opacity-50 pointer-events-none"
-            src={parseMediaUrl(activeLiveTask.targetUrl, activeLiveTask.channelHandle).streamUrl}
-          />
-          <img
-            src={activeLiveTask.channelAvatar}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover opacity-25 pointer-events-none blur-sm"
-          />
+          {/* Vignette overlay for readable text while keeping live video bright */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/40 pointer-events-none z-[1]" />
 
-          {/* Sound Toggle Button */}
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
-            className="absolute top-14 right-3 z-20 p-2 rounded-xl bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/10 transition-colors cursor-pointer"
-            title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
-          >
-            {isMuted ? <VolumeX className="h-4 w-4 text-slate-400" /> : <Volume2 className="h-4 w-4 text-emerald-400" />}
-          </button>
+          {/* Real Live Video Player / YouTube Live */}
+          {isYouTube && mediaInfo?.youtubeId ? (
+            <iframe
+              key={activeLiveTask.id + '_yt_' + mediaInfo.youtubeId}
+              src={`https://www.youtube.com/embed/${mediaInfo.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${mediaInfo.youtubeId}&modestbranding=1&rel=0`}
+              title={activeLiveTask.roomTitle}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
+            />
+          ) : (
+            <video
+              ref={(el) => {
+                videoRef.current = el;
+                if (el) {
+                  el.defaultMuted = true;
+                  el.muted = isMuted;
+                  el.playsInline = true;
+                  el.play().then(() => setIsPlaying(true)).catch(() => {
+                    el.muted = true;
+                    el.play().catch(() => {});
+                  });
+                }
+              }}
+              autoPlay
+              loop
+              muted={isMuted}
+              playsInline
+              poster={activeLiveTask.channelAvatar}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onError={() => {
+                if (videoRef.current && videoRef.current.src !== '/videos/sample2.mp4') {
+                  videoRef.current.src = '/videos/sample2.mp4';
+                  videoRef.current.play().catch(() => {});
+                }
+              }}
+              className="absolute inset-0 w-full h-full object-cover"
+              src={mediaInfo?.streamUrl || '/videos/sample2.mp4'}
+            />
+          )}
+
+          {/* Sound & Play Toggle Buttons */}
+          <div className="absolute top-14 right-3 z-20 flex items-center gap-1.5">
+            {!isYouTube && (
+              <button
+                type="button"
+                onClick={togglePlayLive}
+                className="p-2 rounded-xl bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-lg active:scale-95"
+                title={isPlaying ? 'Tạm dừng live' : 'Tiếp tục phát live'}
+              >
+                {isPlaying ? <Pause className="h-4 w-4 text-white" /> : <Play className="h-4 w-4 text-emerald-400 fill-emerald-400" />}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+              className="p-2 rounded-xl bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-lg active:scale-95"
+              title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
+            >
+              {isMuted ? <VolumeX className="h-4 w-4 text-slate-400" /> : <Volume2 className="h-4 w-4 text-emerald-400" />}
+            </button>
+          </div>
+
+          {/* Large Center Play Button when Paused */}
+          {!isPlaying && !isYouTube && (
+            <div 
+              onClick={togglePlayLive}
+              className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
+            >
+              <div className="p-5 rounded-full bg-gradient-to-tr from-rose-600 to-amber-500 text-white shadow-2xl shadow-rose-600/60 border-2 border-white/40 hover:scale-110 active:scale-95 transition-all animate-pulse">
+                <Play className="h-12 w-12 fill-white ml-1" />
+              </div>
+              <div className="mt-3 px-4 py-1.5 rounded-full bg-black/85 border border-white/20 text-white text-xs font-bold font-mono uppercase tracking-wider shadow-xl">
+                ▶️ BẤM ĐỂ PHÁT PHIÊN LIVE
+              </div>
+            </div>
+          )}
 
           {/* Active TikTok Sync Banner (if user opened on TikTok) */}
           {isOpenedOnTikTok && (

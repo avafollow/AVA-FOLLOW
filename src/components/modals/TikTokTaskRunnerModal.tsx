@@ -49,6 +49,27 @@ export const TikTokTaskRunnerModal: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const mediaInfo = runnerTask ? parseMediaUrl(runnerTask.targetUrl || runnerTask.videoPreviewUrl || '', runnerTask.channelHandle) : null;
+  const isYouTube = Boolean(mediaInfo?.isYouTube && mediaInfo?.youtubeId);
+
+  const togglePlay = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!videoRef.current) {
+      setIsPlaying(prev => !prev);
+      return;
+    }
+    if (videoRef.current.paused) {
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {
+        if (videoRef.current) {
+          videoRef.current.muted = true;
+          setIsMuted(true);
+          videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        }
+      });
+    } else {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
   
   // Track claimed actions for this specific video session (Idempotent 1 time only)
   const [claimedActions, setClaimedActions] = useState<{
@@ -90,8 +111,27 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       setShowCommentSheet(false);
       setIsSubmitting(false);
       setFloatingHearts([]);
+
+      if (videoRef.current && !isYouTube) {
+        videoRef.current.defaultMuted = true;
+        videoRef.current.muted = isMuted;
+        videoRef.current.playsInline = true;
+        videoRef.current.currentTime = 0;
+        const p = videoRef.current.play();
+        if (p !== undefined) {
+          p.then(() => setIsPlaying(true)).catch(() => {
+            if (videoRef.current) {
+              videoRef.current.muted = true;
+              setIsMuted(true);
+              videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+            } else {
+              setIsPlaying(false);
+            }
+          });
+        }
+      }
     }
-  }, [isRunnerOpen, runnerTask, userCompletedActions]);
+  }, [isRunnerOpen, runnerTask, userCompletedActions, isMuted, isYouTube]);
 
   // 15-second countdown timer
   useEffect(() => {
@@ -143,7 +183,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       const y = e.clientY - rect.top;
       triggerLikeEffect(x, y);
     } else {
-      setIsPlaying(prev => !prev);
+      togglePlay();
     }
     lastTapRef.current = now;
   };
@@ -260,8 +300,17 @@ export const TikTokTaskRunnerModal: React.FC = () => {
             </span>
           </div>
 
-          {/* Right Controls: Âm thanh, Mở App & Đóng */}
+          {/* Right Controls: Âm thanh, Phát/Dừng, Mở App & Đóng */}
           <div className="flex items-center gap-1.5">
+            {!isYouTube && (
+              <button
+                onClick={togglePlay}
+                className="p-1.5 rounded-full bg-black/60 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                title={isPlaying ? 'Tạm dừng video' : 'Tiếp tục phát video'}
+              >
+                {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />}
+              </button>
+            )}
             <button
               onClick={() => setIsMuted(!isMuted)}
               className="p-1.5 rounded-full bg-black/60 hover:bg-white/20 text-white transition-colors cursor-pointer"
@@ -286,7 +335,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
           </div>
         </div>
 
-        {/* ACTIVE REWARD BANNER (THÔNG BÁO MỤC TIÊU & XU THƯỞNG) */}
+        {/* THÔNG BÁO NHIỆM VỤ NHẬN XU ĐANG CHẠY */}
         <div className="absolute top-18 inset-x-3 z-30 px-3 py-1.5 rounded-2xl bg-black/75 border border-rose-500/50 backdrop-blur-md flex items-center justify-between text-xs shadow-lg">
           <div className="flex items-center gap-1.5 text-white font-bold truncate">
             <Flame className="w-4 h-4 text-rose-500 shrink-0 animate-pulse" />
@@ -312,21 +361,49 @@ export const TikTokTaskRunnerModal: React.FC = () => {
           className="relative flex-1 bg-black flex items-center justify-center overflow-hidden cursor-pointer select-none"
           onClick={handleStageClick}
         >
-          {/* High-speed Realtime Video Player */}
-          {mediaInfo && (
+          {/* Vignette Gradients for authentic TikTok viewability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 pointer-events-none z-[1]" />
+
+          {/* Real Video Player or YouTube Embed */}
+          {isYouTube && mediaInfo?.youtubeId ? (
+            <iframe
+              key={runnerTask.id + '_yt_' + mediaInfo.youtubeId}
+              src={`https://www.youtube.com/embed/${mediaInfo.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${mediaInfo.youtubeId}&modestbranding=1&rel=0`}
+              title={runnerTask.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
+            />
+          ) : (
             <video
-              ref={videoRef}
-              src={mediaInfo.streamUrl}
-              autoPlay={isPlaying}
+              ref={(el) => {
+                videoRef.current = el;
+                if (el) {
+                  el.defaultMuted = true;
+                  el.muted = isMuted;
+                  el.playsInline = true;
+                  el.play().then(() => setIsPlaying(true)).catch(() => {
+                    el.muted = true;
+                    el.play().catch(() => {});
+                  });
+                }
+              }}
+              src={mediaInfo?.streamUrl || '/videos/sample1.mp4'}
+              autoPlay
               loop
               playsInline
               muted={isMuted}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onError={() => {
+                if (videoRef.current && videoRef.current.src !== '/videos/sample1.mp4') {
+                  videoRef.current.src = '/videos/sample1.mp4';
+                  videoRef.current.play().catch(() => {});
+                }
+              }}
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
-
-          {/* Vignette Gradients for authentic TikTok viewability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 pointer-events-none" />
 
           {/* Floating Hearts Animation when double-tapping */}
           {floatingHearts.map(heart => (
@@ -339,44 +416,20 @@ export const TikTokTaskRunnerModal: React.FC = () => {
             </div>
           ))}
 
-          {/* Central Play/Pause Bubble Indicator */}
-          {!isPlaying && (
-            <div className="relative z-20 w-16 h-16 rounded-full bg-black/60 border border-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-2xl animate-in zoom-in-50 duration-150">
-              <Play className="w-8 h-8 fill-current ml-1 text-white" />
+          {/* Central Play/Pause Bubble Indicator when paused */}
+          {!isPlaying && !isYouTube && (
+            <div 
+              onClick={togglePlay}
+              className="relative z-20 flex flex-col items-center justify-center p-4 bg-black/60 backdrop-blur-sm rounded-3xl animate-in zoom-in-50 duration-150 cursor-pointer shadow-2xl border border-white/20"
+            >
+              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#FE2C55] to-amber-500 flex items-center justify-center text-white shadow-xl hover:scale-110 active:scale-95 transition-transform animate-pulse">
+                <Play className="w-8 h-8 fill-current ml-1 text-white" />
+              </div>
+              <span className="mt-2 text-white font-mono font-bold text-[11px] uppercase tracking-wide">
+                ▶ Bấm để phát video
+              </span>
             </div>
           )}
-
-          {/* Center Card Profile & Channel Info */}
-          <div className="relative z-10 text-center px-6 max-w-xs space-y-3 pointer-events-none">
-            <div className="relative mx-auto w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-[#FE2C55] via-purple-500 to-[#25F4EE] shadow-2xl shadow-rose-950/60 animate-spin-slow">
-              <img
-                src={runnerTask.channelAvatar}
-                alt=""
-                className="w-full h-full rounded-full object-cover"
-              />
-              {claimedActions.follow && (
-                <div className="absolute -bottom-1 -right-1 p-1 bg-emerald-500 text-white rounded-full shadow-lg">
-                  <CheckCircle2 className="h-4 w-4" />
-                </div>
-              )}
-            </div>
-
-            <div>
-              <div className="flex items-center justify-center gap-1.5 font-display font-black text-white text-base drop-shadow">
-                <span>{runnerTask.channelName}</span>
-                <CheckCircle2 className="h-4 w-4 text-[#25F4EE] fill-[#25F4EE]/20" />
-              </div>
-              <p className="text-xs font-mono text-rose-400 font-bold drop-shadow">{runnerTask.channelHandle}</p>
-            </div>
-
-            <div className="p-3 rounded-2xl bg-black/70 border border-white/10 backdrop-blur-md text-[11px] text-slate-200 space-y-1 shadow-lg">
-              <div className="text-white font-bold flex items-center justify-center gap-1">
-                <Flame className="h-3.5 w-3.5 text-rose-500" />
-                <span>Nhiệm vụ: {runnerTask.title}</span>
-              </div>
-              <p className="text-slate-300 text-[10px] line-clamp-2">{runnerTask.guide}</p>
-            </div>
-          </div>
 
           {/* RIGHT FLOATING TIKTOK ACTION COLUMN (100% CHUẨN NÚT TIKTOK) */}
           <div className="absolute right-3.5 bottom-6 z-30 flex flex-col items-center gap-3.5 select-none">

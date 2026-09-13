@@ -622,7 +622,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           onDoubleClick={handleDoubleTap}
           onClick={togglePlay}
         >
-          {/* YouTube Video or Live Player */}
+          {/* YouTube Video or Native Video Player */}
           {(() => {
             const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
             if (itemMedia.isYouTube && itemMedia.youtubeId) {
@@ -637,43 +637,40 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 />
               );
             }
-            if (itemMedia.isFacebook && currentItem.targetUrl) {
-              return (
-                <iframe
-                  key={currentItem.id + '_fb_' + encodeURIComponent(currentItem.targetUrl) + '_' + isMuted}
-                  src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(currentItem.targetUrl)}&show_text=0&autoplay=1&muted=${isMuted ? 1 : 0}&allowfullscreen=true`}
-                  title={currentItem.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
-                />
-              );
-            }
-            if (currentItem.videoUrl) {
-              return (
-                <video
-                  key={currentItem.id + '_' + (currentItem.videoUrl || currentItem.targetUrl)}
-                  ref={videoRef}
-                  src={currentItem.videoUrl}
-                  autoPlay
-                  loop
-                  playsInline
-                  preload="auto"
-                  crossOrigin="anonymous"
-                  muted={isMuted}
-                  onError={() => {
-                    if (videoRef.current && videoRef.current.src !== 'https://vjs.zencdn.net/v/oceans.mp4') {
-                      videoRef.current.src = 'https://vjs.zencdn.net/v/oceans.mp4';
-                      videoRef.current.play().catch(() => {});
-                    }
-                  }}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              );
-            }
-            return null;
+            const videoSrc = currentItem.videoUrl || itemMedia.streamUrl || '/videos/sample1.mp4';
+            return (
+              <video
+                key={currentItem.id + '_' + videoSrc}
+                ref={(el) => {
+                  videoRef.current = el;
+                  if (el) {
+                    el.defaultMuted = true;
+                    el.muted = isMuted;
+                    el.playsInline = true;
+                    el.play().then(() => setIsPlaying(true)).catch(() => {
+                      el.muted = true;
+                      el.play().catch(() => {});
+                    });
+                  }
+                }}
+                src={videoSrc}
+                autoPlay
+                loop
+                playsInline
+                preload="auto"
+                crossOrigin="anonymous"
+                muted={isMuted}
+                onError={() => {
+                  if (videoRef.current && videoRef.current.src !== '/videos/sample1.mp4') {
+                    videoRef.current.src = '/videos/sample1.mp4';
+                    videoRef.current.play().catch(() => {});
+                  }
+                }}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            );
           })()}
 
           {/* Overlay Gradient for readability */}

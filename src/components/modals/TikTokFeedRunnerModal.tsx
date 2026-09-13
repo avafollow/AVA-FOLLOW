@@ -495,13 +495,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           onDoubleClick={handleDoubleTap}
           onClick={() => setIsPlaying(!isPlaying)}
         >
-          {/* HTML5 Video Player with Instant HD Poster Fallback */}
+          {/* HTML5 Video Player */}
           {currentItem.videoUrl && (
             <video
               key={currentItem.id + '_' + (currentItem.videoUrl || currentItem.targetUrl)}
               ref={videoRef}
               src={currentItem.videoUrl}
-              poster={parseMediaUrl(currentItem.targetUrl, currentItem.channelHandle).thumbnailUrl}
               autoPlay
               loop
               playsInline

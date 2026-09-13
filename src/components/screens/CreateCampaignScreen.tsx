@@ -136,7 +136,8 @@ export const CreateCampaignScreen: React.FC<{
     showToast,
     boostToMarquee,
     endMarqueeItem,
-    marqueeTickerList
+    marqueeTickerList,
+    openFeedRunner
   } = useTikTokApp();
 
   // Tab: Standard vs Mega Live & Product Launch
@@ -1662,25 +1663,56 @@ export const CreateCampaignScreen: React.FC<{
             return (
               <div
                 key={camp.id}
-                className="p-4 rounded-2xl bg-[#0D111E] border border-white/10 space-y-2.5 text-xs shadow-md"
+                className="p-4 rounded-2xl bg-[#0D111E] border border-white/10 space-y-3 text-xs shadow-md"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-white text-sm">{camp.title}</span>
-                      {isMulti && (
-                        <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-mono font-bold">
-                          🔥 Combo Đa Mục Tiêu
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3.5">
+                  {/* Realtime Video Stream of this Campaign */}
+                  <div className="w-20 h-28 sm:w-24 sm:h-32 shrink-0 rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-black">
+                    <TikTokVideoPreviewPlayer
+                      url={camp.targetUrl}
+                      channelHandle={camp.channelHandle}
+                      isLive={Boolean(isLive)}
+                      className="w-full h-full"
+                      autoPlay={true}
+                      muted={true}
+                      showControls={false}
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0 space-y-1.5 w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-white text-sm">{camp.title}</span>
+                        {isMulti && (
+                          <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-mono font-bold">
+                            🔥 Combo Đa Mục Tiêu
+                          </span>
+                        )}
+                        {isLive && (
+                          <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono">
+                            🔴 Live {camp.livestreamMinutes || 3} phút
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => openFeedRunner()}
+                          className="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/40 text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Xem chiến dịch phát sóng trong Feed lướt video"
+                        >
+                          <Play className="w-3 h-3 fill-rose-400" />
+                          <span>Xem trên Feed</span>
+                        </button>
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
+                          {camp.status === 'running' ? 'Đang phân phối' : camp.status}
                         </span>
-                      )}
-                      {isLive && (
-                        <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono">
-                          🔴 Live {camp.livestreamMinutes || 3} phút
-                        </span>
-                      )}
+                        <span className="font-mono font-bold text-neonGold text-xs">{camp.budgetTotal}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-slate-400 flex-wrap">
-                      <span className="text-rose-400">{camp.channelHandle}</span>
+
+                    <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400 flex-wrap">
+                      <span className="text-rose-400 font-bold">{camp.channelHandle}</span>
                       <span>•</span>
                       <span>Mục tiêu: {camp.targetQuantity.toLocaleString()} {isLive ? 'mắt' : 'lượt'}</span>
                       <span>•</span>
@@ -1688,13 +1720,6 @@ export const CreateCampaignScreen: React.FC<{
                       <span>•</span>
                       <span className="text-cyan-300">Chạy liên tục đến khi đạt 100%</span>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
-                      {camp.status === 'running' ? 'Đang phân phối' : camp.status}
-                    </span>
-                    <span className="font-mono font-bold text-neonGold text-xs">{camp.budgetTotal}</span>
                   </div>
                 </div>
 

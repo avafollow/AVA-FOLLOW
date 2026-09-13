@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   RefreshCw,
   Video,
-  Youtube
+  Youtube,
+  Film
 } from 'lucide-react';
 import { parseMediaUrl, ParsedMediaInfo } from '../../data/videoSources';
 
@@ -39,7 +40,6 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
 }) => {
   const [isPlaying, setIsPlaying] = useState<boolean>(autoPlay);
   const [isMuted, setIsMuted] = useState<boolean>(muted);
-  const [hasError, setHasError] = useState<boolean>(false);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -47,17 +47,27 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const effectiveIsLive = isLive || mediaInfo.isLive;
 
   useEffect(() => {
-    setHasError(false);
     setIsLoaded(false);
     if (videoRef.current) {
       videoRef.current.defaultMuted = true;
       videoRef.current.muted = isMuted;
       videoRef.current.playsInline = true;
       if (autoPlay) {
-        videoRef.current.play().catch(() => {});
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => setIsPlaying(true))
+            .catch(() => {
+              // Autoplay policy fallback: ensure muted and retry
+              if (videoRef.current) {
+                videoRef.current.muted = true;
+                videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+              }
+            });
+        }
       }
     }
-  }, [url, channelHandle, isMuted, autoPlay]);
+  }, [url, channelHandle, isMuted, autoPlay, mediaInfo.streamUrl]);
 
   const togglePlay = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -108,27 +118,51 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
 
   return (
     <div 
-      className={`relative rounded-2xl overflow-hidden bg-black border border-white/15 shadow-2xl group select-none ${className}`}
+      className={`relative rounded-2xl overflow-hidden bg-[#0A0D16] border border-white/15 shadow-2xl group select-none ${className}`}
       onClick={togglePlay}
     >
-      {/* Background Video Stream (High performance CDN / Direct MP4) */}
-      <video
-        ref={videoRef}
-        src={mediaInfo.streamUrl}
-        poster={mediaInfo.thumbnailUrl}
-        autoPlay={autoPlay}
-        loop
-        muted={isMuted}
-        playsInline
-        preload="auto"
-        crossOrigin="anonymous"
-        onLoadedData={() => setIsLoaded(true)}
-        onError={() => setHasError(true)}
-        className="w-full h-full object-cover transition-opacity duration-300"
-      />
+      {/* YouTube Embed Player when direct youtube link is detected */}
+      {mediaInfo.isYouTube && mediaInfo.embedUrl ? (
+        <iframe
+          src={mediaInfo.embedUrl}
+          title={mediaInfo.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="w-full h-full object-cover border-0 pointer-events-auto"
+        />
+      ) : (
+        /* Native High Performance Video Stream (Direct MP4 / CDN) - NO STATIC PHOTO POSTERS */
+        <video
+          key={mediaInfo.streamUrl}
+          ref={videoRef}
+          src={mediaInfo.streamUrl}
+          autoPlay={autoPlay}
+          loop
+          muted={isMuted}
+          playsInline
+          preload="auto"
+          crossOrigin="anonymous"
+          onLoadedData={() => setIsLoaded(true)}
+          onCanPlay={() => {
+            setIsLoaded(true);
+            if (autoPlay && videoRef.current && videoRef.current.paused) {
+              videoRef.current.play().catch(() => {});
+            }
+          }}
+          className="w-full h-full object-cover transition-opacity duration-300"
+        />
+      )}
+
+      {/* Loading Video Shimmer Scanline Indicator */}
+      {!isLoaded && !mediaInfo.isYouTube && (
+        <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center gap-2 pointer-events-none z-5">
+          <Film className="w-8 h-8 text-rose-500 animate-pulse" />
+          <span className="text-[10px] font-mono text-slate-400 animate-pulse">Đang kết nối luồng video HD...</span>
+        </div>
+      )}
 
       {/* Shimmer / Backdrop Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/85 pointer-events-none" />
 
       {/* Top Badges */}
       <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
@@ -154,20 +188,22 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
-            <button
-              type="button"
-              onClick={toggleMute}
-              className="p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md border border-white/10 transition-transform active:scale-95 cursor-pointer"
-              title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
-            >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
-            </button>
+            {!mediaInfo.isYouTube && (
+              <button
+                type="button"
+                onClick={toggleMute}
+                className="p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md border border-white/10 transition-transform active:scale-95 cursor-pointer"
+                title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+              >
+                {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+              </button>
+            )}
           </div>
         )}
       </div>
 
       {/* Center Play Indicator when paused */}
-      {!isPlaying && (
+      {!isPlaying && !mediaInfo.isYouTube && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="w-12 h-12 rounded-full bg-black/70 border border-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-2xl">
             <Play className="w-6 h-6 fill-white ml-0.5 text-white" />

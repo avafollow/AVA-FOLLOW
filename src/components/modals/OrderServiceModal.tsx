@@ -20,7 +20,8 @@ import {
   Link2,
   RefreshCw,
   ExternalLink,
-  ClipboardList
+  ClipboardList,
+  PlusCircle
 } from 'lucide-react';
 
 interface OrderServiceModalProps {
@@ -63,15 +64,6 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
     };
   }, []);
 
-  // Auto-close success modal after 2 seconds
-  useEffect(() => {
-    if (stage === 'success') {
-      const closeTimer = setTimeout(() => {
-        onClose();
-      }, 2000);
-      return () => clearTimeout(closeTimer);
-    }
-  }, [stage, onClose]);
 
   useEffect(() => {
     if (packageItem && isOpen) {
@@ -121,16 +113,6 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
   };
 
   const validateTargetUrl = (): boolean => {
-    const trimmed = targetUrl.trim();
-    if (!trimmed) {
-      setError('Vui lòng nhập link kênh TikTok hoặc link video cần chạy');
-      return false;
-    }
-    // Chấp nhận link TikTok, username có @ hoặc username thường, link phòng live
-    if (!trimmed.includes('tiktok.com') && !trimmed.startsWith('@') && trimmed.length < 3) {
-      setError('Vui lòng nhập đường link TikTok hoặc ID kênh TikTok hợp lệ (VD: https://www.tiktok.com/@kenh hoặc @kenh)');
-      return false;
-    }
     setError('');
     return true;
   };
@@ -159,20 +141,22 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
           unit: isLivestream ? `Mắt xem / ${selectedDuration} phút` : packageItem.unit
         };
 
-        // 1. Kích hoạt gói dịch vụ & đưa vào mạng lưới nhiệm vụ
-        purchaseServicePackage(packageToOrder, targetUrl.trim(), undefined, 'sepay');
+        const channelTarget = targetUrl.trim() || user?.tiktokConnected || user?.handle || user?.name || 'Tài khoản AVA';
 
-        // 2. Gửi thông báo thời gian thực về chuông thông báo
+        // 1. Kích hoạt gói dịch vụ & CỘNG XU vào ví tài khoản người dùng
+        purchaseServicePackage(packageToOrder, channelTarget, undefined, 'sepay');
+
+        // 2. Gửi thông báo chúc mừng tài khoản đã nhận được Xu
         addNotification({
           type: 'boosted_campaign',
-          title: `🎉 SePay Xác Nhận Giao Dịch Gói "${packageToOrder.title}"`,
-          message: `Đã nhận ${effectivePriceNum.toLocaleString()}đ qua Techcombank (Ref: ${refId}). Gói tăng trưởng cho kênh ${targetUrl} đã kích hoạt vào hàng đợi xử lý!`,
+          title: `🎉 Chúc Mừng! Tài Khoản Đã Nhận +${effectivePriceNum.toLocaleString()} Xu`,
+          message: `SePay đã xác nhận thanh toán thành công gói "${packageToOrder.title}" (${effectivePriceNum.toLocaleString()}đ qua Techcombank, Ref: ${refId}). Số dư ví của bạn đã được cộng +${effectivePriceNum.toLocaleString()} Xu!`,
           rewardCoins: effectivePriceNum
         });
 
         // 3. Chuyển sang màn hình chúc mừng
         setStage('success');
-        showToast(`🎉 SePay xác nhận thành công! Gói dịch vụ đã được kích hoạt.`);
+        showToast(`🎉 SePay xác nhận thành công! Tài khoản đã nhận +${effectivePriceNum.toLocaleString()} Xu vào ví.`);
       } else {
         setCheckErrorMsg('Hệ thống chưa nhận được biến động số dư ghi có từ Techcombank (19035907828017). Vui lòng kiểm tra lại lệnh chuyển khoản.');
         if (showFeedback) {
@@ -188,8 +172,6 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
 
   // Xác nhận đã thanh toán chuyển khoản SePay VietQR -> Quy trình chờ SePay đối soát an toàn
   const handleConfirmSepayPayment = () => {
-    if (!validateTargetUrl()) return;
-
     setStage('verifying');
     setCheckErrorMsg('');
     setCheckCount(1);
@@ -221,21 +203,22 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
       unit: isLivestream ? `Mắt xem / ${selectedDuration} phút` : packageItem.unit
     };
 
-    purchaseServicePackage(packageToOrder, targetUrl.trim(), undefined, 'sepay');
+    const channelTarget = targetUrl.trim() || user?.tiktokConnected || user?.handle || user?.name || 'Tài khoản AVA';
+    purchaseServicePackage(packageToOrder, channelTarget, undefined, 'sepay');
     addNotification({
       type: 'boosted_campaign',
-      title: `👑 Admin Duyệt Thử Nghiệm: "${packageToOrder.title}"`,
-      message: `Đã duyệt thử nghiệm đơn hàng gói dịch vụ cho mã ${orderCode}.`,
+      title: `🎉 Chúc Mừng! Tài Khoản Đã Nhận +${effectivePriceNum.toLocaleString()} Xu (Admin Test)`,
+      message: `Admin duyệt thử nghiệm SePay gói "${packageToOrder.title}" (${effectivePriceNum.toLocaleString()}đ). Tài khoản của bạn đã được cộng +${effectivePriceNum.toLocaleString()} Xu!`,
       rewardCoins: effectivePriceNum
     });
     setStage('success');
+    showToast(`🎉 Đã duyệt thử nghiệm! Tài khoản nhận +${effectivePriceNum.toLocaleString()} Xu vào ví.`);
   };
 
   // Thanh toán bằng số dư Ví Xu (nếu có đủ Xu)
   const handlePayWithCoins = () => {
-    if (!validateTargetUrl()) return;
     if (!isCoinsEnough) {
-      setError('Số dư Xu không đủ. Vui lòng chuyển khoản ngân hàng qua mã QR bên dưới.');
+      setError('Số dư Xu không đủ. Vui lòng chuyển khoản ngân hàng qua mã QR SePay bên dưới.');
       return;
     }
 
@@ -249,7 +232,8 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
       unit: isLivestream ? `Mắt xem / ${selectedDuration} phút` : packageItem.unit
     };
 
-    purchaseServicePackage(packageToOrder, targetUrl.trim(), undefined, 'coins');
+    const channelTarget = targetUrl.trim() || user?.tiktokConnected || user?.handle || user?.name || 'Tài khoản AVA';
+    purchaseServicePackage(packageToOrder, channelTarget, undefined, 'coins');
     showToast(`🎉 Mua gói thành công bằng ${effectivePriceNum.toLocaleString()} Xu!`);
     onClose();
   };
@@ -356,23 +340,25 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
               )}
             </div>
 
-            {/* Ô NHẬP LINK TIKTOK */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                <Link2 className="w-3.5 h-3.5 text-purple-400" />
-                Link Kênh TikTok Hoặc Link Video Cần Chạy <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="VD: https://www.tiktok.com/@tentaikhoan hoặc @tentaikhoan..."
-                value={targetUrl}
-                onChange={(e) => {
-                  setTargetUrl(e.target.value);
-                  if (error) setError('');
-                }}
-                required
-                className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 font-mono"
-              />
+            {/* THÔNG TIN TÀI KHOẢN NHẬN XU (KHÔNG BẮT BUỘC NHẬP LINK) */}
+            <div className="p-3.5 bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-between shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>Tài Khoản Nhận Xu:</span>
+                    <span className="text-amber-300 font-mono font-black">{user.name} ({user.handle})</span>
+                  </div>
+                  <div className="text-[11px] text-slate-300">
+                    Nhận ngay <strong className="text-amber-400">+{effectivePriceNum.toLocaleString()} Xu</strong> vào ví ngay khi SePay đối soát thành công (1 VNĐ = 1 Xu).
+                  </div>
+                </div>
+              </div>
+              <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold shrink-0">
+                ⚡ Nạp Tự Động
+              </span>
             </div>
 
             {error && (
@@ -610,30 +596,37 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
 
               <div className="space-y-1">
                 <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-mono font-bold border border-emerald-500/30">
-                  SEPAY ĐÃ XÁC NHẬN NHẬN TIỀN THÀNH CÔNG
+                  ✓ SEPAY ĐÃ XÁC NHẬN NHẬN TIỀN THÀNH CÔNG
                 </span>
-                <h3 className="text-xl font-black text-white font-display">
-                  🎉 Gói Dịch Vụ Đã Được Kích Hoạt!
+                <h3 className="text-xl sm:text-2xl font-black text-white font-display">
+                  🎉 Chúc Mừng Bạn Đã Nhận Được Xu!
                 </h3>
                 <p className="text-xs text-slate-300 max-w-md leading-relaxed">
-                  Gói tăng trưởng đã chính thức được chuyển sang hàng đợi ưu tiên cho hơn 154.200+ người dùng thật trên nền tảng.
+                  Giao dịch SePay đã đối soát thành công. Số Xu tương ứng đã được mở khóa và nạp trực tiếp vào tài khoản ví của bạn để sử dụng ngay.
                 </p>
               </div>
             </div>
 
-            {/* Chi Tiết Giao Dịch */}
+            {/* Chi Tiết Giao Dịch & Số Dư Xu */}
             <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-[#0E1528] to-purple-950/40 border border-emerald-500/40 shadow-xl space-y-3 text-xs font-mono">
               <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                <span className="text-slate-400">Gói đã kích hoạt:</span>
+                <span className="text-slate-400">Gói đã thanh toán:</span>
                 <span className="text-white font-bold">{packageItem.title}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                <span className="text-slate-400">Số lượng điều phối:</span>
-                <span className="text-amber-400 font-bold">{packageItem.targetQuantity.toLocaleString()} {packageItem.unit}</span>
+                <span className="text-slate-400">Số tiền thanh toán:</span>
+                <span className="text-slate-200 font-bold">{effectivePriceNum.toLocaleString()}đ</span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-xl bg-amber-500/10 border border-amber-500/25">
+                <span className="text-amber-300 font-bold flex items-center gap-1.5">
+                  <Coins className="w-4 h-4 text-amber-400" />
+                  Số Xu đã nạp vào ví:
+                </span>
+                <span className="text-amber-400 font-black text-base">+{effectivePriceNum.toLocaleString()} XU</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                <span className="text-slate-400">Kênh TikTok đích:</span>
-                <span className="text-cyan-400 font-bold truncate max-w-[200px]">{targetUrl}</span>
+                <span className="text-slate-400">Tài khoản thụ hưởng:</span>
+                <span className="text-cyan-400 font-bold">{user.name} ({user.handle})</span>
               </div>
               <div className="flex justify-between items-center pt-1">
                 <span className="text-slate-400">Mã đối soát SePay:</span>
@@ -641,41 +634,73 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
               </div>
             </div>
 
-            {/* GỢI Ý ĐIỀU HƯỚNG */}
-            <div className="space-y-2">
+            {/* GỢI Ý ĐIỀU HƯỚNG SỬ DỤNG XU */}
+            <div className="space-y-2.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Gợi Ý Thao Tác Tiếp Theo:</span>
+                <span>Gợi Ý Sử Dụng Xu Ngay Hôm Nay:</span>
               </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onNavigate) onNavigate('create_campaign');
+                  }}
+                  className="p-3 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 hover:border-purple-400 transition-all text-left flex items-center gap-2.5 cursor-pointer group"
+                >
+                  <PlusCircle className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <div className="text-xs font-bold text-white">Tạo Chiến Dịch Mới</div>
+                    <div className="text-[10px] text-purple-300">Dùng Xu đẩy Follow, Like, View video</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onNavigate) onNavigate('app_marketplace');
+                  }}
+                  className="p-3 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 hover:border-blue-400 transition-all text-left flex items-center gap-2.5 cursor-pointer group"
+                >
+                  <Sparkles className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <div className="text-xs font-bold text-white">Khám Phá App Kiếm Tiền</div>
+                    <div className="text-[10px] text-blue-300">Dùng Xu thuê bot cày tương tác tự động</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onNavigate) onNavigate('booking_escrow');
+                  }}
+                  className="p-3 rounded-xl bg-pink-600/20 hover:bg-pink-600/30 border border-pink-500/30 hover:border-pink-400 transition-all text-left flex items-center gap-2.5 cursor-pointer group"
+                >
+                  <ExternalLink className="w-4 h-4 text-pink-400 group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <div className="text-xs font-bold text-white">Kết Nối KOC / Live</div>
+                    <div className="text-[10px] text-pink-300">Booking KOC gắn link giỏ hàng</div>
+                  </div>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
                     onClose();
                     if (onNavigate) onNavigate('profile_wallet');
                   }}
-                  className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-500/40 transition-all text-left flex items-center gap-2.5 cursor-pointer"
+                  className="p-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 hover:border-emerald-400 transition-all text-left flex items-center gap-2.5 cursor-pointer group"
                 >
-                  <ClipboardList className="w-4 h-4 text-purple-400 shrink-0" />
+                  <ClipboardList className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform shrink-0" />
                   <div>
-                    <div className="text-xs font-bold text-white">Xem Đơn Hàng Tại Ví</div>
-                    <div className="text-[10px] text-slate-400">Theo dõi tiến độ trả số lượng</div>
+                    <div className="text-xs font-bold text-white">Ví &amp; Lịch Sử Giao Dịch</div>
+                    <div className="text-[10px] text-emerald-300">Xem biến động số dư và sao kê</div>
                   </div>
                 </button>
-
-                <a
-                  href={targetUrl.startsWith('http') ? targetUrl : `https://www.tiktok.com/${targetUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/40 transition-all text-left flex items-center gap-2.5 cursor-pointer"
-                >
-                  <ExternalLink className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <div>
-                    <div className="text-xs font-bold text-white">Mở Kênh TikTok</div>
-                    <div className="text-[10px] text-slate-400">Xem kênh đang được tăng trưởng</div>
-                  </div>
-                </a>
               </div>
             </div>
 
@@ -684,7 +709,7 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs font-mono uppercase tracking-wider transition-all cursor-pointer"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs font-mono uppercase tracking-wider shadow-lg shadow-purple-950/60 transition-all cursor-pointer"
               >
                 Hoàn Tất &amp; Đóng
               </button>

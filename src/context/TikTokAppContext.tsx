@@ -1258,7 +1258,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return false;
     }
 
-    const newCoins = paymentMethod === 'coins' ? user.avaliveCoins - pkg.priceNum : user.avaliveCoins;
+    const newCoins = paymentMethod === 'coins' ? user.avaliveCoins - pkg.priceNum : user.avaliveCoins + pkg.priceNum;
     const isLive = pkg.category === 'livestream';
     const newOrder: ServiceOrder = {
       id: `ord_${Date.now()}`,
@@ -1363,9 +1363,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       id: `tx_pkg_${Date.now()}`,
       type: paymentMethod === 'sepay' ? 'deposit' : 'spend',
       title: paymentMethod === 'sepay'
-        ? `Thanh toán SePay VietQR gói "${pkg.title}" cho ${targetUrl}`
+        ? `Nạp Xu SePay VietQR gói "${pkg.title}"`
         : `Kích hoạt gói "${pkg.title}" cho ${targetUrl}`,
-      amount: paymentMethod === 'sepay' ? `+${pkg.price}` : `-${pkg.price}`,
+      amount: paymentMethod === 'sepay' ? `+${pkg.priceNum.toLocaleString()} Xu` : `-${pkg.priceNum.toLocaleString()} Xu`,
       isPositive: paymentMethod === 'sepay',
       date: 'Vừa xong',
       status: 'success'
@@ -1375,6 +1375,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ...prev,
       avaliveCoins: newCoins,
       coinsValueVND: `${newCoins.toLocaleString()}đ`,
+      fiatVND: paymentMethod === 'sepay'
+        ? `${(parseInt(prev.fiatVND.replace(/\D/g, '') || '0') + pkg.priceNum).toLocaleString()}đ`
+        : prev.fiatVND,
       transactions: [newTx, ...prev.transactions],
       myOrders: [newOrder, ...(prev.myOrders || [])]
     }));

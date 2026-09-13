@@ -34,17 +34,17 @@ export const USER_PROFILE_WALLET: UserProfileWallet = {
   isYoutubeVerified: false,
   youtubeSubscribers: 0,
   bioVerificationCode: 'TIKTOK-VERIFY-8899',
-  avaliveCoins: 258000,
-  coinsValueVND: '258,000đ',
-  tokenBalance: 850,
-  usdtBalance: 120.50,
-  fiatVND: '7,860,000đ',
-  completedTasksCount: 428,
-  dailyTasksCompleted: 14,
+  avaliveCoins: 0,
+  coinsValueVND: '0đ',
+  tokenBalance: 0,
+  usdtBalance: 0,
+  fiatVND: '0đ',
+  completedTasksCount: 0,
+  dailyTasksCompleted: 0,
   dailyTasksLimit: 100,
   luckyWheelFreeSpins: 1,
-  createdCampaignsCount: 16,
-  rankLevel: 'Kim Cương',
+  createdCampaignsCount: 0,
+  rankLevel: 'Đồng',
   kycStatus: 'unverified',
   bankInfo: {
     bankName: 'MB Bank (Quân Đội)',
@@ -52,121 +52,12 @@ export const USER_PROFILE_WALLET: UserProfileWallet = {
     accountHolder: 'NGUYEN VAN MINH',
     branch: 'Chi nhánh Hà Nội'
   },
-  transactions: [
-    {
-      id: 'tx_1',
-      type: 'earn',
-      title: 'Thưởng nhiệm vụ Follow kênh @zenskin_vietnam',
-      amount: '+500 Xu (500đ)',
-      isPositive: true,
-      date: '10 phút trước',
-      status: 'success'
-    },
-    {
-      id: 'tx_2',
-      type: 'spend',
-      title: 'Tạo chiến dịch Tăng 1,000 Follow kênh thời trang',
-      amount: '-1,500,000đ',
-      isPositive: false,
-      date: '2 giờ trước',
-      status: 'success'
-    },
-    {
-      id: 'tx_3',
-      type: 'deposit',
-      title: 'Nạp quỹ qua SePay VietQR (MBBank)',
-      amount: '+2,000,000đ',
-      isPositive: true,
-      date: 'Hôm nay, 08:30',
-      method: 'SePay VietQR',
-      status: 'success'
-    },
-    {
-      id: 'tx_4',
-      type: 'withdraw',
-      title: 'Rút tiền thưởng hoa hồng về MB Bank',
-      amount: '-500,000đ',
-      isPositive: false,
-      date: 'Hôm qua',
-      method: 'MB Bank',
-      status: 'success'
-    }
-  ],
-  myOrders: [
-    {
-      id: 'ord_live_vip_1',
-      packageId: 'pkg_lv_500',
-      packageTitle: 'Gói 500 Mắt Xem Live 2 Tiếng Chốt Đơn',
-      category: 'livestream',
-      price: '550,000đ',
-      targetUrl: 'https://tiktok.com/@thienvuaapp_official/live',
-      targetQuantity: 500,
-      completedQuantity: 340,
-      status: 'running',
-      createdAt: 'Hôm nay',
-      isLivePackage: true,
-      liveBroadcastActive: true,
-      liveUrl: 'https://tiktok.com/@thienvuaapp_official/live',
-      broadcastRoomTitle: '🔥 ĐẠI TIỆC XẢ KHO 99K TIKTOK SHOP - BÃO MẮT XEM CỘNG ĐỒNG',
-      deliveredEyes: 340,
-      targetEyes: 500,
-      deliveredHearts: 4250,
-      targetHearts: 5000,
-      deliveredComments: 186,
-      targetComments: 200
-    },
-    {
-      id: 'ord_follow_1',
-      packageId: 'pkg_fl_1000',
-      packageTitle: 'Gói 1,000 Follower Mở Khóa TikTok Shop',
-      category: 'follow',
-      price: '220,000đ',
-      targetUrl: 'https://tiktok.com/@thienvuaapp_official',
-      targetQuantity: 1000,
-      completedQuantity: 820,
-      status: 'running',
-      createdAt: 'Hôm qua'
-    }
-  ],
-  myAppLicenses: [
-    {
-      id: 'lic_app_1',
-      appId: 'app_script_gen',
-      appTitle: 'AI TikTok Script Viral GPT-4o Pro',
-      licenseKey: 'AVALIVE-AI-SCR-8899-VIP',
-      xuPaid: 500000,
-      tokenPaid: 200,
-      purchasedAt: '05/09/2025',
-      expiryDate: 'Trọn đời (Lifetime)',
-      status: 'active',
-      downloadUrl: 'https://tiktokpro.app/download/ai-script-viral'
-    },
-    {
-      id: 'lic_app_2',
-      appId: 'app_voice_clone',
-      appTitle: 'AI Voice Clone Giọng Đọc Triệu View',
-      licenseKey: 'AVALIVE-VOX-7722-PRO',
-      xuPaid: 600000,
-      tokenPaid: 250,
-      purchasedAt: '08/09/2025',
-      expiryDate: 'Trọn đời (Lifetime)',
-      status: 'active',
-      downloadUrl: 'https://tiktokpro.app/download/voice-clone-studio'
-    },
-    {
-      id: 'lic_app_3',
-      appId: 'app_affiliate_cart',
-      appTitle: 'Auto Cart TikTok Shop Seeding Bot Pro',
-      licenseKey: 'AVALIVE-BOT-5511-SHOP',
-      xuPaid: 400000,
-      tokenPaid: 150,
-      purchasedAt: '10/09/2025',
-      expiryDate: 'Trọn đời (Lifetime)',
-      status: 'active',
-      downloadUrl: 'https://tiktokpro.app/download/auto-cart-bot'
-    }
-  ]
+  transactions: [],
+  myOrders: [],
+
+  myAppLicenses: []
 };
+
 
 // Danh sách nhiệm vụ Follow, Tim, Comment, Xem video kiếm Xu
 export const TIKTOK_TASKS: TikTokTaskItem[] = [
@@ -795,151 +686,7 @@ import { COMPREHENSIVE_GROWTH_PACKAGES } from './growthPackages';
 export const GROWTH_SERVICES: GrowthServiceItem[] = COMPREHENSIVE_GROWTH_PACKAGES;
 
 // Danh sách chiến dịch đang chạy trong hệ thống
-export const ACTIVE_CAMPAIGNS: CampaignItem[] = [
-  {
-    id: 'camp_mega_1',
-    title: 'Đại Tiệc Mega Live Ra Mắt BST Mỹ Phẩm Mùa Thu (Target 15.000 Mắt Xem Thật)',
-    type: 'mega_live',
-    channelHandle: '@zenskin_vietnam',
-    targetUrl: 'https://www.tiktok.com/@zenskin_vietnam/live',
-    videoPreviewUrl: 'https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_1MB.mp4',
-    targetQuantity: 15000,
-    completedQuantity: 12850,
-    budgetTotal: '15,000,000đ',
-    pricePerAction: '1,000đ / mắt live',
-    status: 'running',
-    createdAt: 'Hôm nay',
-    instructions: 'Tham gia phiên Mega Live, xem tối thiểu 3 phút, thả tim và bình luận mã voucher.',
-    livestreamMinutes: 30,
-    isAnalyticsUnlocked: true,
-    audienceTargeting: {
-      mode: 'niche_targeted',
-      gender: 'female',
-      ageRanges: ['18-24', '25-34'],
-      regions: ['hcm', 'hanoi', 'mien_nam'],
-      interests: ['Mỹ Phẩm & Làm Đẹp', 'Thời Trang & OOTD'],
-      productName: 'BST Son Kem Lì Mùa Thu ZenSkin Velvet',
-      productPrice: '289.000đ',
-      scheduledBroadcastTime: '20:00 - 22:30 (Thứ 6 Tuần Này)',
-      pinnedOffer: 'Flash Sale Giảm 50% + Tặng Kèm Túi Xách'
-    },
-    demographicsReport: {
-      totalViewers: 12850,
-      realUserScore: 99.2,
-      genderDistribution: { male: 14, female: 83, other: 3 },
-      ageGroups: { '18-24': 48, '25-34': 39, '35-44': 10, '45+': 3 },
-      topLocations: [
-        { province: 'Hồ Chí Minh', percentage: 42, viewerCount: 5397 },
-        { province: 'Hà Nội', percentage: 28, viewerCount: 3598 },
-        { province: 'Đà Nẵng', percentage: 14, viewerCount: 1799 },
-        { province: 'Cần Thơ & Miền Tây', percentage: 16, viewerCount: 2056 }
-      ],
-      interestNiches: [
-        { niche: 'Mỹ phẩm & Chăm sóc da', percentage: 88 },
-        { niche: 'Thời trang nữ', percentage: 76 },
-        { niche: 'Săn Deal TikTok Shop', percentage: 92 }
-      ],
-      engagementRate: 24.8,
-      avgWatchSeconds: 285,
-      peakLiveViewers: 4250,
-      generatedRevenueEstimateVND: '185.000.000đ',
-      accuracyLevel: 'Chuẩn xác 100% đối soát từ KYC',
-      lastUpdatedAt: 'Vừa xong'
-    }
-  },
-  {
-    id: 'camp_launch_1',
-    title: 'Chiến Dịch Tung Sản Phẩm Mới: Tai Nghe AI Noise Cancelling Pro (Phủ Toàn Sàn)',
-    type: 'product_launch',
-    channelHandle: '@techzone_vietnam',
-    targetUrl: 'https://www.tiktok.com/@techzone_vietnam/video/7345678901234567890',
-    videoPreviewUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4',
-    targetQuantity: 20000,
-    completedQuantity: 16400,
-    budgetTotal: '10,000,000đ',
-    pricePerAction: '500đ / lượt tương tác',
-    status: 'running',
-    createdAt: 'Hôm qua',
-    instructions: 'Xem đủ 15s video review, thả tim và bình luận công nghệ chống ồn.',
-    isAnalyticsUnlocked: false,
-    audienceTargeting: {
-      mode: 'niche_targeted',
-      gender: 'all',
-      ageRanges: ['18-24', '25-34', '35-44'],
-      regions: ['all'],
-      interests: ['Công Nghệ & Điện Tử', 'Reviewer TikTok Shop'],
-      productName: 'Tai Nghe True Wireless SoundCore AI Pro Max',
-      productPrice: '799.000đ'
-    },
-    demographicsReport: {
-      totalViewers: 16400,
-      realUserScore: 98.6,
-      genderDistribution: { male: 68, female: 29, other: 3 },
-      ageGroups: { '18-24': 52, '25-34': 36, '35-44': 9, '45+': 3 },
-      topLocations: [
-        { province: 'Hà Nội', percentage: 38, viewerCount: 6232 },
-        { province: 'Hồ Chí Minh', percentage: 36, viewerCount: 5904 },
-        { province: 'Đà Nẵng & Miền Trung', percentage: 15, viewerCount: 2460 },
-        { province: 'Hải Phòng & Bắc Ninh', percentage: 11, viewerCount: 1804 }
-      ],
-      interestNiches: [
-        { niche: 'Công nghệ & Điện thoại', percentage: 91 },
-        { niche: 'Gaming & Đồ họa', percentage: 74 },
-        { niche: 'Phụ kiện văn phòng', percentage: 65 }
-      ],
-      engagementRate: 18.5,
-      avgWatchSeconds: 42,
-      generatedRevenueEstimateVND: '124.500.000đ',
-      accuracyLevel: 'Chuẩn xác 100% đối soát từ KYC',
-      lastUpdatedAt: '10 phút trước'
-    }
-  },
-  {
-    id: 'camp_1',
-    title: 'Chiến dịch Kéo 5,000 Follow cho Kênh Mỹ Phẩm ZenSkin',
-    type: 'follow',
-    channelHandle: '@zenskin_vietnam',
-    targetUrl: 'https://tiktok.com/@zenskin_vietnam',
-    targetQuantity: 5000,
-    completedQuantity: 3420,
-    budgetTotal: '1,500,000đ',
-    pricePerAction: '300đ / follow',
-    status: 'running',
-    createdAt: '2 ngày trước',
-    instructions: 'Follow kênh và giữ follow tối thiểu 30 ngày.',
-    isAnalyticsUnlocked: false
-  },
-  {
-    id: 'camp_2',
-    title: 'Seeding 2,000 Tim & Comment cho Video Giới Thiệu BST Thu Đông',
-    type: 'like_comment',
-    channelHandle: '@auraboutique.vn',
-    targetUrl: 'https://tiktok.com/@auraboutique.vn',
-    targetQuantity: 2000,
-    completedQuantity: 1850,
-    budgetTotal: '600,000đ',
-    pricePerAction: '300đ / tương tác',
-    status: 'running',
-    createdAt: '1 ngày trước',
-    instructions: 'Xem video 15s, thả tim và bình luận khen mẫu áo.',
-    isAnalyticsUnlocked: false
-  },
-  {
-    id: 'camp_3',
-    title: 'Booking 10 KOC Review Quán Cà Phê Chill Rooftop',
-    type: 'booking_review',
-    channelHandle: '@skyline_saigon',
-    targetUrl: 'https://tiktok.com/@skyline_saigon',
-    targetQuantity: 10,
-    completedQuantity: 6,
-    budgetTotal: '5,000,000đ',
-    pricePerAction: '500,000đ / video review',
-    status: 'running',
-    createdAt: '3 ngày trước',
-    instructions: 'Đến quán trải nghiệm, quay video 60s và gắn vị trí quán.',
-    isAnalyticsUnlocked: false
-  }
-];
+export const ACTIVE_CAMPAIGNS: CampaignItem[] = [];
 
 // Bảng cấp bậc hoa hồng Affiliate theo quy mô cộng đồng (20% - 35% • Nhận 1 lần duy nhất)
 export const AFFILIATE_TIER_LEVELS: AffiliateTierInfo[] = [
@@ -993,91 +740,23 @@ export const getDynamicRefLink = (refCode: string = 'THIENVUAAPP88'): string => 
 export const AFFILIATE_DATA: AffiliateStats = {
   refCode: 'THIENVUAAPP88',
   refLink: getDynamicRefLink('THIENVUAAPP88'),
-  totalClicks: 3420,
-  totalSignups: 428,
+  totalClicks: 0,
+  totalSignups: 0,
   // 1. Quỹ Xu Tặng Giới Thiệu (5,000 Xu / bạn kích hoạt làm 1 nhiệm vụ)
-  referralBonusCoinsTotal: 65000,   // 13 bạn x 5,000 Xu = 65,000 Xu (đã cộng vào ví)
-  referralPendingCoins: 20000,     // 4 bạn x 5,000 Xu = 20,000 Xu (chờ bạn làm 1 nhiệm vụ)
-  referralActivatedCount: 13,      // Đã làm ít nhất 1 nhiệm vụ
-  referralPendingCount: 4,         // Mới tạo tài khoản, chưa làm nhiệm vụ
+  referralBonusCoinsTotal: 0,
+  referralPendingCoins: 0,
+  referralActivatedCount: 0,
+  referralPendingCount: 0,
   // 2. Quỹ Hoa Hồng Mua Gói (35% VNĐ cấp Kim Cương - Nhận 1 lần duy nhất / người)
-  totalCommissionVND: '18,850,000đ',
-  commissionRate: '35%',
-  tier: 'Kim Cương',
-  monthlyCommission: '5,250,000đ',
-  referralsList: [
-    {
-      id: 'ref_1',
-      username: 'tran_phuong_koc',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
-      tiktokHandle: '@phuongkoc_beauty',
-      joinedDate: '10/09/2025',
-      hasCompletedTask: true,
-      taskCompletedType: 'Follow kênh @zenskin & Xem video 15s',
-      status: 'Đã kích hoạt • Đã nhận +5,000 Xu',
-      bonusCoins: 5000,
-      isClaimed: true,
-      packageSpentVND: '2,000,000đ',
-      earnedVND: '+500,000đ'
-    },
-    {
-      id: 'ref_2',
-      username: 'hoang_long_media',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-      tiktokHandle: '@longmedia_agency',
-      joinedDate: '08/09/2025',
-      hasCompletedTask: true,
-      taskCompletedType: 'Xem phiên Live 3 phút',
-      status: 'Đã kích hoạt • Đã nhận +5,000 Xu',
-      bonusCoins: 5000,
-      isClaimed: true,
-      packageSpentVND: '5,000,000đ',
-      earnedVND: '+1,250,000đ'
-    },
-    {
-      id: 'ref_3',
-      username: 'mai_thao_agency',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      tiktokHandle: '@maithao_marketing',
-      joinedDate: '05/09/2025',
-      hasCompletedTask: true,
-      taskCompletedType: 'Hoàn thành 150 nhiệm vụ seeding',
-      status: 'Đã kích hoạt • Đã nhận +5,000 Xu',
-      bonusCoins: 5000,
-      isClaimed: true,
-      packageSpentVND: '1,120,000đ',
-      earnedVND: '+280,000đ'
-    },
-    {
-      id: 'ref_4',
-      username: 'duy_anh_creator',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80',
-      tiktokHandle: '@duyanh_vlog',
-      joinedDate: 'Hôm nay, 14:20',
-      hasCompletedTask: false,
-      status: 'Chờ làm 1 nhiệm vụ xác minh (+5,000 Xu)',
-      bonusCoins: 5000,
-      isClaimed: false,
-      packageSpentVND: '0đ',
-      earnedVND: '0đ'
-    },
-    {
-      id: 'ref_5',
-      username: 'ngoc_huyen_fashion',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
-      tiktokHandle: '@huyen_boutique',
-      joinedDate: 'Hôm nay, 11:05',
-      hasCompletedTask: false,
-      status: 'Chờ làm 1 nhiệm vụ xác minh (+5,000 Xu)',
-      bonusCoins: 5000,
-      isClaimed: false,
-      packageSpentVND: '0đ',
-      earnedVND: '0đ'
-    }
-  ]
+  totalCommissionVND: '0đ',
+  commissionRate: '20%',
+  tier: 'Bạc',
+  monthlyCommission: '0đ',
+  referralsList: []
 };
 
 // Dữ liệu Bảng điều khiển Admin
+
 export const ADMIN_DATA: AdminDashboardData = {
   totalFollowsDelivered: 12482910,
   activeCampaignsCount: 148,

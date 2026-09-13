@@ -12,6 +12,7 @@ import {
   Flame 
 } from 'lucide-react';
 import { ScreenId } from '../../types';
+import { useTikTokApp } from '../../context/TikTokAppContext';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -58,13 +59,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onClose();
   };
 
+  const { user } = useTikTokApp();
+
   const QUICK_ACTIONS = [
     { label: 'Tạo chiến dịch tăng 10,000 Follow thật', screen: 'create_campaign' as ScreenId, icon: PlusCircle, badge: 'Hot' },
     { label: 'Nhận nhiệm vụ Follow & Tương tác nhận Xu', screen: 'tasks' as ScreenId, icon: UserCheck, badge: '+500 Xu' },
     { label: 'Xem bảng giá Gói Xây Kênh & Booking KOC', screen: 'marketplace' as ScreenId, icon: ShoppingBag, badge: 'Ưu đãi' },
     { label: 'Lấy link Tiếp thị liên kết (Hoa hồng 25%)', screen: 'affiliate' as ScreenId, icon: Share2, badge: 'Passive' },
     { label: 'Ví Xu & Rút tiền tự động về Ngân hàng / MoMo', screen: 'profile_wallet' as ScreenId, icon: Wallet, badge: 'Rút Thật 100%' },
-    { label: 'Quản trị hệ thống & Giám sát phân phối Follow', screen: 'admin' as ScreenId, icon: ShieldCheck, badge: 'Admin' }
+    ...(user.email === 'quocthiencr90@gmail.com' ? [
+      { label: 'Quản trị hệ thống & Giám sát phân phối Follow', screen: 'admin' as ScreenId, icon: ShieldCheck, badge: 'Admin' }
+    ] : [])
   ];
 
   const filteredActions = QUICK_ACTIONS.filter(a => 

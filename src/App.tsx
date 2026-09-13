@@ -109,6 +109,7 @@ function AppContent() {
   const [showLandingDirectly, setShowLandingDirectly] = useState(false);
 
   const { 
+    user,
     toastMessage, 
     deposit, 
     isDepositOpen, 
@@ -132,6 +133,17 @@ function AppContent() {
       document.documentElement.classList.remove('dark');
     }
   }, [darkMode]);
+
+  // Admin routing check: if admin logs in, show Admin screen directly; if non-admin tries to view admin, redirect to home
+  useEffect(() => {
+    if (isAuthenticated && user?.email === 'quocthiencr90@gmail.com') {
+      // Auto display admin screen for admin
+      setCurrentScreen('admin');
+    } else if (currentScreen === 'admin' && user?.email !== 'quocthiencr90@gmail.com') {
+      // Protect admin screen against unauthorized users
+      setCurrentScreen('home');
+    }
+  }, [isAuthenticated, user?.email]);
 
   const handleDepositSuccess = (amount: number, method: string) => {
     const amountVND = amount >= 10000 ? amount : amount * 25400;
@@ -197,6 +209,8 @@ function AppContent() {
         onOpenCreateCampaign={() => setCurrentScreen('create_campaign')}
         onOpenPolicy={openPolicy}
         onNavigateToLanding={() => setShowLandingDirectly(true)}
+        onNavigateToAffiliate={() => setCurrentScreen('affiliate')}
+        onNavigateToPolicyGuide={() => setCurrentScreen('policy_guide')}
       />
 
       {/* Main Container */}

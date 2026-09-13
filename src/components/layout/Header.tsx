@@ -19,7 +19,11 @@ import {
   Zap,
   History,
   Eye,
-  Bell
+  Bell,
+  ChevronDown,
+  ShieldCheck,
+  Wallet,
+  Share2
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
@@ -34,6 +38,8 @@ interface HeaderProps {
   onOpenCreateCampaign: () => void;
   onOpenPolicy?: () => void;
   onNavigateToLanding?: () => void;
+  onNavigateToAffiliate?: () => void;
+  onNavigateToPolicyGuide?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -44,7 +50,9 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateToAdmin,
   onOpenCreateCampaign,
   onOpenPolicy,
-  onNavigateToLanding
+  onNavigateToLanding,
+  onNavigateToAffiliate,
+  onNavigateToPolicyGuide
 }) => {
   const { 
     user, 
@@ -71,6 +79,18 @@ export const Header: React.FC<HeaderProps> = ({
   } = useTikTokApp();
 
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
+  const profileMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleMarqueeItemClick = (item: any) => {
     if (item.type === 'livestream') {
@@ -314,14 +334,6 @@ export const Header: React.FC<HeaderProps> = ({
             />
           </div>
 
-          {/* Admin Switch Button */}
-          <button 
-            onClick={onNavigateToAdmin}
-            className="hidden sm:inline-flex px-2.5 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 text-xs font-bold font-mono transition-all shrink-0"
-          >
-            Admin
-          </button>
-
           {/* Theme Toggle */}
           <button 
             onClick={onToggleDarkMode}
@@ -330,15 +342,6 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
-          {/* Logout Button */}
-          <button
-            onClick={logout}
-            title="Đăng xuất"
-            className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-all shrink-0"
-          >
-            <LogOut className="h-4 w-4" />
           </button>
 
           {/* Notification Button next to Avatar */}
@@ -355,21 +358,130 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
 
-          {/* User Profile Pill */}
-          <div 
-            onClick={onNavigateToProfile}
-            className="cursor-pointer flex items-center gap-2 pl-1 sm:pl-2 border-l border-white/10"
-          >
-            <div className="relative">
-              <img
-                src={user.avatar}
-                alt=""
-                className="h-8 w-8 rounded-full object-cover ring-2 ring-rose-500"
-              />
-              {user.isTikTokVerified && (
-                <CheckCircle2 className="absolute -bottom-1 -right-1 h-3.5 w-3.5 text-cyan-400 bg-black rounded-full" />
-              )}
-            </div>
+          {/* User Profile Pill & Dropdown Menu */}
+          <div ref={profileMenuRef} className="relative">
+            <button 
+              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              className="cursor-pointer flex items-center gap-2 pl-1 sm:pl-2 py-1 pr-1.5 rounded-2xl hover:bg-white/5 border border-transparent hover:border-white/10 transition-all"
+              title="Menu tài khoản Google"
+            >
+              <div className="relative">
+                <img
+                  src={user.avatar}
+                  alt=""
+                  className="h-8 w-8 rounded-full object-cover ring-2 ring-rose-500"
+                />
+                {user.isTikTokVerified && (
+                  <CheckCircle2 className="absolute -bottom-1 -right-1 h-3.5 w-3.5 text-cyan-400 bg-black rounded-full" />
+                )}
+              </div>
+              <div className="hidden md:flex flex-col text-left">
+                <div className="text-xs font-black text-white leading-tight flex items-center gap-1 max-w-[120px] truncate">
+                  {user.name || user.handle}
+                  {user.email === 'quocthiencr90@gmail.com' && (
+                    <span className="px-1 py-0.2 text-[8px] font-mono font-black bg-rose-500 text-white rounded">ADMIN</span>
+                  )}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono leading-tight max-w-[120px] truncate">
+                  {user.email || 'user@gmail.com'}
+                </div>
+              </div>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180 text-rose-400' : ''}`} />
+            </button>
+
+            {/* Profile Dropdown Menu */}
+            {isProfileMenuOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-[#0E1322] border border-white/10 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
+                {/* User Info Header */}
+                <div className="p-3 mb-1 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <img src={user.avatar} alt="" className="w-9 h-9 rounded-full ring-2 ring-rose-500" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-black text-white truncate">{user.name}</div>
+                      <div className="text-[10px] text-slate-400 font-mono truncate">{user.email || 'user@gmail.com'}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[10px] font-mono">
+                    <span className="text-slate-400">Cấp: <strong className="text-amber-400">{user.rankLevel}</strong></span>
+                    <span className="text-slate-400">Số dư: <strong className="text-emerald-400">{(user.avaliveCoins || 0).toLocaleString('vi-VN')} Xu</strong></span>
+                  </div>
+                </div>
+
+                {/* Menu Items */}
+                <div className="space-y-0.5 text-xs font-medium">
+                  {/* Hồ sơ cá nhân */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      onNavigateToProfile();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left"
+                  >
+                    <Wallet className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <span>Hồ Sơ Cá Nhân & Ví Xu</span>
+                  </button>
+
+                  {/* Tiếp thị liên kết */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      if (onNavigateToAffiliate) onNavigateToAffiliate();
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Share2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Tiếp Thị Liên Kết</span>
+                    </div>
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-300 rounded font-mono">35%</span>
+                  </button>
+
+                  {/* Chính sách cấp bậc */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      if (onNavigateToPolicyGuide) onNavigateToPolicyGuide();
+                      else if (onOpenPolicy) onOpenPolicy();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left"
+                  >
+                    <BookOpen className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <span>Chính Sách Cấp Bậc</span>
+                  </button>
+
+                  {/* Quản trị Admin - CHỈ HIỂN THỊ KHI LÀ quocthiencr90@gmail.com */}
+                  {user.email === 'quocthiencr90@gmail.com' && (
+                    <button
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        onNavigateToAdmin();
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all text-left font-bold"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <ShieldCheck className="w-4 h-4 text-rose-400 shrink-0" />
+                        <span>Quản Trị Hệ Thống</span>
+                      </div>
+                      <span className="px-1.5 py-0.2 text-[9px] font-black bg-rose-600 text-white rounded font-mono">ADMIN</span>
+                    </button>
+                  )}
+
+                  <div className="my-1 border-t border-white/5" />
+
+                  {/* Đăng xuất */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all text-left"
+                  >
+                    <LogOut className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>Đăng Xuất</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

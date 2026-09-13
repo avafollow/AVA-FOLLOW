@@ -41,7 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   darkMode,
   onNavigateToLanding
 }) => {
-  const { tasks, openFeedRunner } = useTikTokApp();
+  const { user, tasks, openFeedRunner } = useTikTokApp();
   const openTasksCount = tasks.filter(t => t.status === 'open').length;
 
   const navItems: NavItem[] = [
@@ -53,11 +53,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'create_campaign', label: 'TẠO CHIẾN DỊCH', icon: PlusCircle },
     { id: 'marketplace', label: 'GÓI TĂNG TRƯỞNG', icon: ShoppingBag, badge: 'HOT' },
     { id: 'analytics', label: 'BÁO CÁO THU NHẬP', icon: BarChart3 },
-    { id: 'affiliate', label: 'TIẾP THỊ LIÊN KẾT', icon: Share2 },
     { id: 'community', label: 'CỘNG ĐỒNG CREATOR', icon: Users },
-    { id: 'profile_wallet', label: 'HỒ SƠ CÁ NHÂN', icon: Wallet },
-    { id: 'policy_guide', label: 'CHÍNH SÁCH CẤP BẬC', icon: BookOpen },
-    { id: 'admin', label: 'QUẢN TRỊ HỆ THỐNG', icon: ShieldCheck, badge: 'ADMIN' }
+    ...(user.email === 'quocthiencr90@gmail.com' ? [
+      { id: 'admin' as const, label: 'QUẢN TRỊ HỆ THỐNG', icon: ShieldCheck, badge: 'ADMIN' }
+    ] : [])
   ];
 
   return (

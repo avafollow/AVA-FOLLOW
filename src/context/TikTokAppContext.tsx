@@ -115,7 +115,7 @@ interface TikTokAppContextType {
   isAuthModalOpen: boolean;
   openAuthModal: () => void;
   closeAuthModal: () => void;
-  loginWithGoogle: () => void;
+  loginWithGoogle: (customEmail?: string) => void;
   loginWithEmail: (email: string, name: string, handle?: string) => void;
   logout: () => void;
 
@@ -376,7 +376,28 @@ interface TikTokAppContextType {
 const TikTokAppContext = createContext<TikTokAppContextType | undefined>(undefined);
 
 export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfileWallet>(USER_PROFILE_WALLET);
+  const [user, setUser] = useState<UserProfileWallet>(() => {
+    try {
+      const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('ava_user_email') : null;
+      if (savedEmail) {
+        const isAdmin = savedEmail === 'quocthiencr90@gmail.com';
+        return {
+          ...USER_PROFILE_WALLET,
+          email: savedEmail,
+          name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : USER_PROFILE_WALLET.name,
+          role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : 'Nhà Sáng Tạo AVA FOLLOW',
+          isAdmin,
+          avatar: isAdmin 
+            ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+            : USER_PROFILE_WALLET.avatar
+        };
+      }
+    } catch {}
+    return {
+      ...USER_PROFILE_WALLET,
+      isAdmin: false
+    };
+  });
   const [tasks, setTasks] = useState<TikTokTaskItem[]>(TIKTOK_TASKS);
   const [livestreamTasks, setLivestreamTasks] = useState<LivestreamTaskItem[]>(LIVESTREAM_TASKS);
   const [campaigns, setCampaigns] = useState<CampaignItem[]>(ACTIVE_CAMPAIGNS);
@@ -936,23 +957,45 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => setIsAuthModalOpen(false);
 
-  const loginWithGoogle = () => {
+  const loginWithGoogle = (customEmail?: string) => {
+    const targetEmail = customEmail || 'quocthiencr90@gmail.com';
+    const isAdmin = targetEmail === 'quocthiencr90@gmail.com';
+
+    setUser(prev => ({
+      ...prev,
+      email: targetEmail,
+      name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : (prev.name || 'Người Dùng Google'),
+      role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : 'Nhà Sáng Tạo AVA FOLLOW',
+      isAdmin: isAdmin,
+      avatar: isAdmin 
+        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'
+    }));
+
     setIsAuthenticated(true);
     try {
       localStorage.setItem('tiktok_pro_auth', 'true');
+      localStorage.setItem('ava_user_email', targetEmail);
     } catch {}
+
     // Đồng bộ user lên Supabase Cloud
     registerUserToSupabase({
-      email: user.email || 'thienvuaapp@gmail.com',
-      name: user.name,
+      email: targetEmail,
+      name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : 'Người Dùng Google',
       tiktokHandle: user.tiktokConnected,
       referredBy: 'THIENVUAAPP88'
     });
-    showToast('🚀 Đăng nhập Google thành công! Chào mừng bạn đến với Siêu Hệ Sinh Thái AVA FOLLOW.');
+
+    if (isAdmin) {
+      showToast('👑 Chào mừng Admin Nguyễn Quốc Thiện! Toàn quyền quản trị hệ thống đã kích hoạt.');
+    } else {
+      showToast('🚀 Đăng nhập Google 1 chạm thành công! Chào mừng bạn đến với AVA FOLLOW.');
+    }
   };
 
   const loginWithEmail = (email: string, name: string, handle?: string) => {
     const formattedHandle = handle ? (handle.startsWith('@') ? handle : `@${handle}`) : user.tiktokConnected;
+    const isAdmin = email === 'quocthiencr90@gmail.com';
     setUser(prev => {
       const bonusWelcome = 5000;
       const nextCoins = prev.avaliveCoins + bonusWelcome;
@@ -960,6 +1003,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ...prev,
         email: email,
         name: name || prev.name,
+        role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : prev.role,
+        isAdmin: isAdmin,
         tiktokConnected: formattedHandle,
         avaliveCoins: nextCoins,
         coinsValueVND: `${nextCoins.toLocaleString()}đ`
@@ -968,6 +1013,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setIsAuthenticated(true);
     try {
       localStorage.setItem('tiktok_pro_auth', 'true');
+      localStorage.setItem('ava_user_email', email);
     } catch {}
 
     // Đồng bộ tài khoản và quà chào mừng 5.000 Xu lên Supabase
@@ -994,6 +1040,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setIsAuthenticated(false);
     try {
       localStorage.removeItem('tiktok_pro_auth');
+      localStorage.removeItem('ava_user_email');
     } catch {}
     showToast('Đã đăng xuất an toàn khỏi hệ thống.');
   };

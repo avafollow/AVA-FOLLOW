@@ -905,6 +905,7 @@ export interface UserProfileWallet {
   handle: string;
   avatar: string;
   email?: string;
+  isAdmin?: boolean;
   role: string;
   tiktokConnected: string;
   tiktokHandle?: string;

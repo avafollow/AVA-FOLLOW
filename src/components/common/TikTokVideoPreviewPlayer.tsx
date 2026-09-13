@@ -9,7 +9,9 @@ import {
   Sparkles, 
   Heart,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Video,
+  Youtube
 } from 'lucide-react';
 import { parseMediaUrl, ParsedMediaInfo } from '../../data/videoSources';
 
@@ -67,12 +69,41 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
     setIsMuted(!isMuted);
   };
 
+  const getPlatformBadge = () => {
+    if (effectiveIsLive) {
+      return (
+        <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white text-[9px] font-black uppercase font-mono flex items-center gap-1 shadow-lg animate-pulse">
+          <Radio className="w-3 h-3" /> LIVE
+        </span>
+      );
+    }
+    if (mediaInfo.isYouTube) {
+      return (
+        <span className="px-2 py-0.5 rounded-md bg-red-600 text-white text-[9px] font-black uppercase font-mono shadow-lg flex items-center gap-1">
+          <Youtube className="w-3 h-3" /> YOUTUBE
+        </span>
+      );
+    }
+    if (mediaInfo.isFacebook) {
+      return (
+        <span className="px-2 py-0.5 rounded-md bg-blue-600 text-white text-[9px] font-black uppercase font-mono shadow-lg">
+          FACEBOOK
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-[#FF0050] to-purple-600 text-white text-[9px] font-black uppercase font-mono shadow-lg">
+        {badgeText || 'TIKTOK FYP'}
+      </span>
+    );
+  };
+
   return (
     <div 
       className={`relative rounded-2xl overflow-hidden bg-black border border-white/15 shadow-2xl group select-none ${className}`}
       onClick={togglePlay}
     >
-      {/* Background Video Stream (High performance CDN) */}
+      {/* Background Video Stream (High performance CDN / Direct MP4) */}
       <video
         ref={videoRef}
         src={mediaInfo.streamUrl}
@@ -91,30 +122,36 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
       {/* Top Badges */}
       <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
         <div className="flex items-center gap-1.5">
-          {effectiveIsLive ? (
-            <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white text-[9px] font-black uppercase font-mono flex items-center gap-1 shadow-lg animate-pulse">
-              <Radio className="w-3 h-3" /> LIVE
-            </span>
-          ) : (
-            <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-[#FF0050] to-purple-600 text-white text-[9px] font-black uppercase font-mono shadow-lg">
-              {badgeText || 'FYP'}
-            </span>
-          )}
+          {getPlatformBadge()}
           <span className="px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md text-[8px] font-mono text-cyan-300 border border-white/10">
-            1080p
+            1080p HD
           </span>
         </div>
 
-        {/* Audio Mute/Unmute */}
+        {/* Audio Mute/Unmute & Direct Link */}
         {showControls && (
-          <button
-            type="button"
-            onClick={toggleMute}
-            className="p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md border border-white/10 transition-transform active:scale-95 pointer-events-auto cursor-pointer"
-            title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
-          >
-            {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
-          </button>
+          <div className="flex items-center gap-1 pointer-events-auto">
+            {url && url.startsWith('http') && (
+              <a
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-slate-300 hover:text-white backdrop-blur-md border border-white/10 transition-transform active:scale-95 cursor-pointer"
+                title="Mở link gốc"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md border border-white/10 transition-transform active:scale-95 cursor-pointer"
+              title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+            >
+              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+            </button>
+          </div>
         )}
       </div>
 
@@ -139,10 +176,14 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
           <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
         </div>
 
-        {effectiveIsLive && (
+        {effectiveIsLive ? (
           <div className="flex items-center gap-1 text-[9px] text-rose-300 font-mono">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-            <span>Phát sóng trực tiếp • 1.4K người đang xem</span>
+            <span>Phát sóng trực tiếp • Trực tiếp từ phòng Live</span>
+          </div>
+        ) : (
+          <div className="text-[9px] text-slate-300 font-mono truncate">
+            {mediaInfo.title}
           </div>
         )}
       </div>

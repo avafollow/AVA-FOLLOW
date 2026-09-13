@@ -89,6 +89,7 @@ import {
   SECURITY_7_LAYERS,
   SECURITY_AUDIT_LOGS 
 } from '../data/securityLayersData';
+import { parseMediaUrl } from '../data/videoSources';
 
 interface TaskActionDetails {
   followed: boolean;
@@ -3245,6 +3246,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             tgt.type === 'comment' ? 'comment' :
             tgt.type === 'share' ? 'share' : 'like';
 
+          const parsedMedia = parseMediaUrl(campaignData.targetUrl, campaignData.channelHandle);
           const subTask: TikTokTaskItem = {
             id: `task_dyn_${Date.now()}_${idx}`,
             title: `${tgt.label} - ${campaignData.channelHandle} (${tgt.targetQuantity.toLocaleString()} lượt)`,
@@ -3255,6 +3257,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             channelHandle: campaignData.channelHandle,
             channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
             targetUrl: campaignData.targetUrl,
+            videoPreviewUrl: parsedMedia.streamUrl,
+            requiresWatch: tType === 'watch',
+            sampleComments: [
+              'Ủng hộ kênh bạn nhé!',
+              'Nội dung rất hay và chất lượng!',
+              'Đã tương tác ủng hộ kênh!'
+            ],
             totalSlots: tgt.targetQuantity,
             completedSlots: 0,
             remainingSlots: tgt.targetQuantity,
@@ -3296,6 +3305,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         campaignData.type === 'share' ? 'share' :
         campaignData.type === 'booking_review' ? 'review' : 'like';
 
+      const parsedSingleMedia = parseMediaUrl(campaignData.targetUrl, campaignData.channelHandle);
       const newTask: TikTokTaskItem = {
         id: `task_dyn_${Date.now()}`,
         title: campaignData.title,
@@ -3306,6 +3316,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         channelHandle: campaignData.channelHandle,
         channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
         targetUrl: campaignData.targetUrl,
+        videoPreviewUrl: parsedSingleMedia.streamUrl,
+        requiresWatch: taskType === 'watch',
+        sampleComments: [
+          'Ủng hộ video bạn nhé!',
+          'Kênh làm nội dung rất đỉnh!',
+          'Đã theo dõi và ủng hộ nhiệt tình!'
+        ],
         totalSlots: campaignData.targetQuantity,
         completedSlots: 0,
         remainingSlots: campaignData.targetQuantity,

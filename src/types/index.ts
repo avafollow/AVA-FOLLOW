@@ -36,6 +36,7 @@ export interface TikTokTaskItem {
   status: 'open' | 'running' | 'completed';
   createdAt: string;
   videoPreviewUrl?: string;
+  requiresWatch?: boolean;
   sampleComments?: string[];
   tags?: string[];
   campaignCategory?: 'community' | 'partner'; // 'community': Xem tự do, cứ xem là có Xu | 'partner': Doanh nghiệp/Đối tác tài trợ, giới hạn suất, ai đến trước nhận trước

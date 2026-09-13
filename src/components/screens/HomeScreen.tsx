@@ -69,6 +69,12 @@ export const HomeScreen: React.FC<{
 
   const [isKocModalOpen, setIsKocModalOpen] = useState(false);
 
+  // Dynamic real metrics (Không dùng số ảo)
+  const completedTasksCount = user.dailyTasksCompleted || 0;
+  const totalDailyTarget = Math.max(10, tasks.length);
+  const progressPercent = Math.min(100, Math.round((completedTasksCount / totalDailyTarget) * 100));
+  const remainingForBonus = Math.max(0, 5 - (completedTasksCount % 5));
+
   return (
     <div className="flex flex-col xl:flex-row gap-6">
       {/* Center / Left Main Column */}
@@ -88,7 +94,7 @@ export const HomeScreen: React.FC<{
 
           <div className="relative z-10 space-y-6">
 
-            {/* 2. TIÊU ĐỀ CHÍNH & CÂU HÚT CHỐT SALE */}
+            {/* 2. TIÊU ĐỀ CHÍNH */}
             <div className="space-y-3">
               <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight font-display">
                 NỀN TẢNG KẾT NỐI TƯƠNG TÁC{' '}
@@ -97,12 +103,7 @@ export const HomeScreen: React.FC<{
                 </span>
               </h1>
               <p className="text-xs sm:text-sm md:text-base text-slate-200 max-w-3xl leading-relaxed">
-                Đừng để thời gian lướt TikTok trôi qua vô nghĩa! Tạo ngay nguồn thu nhập{' '}
-                <span className="font-black px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  200.000đ - 5.000.000đ+ / NGÀY
-                </span>{' '}
-                hoàn toàn <span className="font-black px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40">KHÔNG CẦN VỐN</span>, không ôm hàng, nhận tiền mặt về tài khoản ngân hàng chỉ trong{' '}
-                <span className="font-black text-amber-300">5 PHÚT</span>!
+                Kết nối kênh TikTok, xem video FYP, follow chéo người thật, chia sẻ lan tỏa và nhận Xu tích lũy rút tiền mặt về tài khoản ngân hàng uy tín, nhanh chóng và an toàn!
               </p>
             </div>
 
@@ -195,8 +196,8 @@ export const HomeScreen: React.FC<{
                     <div className="text-xs font-black text-white font-display group-hover:text-pink-300 transition-colors">
                       Kết Nối KOC
                     </div>
-                    <div className="text-[10px] text-pink-300 font-mono font-bold mt-0.5">500K - 5M / Job</div>
-                    <div className="text-[9px] text-slate-400 line-clamp-1 mt-0.5">Booking review &amp; AI Studio</div>
+                    <div className="text-[10px] text-pink-300 font-mono font-bold mt-0.5">Booking &amp; Review</div>
+                    <div className="text-[9px] text-slate-400 line-clamp-1 mt-0.5">Ký quỹ Escrow &amp; AI Studio</div>
                   </div>
                 </button>
 
@@ -354,7 +355,7 @@ export const HomeScreen: React.FC<{
                   <div className="text-sm font-black text-rose-300 mt-1">
                     {Math.round((user.avaliveCoins || 0) * 0.4).toLocaleString()} Xu
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">128 lượt follow thành công</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">{completedTasksCount} nhiệm vụ đã xong</div>
                 </div>
 
                 <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30">
@@ -365,7 +366,7 @@ export const HomeScreen: React.FC<{
                   <div className="text-sm font-black text-amber-300 mt-1">
                     {Math.round((user.avaliveCoins || 0) * 0.25).toLocaleString()} Xu
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">Xem 15s đếm ngược tự động</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Xem đếm ngược tự động</div>
                 </div>
 
                 <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/30">
@@ -376,7 +377,7 @@ export const HomeScreen: React.FC<{
                   <div className="text-sm font-black text-purple-300 mt-1">
                     {Math.round((user.avaliveCoins || 0) * 0.2).toLocaleString()} Xu
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">Ký quỹ Escrow bảo hành 3 ngày</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Ký quỹ Escrow bảo đảm</div>
                 </div>
 
                 <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30">
@@ -387,23 +388,30 @@ export const HomeScreen: React.FC<{
                   <div className="text-sm font-black text-cyan-300 mt-1">
                     {Math.round((user.avaliveCoins || 0) * 0.15).toLocaleString()} Xu
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">Giữ mắt live &amp; like seeding</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Giữ mắt live &amp; tương tác</div>
                 </div>
               </div>
 
               {/* Progress Tracker Strip */}
               <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-2 text-xs">
                 <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-300 font-bold">Chỉ Tiêu Nhiệm Vụ Hôm Nay:</span>
+                  <span className="text-slate-300 font-bold">Tiến Độ Nhiệm Vụ Hôm Nay:</span>
                   <span className="text-emerald-400 font-bold font-mono">
-                    {user.dailyTasksCompleted || 12}/15 Hoàn Thành (80%)
+                    {completedTasksCount}/{totalDailyTarget} Hoàn Thành ({progressPercent}%)
                   </span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-rose-500 rounded-full" style={{ width: '80%' }} />
+                  <div 
+                    className="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-rose-500 rounded-full transition-all duration-500" 
+                    style={{ width: `${progressPercent}%` }} 
+                  />
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-0.5">
-                  <span>Còn 3 nhiệm vụ để nhận 1 lượt Quay May Mắn Free</span>
+                  <span>
+                    {remainingForBonus > 0 
+                      ? `Còn ${remainingForBonus} nhiệm vụ để nhận thêm lượt Quay May Mắn` 
+                      : 'Đã hoàn thành xuất sắc chỉ tiêu!'}
+                  </span>
                   <button
                     onClick={() => onNavigate('tasks')}
                     className="text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer"
@@ -517,7 +525,7 @@ export const HomeScreen: React.FC<{
             <span className="px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 text-[10px] font-black font-mono uppercase tracking-wider">
               DÀNH CHO CREATOR
             </span>
-            <span className="text-[10px] text-amber-300 font-mono font-bold">Thu Nhập 500k-5M</span>
+            <span className="text-[10px] text-amber-300 font-mono font-bold">Cơ Hội Hợp Tác</span>
           </div>
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white shrink-0 shadow-md">

@@ -75,7 +75,10 @@ export const Header: React.FC<HeaderProps> = ({
     userNotifications,
     unreadNotificationsCount,
     markNotificationAsRead,
-    clearAllNotifications
+    clearAllNotifications,
+    openConnect,
+    connectedAccountsOnIp,
+    maxAccountsPerIp
   } = useTikTokApp();
 
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
@@ -307,6 +310,64 @@ export const Header: React.FC<HeaderProps> = ({
             <Search className="h-4 w-4" />
           </button>
 
+          {/* Kênh TikTok Đã Kết Nối (Duy trì tài khoản, chuyển đổi nhanh, tối đa 5 TK/IP) */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={openConnect}
+              className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm group border cursor-pointer ${
+                user.tiktokConnected ? (
+                  darkMode 
+                    ? 'bg-black/60 hover:bg-white/10 border-rose-500/40 text-white hover:border-rose-400' 
+                    : 'bg-rose-50/80 hover:bg-rose-100 border-rose-200 text-slate-900'
+                ) : (
+                  'bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 hover:opacity-90 text-white animate-pulse border-rose-400/50'
+                )
+              }`}
+              title={
+                user.tiktokConnected 
+                  ? `Tài khoản TikTok đang kết nối: ${user.tiktokConnected} • IP: ${connectedAccountsOnIp.length}/${maxAccountsPerIp || 5} tài khoản (Bấm để đổi kênh)` 
+                  : 'Bấm để kết nối kênh TikTok nhận ngay 1.000 Xu'
+              }
+            >
+              {/* TikTok mini badge */}
+              <div className="w-5 h-5 rounded-lg bg-black flex items-center justify-center text-rose-500 text-[10px] font-black shrink-0 shadow-sm ring-1 ring-white/10">
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.67 6.34 6.34 0 0 0 9.34 22a6.34 6.34 0 0 0 6.34-6.33V9.05a8.28 8.28 0 0 0 4.91 1.6v-3.46a4.8 4.8 0 0 1-1-.5z"/>
+                </svg>
+              </div>
+
+              {user.tiktokConnected ? (
+                <div className="flex flex-col text-left leading-tight">
+                  <div className="flex items-center gap-1">
+                    <span className="font-mono font-black text-xs text-white max-w-[85px] sm:max-w-[130px] truncate group-hover:text-rose-400 transition-colors">
+                      {user.tiktokConnected}
+                    </span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  </div>
+                  <div className="text-[9px] text-slate-400 font-mono flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                    <span className="hidden sm:inline text-emerald-300">Đã kết nối</span>
+                    <span className="text-purple-300 font-bold">({connectedAccountsOnIp.length}/{maxAccountsPerIp || 5} IP)</span>
+                  </div>
+                </div>
+              ) : (
+                <span className="whitespace-nowrap font-display text-[11px] sm:text-xs">
+                  + Kết Nối TikTok (+1K Xu)
+                </span>
+              )}
+            </button>
+            <FeatureGuideTooltip 
+              title="Kênh TikTok Đã Kết Nối & Giới Hạn 5 Tài Khoản / IP"
+              description="Kênh TikTok đã kết nối được lưu trữ vĩnh viễn trên thiết bị để đối soát nhận Xu tự động khi lướt video hoặc làm nhiệm vụ. Mỗi địa chỉ IP được liên kết tối đa 5 tài khoản theo chuẩn bảo mật 7 lớp."
+              steps={[
+                'Hệ thống tự động ghi nhớ tài khoản TikTok bạn đã liên kết.',
+                'Bấm vào để đổi kênh hoặc gỡ bớt tài khoản (tối đa 5 tài khoản / IP).',
+                'Hoàn toàn độc lập, an toàn và chống bot 100%.'
+              ]}
+              size="xs"
+            />
+          </div>
+
           {/* Coin Balance Pill with Guide */}
           <div className="flex items-center gap-1">
             <div 
@@ -505,6 +566,32 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <Wallet className="w-4 h-4 text-cyan-400 shrink-0" />
                     <span>Hồ Sơ Cá Nhân & Ví Xu</span>
+                  </button>
+
+                  {/* Kênh TikTok kết nối (Tối đa 5 TK/IP) */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      openConnect();
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-4 h-4 rounded bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center text-[9px] font-black shrink-0">
+                        ♪
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold truncate">
+                          {user.tiktokConnected ? user.tiktokConnected : 'Chưa nối TikTok'}
+                        </div>
+                        <div className="text-[9px] text-slate-400 font-mono">
+                          {user.tiktokConnected ? `Đã kết nối (${connectedAccountsOnIp.length}/5 IP)` : '+ Nối nhận 1K Xu'}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold bg-rose-500/20 text-rose-300 rounded font-mono shrink-0">
+                      {user.tiktokConnected ? 'ĐỔI' : 'NỐI'}
+                    </span>
                   </button>
 
                   {/* Tiếp thị liên kết */}

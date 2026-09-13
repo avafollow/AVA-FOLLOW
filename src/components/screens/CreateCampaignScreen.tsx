@@ -20,7 +20,8 @@ import {
   Check,
   Layers,
   Calculator,
-  Sliders
+  Sliders,
+  ExternalLink
 } from 'lucide-react';
 import { CampaignItem, FLEXIBLE_LIVESTREAM_TIERS, MultiTargetConfig } from '../../types';
 import { useTikTokApp } from '../../context/TikTokAppContext';
@@ -157,6 +158,23 @@ export const CreateCampaignScreen: React.FC<{
   const [speed, setSpeed] = useState<'natural' | 'turbo'>('natural');
   const [instructions, setInstructions] = useState('Yêu cầu người dùng thật 100%, xem video 15s tự nhiên trước khi tương tác, bảo đảm không bị tụt.');
   
+  // Xử lý thông minh khi người dùng dán link video TikTok, live hoặc ID kênh
+  const handleTargetUrlChange = (inputVal: string) => {
+    setTargetUrl(inputVal);
+    const trimmed = inputVal.trim();
+    if (!trimmed) return;
+
+    // Trích xuất @handle từ URL nếu có
+    const match = trimmed.match(/@([a-zA-Z0-9_.-]+)/);
+    if (match && match[1]) {
+      setChannelHandle(`@${match[1]}`);
+    } else if (trimmed.startsWith('@')) {
+      setChannelHandle(trimmed);
+    } else if (!trimmed.includes('http') && !trimmed.includes('/') && trimmed.length > 2) {
+      setChannelHandle(`@${trimmed}`);
+    }
+  };
+
   // Flexible Livestream Duration state (minutes: 1, 3, 10, 30, 60)
   const [livestreamMinutes, setLivestreamMinutes] = useState<number>(3);
   const activeLiveTier = FLEXIBLE_LIVESTREAM_TIERS.find(t => t.minutes === livestreamMinutes) || FLEXIBLE_LIVESTREAM_TIERS[1];
@@ -549,25 +567,119 @@ export const CreateCampaignScreen: React.FC<{
             <input
               type="text"
               value={channelHandle}
-              onChange={(e) => setChannelHandle(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setChannelHandle(val.startsWith('@') || !val ? val : `@${val}`);
+              }}
               placeholder="@kenhcua_ban"
-              className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono"
+              className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono text-xs"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-zinc-300 font-mono font-bold uppercase text-[10px]">
-              4. Link Kênh hoặc Link Video Chiến Dịch:
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-zinc-300 font-mono font-bold uppercase text-[10px]">
+                4. Link Kênh, Video hoặc Phiên Live TikTok:
+              </label>
+              <span className="text-[10px] text-cyan-400 font-mono font-bold">Dán link hiển thị ngay</span>
+            </div>
             <input
-              type="url"
+              type="text"
               value={targetUrl}
-              onChange={(e) => setTargetUrl(e.target.value)}
-              placeholder="https://www.tiktok.com/@..."
-              className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono"
+              onChange={(e) => handleTargetUrlChange(e.target.value)}
+              placeholder="https://www.tiktok.com/@... hoặc dán link video / live"
+              className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono text-xs"
               required
             />
+          </div>
+        </div>
+
+        {/* Ô KẾT NỐI MEDIA TIKTOK: Hiển thị ngay lập tức video / phiên live cho người dùng */}
+        <div className="p-4 rounded-2xl bg-[#0B0F19] border border-rose-500/30 space-y-3 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+              <span className="text-xs font-mono font-bold uppercase text-white">
+                {selectedTargets.livestream || targetUrl.includes('/live') 
+                  ? '🔴 XEM TRƯỚC PHIÊN LIVE TIKTOK (HIỂN THỊ TRỰC TIẾP)' 
+                  : '🎬 XEM TRƯỚC VIDEO / KÊNH TIKTOK CHO 154.200+ CREATOR'}
+              </span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-emerald-500/30 flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Kết nối tức thì
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-4 bg-black/60 p-3.5 rounded-xl border border-white/5">
+            {/* Simulated mini TikTok player */}
+            <div className="relative w-28 h-40 rounded-xl overflow-hidden bg-zinc-900 shrink-0 border border-white/10 shadow-lg group">
+              <video
+                src={selectedTargets.livestream || targetUrl.includes('/live') 
+                  ? "https://assets.mixkit.co/videos/preview/mixkit-young-woman-talking-on-a-video-call-42318-large.mp4"
+                  : "https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4"}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
+              <div className="absolute top-1.5 left-1.5 px-1.5 py-0.2 rounded bg-rose-600 text-white text-[8px] font-black uppercase font-mono">
+                {selectedTargets.livestream || targetUrl.includes('/live') ? 'LIVE' : 'FYP'}
+              </div>
+              <div className="absolute bottom-1.5 left-1.5 right-1.5 text-[9px] text-white font-bold truncate">
+                {channelHandle}
+              </div>
+            </div>
+
+            {/* Preview meta and explanations */}
+            <div className="flex-1 space-y-2 text-xs w-full">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 font-black text-xs">
+                  {channelHandle.replace('@', '').charAt(0).toUpperCase() || 'T'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-white font-bold flex items-center gap-1">
+                    <span>{channelHandle}</span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400/20" />
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono truncate max-w-[280px]">
+                    {targetUrl}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1 text-[11px] text-slate-300">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>Mục tiêu phân phối:</span>
+                  <span className="text-neonGold font-mono font-bold">
+                    {activeTargetsList.map(t => t.label).join(' • ') || 'Follow Kênh'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>Khống chế xem 15s:</span>
+                  <span className={selectedTargets.watch ? "text-amber-400 font-mono font-bold" : "text-emerald-400 font-mono font-bold"}>
+                    {selectedTargets.watch ? "Bắt buộc xem đủ 15s" : "Không ép xem 15s (Tự do lướt tiếp)"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <a
+                  href={targetUrl.startsWith('http') ? targetUrl : `https://www.tiktok.com/${channelHandle}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <span>Mở kiểm tra trên TikTok</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+                <span className="text-[10px] text-slate-400">
+                  Video / live sẽ xuất hiện ngay trong feed lướt của toàn bộ cộng đồng!
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 

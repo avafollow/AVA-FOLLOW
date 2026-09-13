@@ -51,6 +51,16 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
   // Livestream duration selection (1p, 3p, 10p, 30p, 90p)
   const [selectedDuration, setSelectedDuration] = useState<number>(3);
 
+  // Auto-close success modal after 2 seconds
+  useEffect(() => {
+    if (stage === 'success') {
+      const closeTimer = setTimeout(() => {
+        onClose();
+      }, 2000);
+      return () => clearTimeout(closeTimer);
+    }
+  }, [stage, onClose]);
+
   useEffect(() => {
     if (packageItem && isOpen) {
       const randomSuffix = Math.floor(10000 + Math.random() * 90000);
@@ -61,13 +71,18 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
       setVerifyProgress(20);
       setConfirmedRefId('');
 
+      // Auto-fill targetUrl if user is connected
+      if (user.tiktokConnected) {
+        setTargetUrl(`https://www.tiktok.com/${user.tiktokConnected}`);
+      }
+
       if (packageItem.title.includes('1 Phút') || packageItem.unit.includes('1 phút')) setSelectedDuration(1);
       else if (packageItem.title.includes('10 Phút') || packageItem.unit.includes('10 phút')) setSelectedDuration(10);
       else if (packageItem.title.includes('30 Phút') || packageItem.unit.includes('30 phút')) setSelectedDuration(30);
       else if (packageItem.title.includes('90 Phút') || packageItem.unit.includes('90p')) setSelectedDuration(90);
       else setSelectedDuration(3);
     }
-  }, [packageItem, isOpen]);
+  }, [packageItem, isOpen, user.tiktokConnected]);
 
   if (!isOpen || !packageItem) return null;
 
@@ -94,12 +109,14 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
   };
 
   const validateTargetUrl = (): boolean => {
-    if (!targetUrl.trim()) {
+    const trimmed = targetUrl.trim();
+    if (!trimmed) {
       setError('Vui lòng nhập link kênh TikTok hoặc link video cần chạy');
       return false;
     }
-    if (!targetUrl.includes('tiktok.com') && !targetUrl.startsWith('@')) {
-      setError('Link không hợp lệ. Vui lòng nhập link TikTok (VD: https://www.tiktok.com/@kenh hoặc @kenh)');
+    // Chấp nhận link TikTok, username có @ hoặc username thường, link phòng live
+    if (!trimmed.includes('tiktok.com') && !trimmed.startsWith('@') && trimmed.length < 3) {
+      setError('Vui lòng nhập đường link TikTok hoặc ID kênh TikTok hợp lệ (VD: https://www.tiktok.com/@kenh hoặc @kenh)');
       return false;
     }
     setError('');

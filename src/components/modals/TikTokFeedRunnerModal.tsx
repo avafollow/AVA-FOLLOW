@@ -35,6 +35,7 @@ interface UnifiedFeedItem {
   kind: 'video' | 'livestream';
   title: string;
   type: string;
+  requiresWatch?: boolean;
   channelName: string;
   channelHandle: string;
   channelAvatar: string;
@@ -76,7 +77,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [isMuted, setIsMuted] = useState<boolean>(true);
   const [autoAdvance, setAutoAdvance] = useState<boolean>(true);
   const [sessionCoinsEarned, setSessionCoinsEarned] = useState<number>(0);
-
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; x: number; y: number }[]>([]);
   const [showCommentInput, setShowCommentInput] = useState<boolean>(false);
   const [customComment, setCustomComment] = useState<string>('');
@@ -99,6 +99,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     kind: 'video',
     title: t.title,
     type: t.type,
+    requiresWatch: t.type === 'watch' || (t as any).requiresWatch === true,
     channelName: t.channelName,
     channelHandle: t.channelHandle,
     channelAvatar: t.channelAvatar,
@@ -115,12 +116,13 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     isUrgent: t.isUrgent
   }));
 
-  // Feed items từ kho Follow Chéo Cộng Đồng Creator
+  // Feed items từ kho Follow Chéo Cộng Đồng Creator (Không khống chế 15s)
   const crossFollowFeedItems: UnifiedFeedItem[] = INITIAL_CROSS_FOLLOW_ITEMS.map((cf, idx) => ({
     id: cf.id,
     kind: 'video',
     title: cf.title,
     type: cf.type,
+    requiresWatch: false,
     channelName: cf.channelName,
     channelHandle: cf.channelHandle,
     channelAvatar: cf.channelAvatar,
@@ -147,6 +149,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     kind: 'livestream',
     title: l.roomTitle || `Phiên Live Bán Hàng: ${l.channelName}`,
     type: 'livestream',
+    requiresWatch: true,
     channelName: l.channelName,
     channelHandle: l.channelHandle,
     channelAvatar: l.channelAvatar,
@@ -174,6 +177,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const currentItem = combinedFeed[currentIndex] || combinedFeed[0];
   const currentClaimed = currentItem ? (taskClaimedMap[currentItem.id] || {}) : {};
 
+  // Kiểm tra xem chiến dịch hiện tại có bắt buộc xem video / live không
+  // Người nào không mua gói xem video thì không bị khống chế 15s (lướt tiếp ngay lập tức)
+  const isWatchRequired = currentItem 
+    ? (currentItem.kind === 'livestream' || currentItem.type === 'watch' || currentItem.requiresWatch === true)
+    : false;
+
   // Sync filterMode when feed runner opens with a specific filter
   useEffect(() => {
     if (isFeedRunnerOpen && feedRunnerFilter) {
@@ -185,7 +194,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   // Reset timer on item change or open
   useEffect(() => {
     if (isFeedRunnerOpen && currentItem) {
-      setTimeLeft(currentItem.kind === 'video' ? 15 : (currentItem.targetMinutes ? currentItem.targetMinutes * 60 : 180));
+      if (currentItem.kind === 'livestream') {
+        setTimeLeft(currentItem.targetMinutes ? currentItem.targetMinutes * 60 : 180);
+      } else if (currentItem.type === 'watch' || currentItem.requiresWatch === true) {
+        setTimeLeft(15);
+      } else {
+        // Không mua gói xem video 15s (chỉ follow/tim/cmt/share, follow chéo): KHÔNG KHỐNG CHẾ 15s
+        setTimeLeft(0);
+      }
       setIsPlaying(true);
       setShowCommentInput(false);
       setCustomComment('');
@@ -196,9 +212,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
   }, [isFeedRunnerOpen, currentIndex, filterMode]);
 
-  // Main timer countdown
+  // Main timer countdown (chỉ đếm ngược khi có gói xem video / livestream)
   useEffect(() => {
-    if (!isFeedRunnerOpen || timeLeft <= 0 || !isPlaying) return;
+    if (!isFeedRunnerOpen || !isWatchRequired || timeLeft <= 0 || !isPlaying) return;
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -209,11 +225,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [isFeedRunnerOpen, timeLeft, isPlaying]);
+  }, [isFeedRunnerOpen, isWatchRequired, timeLeft, isPlaying]);
 
-  // When timer reaches 0 for video, claim watch reward (+200 Xu) and optionally auto-advance
+  // When timer reaches 0 for video watch package, claim watch reward (+200 Xu) and optionally auto-advance
   useEffect(() => {
-    if (timeLeft === 0 && currentItem && currentItem.kind === 'video' && !currentClaimed.watch) {
+    if (isWatchRequired && timeLeft === 0 && currentItem && currentItem.kind === 'video' && !currentClaimed.watch) {
       const reward = claimTaskAction(currentItem.id, 'watch');
       setSessionCoinsEarned(prev => prev + (reward || 200));
       setTaskClaimedMap(prev => ({
@@ -226,14 +242,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
       // Auto advance to next video if enabled
       if (autoAdvance) {
-        showToast('✓ Đã nhận +200 Xu! Tự động chuyển video tiếp theo sau 2 giây...');
+        showToast('✓ Đã xem đủ 15s (+200 Xu)! Tự động chuyển video sau 2 giây...');
         const autoTimer = setTimeout(() => {
           handleNextItem();
-        }, 2200);
+        }, 2000);
         return () => clearTimeout(autoTimer);
       }
     }
-  }, [timeLeft, currentItem, currentClaimed.watch, autoAdvance, claimTaskAction]);
+  }, [timeLeft, isWatchRequired, currentItem, currentClaimed.watch, autoAdvance, claimTaskAction]);
 
   // Keyboard navigation (ArrowDown / ArrowUp)
   useEffect(() => {
@@ -712,25 +728,33 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           <div className="flex items-center justify-between text-xs font-mono">
             <div className="flex items-center gap-1.5 text-slate-300">
               <Clock className="h-3.5 w-3.5 text-rose-500" />
-              {timeLeft > 0 ? (
-                <span>Đang xem: <strong className="text-rose-400 font-bold">{timeLeft}s</strong> còn lại</span>
+              {isWatchRequired ? (
+                timeLeft > 0 ? (
+                  <span>Đang xem: <strong className="text-rose-400 font-bold">{timeLeft}s</strong> còn lại</span>
+                ) : (
+                  <span className="text-emerald-400 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Đã đạt 15s (+200 Xu vào ví)!
+                  </span>
+                )
               ) : (
                 <span className="text-emerald-400 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Đã đạt 15s (+200 Xu vào ví)!
+                  <Sparkles className="h-3.5 w-3.5 text-neonGold" /> Không khống chế 15s • Tự do follow &amp; lướt tiếp ngay!
                 </span>
               )}
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={autoAdvance} 
-                  onChange={(e) => setAutoAdvance(e.target.checked)}
-                  className="rounded accent-rose-500 w-3 h-3"
-                />
-                <span>Tự lướt tiếp</span>
-              </label>
+              {isWatchRequired && (
+                <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={autoAdvance} 
+                    onChange={(e) => setAutoAdvance(e.target.checked)}
+                    className="rounded accent-rose-500 w-3 h-3"
+                  />
+                  <span>Tự lướt tiếp</span>
+                </label>
+              )}
 
               <span className="text-neonGold font-bold text-[11px]">
                 Phiên này: +{sessionCoinsEarned.toLocaleString()} Xu
@@ -742,7 +766,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-rose-500 via-purple-500 to-emerald-400 transition-all duration-1000"
-              style={{ width: `${((15 - timeLeft) / 15) * 100}%` }}
+              style={{ width: isWatchRequired ? `${((15 - timeLeft) / 15) * 100}%` : '100%' }}
             />
           </div>
 

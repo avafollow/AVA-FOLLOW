@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Sparkles, Trophy, CheckCircle2, Award, Heart, Share2, Copy, Volume2, VolumeX, Flame, ArrowRight, Zap, Check } from 'lucide-react';
+import { Sparkles, Trophy, CheckCircle2, Award, Heart, Share2, Copy, Volume2, VolumeX, Flame, ArrowRight, Zap, Check, X } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 
 export interface CongratulationData {
@@ -49,10 +49,36 @@ export const FireworksCongratulationModal: React.FC<FireworksCongratulationModal
   const [copied, setCopied] = useState<boolean>(false);
   const [displayCount, setDisplayCount] = useState<number | null>(null);
   const [displaySuffix, setDisplaySuffix] = useState<string>('');
+  const [autoCloseCountdown, setAutoCloseCountdown] = useState<number>(2);
 
   // Referral URL and Code
   const refCode = affiliateData?.refCode || (user?.handle ? user.handle.replace('@', '').toUpperCase() : 'PRO888');
   const refLink = affiliateData?.refLink || `${window.location.origin}?ref=${refCode}`;
+
+  // Tự động tắt sau 2 giây theo yêu cầu của user
+  useEffect(() => {
+    if (!isOpen) return;
+    setAutoCloseCountdown(2);
+
+    const countdownTimer = setInterval(() => {
+      setAutoCloseCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownTimer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    const autoCloseTimer = setTimeout(() => {
+      onClose();
+    }, 2000);
+
+    return () => {
+      clearInterval(countdownTimer);
+      clearTimeout(autoCloseTimer);
+    };
+  }, [isOpen, onClose]);
 
   // Web Audio API Synthesizer celebration
   const playCelebrationSound = () => {
@@ -328,8 +354,11 @@ export const FireworksCongratulationModal: React.FC<FireworksCongratulationModal
         className="relative z-20 w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-3xl bg-gradient-to-b from-[#180d24] via-[#0e1222] to-[#07090e] border-2 border-amber-400/90 shadow-[0_0_90px_rgba(251,191,36,0.45)] p-5 sm:p-7 text-center space-y-4 animate-in zoom-in-95 duration-300 relative"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Sound Toggle Button */}
+        {/* Top Control Buttons: Auto-close badge, Sound Toggle & Explicit Close Button */}
         <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/10 text-amber-300 border border-amber-400/30">
+            Tự tắt sau {autoCloseCountdown}s
+          </span>
           <button
             onClick={() => {
               const next = !soundEnabled;
@@ -340,6 +369,13 @@ export const FireworksCongratulationModal: React.FC<FireworksCongratulationModal
             className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-amber-300 border border-amber-400/30 transition-all cursor-pointer"
           >
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+          </button>
+          <button
+            onClick={onClose}
+            title="Đóng ngay"
+            className="p-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 transition-all cursor-pointer"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
 

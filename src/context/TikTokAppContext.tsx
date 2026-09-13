@@ -392,6 +392,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [user, setUser] = useState<UserProfileWallet>(() => {
     try {
       const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('ava_user_email') : null;
+      const savedTiktok = typeof window !== 'undefined' ? localStorage.getItem('ava_tiktok_connected') : null;
+      const baseTiktok = savedTiktok !== null ? savedTiktok : USER_PROFILE_WALLET.tiktokConnected;
+      const isVerified = Boolean(baseTiktok && baseTiktok.trim().length > 0);
+
       if (savedEmail) {
         const isAdmin = savedEmail === 'quocthiencr90@gmail.com';
         return {
@@ -400,11 +404,19 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : USER_PROFILE_WALLET.name,
           role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : 'Nhà Sáng Tạo AVA FOLLOW',
           isAdmin,
+          tiktokConnected: baseTiktok,
+          isTikTokVerified: isVerified,
           avatar: isAdmin 
             ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
             : USER_PROFILE_WALLET.avatar
         };
       }
+      return {
+        ...USER_PROFILE_WALLET,
+        tiktokConnected: baseTiktok,
+        isTikTokVerified: isVerified,
+        isAdmin: false
+      };
     } catch {}
     return {
       ...USER_PROFILE_WALLET,
@@ -516,6 +528,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const switchActiveTikTokAccount = (handle: string) => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_tiktok_connected', handle);
+      }
+    } catch {}
     setUser(prev => ({
       ...prev,
       tiktokConnected: handle,
@@ -530,9 +547,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newMap = { ...ipAccountsMap, [clientIp]: updated };
     saveIpAccounts(newMap);
     if (user.tiktokConnected === handleToRemove) {
+      const nextAcc = updated[0] || '';
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_tiktok_connected', nextAcc);
+        }
+      } catch {}
       setUser(prev => ({
         ...prev,
-        tiktokConnected: updated[0] || '',
+        tiktokConnected: nextAcc,
         isTikTokVerified: updated.length > 0
       }));
     }
@@ -623,17 +646,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isDailyAllClear: allDailyDone
       }));
 
-      // Bắn pháo hoa rực rỡ và phát thông điệp chúc mừng ý nghĩa tự động khi người dùng hoàn thành đủ 100% nhiệm vụ
+      // Khi hoàn thành nhiệm vụ: Thông báo nhẹ nhàng hướng dẫn bấm Nhận Thưởng, chỉ chúc mừng khi nhận thưởng hoặc hoàn thành tất cả
       if (newlyCompletedMission) {
         const targetMission = newlyCompletedMission as UserWeeklyMission;
-        triggerFireworks({
-          type: 'mission',
-          badge: `🎯 HOÀN THÀNH NHIỆM VỤ • ${targetMission.category.toUpperCase()}`,
-          title: `XUẤT SẮC! ${targetMission.title.toUpperCase()}`,
-          subtitle: `Bạn đã thực hiện đủ ${targetMission.targetCount}/${targetMission.targetCount} lượt tương tác chuẩn xác theo quy chế sàn!`,
-          rewardText: `+${targetMission.rewardXu.toLocaleString()} XU`,
-          message: `Sự kiên trì và đóng góp chất lượng của bạn đã tạo nên giá trị to lớn cho cộng đồng sáng tạo. Số Xu thưởng tương đương công sức đã được bảo chứng và sẵn sàng chuyển thẳng vào ví!`
-        });
+        showToast(`🎯 Đã hoàn thành chỉ tiêu "${targetMission.title}"! Bấm "Nhận Thưởng" để cộng +${targetMission.rewardXu.toLocaleString()} Xu.`);
       }
 
       return updated;
@@ -2688,6 +2704,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       status: 'success'
     };
 
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_tiktok_connected', cleanHandle);
+      }
+    } catch {}
+
     setUser(prev => ({
       ...prev,
       tiktokConnected: cleanHandle,
@@ -2703,6 +2725,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const disconnectTikTok = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_tiktok_connected', '');
+      }
+    } catch {}
     setUser(prev => ({
       ...prev,
       tiktokConnected: '',

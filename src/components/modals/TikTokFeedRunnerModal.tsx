@@ -24,6 +24,7 @@ import {
   Send,
   Layers,
   Check,
+  Plus,
   RefreshCw
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
@@ -65,6 +66,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     closeFeedRunner, 
     completeTask, 
     user,
+    connectTikTok,
     claimTaskAction,
     showToast,
     openShareModal,
@@ -348,11 +350,17 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
   const handleFollowAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    // 1. Mở trực tiếp kênh TikTok để người dùng follow trên TikTok
+    // 1. Tự động kết nối tài khoản TikTok nếu người dùng chưa kết nối
+    if (!user.tiktokConnected) {
+      const handleToLink = currentItem.channelHandle.startsWith('@') ? currentItem.channelHandle : `@${currentItem.channelHandle}`;
+      connectTikTok(handleToLink);
+    }
+
+    // 2. Mở trực tiếp kênh TikTok để người dùng follow trên TikTok
     if (currentItem.targetUrl) {
       window.open(currentItem.targetUrl, '_blank');
     }
-    // 2. Ghi nhận nhận Xu và đổi icon sang đã hoàn thành
+    // 3. Ghi nhận nhận Xu và đổi icon sang đã hoàn thành
     if (!currentClaimed.follow) {
       const reward = claimTaskAction(currentItem.id, 'follow');
       setSessionCoinsEarned(prev => prev + (reward || 200));
@@ -360,7 +368,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         ...prev,
         [currentItem.id]: { ...(prev[currentItem.id] || {}), follow: true }
       }));
-      showToast(`🎉 Đã mở TikTok & ghi nhận Follow kênh ${currentItem.channelHandle} (+${reward || 200} Xu cho ${user.tiktokConnected || user.name})!`);
+      showToast(`🎉 Đã kết nối & Follow kênh ${currentItem.channelHandle} (+${reward || 200} Xu cho ${user.tiktokConnected || currentItem.channelHandle})!`);
     } else {
       showToast(`🔗 Đang mở kênh TikTok của ${currentItem.channelHandle}...`);
     }
@@ -445,18 +453,16 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       >
         {/* Top Header Floating Controls */}
         <div className="absolute top-0 inset-x-0 z-30 p-2.5 sm:p-3 bg-gradient-to-b from-black/95 via-black/80 to-transparent space-y-2">
-          {/* Top Row: User Connected TikTok Account & Action Buttons */}
-          <div className="flex items-center justify-between gap-2">
-            {/* User Connected TikTok Account Pill */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 border border-rose-500/40 text-[10px] font-mono backdrop-blur-md shadow-md">
-              <svg className="w-3 h-3 fill-pink-400 shrink-0" viewBox="0 0 24 24">
-                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.3 6.3 0 0 0 1.93-4.57V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76c-.31-.02-.62-.05-.94-.07z" />
-              </svg>
-              <span className="text-slate-400">Tài khoản:</span>
-              <span className="text-rose-300 font-bold truncate max-w-[120px] sm:max-w-[160px]">
-                {user.tiktokConnected || '@thienvuaapp_official'}
+          {/* Top Row: Clean Minimal Header (Mute Toggle & Close) */}
+          <div className="flex items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 border border-white/10 text-[10px] font-mono text-white/80 backdrop-blur-md">
+                <svg className="w-3 h-3 fill-rose-500 shrink-0" viewBox="0 0 24 24">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.3 6.3 0 0 0 1.93-4.57V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76c-.31-.02-.62-.05-.94-.07z" />
+                </svg>
+                <span className="font-bold text-white tracking-wide">TikTok Video Runner</span>
+                <span className="text-slate-400">({currentIndex + 1}/{combinedFeed.length})</span>
               </span>
-              <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
             </div>
 
             {/* Right Buttons: Mute Toggle & Close */}
@@ -534,41 +540,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               }`}
             >
               <span>🔄 Follow Chéo ({countCross})</span>
-            </button>
-          </div>
-
-          {/* Sub-Header: Realtime Campaign Info & Direct TikTok Link */}
-          <div className="flex items-center justify-between text-xs backdrop-blur-md bg-black/60 px-3 py-1.5 rounded-xl border border-white/10 gap-2">
-            <div className="flex items-center gap-2 truncate">
-              {currentItem.campaignCategory === 'partner' ? (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-mono text-[9px] font-black border border-amber-500/40 shrink-0">
-                  <Sparkles className="w-3 h-3 text-amber-400" /> ĐỐI TÁC ({currentItem.remainingSlots?.toLocaleString() || '580'} SUẤT)
-                </span>
-              ) : currentItem.kind === 'livestream' ? (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-600 text-white font-mono text-[9px] font-black animate-pulse shrink-0">
-                  <Radio className="w-3 h-3" /> LIVE MẮT THẬT
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-600 text-white font-mono text-[9px] font-black shrink-0">
-                  <Play className="w-3 h-3 fill-white" /> CHIẾN DỊCH
-                </span>
-              )}
-              <span className="text-white font-bold truncate text-[11px]">
-                {currentItem.channelHandle}
-              </span>
-              <span className="text-slate-400 text-[10px] font-mono shrink-0">
-                ({currentIndex + 1}/{combinedFeed.length})
-              </span>
-            </div>
-
-            {/* 1-Tap Open Directly on TikTok */}
-            <button
-              onClick={handleOpenTikTokApp}
-              className="px-2.5 py-1 rounded-lg bg-rose-600/30 hover:bg-rose-600 text-rose-200 hover:text-white text-[10px] font-mono font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0 border border-rose-500/40"
-              title="Mở kênh hoặc video này trên ứng dụng TikTok thật"
-            >
-              <span>Mở TikTok</span>
-              <ExternalLink className="h-3 w-3" />
             </button>
           </div>
         </div>
@@ -725,33 +696,37 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
           {/* Right Action Bar (Authentic TikTok v2 Layout) */}
           <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-4 pointer-events-auto">
-            {/* Creator Avatar with Follow Plus Badge (Bấm avatar mở kênh TikTok, bấm + follow ghi nhận Xu) */}
+            {/* Creator Avatar with Follow Plus Badge (Ảnh số 1: Bấm avatar mở kênh TikTok, bấm + kết nối và follow ghi nhận Xu) */}
             <div 
               onClick={(e) => {
                 e.stopPropagation();
                 handleOpenTikTokApp();
               }}
-              className="relative mb-1 cursor-pointer group"
+              className="relative mb-2 cursor-pointer group"
               title="Bấm avatar để mở kênh TikTok chính thức"
             >
               <img 
                 src={currentItem.channelAvatar} 
                 alt="" 
-                className="w-11 h-11 rounded-full object-cover border-2 border-white group-hover:border-rose-500 transition-all shadow-xl"
+                className="w-12 h-12 rounded-full object-cover border-2 border-white group-hover:border-rose-500 transition-all shadow-xl"
               />
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleFollowAction();
                 }}
-                className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-white transition-all shadow-lg cursor-pointer ${
+                className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-[22px] h-[22px] rounded-full flex items-center justify-center text-white transition-all shadow-lg cursor-pointer ${
                   currentClaimed.follow 
-                    ? 'bg-emerald-500 ring-2 ring-emerald-400/50 scale-100' 
-                    : 'bg-[#FE2C55] hover:scale-110 active:scale-90'
+                    ? 'bg-emerald-500 ring-2 ring-emerald-400/60 scale-100' 
+                    : 'bg-[#FE2C55] hover:scale-110 active:scale-95 shadow-red-500/50'
                 }`}
                 title={currentClaimed.follow ? 'Đã Follow trên TikTok' : 'Bấm Follow trên TikTok & nhận +200 Xu'}
               >
-                {currentClaimed.follow ? <Check className="w-3 h-3 stroke-[3]" /> : <UserPlus className="w-3 h-3 stroke-[2.5]" />}
+                {currentClaimed.follow ? (
+                  <Check className="w-3.5 h-3.5 stroke-[3.5] text-white" />
+                ) : (
+                  <Plus className="w-4 h-4 stroke-[3] text-white" />
+                )}
               </button>
             </div>
 

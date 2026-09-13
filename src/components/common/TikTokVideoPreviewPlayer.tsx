@@ -130,8 +130,26 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
       className={`relative rounded-2xl overflow-hidden bg-[#0A0D16] border border-white/15 shadow-2xl group select-none ${className}`}
       onClick={togglePlay}
     >
-      {/* YouTube Embed Player when direct youtube link is detected */}
-      {mediaInfo.isYouTube && mediaInfo.embedUrl ? (
+      {/* 1. TikTok Official Player when TikTok video ID is detected */}
+      {mediaInfo.isTikTok && mediaInfo.videoId ? (
+        <iframe
+          src={`https://www.tiktok.com/embed/v2/${mediaInfo.videoId}`}
+          title={mediaInfo.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="w-full h-full border-0 pointer-events-auto bg-black"
+        />
+      ) : mediaInfo.isYouTube && mediaInfo.embedUrl ? (
+        /* 2. YouTube Embed Player when direct youtube link is detected */
+        <iframe
+          src={mediaInfo.embedUrl}
+          title={mediaInfo.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="w-full h-full object-cover border-0 pointer-events-auto"
+        />
+      ) : mediaInfo.isFacebook && mediaInfo.embedUrl ? (
+        /* 3. Facebook Video Embed Player */
         <iframe
           src={mediaInfo.embedUrl}
           title={mediaInfo.title}
@@ -140,7 +158,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
           className="w-full h-full object-cover border-0 pointer-events-auto"
         />
       ) : (
-        /* Native High Performance Video Stream (Direct MP4 / 100% Tested CDN) */
+        /* 4. Native High Performance Video Stream & TikTok Live Stream Simulation */
         <video
           key={currentStream}
           ref={videoRef}
@@ -160,8 +178,10 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         />
       )}
 
-      {/* Shimmer / Backdrop Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/85 pointer-events-none" />
+      {/* Shimmer / Backdrop Gradient (Only on native video) */}
+      {!mediaInfo.isTikTok && !mediaInfo.isYouTube && !mediaInfo.isFacebook && (
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/85 pointer-events-none" />
+      )}
 
       {/* Top Badges */}
       <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
@@ -187,7 +207,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
-            {!mediaInfo.isYouTube && (
+            {!mediaInfo.isYouTube && !mediaInfo.isTikTok && (
               <button
                 type="button"
                 onClick={toggleMute}
@@ -201,8 +221,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         )}
       </div>
 
-      {/* Center Play Indicator when paused */}
-      {!isPlaying && !mediaInfo.isYouTube && (
+      {/* Center Play Indicator when paused (Native Video Only) */}
+      {!isPlaying && !mediaInfo.isYouTube && !mediaInfo.isTikTok && !mediaInfo.isFacebook && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="w-12 h-12 rounded-full bg-black/70 border border-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-2xl">
             <Play className="w-6 h-6 fill-white ml-0.5 text-white" />
@@ -210,29 +230,31 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         </div>
       )}
 
-      {/* Bottom Channel Info Overlay */}
-      <div className="absolute bottom-2 left-2 right-2 z-10 pointer-events-none space-y-1">
-        <div className="flex items-center gap-1.5">
-          <div className="w-5 h-5 rounded-full bg-rose-500/30 border border-rose-500 flex items-center justify-center text-rose-300 font-bold text-[9px] shrink-0">
-            {mediaInfo.handle.replace('@', '').charAt(0).toUpperCase()}
+      {/* Bottom Channel Info Overlay (Native Video Only) */}
+      {!mediaInfo.isTikTok && !mediaInfo.isYouTube && !mediaInfo.isFacebook && (
+        <div className="absolute bottom-2 left-2 right-2 z-10 pointer-events-none space-y-1">
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-full bg-rose-500/30 border border-rose-500 flex items-center justify-center text-rose-300 font-bold text-[9px] shrink-0">
+              {mediaInfo.handle.replace('@', '').charAt(0).toUpperCase()}
+            </div>
+            <span className="text-white font-bold text-[11px] truncate drop-shadow-md">
+              {mediaInfo.handle}
+            </span>
+            <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
           </div>
-          <span className="text-white font-bold text-[11px] truncate drop-shadow-md">
-            {mediaInfo.handle}
-          </span>
-          <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
-        </div>
 
-        {effectiveIsLive ? (
-          <div className="flex items-center gap-1 text-[9px] text-rose-300 font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-            <span>Phát sóng trực tiếp • Trực tiếp từ phòng Live</span>
-          </div>
-        ) : (
-          <div className="text-[9px] text-slate-300 font-mono truncate">
-            {mediaInfo.title}
-          </div>
-        )}
-      </div>
+          {effectiveIsLive ? (
+            <div className="flex items-center gap-1 text-[9px] text-rose-300 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+              <span>Phát sóng trực tiếp • Trực tiếp từ phòng Live</span>
+            </div>
+          ) : (
+            <div className="text-[9px] text-slate-300 font-mono truncate">
+              {mediaInfo.title}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

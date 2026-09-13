@@ -187,7 +187,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Tài khoản TikTok thật > 30 ngày tuổi', 'Không bỏ follow trong 30 ngày'],
     status: 'open',
     createdAt: '15 phút trước',
-    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-woman-applying-facial-cream-42588-large.mp4',
+    videoPreviewUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4',
     sampleComments: [
       'Da mình nhạy cảm dùng dòng này êm ru luôn ạ!',
       'Shop tư vấn nhiệt tình, giao hàng nhanh đỉnh chóp ❤️',
@@ -230,7 +230,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Xem trọn vẹn 15s để thuật toán TikTok ghi nhận tương tác hợp lệ'],
     status: 'open',
     createdAt: '30 phút trước',
-    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4',
+    videoPreviewUrl: 'https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_1MB.mp4',
     sampleComments: [
       'Set đồ này phối nhìn sang chảnh quá chị ơi!',
       'Mẫu áo trắng còn size M không shop?',
@@ -269,7 +269,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Bình luận có tâm, không dùng icon spam, không sao chép'],
     status: 'open',
     createdAt: '1 giờ trước',
-    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-pouring-coffee-into-a-glass-with-ice-42416-large.mp4',
+    videoPreviewUrl: 'https://test-videos.co.uk/vids/sintel/mp4/h264/1080/Sintel_1080_10s_1MB.mp4',
     sampleComments: [
       'Hoàng hôn ở đây ngắm đỉnh thực sự, chụp ảnh góc nào cũng đẹp!',
       'Nước uống ngon giá hợp lý, cuối tuần dẫn người yêu đi chill là chuẩn bài!',
@@ -298,7 +298,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Tài khoản TikTok hoạt động thường xuyên'],
     status: 'open',
     createdAt: '1 giờ trước',
-    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-cutting-vegetables-on-a-wooden-board-42353-large.mp4',
+    videoPreviewUrl: 'https://vjs.zencdn.net/v/oceans.mp4',
     sampleComments: [
       'Nhìn thèm xỉu luôn á shop ơi!',
       'Bánh tráng trộn ở đây vị đậm đà ngon xuất sắc ❤️',
@@ -325,7 +325,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Chia sẻ hợp lệ tài khoản thật'],
     status: 'open',
     createdAt: '2 giờ trước',
-    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-laptop-keyboard-42475-large.mp4',
+    videoPreviewUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
     sampleComments: [
       'Thiết kế đẹp mà giá hạt dẻ quá!',
       'Pin sạc dự phòng dùng được bao nhiêu lần vậy shop?',
@@ -352,7 +352,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Xem đủ 15 giây video'],
     status: 'open',
     createdAt: '2 giờ trước',
-    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-man-exercising-in-the-gym-42407-large.mp4',
+    videoPreviewUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4',
     sampleComments: [
       'Động tác này tập vào cơ bụng đã lắm!',
       'Hóng thêm video hướng dẫn lịch tập cho người mới ạ!',
@@ -379,7 +379,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Xem tối thiểu 15 giây'],
     status: 'open',
     createdAt: '1 giờ trước',
-    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-girl-taking-photos-with-a-smartphone-42402-large.mp4',
+    videoPreviewUrl: 'https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_1MB.mp4',
     sampleComments: [
       'Mẹo này áp dụng ngay trong bếp quá tiện luôn!',
       'Nhờ clip này mà mình tiết kiệm được cả đống thời gian.',
@@ -406,7 +406,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Xem đủ 15 giây'],
     status: 'open',
     createdAt: '45 phút trước',
-    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-talking-on-a-video-call-42318-large.mp4',
+    videoPreviewUrl: 'https://test-videos.co.uk/vids/sintel/mp4/h264/1080/Sintel_1080_10s_1MB.mp4',
     sampleComments: [
       'Thầy dạy phát âm đuôi ed cực kỳ dễ nhớ!',
       'Follow kênh ngay để học mỗi ngày 1 câu.',
@@ -802,7 +802,7 @@ export const ACTIVE_CAMPAIGNS: CampaignItem[] = [
     type: 'mega_live',
     channelHandle: '@zenskin_vietnam',
     targetUrl: 'https://www.tiktok.com/@zenskin_vietnam/live',
-    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-talking-on-a-video-call-42318-large.mp4',
+    videoPreviewUrl: 'https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_1MB.mp4',
     targetQuantity: 15000,
     completedQuantity: 12850,
     budgetTotal: '15,000,000đ',
@@ -853,7 +853,7 @@ export const ACTIVE_CAMPAIGNS: CampaignItem[] = [
     type: 'product_launch',
     channelHandle: '@techzone_vietnam',
     targetUrl: 'https://www.tiktok.com/@techzone_vietnam/video/7345678901234567890',
-    videoPreviewUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-typing-on-a-laptop-keyboard-42475-large.mp4',
+    videoPreviewUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4',
     targetQuantity: 20000,
     completedQuantity: 16400,
     budgetTotal: '10,000,000đ',

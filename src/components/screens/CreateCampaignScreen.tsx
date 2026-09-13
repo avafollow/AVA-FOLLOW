@@ -710,6 +710,37 @@ export const CreateCampaignScreen: React.FC<{
               className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono text-xs"
               required
             />
+            <div className="flex items-center gap-1.5 flex-wrap pt-1">
+              <span className="text-[10px] text-slate-400 font-mono">Dán nhanh link thử:</span>
+              <button
+                type="button"
+                onClick={() => handleTargetUrlChange('https://www.tiktok.com/@hoaa.hanassii/video/7234567890123456789')}
+                className="px-2 py-0.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[10px] font-mono border border-rose-500/30 cursor-pointer transition-colors"
+              >
+                🎬 Video TikTok
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTargetUrlChange('https://www.tiktok.com/@vtv24news/live')}
+                className="px-2 py-0.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-mono border border-purple-500/30 cursor-pointer transition-colors"
+              >
+                🔴 Live TikTok
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTargetUrlChange('https://www.youtube.com/watch?v=dQw4w9WgXcQ')}
+                className="px-2 py-0.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-[10px] font-mono border border-red-500/30 cursor-pointer transition-colors"
+              >
+                ▶️ YouTube
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTargetUrlChange('https://www.facebook.com/reel/123456789')}
+                className="px-2 py-0.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-[10px] font-mono border border-blue-500/30 cursor-pointer transition-colors"
+              >
+                🌐 Facebook
+              </button>
+            </div>
           </div>
         </div>
 

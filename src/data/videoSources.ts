@@ -72,8 +72,26 @@ export function extractTikTokHandle(rawUrlOrHandle: string): string {
 // Hàm trích xuất Video ID từ TikTok URL
 export function extractTikTokVideoId(url: string): string | null {
   if (!url) return null;
-  const match = url.match(/\/video\/(\d+)/i) || url.match(/\/v\/(\d+)/i);
-  return match ? match[1] : null;
+  const clean = url.trim();
+  
+  // 1. Dạng số thuần túy (15-22 chữ số)
+  if (/^\d{15,22}$/.test(clean)) {
+    return clean;
+  }
+  
+  // 2. /video/12345... hoặc /v/12345... hoặc /embed/v2/12345... hoặc /embed/12345...
+  const match = clean.match(/\/(?:video|v|embed\/v2|embed)\/(\d{15,22})/i);
+  if (match && match[1]) {
+    return match[1];
+  }
+
+  // 3. Fallback bất kỳ /video/ hoặc /v/ kèm chữ số
+  const matchAny = clean.match(/\/(?:video|v)\/(\d+)/i);
+  if (matchAny && matchAny[1]) {
+    return matchAny[1];
+  }
+
+  return null;
 }
 
 // Hàm trích xuất Video ID từ YouTube URL (watch, shorts, live, youtu.be)

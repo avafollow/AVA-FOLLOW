@@ -731,9 +731,9 @@ export const CreateCampaignScreen: React.FC<{
             </span>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 bg-black/80 p-4 rounded-2xl border border-white/10 shadow-inner">
-            {/* Realtime TikTok Video / Live Player */}
-            <div className="w-36 sm:w-44 h-56 sm:h-64 shrink-0 rounded-2xl overflow-hidden shadow-2xl border border-rose-500/30">
+          <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 bg-black/90 p-5 sm:p-6 rounded-3xl border border-white/15 shadow-2xl">
+            {/* Khung phát video to đúng kích thước chuẩn TikTok 9:16 */}
+            <div className="w-full max-w-[340px] sm:w-[340px] h-[580px] sm:h-[620px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-rose-500/40 relative bg-black">
               <TikTokVideoPreviewPlayer
                 url={targetUrl}
                 channelHandle={channelHandle}
@@ -742,61 +742,84 @@ export const CreateCampaignScreen: React.FC<{
                 badgeText={selectedTargets.livestream || targetUrl.includes('/live') ? 'LIVE' : 'FYP'}
                 autoPlay={true}
                 muted={true}
+                fullSize={true}
               />
             </div>
 
             {/* Preview meta and details */}
-            <div className="flex-1 space-y-2.5 text-xs w-full">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-rose-500 to-purple-600 p-0.5 shrink-0 shadow-lg">
-                  <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-white font-black text-sm">
+            <div className="flex-1 space-y-4 text-xs w-full">
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/[0.04] border border-white/10">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-500 to-purple-600 p-0.5 shrink-0 shadow-lg">
+                  <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-white font-black text-base">
                     {channelHandle.replace('@', '').charAt(0).toUpperCase() || 'T'}
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-white font-black text-sm flex items-center gap-1.5">
+                  <div className="text-white font-black text-sm sm:text-base flex items-center gap-2 flex-wrap">
                     <span>{channelHandle}</span>
                     <CheckCircle2 className="w-4 h-4 text-cyan-400 fill-cyan-400/20" />
-                    <span className="px-1.5 py-0.2 rounded text-[9px] bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono">Đã đồng bộ</span>
+                    <span className="px-2 py-0.5 rounded text-[9px] bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono">Đã đồng bộ link gốc</span>
                   </div>
-                  <div className="text-[11px] text-slate-400 font-mono truncate max-w-[320px] mt-0.5">
+                  <div className="text-[11px] text-slate-400 font-mono truncate max-w-md mt-1">
                     {targetUrl}
                   </div>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-white/[0.04] border border-white/5 space-y-1.5 text-xs text-slate-300">
-                <div className="flex items-center justify-between text-slate-400">
-                  <span>Mục tiêu phân phối:</span>
+              <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2.5 text-xs text-slate-300">
+                <div className="flex items-center justify-between text-slate-400 border-b border-white/5 pb-2">
+                  <span className="font-semibold text-white">Mục tiêu phân phối:</span>
                   <span className="text-amber-400 font-mono font-bold">
                     {activeTargetsList.map(t => t.label).join(' • ') || 'Follow Kênh'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-slate-400">
-                  <span>Khống chế xem 15s:</span>
+                <div className="flex items-center justify-between text-slate-400 border-b border-white/5 pb-2">
+                  <span className="font-semibold text-white">Khống chế xem 15s:</span>
                   <span className={selectedTargets.watch ? "text-amber-400 font-mono font-bold" : "text-emerald-400 font-mono font-bold"}>
                     {selectedTargets.watch ? "Bắt buộc xem đủ 15s" : "Không ép xem 15s (Tự do lướt tiếp)"}
                   </span>
                 </div>
+                <div className="flex items-center justify-between text-slate-400 border-b border-white/5 pb-2">
+                  <span className="font-semibold text-white">Trạng thái phát sóng:</span>
+                  <span className="text-emerald-400 font-mono font-bold flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Sẵn sàng đẩy view & lướt tức thì
+                  </span>
+                </div>
                 <div className="flex items-center justify-between text-slate-400">
-                  <span>Độ phân giải & Tốc độ:</span>
+                  <span className="font-semibold text-white">Độ phân giải & Tốc độ:</span>
                   <span className="text-cyan-400 font-mono font-bold">1080p Ultra HD • Tải siêu tốc</span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 pt-1">
+              <div className="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 text-indigo-300 text-[11px] space-y-1 font-mono">
+                <div className="flex items-center gap-1.5 font-bold text-white">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Cơ Chế Phân Phối Video Tự Động:</span>
+                </div>
+                <p className="text-slate-300 text-[10px] leading-relaxed">
+                  Ngay sau khi chiến dịch được tạo thành công, video này sẽ được đưa ngay vào danh sách phân phối và chuỗi Feed lướt toàn sàn để người dùng làm nhiệm vụ tương tác thật 100%.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <a
                   href={targetUrl.startsWith('http') ? targetUrl : `https://www.tiktok.com/${channelHandle}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-white/10"
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono font-bold flex items-center gap-2 transition-colors cursor-pointer border border-white/15 shadow-md"
                 >
                   <span>Mở kiểm tra trên TikTok</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
-                <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> Xuất hiện ngay trong Feed lướt toàn sàn!
-                </span>
+                <button
+                  type="button"
+                  onClick={() => openFeedRunner()}
+                  className="px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs font-mono font-bold flex items-center gap-2 transition-colors cursor-pointer border border-rose-500/40 shadow-md"
+                >
+                  <Play className="w-3.5 h-3.5 fill-rose-400" />
+                  <span>Lướt thử Feed toàn sàn</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1419,8 +1442,8 @@ export const CreateCampaignScreen: React.FC<{
           </div>
 
           {/* Ô XEM TRƯỚC PHIÊN LIVE / VIDEO MEGA */}
-          <div className="p-4 rounded-2xl bg-black/60 border border-amber-500/30 flex flex-col sm:flex-row items-center gap-4">
-            <div className="w-32 h-44 shrink-0 rounded-xl overflow-hidden shadow-xl border border-amber-500/40">
+          <div className="p-5 sm:p-6 rounded-3xl bg-black/80 border border-amber-500/40 flex flex-col lg:flex-row items-center lg:items-start gap-6 shadow-2xl">
+            <div className="w-full max-w-[340px] sm:w-[340px] h-[540px] sm:h-[580px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-500/50 bg-black">
               <TikTokVideoPreviewPlayer
                 url={targetUrl}
                 channelHandle={channelHandle}
@@ -1429,20 +1452,26 @@ export const CreateCampaignScreen: React.FC<{
                 badgeText="MEGA LIVE"
                 autoPlay={true}
                 muted={true}
+                fullSize={true}
               />
             </div>
-            <div className="flex-1 space-y-2 text-xs">
+            <div className="flex-1 space-y-3 text-xs">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-                <span className="font-bold text-white uppercase text-xs font-mono">
+                <span className="font-bold text-white uppercase text-sm font-mono">
                   🔴 KẾT NỐI PHIÊN LIVE / MEGA LAUNCH TỨC THÌ
                 </span>
               </div>
-              <p className="text-slate-300 text-[11px]">
-                Đồng bộ kênh <strong className="text-rose-400">{channelHandle}</strong> vào hệ thống kéo mắt xem thật 100% người dùng thật từ mạng lưới KOC/Creator.
+              <p className="text-slate-300 text-xs leading-relaxed">
+                Đồng bộ kênh <strong className="text-rose-400 font-mono">{channelHandle}</strong> vào hệ thống kéo mắt xem thật 100% người dùng thật từ mạng lưới KOC/Creator.
               </p>
-              <div className="flex items-center gap-2 text-[10px] font-mono text-emerald-400 pt-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/20 space-y-1 text-amber-300 text-[11px] font-mono">
+                <div>• Độ nét: 1080p Ultra HD Live Stream</div>
+                <div>• Luồng phân phối: Tự động đưa vào phiên phát trực tiếp toàn sàn</div>
+                <div>• Tỷ lệ giữ chân người xem: Tối thiểu 3 - 30 phút theo gói</div>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] font-mono text-emerald-400 pt-1">
+                <CheckCircle2 className="w-4 h-4" />
                 <span>Sẵn sàng phát sóng trên toàn bộ Feed lướt & Hệ thống đẩy view VIP</span>
               </div>
             </div>

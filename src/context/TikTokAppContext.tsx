@@ -348,6 +348,7 @@ interface TikTokAppContextType {
   unreadNotificationsCount: number;
   markNotificationAsRead: (id: string) => void;
   clearAllNotifications: () => void;
+  addNotification: (notif: Omit<UserNotificationItem, 'id' | 'timestamp' | 'isRead'> & { timestamp?: string }) => void;
 
   // Báo cáo hoạt động Ngày - Tuần - Tháng chi tiết
   getActivityReport: (period: 'day' | 'week' | 'month') => UserActivityPeriodReport;
@@ -764,6 +765,16 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const clearAllNotifications = () => {
     setUserNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  const addNotification = (notif: Omit<UserNotificationItem, 'id' | 'timestamp' | 'isRead'> & { timestamp?: string }) => {
+    const newNotif: UserNotificationItem = {
+      id: `notif_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      timestamp: notif.timestamp || 'Vừa xong',
+      isRead: false,
+      ...notif
+    };
+    setUserNotifications(prev => [newNotif, ...prev]);
   };
   
   // KOC applications
@@ -4179,6 +4190,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         unreadNotificationsCount,
         markNotificationAsRead,
         clearAllNotifications,
+        addNotification,
         // Báo cáo hoạt động chi tiết
         getActivityReport,
         // Hệ Thống Bảo Mật An Toàn Tuyệt Đối 7 Lớp & Giới Hạn 5 Tài Khoản / IP

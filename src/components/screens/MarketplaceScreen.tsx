@@ -32,10 +32,12 @@ import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
 interface MarketplaceScreenProps {
   darkMode: boolean;
   onOrderService?: (service: GrowthServiceItem) => void;
+  onNavigate?: (screen: any) => void;
 }
 
 export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
-  darkMode
+  darkMode,
+  onNavigate
 }) => {
   const { 
     growthServices, 
@@ -357,6 +359,7 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
         packageItem={selectedPackageForOrder}
         isOpen={isOrderModalOpen}
         onClose={closeOrderModal}
+        onNavigate={onNavigate}
       />
 
       {/* KOC Registration Modal */}

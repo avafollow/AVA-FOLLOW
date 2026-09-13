@@ -299,6 +299,7 @@ function AppContent() {
             <MarketplaceScreen
               darkMode={darkMode}
               onOrderService={() => {}}
+              onNavigate={(scr) => setCurrentScreen(scr)}
             />
           )}
 
@@ -379,6 +380,7 @@ function AppContent() {
         isOpen={isDepositOpen}
         onClose={closeDeposit}
         onDepositSuccess={handleDepositSuccess}
+        onNavigate={(scr) => setCurrentScreen(scr)}
       />
 
       {/* SePay Universal Checkout Modal (Cho mọi giao dịch: Mua App, Mua Gói, Mua Xu, Ký Quỹ) */}
@@ -387,6 +389,7 @@ function AppContent() {
         item={sepayCheckoutItem}
         onClose={closeSepayModal}
         onSuccess={handleSepaySuccess}
+        onNavigate={(scr) => setCurrentScreen(scr)}
       />
 
       {/* Bottom-Left Floating User Join Notification (Every 20s) */}

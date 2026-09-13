@@ -16,31 +16,37 @@ export interface ParsedMediaInfo {
   sourceType: 'tiktok_embed' | 'cdn_stream' | 'youtube_embed' | 'facebook_embed' | 'live_stream' | 'direct_stream';
 }
 
-// Kho video CDN chất lượng cao 1080p/720p tải siêu tốc <100ms, không lag, không giật, không lỗi CORS
+// Kho video CDN chất lượng cao 1080p/720p dạng đứng (9:16) chuẩn TikTok, tải siêu tốc, không lỗi CORS
 export const HIGH_SPEED_CDN_VIDEOS = {
   // Video dạng đứng dọc (9:16) chuẩn TikTok
   fyp: [
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-vertical-shot-of-a-woman-applying-makeup-42777-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-young-woman-talking-on-a-video-call-42778-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-girl-dancing-on-a-rooftop-42790-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-fashion-model-showing-her-outfit-42787-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-woman-recording-a-dance-video-with-her-phone-42784-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-woman-showing-skincare-routine-42776-large.mp4',
   ],
   // Phiên Live Stream bán hàng / KOC Studio
   livestream: [
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    'https://assets.mixkit.co/videos/preview/mixkit-young-woman-doing-a-live-stream-on-her-phone-42781-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-young-woman-talking-on-a-video-call-42778-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-vertical-shot-of-a-woman-applying-makeup-42777-large.mp4',
   ],
   // Review sản phẩm & Affiliate
   product_review: [
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    'https://assets.mixkit.co/videos/preview/mixkit-woman-showing-skincare-routine-42776-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-fashion-model-showing-her-outfit-42787-large.mp4',
   ]
 };
+
+export const VIDEO_POSTERS = [
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80'
+];
 
 // Hàm trích xuất @handle từ URL bất kỳ
 export function extractTikTokHandle(rawUrlOrHandle: string): string {
@@ -158,7 +164,7 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
     youtubeId: youtubeId || undefined,
     embedUrl,
     streamUrl,
-    thumbnailUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80`,
+    thumbnailUrl: VIDEO_POSTERS[absHash % VIDEO_POSTERS.length],
     title,
     sourceType
   };

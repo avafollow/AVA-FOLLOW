@@ -171,7 +171,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     filterMode === 'community' ? videoFeedItems.filter(i => i.campaignCategory === 'community') :
     filterMode === 'partner' ? videoFeedItems.filter(i => i.campaignCategory === 'partner') :
     filterMode === 'live' ? liveFeedItems :
-    [...crossFollowFeedItems, ...videoFeedItems, ...liveFeedItems];
+    [...videoFeedItems, ...crossFollowFeedItems, ...liveFeedItems];
 
   const currentItem = combinedFeed[currentIndex] || combinedFeed[0];
   const currentClaimed = currentItem ? (taskClaimedMap[currentItem.id] || {}) : {};
@@ -205,11 +205,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       setShowCommentInput(false);
       setCustomComment('');
       if (videoRef.current) {
+        videoRef.current.defaultMuted = true;
+        videoRef.current.muted = isMuted;
+        videoRef.current.playsInline = true;
         videoRef.current.currentTime = 0;
         videoRef.current.play().catch(() => {});
       }
     }
-  }, [isFeedRunnerOpen, currentIndex, filterMode]);
+  }, [isFeedRunnerOpen, currentIndex, filterMode, isMuted]);
 
   // Main timer countdown (chỉ đếm ngược khi có gói xem video / livestream)
   useEffect(() => {
@@ -492,21 +495,25 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           onDoubleClick={handleDoubleTap}
           onClick={() => setIsPlaying(!isPlaying)}
         >
-          {/* HTML5 Video Player */}
+          {/* HTML5 Video Player with Instant HD Poster Fallback */}
           {currentItem.videoUrl && (
             <video
+              key={currentItem.id + '_' + (currentItem.videoUrl || currentItem.targetUrl)}
               ref={videoRef}
               src={currentItem.videoUrl}
+              poster={parseMediaUrl(currentItem.targetUrl, currentItem.channelHandle).thumbnailUrl}
               autoPlay
               loop
               playsInline
+              preload="auto"
+              crossOrigin="anonymous"
               muted={isMuted}
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
 
           {/* Overlay Gradient for readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/85 pointer-events-none" />
 
           {/* Floating Hearts from double taps */}
           {floatingHearts.map((heart) => (
@@ -526,100 +533,79 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             </div>
           )}
 
-          {/* Bottom-Left: Fanpage & Campaign Info (Exact TikTok Format) */}
-          <div className="absolute left-3 bottom-14 z-30 space-y-2 max-w-[75%] pointer-events-auto">
-            {/* Fanpage / Channel Header */}
-            <div className="flex items-center gap-2">
-              <img 
-                src={currentItem.channelAvatar} 
-                alt="" 
-                className="w-9 h-9 rounded-full object-cover border border-white/30"
-              />
-              <div>
-                <div className="flex items-center gap-1 text-white font-bold text-xs">
-                  <span>{currentItem.channelName}</span>
-                  <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400 fill-cyan-400/20" />
-                </div>
-                <div className="text-[10px] font-mono text-rose-300 font-bold">
-                  {currentItem.channelHandle}
-                </div>
-              </div>
-
-              {!currentClaimed.follow && (
-                <button
-                  onClick={handleFollowAction}
-                  className="ml-1 px-2 py-0.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer"
-                >
-                  + Follow
-                </button>
-              )}
-            </div>
-
-            {/* Category Distinction Badge */}
-            <div>
+          {/* Bottom-Left: Clean TikTok v2 Creator & Caption Info */}
+          <div className="absolute left-3 bottom-14 z-30 space-y-2 max-w-[72%] pointer-events-auto text-left">
+            {/* Creator Handle + Verified Badge */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-white font-black text-sm drop-shadow-md tracking-wide">
+                {currentItem.channelHandle}
+              </span>
+              <CheckCircle2 className="h-4 w-4 text-[#20D5EC] fill-[#20D5EC]/20 shrink-0" />
               {currentItem.campaignCategory === 'partner' ? (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/30 to-rose-500/30 border border-amber-500/50 backdrop-blur-md text-[10px] font-mono text-amber-200">
-                  <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
-                  <span className="font-bold">Chiến Dịch Đối Tác:</span>
-                  <span>{currentItem.partnerName || currentItem.channelName}</span>
-                  <span className="text-amber-400 font-bold">• Còn {currentItem.remainingSlots?.toLocaleString() || '580'} suất</span>
-                </div>
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-500/30 border border-amber-400/40 text-[9px] font-bold text-amber-300 backdrop-blur-sm">
+                  Đối tác VIP
+                </span>
               ) : (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 backdrop-blur-md text-[10px] font-mono text-emerald-200">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span className="font-bold">Kênh Cộng Đồng:</span>
-                  <span>Xem tự do • Cứ xem là có Xu (+200 Xu)</span>
-                </div>
+                <span className="px-1.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/30 text-[9px] font-bold text-cyan-300 backdrop-blur-sm">
+                  Chiến dịch thật
+                </span>
               )}
             </div>
 
             {/* Campaign Caption */}
-            <div className="text-white text-xs font-medium leading-snug line-clamp-2">
+            <p className="text-white text-xs font-medium leading-relaxed drop-shadow-md line-clamp-2">
               {currentItem.title}
-            </div>
+            </p>
 
-            {/* Guide & Music Tag */}
-            <div className="flex items-center gap-2 text-[10px] text-slate-300 font-mono">
-              <div className="flex items-center gap-1 truncate bg-black/40 px-2 py-0.5 rounded-full backdrop-blur-sm">
-                <Music className="h-3 w-3 text-rose-400 animate-spin-slow shrink-0" />
-                <span className="truncate">Nhạc xu hướng FYP • {currentItem.channelName}</span>
-              </div>
+            {/* Music Sound Tag */}
+            <div className="flex items-center gap-1.5 text-[11px] text-white/90 font-medium">
+              <Music className="h-3.5 w-3.5 text-[#FE2C55] animate-spin-slow shrink-0" />
+              <span className="truncate drop-shadow-md">
+                Âm thanh gốc - {currentItem.channelName} • Nhạc xu hướng TikTok
+              </span>
             </div>
           </div>
 
-          {/* Right Action Bar (TikTok Style) */}
-          <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-3 pointer-events-auto">
-            {/* Follow Button */}
-            <button
-              onClick={handleFollowAction}
-              className="flex flex-col items-center gap-0.5 group cursor-pointer"
-            >
-              <div className={`p-2.5 rounded-full transition-all shadow-lg ${
-                currentClaimed.follow ? 'bg-emerald-600 text-white ring-4 ring-emerald-500/30' : 'bg-black/60 text-white hover:bg-rose-600/80'
-              }`}>
-                {currentClaimed.follow ? <UserCheck className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
-              </div>
-              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
-                currentClaimed.follow ? 'bg-emerald-500/20 text-emerald-300' : 'bg-black/60 text-white'
-              }`}>
-                {currentClaimed.follow ? '✓ +200' : '+200'}
-              </span>
-            </button>
+          {/* Right Action Bar (Authentic TikTok v2 Layout) */}
+          <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-4 pointer-events-auto">
+            {/* Creator Avatar with Follow Plus Badge */}
+            <div className="relative mb-1">
+              <img 
+                src={currentItem.channelAvatar} 
+                alt="" 
+                className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-xl"
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFollowAction();
+                }}
+                className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center text-white transition-all shadow-lg cursor-pointer ${
+                  currentClaimed.follow 
+                    ? 'bg-emerald-500 ring-2 ring-emerald-400/50 scale-100' 
+                    : 'bg-[#FE2C55] hover:scale-110 active:scale-90'
+                }`}
+                title={currentClaimed.follow ? 'Đã Follow' : 'Follow nhận Xu'}
+              >
+                {currentClaimed.follow ? <Check className="w-3 h-3 stroke-[3]" /> : <UserPlus className="w-3 h-3 stroke-[2.5]" />}
+              </button>
+            </div>
 
             {/* Like Button */}
             <button
-              onClick={handleLikeAction}
-              className="flex flex-col items-center gap-0.5 group cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLikeAction();
+              }}
+              className="flex flex-col items-center gap-1 group cursor-pointer"
             >
-              <div className={`p-2.5 rounded-full transition-all shadow-lg ${
-                currentClaimed.like ? 'bg-rose-500 text-white ring-4 ring-rose-500/30' : 'bg-black/60 text-white hover:bg-white/20'
+              <div className={`p-2 rounded-full transition-transform duration-200 active:scale-125 ${
+                currentClaimed.like ? 'text-[#FE2C55]' : 'text-white/90 hover:text-white'
               }`}>
-                <Heart className={`h-5 w-5 ${currentClaimed.like ? 'fill-white' : ''}`} />
+                <Heart className={`h-7 w-7 drop-shadow-lg ${currentClaimed.like ? 'fill-[#FE2C55]' : ''}`} />
               </div>
-              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
-                currentClaimed.like ? 'bg-rose-500/20 text-rose-300' : 'bg-black/60 text-white'
-              }`}>
-                {currentClaimed.like ? '✓ +100' : '+100'}
+              <span className="text-[11px] font-bold text-white drop-shadow-md">
+                {currentClaimed.like ? '128.5K' : '128.4K'}
               </span>
             </button>
 
@@ -629,51 +615,56 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 e.stopPropagation();
                 setShowCommentInput(!showCommentInput);
               }}
-              className="flex flex-col items-center gap-0.5 group cursor-pointer"
+              className="flex flex-col items-center gap-1 group cursor-pointer"
             >
-              <div className={`p-2.5 rounded-full transition-all shadow-lg ${
-                currentClaimed.comment ? 'bg-cyan-500 text-white ring-4 ring-cyan-500/30' : 'bg-black/60 text-white hover:bg-white/20'
-              }`}>
-                <MessageCircle className="h-5 w-5" />
+              <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
+                <MessageCircle className={`h-7 w-7 drop-shadow-lg ${currentClaimed.comment ? 'fill-cyan-400 text-cyan-400' : ''}`} />
               </div>
-              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
-                currentClaimed.comment ? 'bg-cyan-500/20 text-cyan-300' : 'bg-black/60 text-white'
-              }`}>
-                {currentClaimed.comment ? '✓ +200' : '+200'}
+              <span className="text-[11px] font-bold text-white drop-shadow-md">
+                {currentClaimed.comment ? '3.2K' : '3.1K'}
+              </span>
+            </button>
+
+            {/* Bookmark / Favorite Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleBookmarkAction();
+              }}
+              className="flex flex-col items-center gap-1 group cursor-pointer"
+            >
+              <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
+                <Bookmark className={`h-7 w-7 drop-shadow-lg ${currentClaimed.bookmark ? 'fill-amber-400 text-amber-400' : ''}`} />
+              </div>
+              <span className="text-[11px] font-bold text-white drop-shadow-md">
+                {currentClaimed.bookmark ? '1.2K' : '1.1K'}
               </span>
             </button>
 
             {/* Share Button */}
             <button
-              onClick={handleShareAction}
-              className="flex flex-col items-center gap-0.5 group cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleShareAction();
+              }}
+              className="flex flex-col items-center gap-1 group cursor-pointer"
             >
-              <div className={`p-2.5 rounded-full transition-all shadow-lg ${
-                currentClaimed.share ? 'bg-amber-500 text-white ring-4 ring-amber-500/30' : 'bg-black/60 text-white hover:bg-white/20'
-              }`}>
-                <Share2 className="h-5 w-5" />
+              <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
+                <Share2 className="h-7 w-7 drop-shadow-lg" />
               </div>
-              <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
-                currentClaimed.share ? 'bg-amber-500/20 text-amber-300' : 'bg-black/60 text-white'
-              }`}>
-                {currentClaimed.share ? '✓ +240' : '+240'}
+              <span className="text-[11px] font-bold text-white drop-shadow-md">
+                {currentClaimed.share ? '856' : '855'}
               </span>
             </button>
 
-            {/* Bookmark (0 Xu) */}
-            <button
-              onClick={handleBookmarkAction}
-              className="flex flex-col items-center gap-0.5 group cursor-pointer"
-            >
-              <div className={`p-2.5 rounded-full transition-all shadow-lg ${
-                currentClaimed.bookmark ? 'bg-purple-500 text-white ring-4 ring-purple-500/30' : 'bg-black/60 text-white hover:bg-white/20'
-              }`}>
-                <Bookmark className={`h-5 w-5 ${currentClaimed.bookmark ? 'fill-white' : ''}`} />
-              </div>
-              <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-black/60 text-slate-300">
-                {currentClaimed.bookmark ? 'Đã lưu' : '0 Xu'}
-              </span>
-            </button>
+            {/* Spinning Music Vinyl Disc */}
+            <div className="mt-1 w-9 h-9 rounded-full bg-slate-900/90 border-2 border-slate-700/80 p-1 flex items-center justify-center shadow-2xl animate-spin-slow">
+              <img 
+                src={currentItem.channelAvatar} 
+                alt="" 
+                className="w-5 h-5 rounded-full object-cover"
+              />
+            </div>
           </div>
 
           {/* Up / Down Navigation Controls (Lướt Lướt Liên Tục) */}

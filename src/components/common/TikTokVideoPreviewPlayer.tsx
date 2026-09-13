@@ -49,7 +49,15 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   useEffect(() => {
     setHasError(false);
     setIsLoaded(false);
-  }, [url, channelHandle]);
+    if (videoRef.current) {
+      videoRef.current.defaultMuted = true;
+      videoRef.current.muted = isMuted;
+      videoRef.current.playsInline = true;
+      if (autoPlay) {
+        videoRef.current.play().catch(() => {});
+      }
+    }
+  }, [url, channelHandle, isMuted, autoPlay]);
 
   const togglePlay = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -107,10 +115,13 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
       <video
         ref={videoRef}
         src={mediaInfo.streamUrl}
+        poster={mediaInfo.thumbnailUrl}
         autoPlay={autoPlay}
         loop
         muted={isMuted}
         playsInline
+        preload="auto"
+        crossOrigin="anonymous"
         onLoadedData={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
         className="w-full h-full object-cover transition-opacity duration-300"

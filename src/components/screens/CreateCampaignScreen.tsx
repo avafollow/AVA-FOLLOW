@@ -722,7 +722,7 @@ export const CreateCampaignScreen: React.FC<{
               <span className="text-xs font-mono font-black uppercase text-white tracking-wider flex items-center gap-1.5">
                 {selectedTargets.livestream || targetUrl.includes('/live') 
                   ? '🔴 XEM TRƯỚC PHIÊN LIVE TIKTOK (ĐỒNG BỘ TRỰC TIẾP)' 
-                  : '🎬 XEM TRƯỚC VIDEO / KÊNH TIKTOK CHO 154.200+ CREATOR'}
+                  : '🎬 XEM TRƯỚC VIDEO / KÊNH TIKTOK CHIẾN DỊCH THẬT'}
               </span>
             </div>
             <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-emerald-500/30 flex items-center gap-1 shadow-sm">

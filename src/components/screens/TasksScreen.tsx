@@ -1018,7 +1018,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
                 return (
                   <div
                     key={live.id}
-                    onClick={() => { if (!live.isLocked) openLiveRunner(live); }}
+                    onClick={() => openLiveRunner(live)}
                     className="p-4 rounded-2xl bg-[#090C16] border border-pink-500/30 hover:border-pink-400 transition-all flex flex-col justify-between space-y-3 shadow-lg cursor-pointer group"
                   >
                     {/* Header Live */}

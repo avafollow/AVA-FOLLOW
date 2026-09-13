@@ -619,7 +619,7 @@ export const LIVESTREAM_TASKS: LivestreamTaskItem[] = [
     category: 'Thiết Bị Công Nghệ',
     hostFollowers: '890K Followers',
     requiredRank: 'Bạc',
-    isLocked: true,
+    isLocked: false,
     unlockedAfterTaskId: 'live_4',
     dailyTierLevel: 5,
     tags: ['Công nghệ', 'Smart Home', 'Giveaway']
@@ -640,7 +640,7 @@ export const LIVESTREAM_TASKS: LivestreamTaskItem[] = [
     category: 'Mega Live Toàn Sàn',
     hostFollowers: '1.4M Followers',
     requiredRank: 'Vàng',
-    isLocked: true,
+    isLocked: false,
     unlockedAfterTaskId: 'live_5',
     dailyTierLevel: 6,
     tags: ['Mega Live', 'Thương Hiệu', 'Trợ giá']
@@ -661,7 +661,7 @@ export const LIVESTREAM_TASKS: LivestreamTaskItem[] = [
     category: 'VIP Booking Sàn',
     hostFollowers: '2.8M Followers',
     requiredRank: 'Kim Cương',
-    isLocked: true,
+    isLocked: false,
     unlockedAfterTaskId: 'live_6',
     dailyTierLevel: 7,
     tags: ['VIP Kim Cương', 'Booking 100M', 'Độc Quyền']

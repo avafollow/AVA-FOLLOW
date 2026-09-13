@@ -1809,7 +1809,26 @@ export const CreateCampaignScreen: React.FC<{
                               if (matchedLive) {
                                 openLiveRunner(matchedLive);
                               } else {
-                                openFeedRunner(camp.id);
+                                openLiveRunner({
+                                  id: `live_${camp.id}`,
+                                  channelName: camp.channelHandle,
+                                  channelHandle: camp.channelHandle,
+                                  channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+                                  roomTitle: camp.title,
+                                  currentViewers: 120,
+                                  targetMinutes: camp.livestreamMinutes || 3,
+                                  rewardPerMinute: 400,
+                                  milestoneBonusCoins: 1200,
+                                  totalRewardCoins: 1200,
+                                  targetUrl: camp.targetUrl,
+                                  status: 'live',
+                                  category: 'TikTok Shop Flash Sale',
+                                  hostFollowers: '100K+ Followers',
+                                  requiredRank: 'Đồng',
+                                  isLocked: false,
+                                  dailyTierLevel: 1,
+                                  tags: ['Mắt Xem Thật', 'Đang Chạy']
+                                });
                               }
                             } else {
                               openFeedRunner(camp.id);

@@ -19,7 +19,8 @@ import {
   Calendar,
   DollarSign,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  QrCode
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { 
@@ -38,7 +39,7 @@ import {
 import { EscrowContractModal } from './EscrowContractModal';
 
 export const CreateBookingModal: React.FC = () => {
-  const { isBookingModalOpen, closeBookingModal, createEscrowBooking, user, openDeposit } = useTikTokApp();
+  const { isBookingModalOpen, closeBookingModal, createEscrowBooking, user, openDeposit, openSepayModal } = useTikTokApp();
 
   // Form selections
   const [creatorType, setCreatorType] = useState<VideoCreatorType>('human');
@@ -903,6 +904,31 @@ export const CreateBookingModal: React.FC = () => {
                   <span>Dự Thảo Hợp Đồng</span>
                 </button>
 
+                {/* Direct SePay VietQR Escrow Deposit Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeBookingModal();
+                    openSepayModal({
+                      id: `ESC_${Date.now().toString().slice(-4)}`,
+                      title: `Ký Quỹ Escrow: ${title || productName || 'Hợp Đồng KOC'} (${kocHandle})`,
+                      category: 'escrow_deposit',
+                      amountVnd: rawTotal,
+                      xuEquivalent: rawTotal,
+                      badge: 'KÝ QUỸ ESCROW 100%',
+                      metadata: {
+                        kocHandle,
+                        videoQuantity,
+                        priceVND: rawTotal
+                      }
+                    });
+                  }}
+                  className="px-4 py-3 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 text-white font-black text-xs shadow-lg shadow-rose-950/40 flex items-center justify-center gap-1.5 transition-all cursor-pointer font-mono"
+                >
+                  <QrCode className="w-4 h-4" />
+                  <span>Ký Quỹ SePay VietQR</span>
+                </button>
+
                 {!hasEnoughCoins ? (
                   <button
                     type="button"
@@ -922,7 +948,7 @@ export const CreateBookingModal: React.FC = () => {
                     }`}
                   >
                     <Lock className="w-4 h-4" />
-                    <span>Khóa Ký Quỹ & Ký Hợp Đồng</span>
+                    <span>Khóa Ký Quỹ Bằng Xu</span>
                   </button>
                 )}
               </div>

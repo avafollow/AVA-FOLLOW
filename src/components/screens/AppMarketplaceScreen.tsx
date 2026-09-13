@@ -27,7 +27,8 @@ export const AppMarketplaceScreen: React.FC<{ darkMode: boolean }> = ({ darkMode
     softwareApps, 
     buySoftwareApp, 
     myAppLicenses,
-    openDeposit 
+    openDeposit,
+    openSepayModal 
   } = useTikTokApp();
 
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -317,13 +318,30 @@ export const AppMarketplaceScreen: React.FC<{ darkMode: boolean }> = ({ darkMode
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => setSelectedAppForPurchase(app)}
-                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-rose-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-900/30 flex items-center justify-center gap-1.5 transition-all font-display active:scale-98"
-                      >
-                        <Key className="w-3.5 h-3.5" />
-                        <span>Mua Bằng Xu Ngay</span>
-                      </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setSelectedAppForPurchase(app)}
+                          className="py-2.5 px-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 border border-purple-500/40 font-bold text-[11px] flex items-center justify-center gap-1 transition-all"
+                        >
+                          <Key className="w-3.5 h-3.5" />
+                          <span>Mua Bằng Xu</span>
+                        </button>
+                        <button
+                          onClick={() => openSepayModal({
+                            id: `APP_${app.id}`,
+                            title: `Bản Quyền: ${app.title} (${app.version})`,
+                            category: 'software_app',
+                            amountVnd: app.priceXu,
+                            xuEquivalent: app.priceXu,
+                            badge: 'BẢN QUYỀN TRỌN ĐỜI',
+                            metadata: { appId: app.id }
+                          })}
+                          className="py-2.5 px-2 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 text-white font-bold text-[11px] shadow-md shadow-rose-950/40 flex items-center justify-center gap-1 transition-all cursor-pointer font-mono"
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                          <span>SePay VietQR</span>
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -464,25 +482,53 @@ export const AppMarketplaceScreen: React.FC<{ darkMode: boolean }> = ({ darkMode
               </div>
             </div>
 
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2">
               <button
+                type="button"
                 onClick={() => setSelectedAppForPurchase(null)}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700"
+                className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700 transition-colors"
               >
                 Hủy Bỏ
               </button>
-              <button
-                onClick={() => handleConfirmPurchase(selectedAppForPurchase)}
-                disabled={user.avaliveCoins < selectedAppForPurchase.priceXu}
-                className={`flex-1 py-2.5 rounded-xl text-white text-xs font-bold shadow-lg flex items-center justify-center gap-1.5 ${
-                  user.avaliveCoins >= selectedAppForPurchase.priceXu
-                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 shadow-purple-900/40'
-                    : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                <Key className="w-3.5 h-3.5" />
-                <span>Xác Nhận Trừ Xu</span>
-              </button>
+
+              <div className="flex flex-col sm:flex-row items-center gap-2 flex-1 justify-end">
+                {/* SePay VietQR Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const app = selectedAppForPurchase;
+                    setSelectedAppForPurchase(null);
+                    openSepayModal({
+                      id: `APP_${app.id}`,
+                      title: `Bản Quyền: ${app.title} (${app.version})`,
+                      category: 'software_app',
+                      amountVnd: app.priceXu,
+                      xuEquivalent: app.priceXu,
+                      badge: 'BẢN QUYỀN TRỌN ĐỜI',
+                      metadata: { appId: app.id }
+                    });
+                  }}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 text-white font-bold text-xs shadow-lg shadow-rose-950/40 flex items-center justify-center gap-1.5 transition-all cursor-pointer font-mono"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>Thanh Toán SePay VietQR</span>
+                </button>
+
+                {/* Pay with Xu */}
+                <button
+                  type="button"
+                  onClick={() => handleConfirmPurchase(selectedAppForPurchase)}
+                  disabled={user.avaliveCoins < selectedAppForPurchase.priceXu}
+                  className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-white text-xs font-bold shadow-lg flex items-center justify-center gap-1.5 transition-all ${
+                    user.avaliveCoins >= selectedAppForPurchase.priceXu
+                      ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 shadow-purple-900/40 cursor-pointer'
+                      : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>Trừ Xu ({selectedAppForPurchase.priceXu.toLocaleString()} Xu)</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

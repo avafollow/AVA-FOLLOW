@@ -15,7 +15,8 @@ import {
   Layers,
   Link2,
   Clock,
-  Radio
+  Radio,
+  QrCode
 } from 'lucide-react';
 
 interface OrderServiceModalProps {
@@ -29,7 +30,7 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
   isOpen,
   onClose
 }) => {
-  const { user, purchaseServicePackage, openDeposit } = useTikTokApp();
+  const { user, purchaseServicePackage, openDeposit, openSepayModal } = useTikTokApp();
   const [targetUrl, setTargetUrl] = useState(user.tiktokConnected ? `https://www.tiktok.com/${user.tiktokConnected}` : '');
   const [instructions, setInstructions] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,6 +103,44 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
       setIsSubmitting(false);
       onClose();
     }, 700);
+  };
+
+  const handlePayWithSepay = () => {
+    setError('');
+    if (!targetUrl.trim()) {
+      setError('Vui lòng nhập link kênh TikTok hoặc link video cần chạy');
+      return;
+    }
+    if (!targetUrl.includes('tiktok.com') && !targetUrl.startsWith('@')) {
+      setError('Đường link không hợp lệ. Vui lòng nhập link TikTok (VD: https://www.tiktok.com/@kenh hoặc @kenh)');
+      return;
+    }
+
+    const packageToOrder: GrowthServiceItem = {
+      ...packageItem,
+      priceNum: effectivePriceNum,
+      price: `${effectivePriceNum.toLocaleString()}đ`,
+      title: isLivestream 
+        ? `${packageItem.title.replace(/\(.*?\)/g, '').trim()} (${selectedDuration} Phút)`
+        : packageItem.title,
+      unit: isLivestream ? `Mắt xem / ${selectedDuration} phút` : packageItem.unit
+    };
+
+    openSepayModal({
+      id: `PKG_${packageItem.id}_${Date.now().toString().slice(-4)}`,
+      title: packageToOrder.title,
+      category: 'growth_package',
+      amountVnd: effectivePriceNum,
+      xuEquivalent: effectivePriceNum,
+      badge: isLivestream ? 'LIVESTREAM SHOP' : 'TĂNG TRƯỞNG KÊNH',
+      metadata: {
+        pkg: packageToOrder,
+        targetUrl: targetUrl.trim(),
+        instructions: instructions.trim()
+      }
+    });
+
+    onClose();
   };
 
   return (
@@ -276,7 +315,7 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
           </div>
 
           {/* Submit Buttons */}
-          <div className="pt-2 flex items-center justify-end gap-3">
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <button
               type="button"
               onClick={onClose}
@@ -284,20 +323,34 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
             >
               Hủy bỏ
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || !isCoinsEnough}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-rose-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs font-bold text-white shadow-lg shadow-purple-900/30 flex items-center gap-2 transition-all disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span>Đang điều phối nhiệm vụ...</span>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  <span>Xác Nhận Mua Gói & Kích Hoạt Ngay</span>
-                </>
-              )}
-            </button>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2">
+              {/* Button SePay VietQR Direct Payment */}
+              <button
+                type="button"
+                onClick={handlePayWithSepay}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-rose-500 text-xs font-bold text-white shadow-lg shadow-rose-950/40 flex items-center justify-center gap-1.5 transition-all cursor-pointer font-mono"
+              >
+                <QrCode className="w-4 h-4" />
+                <span>Thanh Toán SePay VietQR</span>
+              </button>
+
+              {/* Button Pay with Coins */}
+              <button
+                type="submit"
+                disabled={isSubmitting || !isCoinsEnough}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-rose-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs font-bold text-white shadow-lg shadow-purple-900/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <span>Đang điều phối nhiệm vụ...</span>
+                ) : (
+                  <>
+                    <Coins className="w-4 h-4 text-amber-300" />
+                    <span>Mua Bằng Xu ({effectivePriceNum.toLocaleString()} Xu)</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
         </form>

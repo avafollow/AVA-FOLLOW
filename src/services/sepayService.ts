@@ -1,31 +1,56 @@
 /**
  * SePay & VietQR Payment Service Adapter
- * Cổng thanh toán quét mã QR tự động SePay cho Việt Nam
+ * Cổng thanh toán quét mã QR tự động SePay cho AVA FOLLOW
+ * Tài khoản nhận tiền chính thức Techcombank: NGUYEN QUOC THIEN - 19035907828017
  */
 
+export const SEPAY_BANK_CONFIG = {
+  bankShortName: 'TCB',
+  bankName: 'Techcombank',
+  bankFullName: 'Ngân hàng TMCP Kỹ thương Việt Nam (Techcombank)',
+  bin: '970407',
+  accountNumber: '19035907828017',
+  accountName: 'NGUYEN QUOC THIEN',
+  logoUrl: 'https://api.vietqr.io/img/TCB.png'
+};
+
 export interface SepayQrConfig {
-  bankShortName: string;   // MB, VCB, TCB, ACB, TPB
-  accountNumber: string;   // 999988886666
-  accountName: string;     // NGUYEN VAN MINH
-  amount: number;          // VNĐ
-  orderCode: string;       // Mã nạp tiền (vd: NAP8899)
+  bankShortName?: string;   // TCB
+  bankName?: string;        // Techcombank
+  accountNumber?: string;   // 19035907828017
+  accountName?: string;     // NGUYEN QUOC THIEN
+  amount: number;           // VNĐ
+  orderCode: string;        // Mã giao dịch độc nhất (vd: AVAXU8821, AVAAPP102)
   description?: string;
 }
 
 const SEPAY_API_KEY = (import.meta as any).env?.VITE_SEPAY_API_KEY || '';
 
 export const isSepayConfigured = (): boolean => {
-  return Boolean(SEPAY_API_KEY);
+  return true;
 };
 
 /**
- * Sinh link mã QR thanh toán chuẩn VietQR tự động
+ * Sinh link mã QR thanh toán chuẩn SePay VietQR tự động
+ */
+export function generateSepayQrUrl(config: SepayQrConfig): string {
+  const acc = config.accountNumber || SEPAY_BANK_CONFIG.accountNumber;
+  const bank = config.bankName || SEPAY_BANK_CONFIG.bankName;
+  const amount = Math.round(config.amount);
+  const memo = encodeURIComponent(config.orderCode.toUpperCase());
+  return `https://qr.sepay.vn/img?acc=${acc}&bank=${bank}&amount=${amount}&des=${memo}&template=compact`;
+}
+
+/**
+ * Sinh link mã QR chuẩn VietQR Napas 24/7 dự phòng
  */
 export function generateVietQrUrl(config: SepayQrConfig): string {
-  const { bankShortName, accountNumber, accountName, amount, orderCode } = config;
-  const memo = encodeURIComponent(`${orderCode}`);
-  const accNameEncoded = encodeURIComponent(accountName);
-  return `https://img.vietqr.io/image/${bankShortName}-${accountNumber}-compact2.png?amount=${amount}&addInfo=${memo}&accountName=${accNameEncoded}`;
+  const bankShort = config.bankShortName || SEPAY_BANK_CONFIG.bankShortName;
+  const acc = config.accountNumber || SEPAY_BANK_CONFIG.accountNumber;
+  const accName = encodeURIComponent(config.accountName || SEPAY_BANK_CONFIG.accountName);
+  const amount = Math.round(config.amount);
+  const memo = encodeURIComponent(config.orderCode.toUpperCase());
+  return `https://img.vietqr.io/image/${bankShort}-${acc}-compact2.png?amount=${amount}&addInfo=${memo}&accountName=${accName}`;
 }
 
 /**

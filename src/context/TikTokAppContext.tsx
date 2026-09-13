@@ -42,6 +42,7 @@ import {
   MarqueeHistoryRecord
 } from '../types';
 import { CongratulationData } from '../components/modals/FireworksCongratulationModal';
+import { SepayCheckoutItem } from '../components/modals/SepayUniversalCheckoutModal';
 import { generateWeeklyMissions, STREAK_REWARDS } from '../data/weeklyMissions';
 import { 
   MARQUEE_BOOST_FEE_XU, 
@@ -177,6 +178,12 @@ interface TikTokAppContextType {
   isDepositOpen: boolean;
   openDeposit: () => void;
   closeDeposit: () => void;
+
+  // SePay Universal Checkout Modal
+  isSepayModalOpen: boolean;
+  sepayCheckoutItem: SepayCheckoutItem | null;
+  openSepayModal: (item: SepayCheckoutItem) => void;
+  closeSepayModal: () => void;
 
   isPolicyOpen: boolean;
   openPolicy: () => void;
@@ -804,6 +811,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isConnectOpen, setIsConnectOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [isDepositOpen, setIsDepositOpen] = useState(false);
+  const [isSepayModalOpen, setIsSepayModalOpen] = useState(false);
+  const [sepayCheckoutItem, setSepayCheckoutItem] = useState<SepayCheckoutItem | null>(null);
   const [isPolicyOpen, setIsPolicyOpen] = useState(false);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [activeEscrowContract, setActiveEscrowContract] = useState<EscrowBookingContract | null>(null);
@@ -1442,6 +1451,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const openDeposit = () => setIsDepositOpen(true);
   const closeDeposit = () => setIsDepositOpen(false);
+
+  const openSepayModal = (item: SepayCheckoutItem) => {
+    setSepayCheckoutItem(item);
+    setIsSepayModalOpen(true);
+  };
+  const closeSepayModal = () => {
+    setIsSepayModalOpen(false);
+    setSepayCheckoutItem(null);
+  };
 
   const openPolicy = () => setIsPolicyOpen(true);
   const closePolicy = () => setIsPolicyOpen(false);
@@ -4038,6 +4056,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isDepositOpen,
         openDeposit,
         closeDeposit,
+        isSepayModalOpen,
+        sepayCheckoutItem,
+        openSepayModal,
+        closeSepayModal,
         isPolicyOpen,
         openPolicy,
         closePolicy,

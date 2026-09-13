@@ -38,6 +38,7 @@ import { BankWithdrawModal } from './components/modals/BankWithdrawModal';
 import { KycVerificationModal } from './components/modals/KycVerificationModal';
 import { PolicyGuideModal } from './components/modals/PolicyGuideModal';
 import { PaymentModal } from './components/common/PaymentModal';
+import { SepayUniversalCheckoutModal, SepayCheckoutItem } from './components/modals/SepayUniversalCheckoutModal';
 import { CreateBookingModal } from './components/modals/CreateBookingModal';
 import { SubmitDemoModal } from './components/modals/SubmitDemoModal';
 import { BuyerLiveManagerModal } from './components/modals/BuyerLiveManagerModal';
@@ -111,6 +112,7 @@ function AppContent() {
   const { 
     user,
     toastMessage, 
+    showToast,
     deposit, 
     isDepositOpen, 
     closeDeposit, 
@@ -122,7 +124,12 @@ function AppContent() {
     closeKycModal,
     fireworksData,
     isFireworksOpen,
-    closeFireworks
+    closeFireworks,
+    isSepayModalOpen,
+    sepayCheckoutItem,
+    closeSepayModal,
+    buySoftwareApp,
+    purchaseServicePackage
   } = useTikTokApp();
 
   // Sync dark theme
@@ -148,6 +155,26 @@ function AppContent() {
   const handleDepositSuccess = (amount: number, method: string) => {
     const amountVND = amount >= 10000 ? amount : amount * 25400;
     deposit(amountVND, method);
+  };
+
+  const handleSepaySuccess = (item: SepayCheckoutItem, referenceId: string) => {
+    if (item.category === 'topup_xu') {
+      const coinsToAdd = item.xuEquivalent || item.amountVnd;
+      deposit(coinsToAdd, `SePay VietQR 24/7 (Techcombank) - ${referenceId}`);
+      showToast(`🎉 Nạp thành công +${coinsToAdd.toLocaleString()} Xu qua cổng SePay VietQR (Techcombank)!`);
+    } else if (item.category === 'software_app') {
+      if (item.metadata?.appId) {
+        buySoftwareApp(item.metadata.appId, 'coins');
+      }
+      showToast(`🎉 Thanh toán SePay thành công! Đã cấp bản quyền phần mềm "${item.title}".`);
+    } else if (item.category === 'growth_package') {
+      if (item.metadata?.pkg) {
+        purchaseServicePackage(item.metadata.pkg, item.metadata.targetUrl || '@kenh_tiktok', item.metadata.instructions);
+      }
+      showToast(`🎉 Thanh toán SePay thành công! Gói "${item.title}" đã kích hoạt vào hàng đợi xử lý.`);
+    } else if (item.category === 'escrow_deposit') {
+      showToast(`🛡️ Ký quỹ SePay thành công! Tiền cọc ${item.amountVnd.toLocaleString()}đ đã khóa an toàn vào Smart Vault.`);
+    }
   };
 
   // If NOT authenticated, show the TikTok Pro Landing Page outside
@@ -340,6 +367,14 @@ function AppContent() {
         isOpen={isDepositOpen}
         onClose={closeDeposit}
         onDepositSuccess={handleDepositSuccess}
+      />
+
+      {/* SePay Universal Checkout Modal (Cho mọi giao dịch: Mua App, Mua Gói, Mua Xu, Ký Quỹ) */}
+      <SepayUniversalCheckoutModal
+        isOpen={isSepayModalOpen}
+        item={sepayCheckoutItem}
+        onClose={closeSepayModal}
+        onSuccess={handleSepaySuccess}
       />
 
       {/* Bottom-Left Floating User Join Notification (Every 20s) */}

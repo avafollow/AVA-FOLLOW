@@ -69,6 +69,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const isYouTube = mediaInfo.isYouTube && Boolean(mediaInfo.youtubeId);
   const isFacebook = mediaInfo.isFacebook && Boolean(url);
   const isDirectVideo = mediaInfo.isDirectVideo;
+  const isTikTokEmbed = Boolean(mediaInfo.isTikTok && mediaInfo.videoId);
 
   // Link đích chính xác của người dùng
   const displayHandle = mediaInfo.handle || channelHandle || '@creator.vietnam';
@@ -84,7 +85,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   // Đảm bảo video native tự động phát mượt mà khi dán link mới
   useEffect(() => {
     setCurrentStream(mediaInfo.streamUrl);
-    if (videoRef.current && !isYouTube) {
+    if (videoRef.current && !isYouTube && !isTikTokEmbed) {
       videoRef.current.defaultMuted = true;
       videoRef.current.muted = isMuted;
       videoRef.current.playsInline = true;
@@ -105,14 +106,14 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
           });
       }
     }
-  }, [currentStream, mediaInfo.streamUrl, url, isMuted, autoPlay, isYouTube]);
+  }, [currentStream, mediaInfo.streamUrl, url, isMuted, autoPlay, isYouTube, isTikTokEmbed]);
 
   const handleVideoError = () => {
-    if (currentStream !== '/videos/sample1.mp4') {
-      setCurrentStream('/videos/sample1.mp4');
-    } else {
-      setCurrentStream('https://vjs.zencdn.net/v/oceans.mp4');
-    }
+    setCurrentStream((prev) => {
+      if (prev === '/videos/sample1.mp4') return '/videos/sample2.mp4';
+      if (prev === '/videos/sample2.mp4') return '/videos/sample3.mp4';
+      return '/videos/sample1.mp4';
+    });
   };
 
   const togglePlay = (e?: React.MouseEvent) => {
@@ -228,8 +229,18 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
     >
       {/* 1. PLAYER CONTAINER (Tự động thích ứng với YouTube, Facebook, TikTok hoặc Native Stream) */}
       <div className="relative w-full h-full flex-1 overflow-hidden bg-black flex items-center justify-center">
-        {/* TRƯỜNG HỢP A: YOUTUBE VIDEO HOẶC YOUTUBE LIVE */}
-        {isYouTube && mediaInfo.youtubeId ? (
+        {/* TRƯỜNG HỢP A: TIKTOK CHÍNH THỨC VỚI VIDEO ID */}
+        {isTikTokEmbed ? (
+          <iframe
+            key={`tt-${mediaInfo.videoId}`}
+            src={`https://www.tiktok.com/embed/v2/${mediaInfo.videoId}`}
+            title={mediaInfo.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
+          />
+        ) : isYouTube && mediaInfo.youtubeId ? (
+          /* TRƯỜNG HỢP B: YOUTUBE VIDEO HOẶC YOUTUBE LIVE */
           <iframe
             key={`yt-${mediaInfo.youtubeId}-${isMuted}`}
             src={`https://www.youtube.com/embed/${mediaInfo.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${mediaInfo.youtubeId}&modestbranding=1&rel=0&enablejsapi=1`}
@@ -238,8 +249,18 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             allowFullScreen
             className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
           />
+        ) : isFacebook && url ? (
+          /* TRƯỜNG HỢP C: FACEBOOK VIDEO */
+          <iframe
+            key={`fb-${encodeURIComponent(url)}`}
+            src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=${isMuted ? 1 : 0}&allowfullscreen=true`}
+            title={mediaInfo.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
+          />
         ) : isDirectVideo ? (
-          /* TRƯỜNG HỢP B: DIRECT MP4 / WEBM VIDEO FILE */
+          /* TRƯỜNG HỢP D: DIRECT MP4 / WEBM VIDEO FILE */
           <video
             key={url}
             ref={(el) => {
@@ -248,6 +269,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
                 el.defaultMuted = true;
                 el.muted = isMuted;
                 el.playsInline = true;
+                el.play().then(() => setIsPlaying(true)).catch(() => {});
               }
             }}
             src={url}
@@ -259,7 +281,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             className="w-full h-full object-cover bg-black rounded-3xl"
           />
         ) : (
-          /* TRƯỜNG HỢP C: TIKTOK, FACEBOOK, LIVE STREAM NATIVE PLAYER SIÊU MƯỢT */
+          /* TRƯỜNG HỢP E: TIKTOK KÊNH, TIKTOK LIVE, NATIVE STREAM SIÊU MƯỢT */
           <div className="relative w-full h-full cursor-pointer" onClick={togglePlay}>
             <video
               key={currentStream}
@@ -269,6 +291,13 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
                   el.defaultMuted = true;
                   el.muted = isMuted;
                   el.playsInline = true;
+                  const p = el.play();
+                  if (p !== undefined) {
+                    p.then(() => setIsPlaying(true)).catch(() => {
+                      el.muted = true;
+                      el.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+                    });
+                  }
                 }
               }}
               src={currentStream}
@@ -280,18 +309,6 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               onError={handleVideoError}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
-              onCanPlay={(e) => {
-                const v = e.currentTarget;
-                if (autoPlay && v.paused) {
-                  v.play().then(() => setIsPlaying(true)).catch(() => {
-                    v.muted = true;
-                    setIsMuted(true);
-                    v.play().then(() => setIsPlaying(true)).catch(() => {
-                      setIsPlaying(false);
-                    });
-                  });
-                }
-              }}
               className="w-full h-full object-cover transition-opacity duration-300"
             />
 
@@ -340,15 +357,29 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         </div>
 
         <div className="flex items-center gap-1.5 pointer-events-auto">
+          {/* Play/Pause Button in header */}
+          {!isYouTube && !isTikTokEmbed && (
+            <button
+              type="button"
+              onClick={togglePlay}
+              className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
+              title={isPlaying ? 'Tạm dừng video' : 'Phát video'}
+            >
+              {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" />}
+            </button>
+          )}
+
           {/* Sound Mute/Unmute */}
-          <button
-            type="button"
-            onClick={toggleMute}
-            className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
-            title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 text-slate-300" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-          </button>
+          {!isTikTokEmbed && (
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
+              title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4 text-slate-300" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            </button>
+          )}
 
           {/* Fullscreen Button */}
           <button

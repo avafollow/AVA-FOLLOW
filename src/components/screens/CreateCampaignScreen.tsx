@@ -138,7 +138,9 @@ export const CreateCampaignScreen: React.FC<{
     boostToMarquee,
     endMarqueeItem,
     marqueeTickerList,
-    openFeedRunner
+    openFeedRunner,
+    openLiveRunner,
+    livestreamTasks
   } = useTikTokApp();
 
   // Tab: Standard vs Mega Live & Product Launch
@@ -1738,9 +1740,39 @@ export const CreateCampaignScreen: React.FC<{
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-3.5">
                   {/* Realtime Video Stream of this Campaign */}
                   <div 
-                    onClick={() => openFeedRunner(camp.id)}
+                    onClick={() => {
+                      if (isLive) {
+                        const matchedLive = livestreamTasks.find(l => l.targetUrl === camp.targetUrl || l.channelHandle === camp.channelHandle);
+                        if (matchedLive) {
+                          openLiveRunner(matchedLive);
+                        } else {
+                          openLiveRunner({
+                            id: `live_${camp.id}`,
+                            channelName: camp.channelHandle,
+                            channelHandle: camp.channelHandle,
+                            channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+                            roomTitle: camp.title,
+                            currentViewers: 120,
+                            targetMinutes: camp.livestreamMinutes || 3,
+                            rewardPerMinute: 400,
+                            milestoneBonusCoins: 1200,
+                            totalRewardCoins: 1200,
+                            targetUrl: camp.targetUrl,
+                            status: 'live',
+                            category: 'TikTok Shop Flash Sale',
+                            hostFollowers: '100K+ Followers',
+                            requiredRank: 'Đồng',
+                            isLocked: false,
+                            dailyTierLevel: 1,
+                            tags: ['Mắt Xem Thật', 'Đang Chạy']
+                          });
+                        }
+                      } else {
+                        openFeedRunner(camp.id);
+                      }
+                    }}
                     className="w-20 h-28 sm:w-24 sm:h-32 shrink-0 rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-black cursor-pointer group hover:border-rose-500/60 transition-colors"
-                    title="Bấm để mở video chiến dịch này trong Feed lướt toàn sàn"
+                    title={isLive ? "Bấm để mở phòng Live trực tiếp" : "Bấm để mở video chiến dịch này trong Feed"}
                   >
                     <TikTokVideoPreviewPlayer
                       url={camp.targetUrl}
@@ -1771,12 +1803,23 @@ export const CreateCampaignScreen: React.FC<{
 
                       <div className="flex items-center gap-2 shrink-0">
                         <button
-                          onClick={() => openFeedRunner(camp.id)}
+                          onClick={() => {
+                            if (isLive) {
+                              const matchedLive = livestreamTasks.find(l => l.targetUrl === camp.targetUrl || l.channelHandle === camp.channelHandle);
+                              if (matchedLive) {
+                                openLiveRunner(matchedLive);
+                              } else {
+                                openFeedRunner(camp.id);
+                              }
+                            } else {
+                              openFeedRunner(camp.id);
+                            }
+                          }}
                           className="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/40 text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                          title="Xem chiến dịch phát sóng trong Feed lướt video"
+                          title={isLive ? "Xem phiên Live trực tiếp" : "Xem chiến dịch phát sóng trong Feed lướt video"}
                         >
                           <Play className="w-3 h-3 fill-rose-400" />
-                          <span>Xem trên Feed</span>
+                          <span>{isLive ? 'Xem Phiên Live' : 'Xem trên Feed'}</span>
                         </button>
                         <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
                           {camp.status === 'running' ? 'Đang phân phối' : camp.status}

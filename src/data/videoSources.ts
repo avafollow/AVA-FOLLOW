@@ -20,21 +20,19 @@ export const HIGH_SPEED_CDN_VIDEOS = {
   // Video dạng đứng dọc chuẩn TikTok FYP
   fyp: [
     '/videos/sample1.mp4',
-    'https://vjs.zencdn.net/v/oceans.mp4',
     '/videos/sample2.mp4',
-    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+    '/videos/sample3.mp4'
   ],
   // Phiên Live Stream bán hàng / KOC Studio
   livestream: [
     '/videos/sample2.mp4',
-    'https://vjs.zencdn.net/v/oceans.mp4',
-    '/videos/sample1.mp4',
-    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+    '/videos/sample3.mp4',
+    '/videos/sample1.mp4'
   ],
   // Review sản phẩm & Affiliate
   product_review: [
     '/videos/sample1.mp4',
-    'https://vjs.zencdn.net/v/oceans.mp4',
+    '/videos/sample3.mp4',
     '/videos/sample2.mp4'
   ]
 };

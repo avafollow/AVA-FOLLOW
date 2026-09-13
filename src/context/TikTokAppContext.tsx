@@ -3366,7 +3366,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setPartnerAnnouncements(prev => [newAnn, ...prev]);
 
       // Nếu là chiến dịch Livestream, đưa ngay vào danh sách Livestream Tasks
-      if (campaignData.type === 'livestream' || campaignData.type === 'livestream_viewers') {
+      const isLiveCampaign = 
+        campaignData.type === 'livestream' || 
+        campaignData.type === 'livestream_viewers' ||
+        campaignData.type === 'mega_live' ||
+        Boolean(campaignData.livestreamMinutes) ||
+        (campaignData.targetUrl && campaignData.targetUrl.toLowerCase().includes('/live'));
+
+      if (isLiveCampaign) {
         const mins = campaignData.livestreamMinutes || 3;
         const tier = FLEXIBLE_LIVESTREAM_TIERS.find(t => t.minutes === mins) || {
           buyerPricePerEye: 1000,

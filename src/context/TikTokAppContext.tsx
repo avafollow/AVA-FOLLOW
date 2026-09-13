@@ -279,6 +279,7 @@ interface TikTokAppContextType {
     videoPreviewUrl?: string;
   }) => boolean;
   unlockCampaignAnalytics: (campaignId: string) => boolean;
+  boostCampaignToTop: (campaignId: string) => boolean;
   approveCampaign: (campaignId: string) => void;
   rejectCampaign: (campaignId: string) => void;
   orderService: (service: GrowthServiceItem) => void;
@@ -3505,6 +3506,61 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return true;
   };
 
+  // Đẩy chiến dịch lên TOP sàn (Phí 100.000 Xu để hoàn thành sớm)
+  const boostCampaignToTop = (campaignId: string): boolean => {
+    const BOOST_FEE_XU = 100000;
+    const isUserAdmin = user.isAdmin || user.email === 'quocthiencr90@gmail.com' || user.email === 'thienvuaapp@gmail.com';
+
+    if (!isUserAdmin && user.avaliveCoins < BOOST_FEE_XU) {
+      showToast(`⚠️ Bạn cần tối thiểu ${BOOST_FEE_XU.toLocaleString()} Xu để Đẩy Top Chiến Dịch lên đầu sàn!`);
+      openDeposit();
+      return false;
+    }
+
+    if (!isUserAdmin) {
+      const newCoins = user.avaliveCoins - BOOST_FEE_XU;
+      const newTx: TransactionRecord = {
+        id: `tx_boost_top_${Date.now()}`,
+        type: 'spend',
+        title: 'Phí Đẩy Top Chiến Dịch Lên Đầu Sàn (-100.000 Xu)',
+        amount: `-${BOOST_FEE_XU.toLocaleString()} Xu (-100.000đ)`,
+        isPositive: false,
+        date: 'Vừa xong',
+        status: 'success'
+      };
+      setUser(prev => ({
+        ...prev,
+        avaliveCoins: newCoins,
+        coinsValueVND: `${newCoins.toLocaleString()}đ`,
+        transactions: [newTx, ...prev.transactions]
+      }));
+    }
+
+    // Đưa chiến dịch lên đầu danh sách campaigns và gán cờ isBoosted
+    setCampaigns(prev => {
+      const targetCamp = prev.find(c => c.id === campaignId);
+      if (!targetCamp) return prev;
+      const updatedCamp: CampaignItem = {
+        ...targetCamp,
+        isBoosted: true,
+        boostedAt: 'Vừa xong',
+        boostCount: (targetCamp.boostCount || 0) + 1
+      };
+      const remaining = prev.filter(c => c.id !== campaignId);
+      return [updatedCamp, ...remaining];
+    });
+
+    // Đồng thời đẩy task tương ứng lên đầu danh sách tasks
+    setTasks(prev => {
+      const relatedTasks = prev.filter(t => t.id.includes(campaignId) || t.channelHandle === campaignId);
+      const otherTasks = prev.filter(t => !t.id.includes(campaignId) && t.channelHandle !== campaignId);
+      return [...relatedTasks.map(t => ({ ...t, isBoosted: true, isUrgent: true })), ...otherTasks];
+    });
+
+    showToast(`🚀 Chiến dịch đã được đẩy lên TOP 1 toàn sàn thành công (-100.000 Xu)! Tốc độ nhận tương tác sẽ tăng vọt.`);
+    return true;
+  };
+
   const approveCampaign = (campaignId: string) => {
     setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'running' } : c));
     setAdminData(prev => ({
@@ -4359,6 +4415,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         saveBankInfo,
         createCampaign,
         unlockCampaignAnalytics,
+        boostCampaignToTop,
         approveCampaign,
         rejectCampaign,
         orderService,

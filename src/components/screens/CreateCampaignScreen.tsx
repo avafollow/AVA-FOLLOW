@@ -131,6 +131,7 @@ export const CreateCampaignScreen: React.FC<{
     user, 
     createCampaign, 
     unlockCampaignAnalytics,
+    boostCampaignToTop,
     openDeposit, 
     campaigns, 
     showToast,
@@ -1917,19 +1918,43 @@ export const CreateCampaignScreen: React.FC<{
                   const isMarqueeActive = marqueeTickerList.some(m => m.id === camp.id || m.title === camp.title || m.targetUrl === camp.targetUrl);
                   return (
                     <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-white/5 justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {camp.isBoosted ? (
+                          <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-rose-600 to-amber-500 text-white font-mono text-[10px] font-black flex items-center gap-1 shadow-md shadow-rose-600/30 animate-pulse">
+                            🔥 ĐANG Ở TOP 1 TOÀN SÀN
+                          </span>
+                        ) : null}
+
                         {isMarqueeActive ? (
                           <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono font-bold flex items-center gap-1">
                             <Zap className="w-3 h-3 text-amber-400 animate-pulse" />
-                            BẢNG ĐIỆN LED ĐANG CHẠY (TOP TOÀN SÀN)
+                            BẢNG ĐIỆN LED (TOP SÀN)
                           </span>
-                        ) : (
+                        ) : null}
+
+                        {!camp.isBoosted && !isMarqueeActive && (
                           <span className="text-[10px] text-slate-400 font-mono">
-                            Chưa lên Bảng Điện LED
+                            Thứ tự thường (Theo thời gian tạo)
                           </span>
                         )}
                       </div>
-                      <div>
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Nút Đẩy Lên TOP 1 Sàn (100.000 Xu) */}
+                        <button
+                          type="button"
+                          onClick={() => boostCampaignToTop(camp.id)}
+                          className={`px-3 py-1.5 rounded-xl font-black text-[10px] font-mono flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer ${
+                            camp.isBoosted
+                              ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30"
+                              : "bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 hover:from-rose-500 hover:to-purple-500 text-white shadow-rose-600/30 ring-1 ring-white/20"
+                          }`}
+                          title="Bỏ ra 100.000 Xu để đưa chiến dịch lên Top đầu, ưu tiên hiển thị trước và hoàn thành sớm nhất"
+                        >
+                          <Flame className="w-3.5 h-3.5 fill-current text-amber-300" />
+                          <span>{camp.isBoosted ? "🚀 Đã Đẩy Top (Đẩy Tiếp 100K Xu)" : "🚀 Đẩy Lên TOP (100.000 Xu)"}</span>
+                        </button>
+
                         {isMarqueeActive ? (
                           <button
                             type="button"
@@ -1937,18 +1962,18 @@ export const CreateCampaignScreen: React.FC<{
                               const mItem = marqueeTickerList.find(m => m.id === camp.id || m.title === camp.title || m.targetUrl === camp.targetUrl);
                               if (mItem) endMarqueeItem(mItem.id, 'campaign_completed');
                             }}
-                            className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold text-[10px] font-mono transition-colors"
+                            className="px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold text-[10px] font-mono transition-colors"
                           >
-                            ⏹️ Kết Thúc & Lưu Lịch Sử
+                            ⏹️ Kết Thúc LED
                           </button>
                         ) : (
                           <button
                             type="button"
                             onClick={() => boostToMarquee(camp.id, 'campaign')}
-                            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white font-black text-[10px] font-mono flex items-center gap-1 shadow-md shadow-amber-500/20 transition-transform active:scale-95"
+                            className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-black text-[10px] font-mono flex items-center gap-1 transition-transform active:scale-95"
                           >
                             <Zap className="w-3 h-3" />
-                            <span>Đẩy Bảng Điện LED (100.000 Xu)</span>
+                            <span>Đẩy LED (100K Xu)</span>
                           </button>
                         )}
                       </div>

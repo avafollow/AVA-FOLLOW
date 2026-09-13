@@ -15,26 +15,27 @@ export interface ParsedMediaInfo {
   sourceType: 'tiktok_embed' | 'cdn_stream' | 'youtube_embed' | 'facebook_embed' | 'live_stream' | 'direct_stream';
 }
 
-// Kho video CDN chất lượng cao 1080p định dạng MP4/H.264 chạy siêu mượt, không lỗi CORS, tải tức thì (<100ms)
+// Kho video CDN chất lượng cao định dạng MP4/H.264 chạy siêu mượt, không lỗi CORS, tải tức thì (<100ms)
 export const HIGH_SPEED_CDN_VIDEOS = {
   // Video dạng đứng dọc chuẩn TikTok FYP
   fyp: [
-    'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4',
-    'https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_1MB.mp4',
-    'https://test-videos.co.uk/vids/sintel/mp4/h264/1080/Sintel_1080_10s_1MB.mp4',
     'https://vjs.zencdn.net/v/oceans.mp4',
-    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    'https://media.w3.org/2010/05/video/movie_300.mp4',
+    'https://media.w3.org/2010/05/sintel/trailer.mp4'
   ],
   // Phiên Live Stream bán hàng / KOC Studio
   livestream: [
-    'https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_1MB.mp4',
     'https://vjs.zencdn.net/v/oceans.mp4',
-    'https://test-videos.co.uk/vids/sintel/mp4/h264/1080/Sintel_1080_10s_1MB.mp4'
+    'https://media.w3.org/2010/05/video/movie_300.mp4',
+    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    'https://media.w3.org/2010/05/sintel/trailer.mp4'
   ],
   // Review sản phẩm & Affiliate
   product_review: [
-    'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4',
-    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    'https://vjs.zencdn.net/v/oceans.mp4',
+    'https://media.w3.org/2010/05/video/movie_300.mp4'
   ]
 };
 

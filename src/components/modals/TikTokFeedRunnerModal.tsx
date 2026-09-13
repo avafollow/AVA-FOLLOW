@@ -55,6 +55,7 @@ interface UnifiedFeedItem {
   totalSlots?: number;
   remainingSlots?: number;
   isUrgent?: boolean;
+  isBoosted?: boolean;
 }
 
 export const TikTokFeedRunnerModal: React.FC = () => {
@@ -119,10 +120,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     guide: c.instructions || 'Tương tác thật 100% để nhận Xu thưởng vào ví.',
     campaignCategory: 'partner',
     partnerName: 'Chiến Dịch Đang Chạy',
-    partnerBadge: 'Chiến Dịch Thật',
+    partnerBadge: c.isBoosted ? '🔥 TOP 1 TOÀN SÀN' : 'Chiến Dịch Thật',
     totalSlots: c.targetQuantity,
     remainingSlots: Math.max(1, c.targetQuantity - c.completedQuantity),
-    isUrgent: true
+    isUrgent: true,
+    isBoosted: c.isBoosted
   }));
 
   // 2. Build unified feed items combining ALL active campaigns from the website
@@ -198,21 +200,68 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     remainingSlots: 350
   }));
 
-  // Counts for each category
-  const countAll = createdCampaignFeedItems.length + videoFeedItems.length + crossFollowFeedItems.length + liveFeedItems.length;
-  const countMissions = videoFeedItems.length + createdCampaignFeedItems.filter(i => i.kind === 'video').length;
-  const countLive = liveFeedItems.length + createdCampaignFeedItems.filter(i => i.kind === 'livestream').length;
-  const countPartner = createdCampaignFeedItems.length + videoFeedItems.filter(i => i.campaignCategory === 'partner').length;
-  const countCross = crossFollowFeedItems.length;
+  // Hàm loại bỏ hoàn toàn trùng lặp và đẩy TOP 1 lên đầu (Ưu tiên gói đẩy Top 100.000 Xu)
+  const deduplicateAndSortFeed = (items: UnifiedFeedItem[]): UnifiedFeedItem[] => {
+    const seen = new Set<string>();
+    const unique: UnifiedFeedItem[] = [];
 
-  // CHUỖI TOÀN BỘ VIDEO & CHIẾN DỊCH HỆ THỐNG LIÊN KẾT ĐỒNG BỘ
+    for (const item of items) {
+      const normUrl = (item.targetUrl || '').trim().toLowerCase().replace(/\/+$/, '');
+      const normHandle = (item.channelHandle || '').trim().toLowerCase();
+      const dedupKey = normUrl || normHandle || item.id;
+
+      if (!seen.has(dedupKey)) {
+        seen.add(dedupKey);
+        unique.push(item);
+      }
+    }
+
+    return unique.sort((a, b) => {
+      if (a.isBoosted && !b.isBoosted) return -1;
+      if (!a.isBoosted && b.isBoosted) return 1;
+      return 0;
+    });
+  };
+
+  const allFeedDeduplicated = deduplicateAndSortFeed([
+    ...createdCampaignFeedItems,
+    ...videoFeedItems,
+    ...crossFollowFeedItems,
+    ...liveFeedItems
+  ]);
+
+  const missionsFeedDeduplicated = deduplicateAndSortFeed([
+    ...createdCampaignFeedItems.filter(i => i.kind === 'video'),
+    ...videoFeedItems
+  ]);
+
+  const liveFeedDeduplicated = deduplicateAndSortFeed([
+    ...createdCampaignFeedItems.filter(i => i.kind === 'livestream'),
+    ...liveFeedItems
+  ]);
+
+  const partnerFeedDeduplicated = deduplicateAndSortFeed([
+    ...createdCampaignFeedItems,
+    ...videoFeedItems.filter(i => i.campaignCategory === 'partner')
+  ]);
+
+  const crossFeedDeduplicated = deduplicateAndSortFeed(crossFollowFeedItems);
+
+  // CHUỖI TOÀN BỘ VIDEO & CHIẾN DỊCH HỆ THỐNG LIÊN KẾT ĐỒNG BỘ (ĐÃ LỌC SẠCH TRÙNG LẶP & ƯU TIÊN TOP 1)
   const combinedFeed: UnifiedFeedItem[] = 
-    filterMode === 'missions' ? [...createdCampaignFeedItems.filter(i => i.kind === 'video'), ...videoFeedItems] :
-    filterMode === 'live' ? [...createdCampaignFeedItems.filter(i => i.kind === 'livestream'), ...liveFeedItems] :
-    filterMode === 'partner' ? [...createdCampaignFeedItems, ...videoFeedItems.filter(i => i.campaignCategory === 'partner')] :
-    filterMode === 'cross_follow' ? crossFollowFeedItems :
-    filterMode === 'community' ? videoFeedItems.filter(i => i.campaignCategory === 'community') :
-    [...createdCampaignFeedItems, ...videoFeedItems, ...crossFollowFeedItems, ...liveFeedItems];
+    filterMode === 'missions' ? missionsFeedDeduplicated :
+    filterMode === 'live' ? liveFeedDeduplicated :
+    filterMode === 'partner' ? partnerFeedDeduplicated :
+    filterMode === 'cross_follow' ? crossFeedDeduplicated :
+    filterMode === 'community' ? deduplicateAndSortFeed(videoFeedItems.filter(i => i.campaignCategory === 'community')) :
+    allFeedDeduplicated;
+
+  // Counts for each category (chuẩn sau khử trùng lặp)
+  const countAll = allFeedDeduplicated.length;
+  const countMissions = missionsFeedDeduplicated.length;
+  const countLive = liveFeedDeduplicated.length;
+  const countPartner = partnerFeedDeduplicated.length;
+  const countCross = crossFeedDeduplicated.length;
 
   const currentItem = combinedFeed[currentIndex] || combinedFeed[0];
   const currentClaimed = currentItem ? (taskClaimedMap[currentItem.id] || {}) : {};
@@ -303,6 +352,29 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
   }, [timeLeft, isWatchRequired, currentItem, currentClaimed.watch, claimTaskAction]);
 
+  const togglePlay = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!videoRef.current) {
+      setIsPlaying(prev => !prev);
+      return;
+    }
+    if (videoRef.current.paused) {
+      const p = videoRef.current.play();
+      if (p !== undefined) {
+        p.then(() => setIsPlaying(true)).catch(() => {
+          if (videoRef.current) {
+            videoRef.current.muted = true;
+            setIsMuted(true);
+            videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+          }
+        });
+      }
+    } else {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
   // Keyboard navigation (ArrowDown / ArrowUp)
   useEffect(() => {
     if (!isFeedRunnerOpen) return;
@@ -315,7 +387,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         handlePrevItem();
       } else if (e.key === ' ') {
         e.preventDefault();
-        setIsPlaying(prev => !prev);
+        togglePlay();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -548,7 +620,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         <div 
           className="relative flex-1 bg-black flex items-center justify-center select-none overflow-hidden cursor-pointer"
           onDoubleClick={handleDoubleTap}
-          onClick={() => setIsPlaying(!isPlaying)}
+          onClick={togglePlay}
         >
           {/* YouTube Video or Live Player */}
           {(() => {
@@ -589,6 +661,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   preload="auto"
                   crossOrigin="anonymous"
                   muted={isMuted}
+                  onError={() => {
+                    if (videoRef.current && videoRef.current.src !== 'https://vjs.zencdn.net/v/oceans.mp4') {
+                      videoRef.current.src = 'https://vjs.zencdn.net/v/oceans.mp4';
+                      videoRef.current.play().catch(() => {});
+                    }
+                  }}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               );
@@ -610,10 +690,18 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             </div>
           ))}
 
-          {/* Play/Pause Center Indicator */}
+          {/* Play/Pause Center Interactive Button */}
           {!isPlaying && (
-            <div className="absolute z-30 p-4 rounded-full bg-black/60 text-white backdrop-blur-md animate-in zoom-in-50 duration-150 pointer-events-none">
-              <Play className="h-10 w-10 fill-white" />
+            <div 
+              onClick={togglePlay}
+              className="absolute z-30 flex flex-col items-center justify-center p-4 cursor-pointer pointer-events-auto bg-black/40 backdrop-blur-[2px] rounded-3xl"
+            >
+              <div className="p-4 rounded-full bg-rose-600/95 hover:bg-rose-500 text-white backdrop-blur-md animate-in zoom-in-50 duration-150 shadow-2xl border-2 border-white/40 hover:scale-110 active:scale-95 transition-all">
+                <Play className="h-10 w-10 fill-white ml-1" />
+              </div>
+              <span className="mt-2.5 px-3 py-1 rounded-full bg-black/80 text-white text-[10px] font-mono font-bold tracking-wide border border-white/20 shadow-lg">
+                ▶️ BẤM ĐỂ PHÁT TIẾP
+              </span>
             </div>
           )}
 

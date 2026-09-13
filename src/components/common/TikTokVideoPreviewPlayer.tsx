@@ -68,7 +68,6 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   // Phân loại nguồn phát chính xác
   const isYouTube = mediaInfo.isYouTube && Boolean(mediaInfo.youtubeId);
   const isFacebook = mediaInfo.isFacebook && Boolean(url);
-  const isTikTokEmbed = mediaInfo.isTikTok && Boolean(mediaInfo.videoId);
   const isDirectVideo = mediaInfo.isDirectVideo;
 
   // Link đích chính xác của người dùng
@@ -88,7 +87,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
 
   // Đảm bảo video native tự động phát mượt mà
   useEffect(() => {
-    if (videoRef.current && !isYouTube && !isFacebook && !isTikTokEmbed) {
+    if (videoRef.current && !isYouTube && !isFacebook) {
       videoRef.current.defaultMuted = isMuted;
       videoRef.current.muted = isMuted;
       videoRef.current.playsInline = true;
@@ -107,7 +106,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         }
       }
     }
-  }, [currentStream, isMuted, autoPlay, isYouTube, isFacebook, isTikTokEmbed]);
+  }, [currentStream, isMuted, autoPlay, isYouTube, isFacebook]);
 
   const handleVideoError = () => {
     if (currentStream !== 'https://vjs.zencdn.net/v/oceans.mp4') {
@@ -248,18 +247,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             allowFullScreen
             className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
           />
-        ) : isTikTokEmbed && mediaInfo.videoId ? (
-          /* TRƯỜNG HỢP C: TIKTOK OFFICIAL EMBED VIDEO CHUẨN */
-          <iframe
-            key={`tiktok-${mediaInfo.videoId}`}
-            src={`https://www.tiktok.com/embed/v2/${mediaInfo.videoId}`}
-            title={mediaInfo.title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
-          />
         ) : isDirectVideo ? (
-          /* TRƯỜNG HỢP D: DIRECT MP4 / WEBM VIDEO FILE */
+          /* TRƯỜNG HỢP C: DIRECT MP4 / WEBM VIDEO FILE */
           <video
             key={url}
             ref={videoRef}
@@ -272,8 +261,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             className="w-full h-full object-cover bg-black rounded-3xl"
           />
         ) : (
-          /* TRƯỜNG HỢP E: TIKTOK LIVE STREAM & FULL-FRAME NATIVE PLAYER */
-          <div className="relative w-full h-full" onClick={togglePlay}>
+          /* TRƯỜNG HỢP D: TIKTOK VIDEO & LIVE STREAM NATIVE PLAYER SIÊU MƯỢT */
+          <div className="relative w-full h-full cursor-pointer" onClick={togglePlay}>
             <video
               key={currentStream}
               ref={videoRef}
@@ -289,22 +278,32 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
                   videoRef.current.play().catch(() => {});
                 }
               }}
-              className="w-full h-full object-cover transition-opacity duration-300 pointer-events-none"
+              className="w-full h-full object-cover transition-opacity duration-300"
             />
 
             {/* Shimmer / Backdrop Gradient */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/85 pointer-events-none" />
 
-            {/* Center Play/Pause Animated Indicator */}
+            {/* Center Play/Pause Animated & Interactive Button */}
             {(!isPlaying || showPlayAnim) && (
-              <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none transition-all">
-                <div className="w-16 h-16 rounded-full bg-black/75 border border-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-2xl transform scale-100 transition-transform">
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-auto bg-black/30 backdrop-blur-[1px] transition-all">
+                <button
+                  type="button"
+                  onClick={togglePlay}
+                  className="w-16 h-16 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-2xl transition-all cursor-pointer transform hover:scale-110 active:scale-95 border-2 border-white/40"
+                  title={isPlaying ? 'Tạm dừng' : 'Bấm để phát video'}
+                >
                   {isPlaying ? (
                     <Pause className="w-8 h-8 fill-white text-white" />
                   ) : (
                     <Play className="w-8 h-8 fill-white ml-1 text-white" />
                   )}
-                </div>
+                </button>
+                {!isPlaying && (
+                  <span className="mt-2.5 px-3 py-1 rounded-full bg-black/80 text-white text-[10px] font-mono font-bold tracking-wide border border-white/20 shadow-lg">
+                    ▶️ BẤM ĐỂ XEM VIDEO
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -356,7 +355,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
       </div>
 
       {/* 3. RIGHT ACTION BUTTONS (Hiển thị khi ở chế độ native / livestream hoặc khi cần tương tác) */}
-      {(!isYouTube && !isFacebook && !isTikTokEmbed) && (
+      {(!isYouTube && !isFacebook) && (
         <div className="absolute right-3 bottom-20 z-20 flex flex-col items-center gap-3.5 pointer-events-auto">
           {/* Creator Avatar & Follow Button */}
           <div className="relative mb-1">
@@ -447,7 +446,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
       )}
 
       {/* 4. BOTTOM INFO OVERLAY (Dành cho Native & Livestream Player) */}
-      {(!isYouTube && !isFacebook && !isTikTokEmbed) && (
+      {(!isYouTube && !isFacebook) && (
         <div className="absolute bottom-3 left-3 right-16 z-20 pointer-events-none space-y-2">
           {/* Creator Handle */}
           <div 

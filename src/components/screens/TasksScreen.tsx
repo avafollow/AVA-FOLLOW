@@ -197,6 +197,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
       durationBadge: isLive ? 'TRỰC TIẾP' : '15 GIÂY',
       remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0)),
       isRealCampaign: true,
+      isBoosted: c.isBoosted,
       targetUrl: c.targetUrl
     };
   });
@@ -215,6 +216,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
     durationBadge: t.type === 'watch' ? '15 GIÂY' : 'NHẬN XU',
     remainingSlots: t.remainingSlots || 50,
     isRealCampaign: false,
+    isBoosted: false,
     targetUrl: t.targetUrl
   }));
 
@@ -232,6 +234,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
     durationBadge: `${l.targetMinutes || 3} PHÚT`,
     remainingSlots: 350,
     isRealCampaign: false,
+    isBoosted: false,
     targetUrl: l.targetUrl
   }));
 
@@ -249,16 +252,42 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
     durationBadge: 'CHÉO KÊNH',
     remainingSlots: Math.max(10, (cf.followersCount || 1000) - (cf.completedByUsersCount || 0)),
     isRealCampaign: false,
+    isBoosted: false,
     targetUrl: cf.targetUrl
   }));
 
-  // Unified all feed cards
-  const allUnifiedCards = [
+  // Hàm khử trùng lặp triệt để và sắp xếp: Đẩy TOP 1 (100.000 Xu) lên đầu tiên
+  const deduplicateAndSortCards = <T extends { targetUrl?: string; channelHandle?: string; id: string; isBoosted?: boolean; isRealCampaign?: boolean }>(cards: T[]): T[] => {
+    const seen = new Set<string>();
+    const unique: T[] = [];
+
+    for (const card of cards) {
+      const normUrl = (card.targetUrl || '').trim().toLowerCase().replace(/\/+$/, '');
+      const normHandle = (card.channelHandle || '').trim().toLowerCase();
+      const dedupKey = normUrl || normHandle || card.id;
+
+      if (!seen.has(dedupKey)) {
+        seen.add(dedupKey);
+        unique.push(card);
+      }
+    }
+
+    return unique.sort((a, b) => {
+      if (a.isBoosted && !b.isBoosted) return -1;
+      if (!a.isBoosted && b.isBoosted) return 1;
+      if (a.isRealCampaign && !b.isRealCampaign) return -1;
+      if (!a.isRealCampaign && b.isRealCampaign) return 1;
+      return 0;
+    });
+  };
+
+  // Unified all feed cards (Đã khử trùng lặp và đẩy TOP 1 lên đầu)
+  const allUnifiedCards = deduplicateAndSortCards([
     ...createdFeedCards,
     ...missionFeedCards,
     ...liveFeedCards,
     ...crossFeedCards
-  ];
+  ]);
 
   // Counts for watch_feed categories
   const feedCountAll = allUnifiedCards.length;
@@ -856,11 +885,15 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
                       <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-rose-600 text-white font-mono text-[10px] font-black shadow">
                         +{card.rewardXu.toLocaleString()} XU
                       </div>
-                      {card.isRealCampaign && (
+                      {card.isBoosted ? (
+                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-gradient-to-r from-amber-400 to-rose-500 text-black font-mono text-[9px] font-black shadow animate-pulse flex items-center gap-1">
+                          <span>🔥 TOP 1 TOÀN SÀN</span>
+                        </div>
+                      ) : card.isRealCampaign ? (
                         <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-amber-500 text-black font-mono text-[9px] font-black shadow">
                           THẬT 100%
                         </div>
-                      )}
+                      ) : null}
                     </div>
 
                     {/* Task type badge */}

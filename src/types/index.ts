@@ -702,6 +702,9 @@ export interface CampaignItem {
   videoPreviewUrl?: string;
   demographicsReport?: CampaignDemographicsReport;
   isAnalyticsUnlocked?: boolean; // True nếu người dùng đã trả 200,000 Xu để xem phân tích chi tiết
+  isBoosted?: boolean; // True nếu chiến dịch được đẩy lên Top sàn (100.000 Xu)
+  boostedAt?: string; // Thời điểm đẩy Top
+  boostCount?: number; // Số lần đẩy Top
 }
 
 // Bảng khung hình phạt & chế tài xử lý vi phạm hợp đồng KOC Escrow

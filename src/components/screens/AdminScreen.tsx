@@ -52,10 +52,14 @@ import {
   Calendar,
   UserPlus,
   Play,
-  Camera
+  Camera,
+  Save,
+  Phone,
+  Mail,
+  User
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
-import { AdminUserManagementItem, GrowthServiceItem, SoftwareAppItem } from '../../types';
+import { AdminUserManagementItem, GrowthServiceItem, SoftwareAppItem, ServiceOrder } from '../../types';
 import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
 import { BrandLogo } from '../common/BrandLogo';
 import { MISSION_POOL, RANK_MISSION_CONFIG } from '../../data/weeklyMissions';
@@ -72,6 +76,11 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     adminGrantPackage,
     adminAdjustUserFollowers,
     adminChangeUserRank,
+    adminAddUser,
+    adminUpdateUser,
+    adminDeleteUser,
+    adminUpdateGrantedOrder,
+    adminDeleteGrantedOrder,
     escrowBookings,
     adminResolveDispute,
     adminEnforceKocPenalty,
@@ -127,17 +136,46 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
   // States for Dedicated Grant Permissions Tab
   const [selectedGrantUserId, setSelectedGrantUserId] = useState<string>(adminUsers[0]?.id || '');
+  const [userSelectMode, setUserSelectMode] = useState<'list' | 'input'>('list');
+  const [inputAccountGmail, setInputAccountGmail] = useState<string>('');
   const [grantCategoryFilter, setGrantCategoryFilter] = useState<string>('all');
   const [grantSearchPackage, setGrantSearchPackage] = useState<string>('');
   const [grantSuccessNotice, setGrantSuccessNotice] = useState<string | null>(null);
   const [customCoinInput, setCustomCoinInput] = useState<string>('50000');
   const [customFollowerInput, setCustomFollowerInput] = useState<string>('1000');
+  const [coinActionType, setCoinActionType] = useState<'add' | 'subtract' | 'set'>('add');
+
+  // Modals for Edit User & Add User
+  const [editUserModalOpen, setEditUserModalOpen] = useState<boolean>(false);
+  const [editingUser, setEditingUser] = useState<AdminUserManagementItem | null>(null);
+  
+  const [addUserModalOpen, setAddUserModalOpen] = useState<boolean>(false);
+  const [newUserEmail, setNewUserEmail] = useState<string>('');
+  const [newUserName, setNewUserName] = useState<string>('');
+  const [newUserPhone, setNewUserPhone] = useState<string>('');
+  const [newUserHandle, setNewUserHandle] = useState<string>('');
+  const [newUserRank, setNewUserRank] = useState<'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương'>('Đồng');
+  const [newUserCoins, setNewUserCoins] = useState<number>(50000);
+
+  // Edit Granted Order Modal
+  const [editOrderModalOpen, setEditOrderModalOpen] = useState<boolean>(false);
+  const [editingOrderUser, setEditingOrderUser] = useState<AdminUserManagementItem | null>(null);
+  const [editingOrderData, setEditingOrderData] = useState<ServiceOrder | null>(null);
+
+  // Edit Staff Modal
+  const [editStaffModalOpen, setEditStaffModalOpen] = useState<boolean>(false);
+  const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
+  const [editingStaffName, setEditingStaffName] = useState<string>('');
+  const [editingStaffEmail, setEditingStaffEmail] = useState<string>('');
+  const [editingStaffRole, setEditingStaffRole] = useState<string>('customer_support');
+  const [editingStaffDept, setEditingStaffDept] = useState<string>('');
 
   // Commission settings form states
   const [affiliateRate, setAffiliateRate] = useState(commissionSettings.affiliateRatePercent);
   const [escrowFee, setEscrowFee] = useState(commissionSettings.escrowFeePercent);
   const [taskPoolRate, setTaskPoolRate] = useState(commissionSettings.taskRewardPoolPercent);
   const [isSavedSettings, setIsSavedSettings] = useState(false);
+
 
   // Staff Roles state
   const [staffList, setStaffList] = useState([
@@ -227,7 +265,17 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     showToast('❌ Đã từ chối lệnh rút tiền và hoàn Xu về ví thành viên.');
   };
 
-  const activeGrantUser = adminUsers.find(u => u.id === selectedGrantUserId) || adminUsers[0];
+  const matchedInputUser = inputAccountGmail.trim()
+    ? adminUsers.find(u => 
+        u.email.toLowerCase() === inputAccountGmail.trim().toLowerCase() ||
+        u.handle.toLowerCase() === inputAccountGmail.trim().replace(/^@/, '').toLowerCase() ||
+        (u.tiktokConnected && u.tiktokConnected.toLowerCase() === inputAccountGmail.trim().toLowerCase())
+      )
+    : null;
+
+  const activeGrantUser = userSelectMode === 'input' && matchedInputUser
+    ? matchedInputUser
+    : (adminUsers.find(u => u.id === selectedGrantUserId) || adminUsers[0]);
 
   const filteredGrantPackages = growthServices.filter(pkg => {
     if (grantCategoryFilter !== 'all' && pkg.category !== grantCategoryFilter) return false;
@@ -1031,18 +1079,17 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center gap-2">
                     <Key className="w-4 h-4 text-neonGold" />
-                    Trung Tâm Cấp Quyền & Phân Phối Gói Dịch Vụ Qua Gmail (Super Dispatcher)
+                    Trung Tâm Cấp Quyền &amp; Phân Phối Gói Dịch Vụ Qua Gmail (Super Dispatcher)
                   </h3>
                   <FeatureGuideTooltip
-                    title="Cấp Quyền & Phân Phối Gói Dịch Vụ Admin"
+                    title="Cấp Quyền &amp; Phân Phối Gói Dịch Vụ Admin"
                     description="Công cụ tối cao giúp Quản trị viên cấp quyền trực tiếp cho bất kỳ tài khoản nào thông qua địa chỉ Gmail: Cấp gói dịch vụ miễn phí, nâng hạ hạng VIP, cộng/trừ Xu và bơm follower."
                     steps={[
-                      "1. Chọn tài khoản Gmail của người dùng cần can thiệp",
-                      "2. Cấp Gói Dịch Vụ: Bấm 'Cấp Gói Miễn Phí' tại bất kỳ gói nào trong 24 siêu phẩm để tạo đơn chạy ngay lập tức",
-                      "3. Điều chỉnh Xu: Bấm các mốc +10k, +50k, +200k, +1M hoặc nhập số Xu tùy ý",
+                      "1. Chọn tài khoản có sẵn hoặc nhập trực tiếp địa chỉ Gmail để cấp",
+                      "2. Cấp Gói Dịch Vụ: Bấm 'Cấp Gói Miễn Phí' tại bất kỳ gói nào trong 24 siêu phẩm để tạo đơn chạy ngay",
+                      "3. Điều chỉnh Xu: Bấm các mốc +10k, +50k, +200k, +1M hoặc nhập số Xu tùy ý (Cộng / Trừ / Đặt số dư)",
                       "4. Bơm Follow Kênh TikTok: Bấm +500, +1k, +5k, +10k follow để cập nhật chỉ số kênh",
-                      "5. Nâng Hạng VIP: Luân chuyển cấp bậc Đồng > Bạc > Vàng > Kim Cương",
-                      "6. Khóa / Mở Khóa: Ngăn chặn tài khoản có dấu hiệu gian lận"
+                      "5. Quản Lý Gói Đã Cấp: Có đầy đủ nút Sửa tiến độ/số lượng, Xóa gói và Lưu lại"
                     ]}
                     tips="Gói được Admin cấp miễn phí sẽ được gắn cờ Admin Grant và không bị trừ bất kỳ khoản phí nào từ tài khoản người nhận."
                     badge="Đặc Quyền Tối Cao"
@@ -1062,117 +1109,235 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               )}
             </div>
 
-            {/* User Target Selector */}
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <label className="text-xs font-bold text-white flex items-center gap-2">
+            {/* User Target Selector - Dual Mode (Chọn sẵn vs Nhập Gmail) */}
+            <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-inner">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+                <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-purple-400" />
-                  <span>Chọn Tài Khoản Gmail Cần Thao Tác Cấp Quyền:</span>
-                </label>
+                  <span className="text-xs font-bold text-white uppercase font-mono">
+                    Phương Thức Chỉ Định Tài Khoản Cấp Quyền:
+                  </span>
+                </div>
 
-                <select
-                  value={selectedGrantUserId}
-                  onChange={(e) => setSelectedGrantUserId(e.target.value)}
-                  className="bg-slate-800 border border-slate-700 text-white font-mono text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-purple-500 w-full sm:w-80"
-                >
-                  {adminUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.email} ({u.name} - Hạng {u.rankLevel})
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center bg-black/60 p-1 rounded-xl border border-white/10 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setUserSelectMode('list')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all flex items-center gap-1.5 ${
+                      userSelectMode === 'list'
+                        ? 'bg-purple-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>📋 Chọn Từ Danh Sách ({adminUsers.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUserSelectMode('input')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all flex items-center gap-1.5 ${
+                      userSelectMode === 'input'
+                        ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>⌨️ Nhập Gmail / Handle</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Active Selected User Card */}
-              {activeGrantUser && (
-                <div className="p-4 rounded-2xl bg-slate-800/60 border border-purple-500/30 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
-                  
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={activeGrantUser.avatar} 
-                      alt="" 
-                      className="w-12 h-12 rounded-2xl object-cover ring-2 ring-purple-500/50" 
-                    />
-                    <div>
-                      <div className="font-bold text-white text-sm">{activeGrantUser.name}</div>
-                      <div className="text-xs text-cyan-400 font-mono">{activeGrantUser.email}</div>
-                      <div className="text-[11px] text-slate-400">{activeGrantUser.tiktokConnected || `@${activeGrantUser.handle}`}</div>
+              {/* Mode 1: Select dropdown */}
+              {userSelectMode === 'list' ? (
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <span className="text-xs text-slate-300 font-mono shrink-0">Chọn người dùng:</span>
+                  <select
+                    value={selectedGrantUserId}
+                    onChange={(e) => setSelectedGrantUserId(e.target.value)}
+                    className="bg-slate-800 border border-slate-700 text-white font-mono text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-purple-500 w-full sm:flex-1"
+                  >
+                    {adminUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.email} — {u.name} (Hạng {u.rankLevel} • {u.coinsBalance.toLocaleString()} Xu • @{u.handle})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                /* Mode 2: Direct Gmail input */
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <div className="relative flex-1 w-full">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Nhập địa chỉ Gmail (VD: user@gmail.com) hoặc @tiktok_handle..."
+                        value={inputAccountGmail}
+                        onChange={(e) => setInputAccountGmail(e.target.value)}
+                        className="w-full bg-black/60 border border-purple-500/40 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-purple-400"
+                      />
                     </div>
-                  </div>
 
-                  <div className="space-y-1 font-mono text-xs">
-                    <div className="text-slate-400">Hạng VIP Hiện Tại:</div>
-                    <button
-                      onClick={() => {
-                        const ranks: ('Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương')[] = ['Đồng', 'Bạc', 'Vàng', 'Kim Cương'];
-                        const nextIdx = (ranks.indexOf(activeGrantUser.rankLevel) + 1) % ranks.length;
-                        adminChangeUserRank(activeGrantUser.id, ranks[nextIdx]);
-                        setGrantSuccessNotice(`Đã đổi hạng ${activeGrantUser.name} thành ${ranks[nextIdx]}!`);
-                        setTimeout(() => setGrantSuccessNotice(null), 3000);
-                      }}
-                      className="px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 hover:bg-amber-500/30 transition-colors flex items-center gap-1.5"
-                    >
-                      <Award className="w-3.5 h-3.5 text-neonGold" />
-                      <span>{activeGrantUser.rankLevel} (Bấm Để Đổi)</span>
-                    </button>
-                  </div>
-
-                  <div className="space-y-1 font-mono text-xs">
-                    <div className="text-slate-400">Số Dư Xu / Follower:</div>
-                    <div className="text-amber-400 font-bold">{activeGrantUser.coinsBalance.toLocaleString()} Xu</div>
-                    <div className="text-emerald-400 font-bold">{activeGrantUser.tiktokFollowers.toLocaleString()} Follower</div>
-                  </div>
-
-                  <div className="space-y-1 text-xs">
-                    <div className="text-slate-400">Trạng Thái Tài Khoản:</div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                        activeGrantUser.status === 'active'
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                      }`}>
-                        {activeGrantUser.status === 'active' ? '✓ Đang hoạt động' : '✕ Đang bị khóa'}
-                      </span>
+                    {!matchedInputUser && inputAccountGmail.trim().length > 3 && (
                       <button
+                        type="button"
+                        onClick={() => {
+                          const created = adminAddUser({ email: inputAccountGmail.trim() });
+                          setSelectedGrantUserId(created.id);
+                          setUserSelectMode('list');
+                          setGrantSuccessNotice(`✅ Đã tạo mới & chọn tài khoản ${created.email}!`);
+                          setTimeout(() => setGrantSuccessNotice(null), 3000);
+                        }}
+                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold font-mono shrink-0 shadow-lg flex items-center gap-1.5"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        <span>Tạo &amp; Cấp Ngay Cho Gmail Này</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {matchedInputUser ? (
+                    <div className="text-[11px] text-emerald-400 font-mono flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Đã tìm thấy tài khoản trong hệ thống: <strong>{matchedInputUser.name}</strong> ({matchedInputUser.email})</span>
+                    </div>
+                  ) : inputAccountGmail.trim() ? (
+                    <div className="text-[11px] text-amber-300 font-mono flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span>Gmail này chưa có trong danh sách. Nhấn &quot;Tạo &amp; Cấp Ngay&quot; để thêm tài khoản vào hệ thống.</span>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              {/* Active Selected User Card with Edit / Delete / Save Actions */}
+              {activeGrantUser && (
+                <div className="p-4 rounded-2xl bg-slate-800/80 border border-purple-500/40 space-y-3 shadow-lg">
+                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                    
+                    {/* Avatar & Identifiers */}
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={activeGrantUser.avatar} 
+                        alt="" 
+                        className="w-12 h-12 rounded-2xl object-cover ring-2 ring-purple-500/50 shrink-0" 
+                      />
+                      <div>
+                        <div className="font-bold text-white text-sm flex items-center gap-1.5">
+                          <span>{activeGrantUser.name}</span>
+                          <span className="text-[10px] px-2 py-0.2 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono">
+                            ID: {activeGrantUser.id}
+                          </span>
+                        </div>
+                        <div className="text-xs text-cyan-400 font-mono">{activeGrantUser.email}</div>
+                        <div className="text-[11px] text-slate-400 font-mono">
+                          TikTok: <strong className="text-rose-400">{activeGrantUser.tiktokConnected || `@${activeGrantUser.handle}`}</strong> • SĐT: {activeGrantUser.phone || '0988888888'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-3 font-mono text-xs w-full lg:w-auto">
+                      <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
+                        <div className="text-[10px] text-slate-400">Hạng VIP</div>
+                        <div className="text-amber-300 font-bold">{activeGrantUser.rankLevel}</div>
+                      </div>
+                      <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
+                        <div className="text-[10px] text-slate-400">Số Dư Xu</div>
+                        <div className="text-amber-400 font-bold">{activeGrantUser.coinsBalance.toLocaleString()}</div>
+                      </div>
+                      <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
+                        <div className="text-[10px] text-slate-400">Followers</div>
+                        <div className="text-emerald-400 font-bold">{activeGrantUser.tiktokFollowers.toLocaleString()}</div>
+                      </div>
+                    </div>
+
+                    {/* Actions: Edit, Delete, Save */}
+                    <div className="flex items-center gap-2 w-full lg:w-auto justify-end border-t lg:border-t-0 pt-2 lg:pt-0 border-white/5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingUser(activeGrantUser);
+                          setEditUserModalOpen(true);
+                        }}
+                        className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition-all"
+                        title="Chỉnh sửa thông tin tài khoản này"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Sửa Hồ Sơ</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => {
                           adminToggleUserStatus(activeGrantUser.id);
                           setGrantSuccessNotice(`Đã chuyển trạng thái tài khoản ${activeGrantUser.name}!`);
                           setTimeout(() => setGrantSuccessNotice(null), 3000);
                         }}
-                        className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-[10px] font-bold text-white transition-colors"
+                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                          activeGrantUser.status === 'active'
+                            ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                            : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                        }`}
                       >
-                        {activeGrantUser.status === 'active' ? 'Khóa' : 'Mở Khóa'}
+                        {activeGrantUser.status === 'active' ? 'Khóa Tài Khoản' : 'Mở Khóa'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Bạn có chắc chắn muốn xóa tài khoản "${activeGrantUser.name}" (${activeGrantUser.email}) khỏi hệ thống?`)) {
+                            adminDeleteUser(activeGrantUser.id);
+                            setSelectedGrantUserId(adminUsers[0]?.id || '');
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 transition-colors"
+                        title="Xóa tài khoản này khỏi hệ thống"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                  </div>
 
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Direct Instant Parameter Adjustments (Xu & Follower) */}
+            {/* Direct Instant Parameter Adjustments (Xu, Follower & VIP Rank) */}
             {activeGrantUser && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 
-                {/* Adjust Coins Panel */}
-                <div className="p-4 rounded-2xl bg-slate-900 border border-amber-500/30 space-y-3">
+                {/* 1. Adjust Coins Panel */}
+                <div className="p-4 rounded-2xl bg-slate-900 border border-amber-500/30 space-y-3 shadow-lg">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-white uppercase font-mono flex items-center gap-2">
                       <Coins className="w-4 h-4 text-amber-400" />
-                      Điều Chỉnh Số Dư Xu Thưởng (Hiện Có: {activeGrantUser.coinsBalance.toLocaleString()} Xu)
+                      Cấp Xu Thưởng ({activeGrantUser.coinsBalance.toLocaleString()} Xu)
                     </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Đặt số dư Xu của ${activeGrantUser.name} về 0?`)) {
+                          adminUpdateUser(activeGrantUser.id, { coinsBalance: 0 });
+                          setGrantSuccessNotice(`Đã đặt số dư của ${activeGrantUser.name} về 0 Xu!`);
+                          setTimeout(() => setGrantSuccessNotice(null), 3000);
+                        }
+                      }}
+                      className="text-[10px] text-rose-400 hover:underline font-mono"
+                    >
+                      Reset về 0
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2 text-xs font-mono">
+                  {/* Quick grant presets */}
+                  <div className="grid grid-cols-4 gap-1.5 text-[11px] font-mono">
                     <button
                       onClick={() => {
                         adminAdjustUserCoins(activeGrantUser.id, 10000);
                         setGrantSuccessNotice(`Đã cộng +10,000 Xu cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
-                      className="py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold border border-amber-500/20"
+                      className="py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold border border-amber-500/20 transition-all"
                     >
-                      +10,000 Xu
+                      +10k
                     </button>
                     <button
                       onClick={() => {
@@ -1180,9 +1345,9 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         setGrantSuccessNotice(`Đã cộng +50,000 Xu cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
-                      className="py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold border border-amber-500/20"
+                      className="py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold border border-amber-500/20 transition-all"
                     >
-                      +50,000 Xu
+                      +50k
                     </button>
                     <button
                       onClick={() => {
@@ -1190,9 +1355,9 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         setGrantSuccessNotice(`Đã cộng +200,000 Xu cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
-                      className="py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold border border-amber-500/20"
+                      className="py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold border border-amber-500/20 transition-all"
                     >
-                      +200,000 Xu
+                      +200k
                     </button>
                     <button
                       onClick={() => {
@@ -1200,55 +1365,89 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         setGrantSuccessNotice(`Đã cộng +1,000,000 Xu cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
-                      className="py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-black border border-amber-500/40"
+                      className="py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40 transition-all"
                     >
-                      +1,000,000 Xu
+                      +1M
                     </button>
                   </div>
 
-                  <div className="flex gap-2 pt-1">
-                    <input
-                      type="number"
-                      placeholder="Nhập số Xu tùy ý (VD: 150000 hoặc -50000)"
-                      value={customCoinInput}
-                      onChange={(e) => setCustomCoinInput(e.target.value)}
-                      className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
-                    />
-                    <button
-                      onClick={() => {
-                        const amt = parseInt(customCoinInput, 10);
-                        if (!isNaN(amt)) {
-                          adminAdjustUserCoins(activeGrantUser.id, amt);
-                          setGrantSuccessNotice(`Đã cập nhật ${amt > 0 ? '+' : ''}${amt.toLocaleString()} Xu cho ${activeGrantUser.name}!`);
-                          setTimeout(() => setGrantSuccessNotice(null), 3000);
-                        }
-                      }}
-                      className="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs transition-colors"
-                    >
-                      Áp Dụng
-                    </button>
+                  {/* Custom Amount Action (Add / Subtract / Set) */}
+                  <div className="space-y-2 pt-1 border-t border-white/5">
+                    <div className="flex rounded-lg bg-black/40 p-0.5 border border-white/10 text-[10px] font-mono">
+                      <button
+                        type="button"
+                        onClick={() => setCoinActionType('add')}
+                        className={`flex-1 py-1 rounded font-bold transition-all ${coinActionType === 'add' ? 'bg-amber-500 text-black' : 'text-slate-400'}`}
+                      >
+                        + Cộng
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCoinActionType('subtract')}
+                        className={`flex-1 py-1 rounded font-bold transition-all ${coinActionType === 'subtract' ? 'bg-rose-500 text-white' : 'text-slate-400'}`}
+                      >
+                        - Trừ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCoinActionType('set')}
+                        className={`flex-1 py-1 rounded font-bold transition-all ${coinActionType === 'set' ? 'bg-purple-600 text-white' : 'text-slate-400'}`}
+                      >
+                        = Đặt Số Dư
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Số Xu..."
+                        value={customCoinInput}
+                        onChange={(e) => setCustomCoinInput(e.target.value)}
+                        className="flex-1 bg-black/50 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const amt = parseInt(customCoinInput, 10);
+                          if (!isNaN(amt)) {
+                            if (coinActionType === 'add') {
+                              adminAdjustUserCoins(activeGrantUser.id, amt);
+                            } else if (coinActionType === 'subtract') {
+                              adminAdjustUserCoins(activeGrantUser.id, -Math.abs(amt));
+                            } else {
+                              adminUpdateUser(activeGrantUser.id, { coinsBalance: Math.max(0, amt) });
+                            }
+                            setGrantSuccessNotice(`Đã cập nhật số dư Xu cho ${activeGrantUser.name}!`);
+                            setTimeout(() => setGrantSuccessNotice(null), 3000);
+                          }
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs font-mono transition-colors shadow"
+                      >
+                        Lưu Xu
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Adjust Followers Panel */}
-                <div className="p-4 rounded-2xl bg-slate-900 border border-emerald-500/30 space-y-3">
+                {/* 2. Adjust Followers Panel */}
+                <div className="p-4 rounded-2xl bg-slate-900 border border-emerald-500/30 space-y-3 shadow-lg">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-white uppercase font-mono flex items-center gap-2">
                       <Users className="w-4 h-4 text-emerald-400" />
-                      Bơm Follow Kênh TikTok (Hiện Có: {activeGrantUser.tiktokFollowers.toLocaleString()} Follower)
+                      Bơm Follow TikTok ({activeGrantUser.tiktokFollowers.toLocaleString()} Follower)
                     </h4>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2 text-xs font-mono">
+                  <div className="grid grid-cols-4 gap-1.5 text-[11px] font-mono">
                     <button
                       onClick={() => {
                         adminAdjustUserFollowers(activeGrantUser.id, 500);
                         setGrantSuccessNotice(`Đã bơm +500 Follower cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
-                      className="py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/20"
+                      className="py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/20"
                     >
-                      +500 Follow
+                      +500
                     </button>
                     <button
                       onClick={() => {
@@ -1256,9 +1455,9 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         setGrantSuccessNotice(`Đã bơm +1,000 Follower cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
-                      className="py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/20"
+                      className="py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/20"
                     >
-                      +1,000 Follow
+                      +1,000
                     </button>
                     <button
                       onClick={() => {
@@ -1266,9 +1465,9 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         setGrantSuccessNotice(`Đã bơm +5,000 Follower cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
-                      className="py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/20"
+                      className="py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/20"
                     >
-                      +5,000 Follow
+                      +5,000
                     </button>
                     <button
                       onClick={() => {
@@ -1276,19 +1475,19 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         setGrantSuccessNotice(`Đã bơm +10,000 Follower cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
-                      className="py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-black border border-emerald-500/40"
+                      className="py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold border border-emerald-500/40"
                     >
-                      +10,000 Follow
+                      +10,000
                     </button>
                   </div>
 
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex gap-2 pt-1 border-t border-white/5">
                     <input
                       type="number"
-                      placeholder="Nhập số Follow tùy ý (VD: 2500 hoặc 50000)"
+                      placeholder="Số Follow tùy ý..."
                       value={customFollowerInput}
                       onChange={(e) => setCustomFollowerInput(e.target.value)}
-                      className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                      className="flex-1 bg-black/50 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
                     />
                     <button
                       onClick={() => {
@@ -1299,16 +1498,166 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                           setTimeout(() => setGrantSuccessNotice(null), 3000);
                         }
                       }}
-                      className="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs transition-colors"
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs font-mono transition-colors shadow"
                     >
-                      Áp Dụng
+                      Lưu Follow
                     </button>
                   </div>
+                </div>
+
+                {/* 3. VIP Rank Selector Panel */}
+                <div className="p-4 rounded-2xl bg-slate-900 border border-purple-500/30 space-y-3 shadow-lg">
+                  <h4 className="text-xs font-bold text-white uppercase font-mono flex items-center gap-2">
+                    <Award className="w-4 h-4 text-neonGold" />
+                    Cấp Bậc VIP (Hiện tại: {activeGrantUser.rankLevel})
+                  </h4>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                    {(['Đồng', 'Bạc', 'Vàng', 'Kim Cương'] as const).map(rk => (
+                      <button
+                        key={rk}
+                        type="button"
+                        onClick={() => {
+                          adminChangeUserRank(activeGrantUser.id, rk);
+                          setGrantSuccessNotice(`Đã đổi hạng của ${activeGrantUser.name} sang ${rk}!`);
+                          setTimeout(() => setGrantSuccessNotice(null), 3000);
+                        }}
+                        className={`py-2 px-2.5 rounded-xl font-bold transition-all border flex items-center justify-center gap-1.5 ${
+                          activeGrantUser.rankLevel === rk
+                            ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-black border-amber-400 shadow-md scale-105'
+                            : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
+                        }`}
+                      >
+                        <Award className="w-3.5 h-3.5" />
+                        <span>{rk}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 font-mono text-center pt-1 border-t border-white/5">
+                    Hạng cao hơn mở rộng hạn mức rút tiền &amp; nhân hệ số Xu thưởng nhiệm vụ
+                  </p>
                 </div>
 
               </div>
             )}
           </div>
+
+          {/* Danh Sách Gói Dịch Vụ Đang Chạy / Đã Cấp Của Người Dùng Này */}
+          {activeGrantUser && (
+            <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center gap-2">
+                    <CheckSquare className="w-4 h-4 text-cyan-400" />
+                    Gói Dịch Vụ Đã Cấp Cho {activeGrantUser.name} ({activeGrantUser.orders?.length || 0} Đơn)
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Quản lý, chỉnh sửa tiến độ, URL phân phối hoặc xóa/hủy gói đã cấp cho tài khoản này
+                  </p>
+                </div>
+
+                <span className="text-xs font-mono text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-xl border border-cyan-500/30">
+                  {activeGrantUser.email}
+                </span>
+              </div>
+
+              {activeGrantUser.orders && activeGrantUser.orders.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-mono">
+                    <thead className="bg-white/5 text-slate-400 uppercase text-[10px]">
+                      <tr>
+                        <th className="p-3">Mã Đơn / Gói Dịch Vụ</th>
+                        <th className="p-3">Số Lượng Mục Tiêu</th>
+                        <th className="p-3">Tiến Độ Hoàn Thành</th>
+                        <th className="p-3">Link Phân Phối</th>
+                        <th className="p-3 text-center">Trạng Thái</th>
+                        <th className="p-3 text-center">Thao Tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 text-slate-300">
+                      {activeGrantUser.orders.map((ord) => {
+                        const progressPct = Math.min(100, Math.round(((ord.completedQuantity || 0) / Math.max(1, ord.targetQuantity)) * 100));
+                        return (
+                          <tr key={ord.id} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="p-3">
+                              <div className="font-bold text-white">{ord.packageTitle}</div>
+                              <div className="text-[10px] text-slate-500">Mã: {ord.id} • {ord.createdAt}</div>
+                            </td>
+                            <td className="p-3 font-bold text-emerald-400">
+                              +{ord.targetQuantity.toLocaleString()} lượt
+                            </td>
+                            <td className="p-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between text-[10px]">
+                                  <span>{ord.completedQuantity.toLocaleString()} / {ord.targetQuantity.toLocaleString()}</span>
+                                  <span className="font-bold text-cyan-400">{progressPct}%</span>
+                                </div>
+                                <div className="w-28 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-all"
+                                    style={{ width: `${progressPct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3 text-cyan-300 truncate max-w-[180px]">
+                              {ord.targetUrl}
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                                ord.status === 'completed'
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                  : ord.status === 'running'
+                                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                              }`}>
+                                {ord.status === 'completed' ? '✓ Đã xong' : ord.status === 'running' ? '● Đang chạy' : '○ Tạm ngưng'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingOrderUser(activeGrantUser);
+                                    setEditingOrderData(ord);
+                                    setEditOrderModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                                  title="Chỉnh sửa tiến độ hoặc thông tin gói này"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                  <span>Sửa</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(`Xóa gói dịch vụ "${ord.packageTitle}" của ${activeGrantUser.name}?`)) {
+                                      adminDeleteGrantedOrder(activeGrantUser.id, ord.id);
+                                    }
+                                  }}
+                                  className="p-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 transition-colors cursor-pointer"
+                                  title="Xóa gói dịch vụ này"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-6 rounded-2xl bg-black/40 border border-white/5 text-center text-xs text-slate-400 font-mono space-y-1">
+                  <div>Tài khoản này chưa có gói dịch vụ nào đang chạy.</div>
+                  <div className="text-[11px] text-purple-400">Chọn một trong 24 gói tăng trưởng bên dưới để cấp miễn phí ngay lập tức.</div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 24 Growth Services Dispatcher Grid */}
           <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-5 shadow-xl">
@@ -1332,18 +1681,18 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     placeholder="Tìm tên gói, mô tả..."
                     value={grantSearchPackage}
                     onChange={(e) => setGrantSearchPackage(e.target.value)}
-                    className="bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 w-48"
+                    className="bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 w-48 font-mono"
                   />
                 </div>
 
                 <select
                   value={grantCategoryFilter}
                   onChange={(e) => setGrantCategoryFilter(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500"
+                  className="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500 font-mono"
                 >
                   <option value="all">Tất cả hạng mục (24 gói)</option>
                   <option value="follow">Follow Kênh Thật</option>
-                  <option value="engagement">Tương Tác Tim & View</option>
+                  <option value="engagement">Tương Tác Tim &amp; View</option>
                   <option value="comment">Comment Kịch Bản</option>
                   <option value="share">Chia Sẻ Lan Tỏa</option>
                   <option value="livestream">Mắt Xem Livestream</option>
@@ -1393,7 +1742,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       setGrantSuccessNotice(`👑 Đã cấp thành công "${pkg.title}" cho tài khoản ${activeGrantUser.email}!`);
                       setTimeout(() => setGrantSuccessNotice(null), 3500);
                     }}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-900/30 transition-all flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-900/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Gift className="w-3.5 h-3.5" />
                     <span>Cấp Gói Này Cho {activeGrantUser?.name}</span>
@@ -1675,6 +2024,14 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setAddUserModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all shrink-0 cursor-pointer"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Thêm Người Dùng</span>
+              </button>
+
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
@@ -1773,6 +2130,18 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         
+                        {/* Sửa thông tin Modal Button */}
+                        <button
+                          onClick={() => {
+                            setEditingUser(u);
+                            setEditUserModalOpen(true);
+                          }}
+                          title="Sửa thông tin tài khoản"
+                          className="p-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-[11px] transition-all cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+
                         {/* Báo Cáo Hoạt Động & Chống Gian Lận Button */}
                         <button
                           onClick={() => setInspectedUser(u)}
@@ -1787,7 +2156,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         <button
                           onClick={() => setInspectedUser(u)}
                           title="Cấp Gói Dịch Vụ Miễn Phí"
-                          className="px-2 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600 text-purple-200 text-[11px] font-bold border border-purple-500/30 transition-all flex items-center gap-1"
+                          className="px-2 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600 text-purple-200 text-[11px] font-bold border border-purple-500/30 transition-all flex items-center gap-1 cursor-pointer"
                         >
                           <Gift className="w-3 h-3" />
                           <span>Cấp Gói</span>
@@ -1805,7 +2174,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                             }
                           }}
                           title="Cộng/Trừ Xu"
-                          className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px]"
+                          className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] cursor-pointer"
                         >
                           <Coins className="w-3.5 h-3.5" />
                         </button>
@@ -1814,13 +2183,26 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         <button
                           onClick={() => adminToggleUserStatus(u.id)}
                           title={u.status === 'active' ? 'Khóa tài khoản' : 'Mở khóa'}
-                          className={`p-1.5 rounded-lg text-[11px] border transition-all ${
+                          className={`p-1.5 rounded-lg text-[11px] border transition-all cursor-pointer ${
                             u.status === 'active'
                               ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border-rose-500/30'
                               : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30'
                           }`}
                         >
                           {u.status === 'active' ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                        </button>
+
+                        {/* Xóa tài khoản Button */}
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Bạn có chắc chắn muốn xóa tài khoản ${u.name} (${u.email}) khỏi hệ thống?`)) {
+                              adminDeleteUser(u.id);
+                            }
+                          }}
+                          title="Xóa tài khoản khỏi hệ thống"
+                          className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 text-[11px] transition-all cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
@@ -3753,6 +4135,19 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                               <option value="campaign_manager">Campaign</option>
                               <option value="tech_admin">Tech</option>
                             </select>
+
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Bạn có chắc muốn xóa nhân sự ${staff.name} khỏi danh sách?`)) {
+                                  setStaffList(prev => prev.filter(s => s.id !== staff.id));
+                                  showToast(`Đã xóa nhân sự ${staff.name}`);
+                                }
+                              }}
+                              className="p-1 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-300 text-[9px] transition-all cursor-pointer"
+                              title="Xóa nhân sự"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -3977,6 +4372,444 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: SỬA HỒ SƠ & THÔNG SỐ TÀI KHOẢN (ADMIN EDIT USER)                   */}
+      {/* ========================================================================= */}
+      {editUserModalOpen && editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-3xl bg-[#0D111E] border border-indigo-500/40 p-6 space-y-4 relative shadow-2xl overflow-y-auto max-h-[90vh]"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Sửa Hồ Sơ Tài Khoản</h3>
+                  <p className="text-[11px] text-slate-400 font-mono">{editingUser.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setEditUserModalOpen(false);
+                  setEditingUser(null);
+                }}
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">Họ và Tên</label>
+                <input
+                  type="text"
+                  value={editingUser.name}
+                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">Tài Khoản Gmail</label>
+                <input
+                  type="email"
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-cyan-300 font-mono focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Số Điện Thoại</label>
+                  <input
+                    type="text"
+                    value={editingUser.phone || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
+                    placeholder="09xx xxx xxx"
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Kênh TikTok Handle</label>
+                  <input
+                    type="text"
+                    value={editingUser.tiktokConnected || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, tiktokConnected: e.target.value })}
+                    placeholder="@username"
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-pink-300 font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Số Dư Xu</label>
+                  <input
+                    type="number"
+                    value={editingUser.coinsBalance}
+                    onChange={(e) => setEditingUser({ ...editingUser, coinsBalance: parseInt(e.target.value, 10) || 0 })}
+                    className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-3 py-2 text-amber-400 font-mono font-bold focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Số Lượng Follower Kênh</label>
+                  <input
+                    type="number"
+                    value={editingUser.tiktokFollowers}
+                    onChange={(e) => setEditingUser({ ...editingUser, tiktokFollowers: parseInt(e.target.value, 10) || 0 })}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-emerald-400 font-mono font-bold focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Hạng Thành Viên (VIP Rank)</label>
+                  <select
+                    value={editingUser.rankLevel}
+                    onChange={(e) => setEditingUser({ ...editingUser, rankLevel: e.target.value as any })}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="Đồng">🥉 Hạng Đồng</option>
+                    <option value="Bạc">🥈 Hạng Bạc</option>
+                    <option value="Vàng">🥇 Hạng Vàng</option>
+                    <option value="Kim Cương">💎 Hạng Kim Cương</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Trạng Thái Tài Khoản</label>
+                  <select
+                    value={editingUser.status}
+                    onChange={(e) => setEditingUser({ ...editingUser, status: e.target.value as any })}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="active">🟢 Đang Hoạt Động (Active)</option>
+                    <option value="banned">🔴 Bị Khóa (Banned)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/10">
+              <button
+                onClick={() => {
+                  if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản ${editingUser.name} (${editingUser.email})?`)) {
+                    adminDeleteUser(editingUser.id);
+                    setEditUserModalOpen(false);
+                    setEditingUser(null);
+                  }
+                }}
+                className="px-3 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-300 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Xóa Tài Khoản</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setEditUserModalOpen(false);
+                    setEditingUser(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs transition-all cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={() => {
+                    adminUpdateUser(editingUser.id, editingUser);
+                    setEditUserModalOpen(false);
+                    setEditingUser(null);
+                  }}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Lưu Hồ Sơ</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: THÊM TÀI KHOẢN MỚI BẰNG GMAIL (ADMIN ADD USER)                     */}
+      {/* ========================================================================= */}
+      {addUserModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-3xl bg-[#0D111E] border border-purple-500/40 p-6 space-y-4 relative shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Thêm Tài Khoản Mới</h3>
+                  <p className="text-[11px] text-slate-400">Nhập Gmail để tạo tài khoản & cấp quyền ngay lập tức</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAddUserModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">Tài Khoản Gmail (*Bắt buộc)</label>
+                <input
+                  type="email"
+                  placeholder="vidu@gmail.com"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  className="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-3 py-2 text-cyan-300 font-mono focus:outline-none focus:border-purple-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">Họ và Tên</label>
+                <input
+                  type="text"
+                  placeholder="Nguyễn Văn A"
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Số Điện Thoại</label>
+                  <input
+                    type="text"
+                    placeholder="0912 345 678"
+                    value={newUserPhone}
+                    onChange={(e) => setNewUserPhone(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Kênh TikTok (@handle)</label>
+                  <input
+                    type="text"
+                    placeholder="@creator_vietnam"
+                    value={newUserHandle}
+                    onChange={(e) => setNewUserHandle(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-pink-300 font-mono focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Hạng VIP Ban Đầu</label>
+                  <select
+                    value={newUserRank}
+                    onChange={(e) => setNewUserRank(e.target.value as any)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="Đồng">🥉 Hạng Đồng</option>
+                    <option value="Bạc">🥈 Hạng Bạc</option>
+                    <option value="Vàng">🥇 Hạng Vàng</option>
+                    <option value="Kim Cương">💎 Hạng Kim Cương</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Số Xu Cấp Ban Đầu</label>
+                  <input
+                    type="number"
+                    value={newUserCoins}
+                    onChange={(e) => setNewUserCoins(parseInt(e.target.value, 10) || 0)}
+                    className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-3 py-2 text-amber-400 font-mono font-bold focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+              <button
+                onClick={() => setAddUserModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs transition-all cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  if (!newUserEmail.trim()) {
+                    showToast('⚠️ Vui lòng nhập tài khoản Gmail');
+                    return;
+                  }
+                  const created = adminAddUser({
+                    email: newUserEmail.trim(),
+                    name: newUserName.trim() || newUserEmail.split('@')[0],
+                    phone: newUserPhone.trim(),
+                    tiktokConnected: newUserHandle.trim() || `@${newUserEmail.split('@')[0]}`,
+                    rankLevel: newUserRank,
+                    coinsBalance: newUserCoins,
+                    status: 'active'
+                  });
+                  setSelectedGrantUserId(created.id);
+                  setNewUserEmail('');
+                  setNewUserName('');
+                  setNewUserPhone('');
+                  setNewUserHandle('');
+                  setAddUserModalOpen(false);
+                }}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Tạo Tài Khoản & Cấp Quyền</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: SỬA & TÙY CHỈNH GÓI DỊCH VỤ ĐÃ CẤP (ADMIN EDIT ORDER)              */}
+      {/* ========================================================================= */}
+      {editOrderModalOpen && editingOrderUser && editingOrderData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-3xl bg-[#0D111E] border border-cyan-500/40 p-6 space-y-4 relative shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Chỉnh Sửa Gói Đã Cấp</h3>
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Người nhận: <span className="text-white font-bold">{editingOrderUser.name}</span> ({editingOrderUser.email})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setEditOrderModalOpen(false);
+                  setEditingOrderData(null);
+                  setEditingOrderUser(null);
+                }}
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">Tên Dịch Vụ / Gói</label>
+                <input
+                  type="text"
+                  value={editingOrderData.packageTitle}
+                  onChange={(e) => setEditingOrderData({ ...editingOrderData, packageTitle: e.target.value })}
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">Link Kênh / Video Mục Tiêu</label>
+                <input
+                  type="text"
+                  value={editingOrderData.targetUrl || ''}
+                  onChange={(e) => setEditingOrderData({ ...editingOrderData, targetUrl: e.target.value })}
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-cyan-300 font-mono focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Mục Tiêu (Target Qty)</label>
+                  <input
+                    type="number"
+                    value={editingOrderData.targetQuantity}
+                    onChange={(e) => setEditingOrderData({ ...editingOrderData, targetQuantity: parseInt(e.target.value, 10) || 0 })}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-cyan-300 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Đã Hoàn Thành (Completed)</label>
+                  <input
+                    type="number"
+                    value={editingOrderData.completedQuantity}
+                    onChange={(e) => setEditingOrderData({ ...editingOrderData, completedQuantity: parseInt(e.target.value, 10) || 0 })}
+                    className="w-full bg-slate-900 border border-emerald-500/30 rounded-xl px-3 py-2 text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">Trạng Thái Tiến Trình</label>
+                <select
+                  value={editingOrderData.status}
+                  onChange={(e) => setEditingOrderData({ ...editingOrderData, status: e.target.value as any })}
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="running">⚡ Đang Chạy (Running)</option>
+                  <option value="completed">✅ Đã Hoàn Thành (Completed)</option>
+                  <option value="paused">⏸️ Tạm Dừng (Paused)</option>
+                  <option value="cancelled">❌ Đã Hủy (Cancelled)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/10">
+              <button
+                onClick={() => {
+                  if (window.confirm(`Bạn có chắc muốn xóa / hủy gói này khỏi tài khoản của ${editingOrderUser.name}?`)) {
+                    adminDeleteGrantedOrder(editingOrderUser.id, editingOrderData.id);
+                    setEditOrderModalOpen(false);
+                    setEditingOrderData(null);
+                    setEditingOrderUser(null);
+                  }
+                }}
+                className="px-3 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-300 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Xóa Gói</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setEditOrderModalOpen(false);
+                    setEditingOrderData(null);
+                    setEditingOrderUser(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs transition-all cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={() => {
+                    adminUpdateGrantedOrder(editingOrderUser.id, editingOrderData.id, editingOrderData);
+                    setEditOrderModalOpen(false);
+                    setEditingOrderData(null);
+                    setEditingOrderUser(null);
+                  }}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Lưu Thay Đổi</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

@@ -331,6 +331,11 @@ interface TikTokAppContextType {
   adminGrantPackage: (userId: string, packageItem: GrowthServiceItem) => void;
   adminAdjustUserFollowers: (userId: string, count: number) => void;
   adminChangeUserRank: (userId: string, rank: 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương') => void;
+  adminAddUser: (user: Partial<AdminUserManagementItem>) => AdminUserManagementItem;
+  adminUpdateUser: (userId: string, data: Partial<AdminUserManagementItem>) => void;
+  adminDeleteUser: (userId: string) => void;
+  adminUpdateGrantedOrder: (userId: string, orderId: string, data: Partial<ServiceOrder>) => void;
+  adminDeleteGrantedOrder: (userId: string, orderId: string) => void;
 
   // Referral & Anti-Spam Verification
   claimReferralReward: (refId: string) => boolean;
@@ -4017,6 +4022,75 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`Đã nâng hạng tài khoản lên bậc ${rank}!`);
   };
 
+  const adminAddUser = (userData: Partial<AdminUserManagementItem>): AdminUserManagementItem => {
+    const newId = userData.id || `usr_admin_${Date.now()}`;
+    const email = (userData.email || `user_${Date.now()}@gmail.com`).trim();
+    const handleClean = (userData.handle || email.split('@')[0]).replace(/^@/, '');
+    const newUser: AdminUserManagementItem = {
+      id: newId,
+      name: userData.name || email.split('@')[0],
+      handle: handleClean,
+      avatar: userData.avatar || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80`,
+      email,
+      phone: userData.phone || '0988888888',
+      tiktokConnected: userData.tiktokConnected || `@${handleClean}`,
+      tiktokFollowers: userData.tiktokFollowers || 1000,
+      isTikTokVerified: userData.isTikTokVerified ?? true,
+      rankLevel: userData.rankLevel || 'Đồng',
+      coinsBalance: userData.coinsBalance || 50000,
+      tokenBalance: userData.tokenBalance || 50,
+      completedTasksCount: userData.completedTasksCount || 0,
+      createdCampaignsCount: userData.createdCampaignsCount || 0,
+      purchasedPackagesCount: userData.purchasedPackagesCount || 0,
+      escrowLockedAmountVND: userData.escrowLockedAmountVND || '0đ',
+      status: userData.status || 'active',
+      kycStatus: userData.kycStatus || 'verified',
+      joinedDate: 'Vừa xong',
+      orders: userData.orders || []
+    };
+    setAdminUsers(prev => [newUser, ...prev]);
+    showToast(`✅ Đã thêm tài khoản "${newUser.email}" vào hệ thống!`);
+    return newUser;
+  };
+
+  const adminUpdateUser = (userId: string, data: Partial<AdminUserManagementItem>) => {
+    setAdminUsers(prev => prev.map(u => {
+      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
+        return { ...u, ...data };
+      }
+      return u;
+    }));
+    showToast('✅ Đã lưu cập nhật thông tin tài khoản!');
+  };
+
+  const adminDeleteUser = (userId: string) => {
+    setAdminUsers(prev => prev.filter(u => u.id !== userId && u.email.toLowerCase() !== userId.toLowerCase()));
+    showToast('🗑️ Đã xóa tài khoản khỏi hệ thống!');
+  };
+
+  const adminUpdateGrantedOrder = (userId: string, orderId: string, data: Partial<ServiceOrder>) => {
+    setAdminUsers(prev => prev.map(u => {
+      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
+        const updatedOrders = (u.orders || []).map(ord => ord.id === orderId ? { ...ord, ...data } : ord);
+        return { ...u, orders: updatedOrders };
+      }
+      return u;
+    }));
+    showToast('✅ Đã cập nhật gói dịch vụ của người dùng!');
+  };
+
+  const adminDeleteGrantedOrder = (userId: string, orderId: string) => {
+    setAdminUsers(prev => prev.map(u => {
+      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
+        const updatedOrders = (u.orders || []).filter(ord => ord.id !== orderId);
+        return { ...u, orders: updatedOrders, purchasedPackagesCount: Math.max(0, (u.purchasedPackagesCount || 1) - 1) };
+      }
+      return u;
+    }));
+    showToast('🗑️ Đã xóa gói dịch vụ được cấp!');
+  };
+
+
   // Referral bonus claim & task verification
   const claimReferralReward = (refId: string): boolean => {
     let claimed = false;
@@ -4281,6 +4355,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         adminGrantPackage,
         adminAdjustUserFollowers,
         adminChangeUserRank,
+        adminAddUser,
+        adminUpdateUser,
+        adminDeleteUser,
+        adminUpdateGrantedOrder,
+        adminDeleteGrantedOrder,
         // KYC Verification
         isKycModalOpen,
         openKycModal,

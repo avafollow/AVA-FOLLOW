@@ -746,79 +746,80 @@ export const CreateCampaignScreen: React.FC<{
               />
             </div>
 
-            {/* Preview meta and details */}
-            <div className="flex-1 space-y-4 text-xs w-full">
-              <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/[0.04] border border-white/10">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-500 to-purple-600 p-0.5 shrink-0 shadow-lg">
-                  <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-white font-black text-base">
-                    {channelHandle.replace('@', '').charAt(0).toUpperCase() || 'T'}
+            {/* Chi tiết tài khoản & Điều hướng trực tiếp đến TikTok */}
+            <div className="flex-1 space-y-3.5 text-xs w-full min-w-0">
+              {/* Thẻ Kênh TikTok */}
+              <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-500 to-purple-600 p-0.5 shrink-0 shadow-lg">
+                    <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-white font-black text-base">
+                      {channelHandle.replace('@', '').charAt(0).toUpperCase() || 'T'}
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-white font-black text-base flex items-center gap-1.5">
+                      <span className="truncate">{channelHandle}</span>
+                      <CheckCircle2 className="w-4 h-4 text-cyan-400 fill-cyan-400/20 shrink-0" />
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-mono truncate mt-0.5 max-w-[260px] sm:max-w-md">
+                      {targetUrl}
+                    </div>
                   </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-white font-black text-sm sm:text-base flex items-center gap-2 flex-wrap">
-                    <span>{channelHandle}</span>
-                    <CheckCircle2 className="w-4 h-4 text-cyan-400 fill-cyan-400/20" />
-                    <span className="px-2 py-0.5 rounded text-[9px] bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono">Đã đồng bộ link gốc</span>
-                  </div>
-                  <div className="text-[11px] text-slate-400 font-mono truncate max-w-md mt-1">
-                    {targetUrl}
-                  </div>
-                </div>
-              </div>
 
-              <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2.5 text-xs text-slate-300">
-                <div className="flex items-center justify-between text-slate-400 border-b border-white/5 pb-2">
-                  <span className="font-semibold text-white">Mục tiêu phân phối:</span>
-                  <span className="text-amber-400 font-mono font-bold">
-                    {activeTargetsList.map(t => t.label).join(' • ') || 'Follow Kênh'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-slate-400 border-b border-white/5 pb-2">
-                  <span className="font-semibold text-white">Khống chế xem 15s:</span>
-                  <span className={selectedTargets.watch ? "text-amber-400 font-mono font-bold" : "text-emerald-400 font-mono font-bold"}>
-                    {selectedTargets.watch ? "Bắt buộc xem đủ 15s" : "Không ép xem 15s (Tự do lướt tiếp)"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-slate-400 border-b border-white/5 pb-2">
-                  <span className="font-semibold text-white">Trạng thái phát sóng:</span>
-                  <span className="text-emerald-400 font-mono font-bold flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    Sẵn sàng đẩy view & lướt tức thì
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-slate-400">
-                  <span className="font-semibold text-white">Độ phân giải & Tốc độ:</span>
-                  <span className="text-cyan-400 font-mono font-bold">1080p Ultra HD • Tải siêu tốc</span>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 text-indigo-300 text-[11px] space-y-1 font-mono">
-                <div className="flex items-center gap-1.5 font-bold text-white">
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Cơ Chế Phân Phối Video Tự Động:</span>
-                </div>
-                <p className="text-slate-300 text-[10px] leading-relaxed">
-                  Ngay sau khi chiến dịch được tạo thành công, video này sẽ được đưa ngay vào danh sách phân phối và chuỗi Feed lướt toàn sàn để người dùng làm nhiệm vụ tương tác thật 100%.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <a
                   href={targetUrl.startsWith('http') ? targetUrl : `https://www.tiktok.com/${channelHandle}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono font-bold flex items-center gap-2 transition-colors cursor-pointer border border-white/15 shadow-md"
+                  className="px-3 py-2 rounded-xl bg-[#FF0050] hover:bg-[#E00045] text-white font-bold text-xs flex items-center gap-1.5 shrink-0 shadow-lg transition-transform active:scale-95"
+                  title="Nhảy về trang TikTok thật của tài khoản này"
                 >
-                  <span>Mở kiểm tra trên TikTok</span>
+                  <span>Mở TikTok</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              {/* Thông tin mục tiêu phân phối ngắn gọn */}
+              <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2 text-xs text-slate-300">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="font-semibold text-white">Mục tiêu:</span>
+                  <span className="text-amber-400 font-mono font-bold">
+                    {activeTargetsList.map(t => t.label).join(' • ') || 'Follow Kênh'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="font-semibold text-white">Chế độ xem:</span>
+                  <span className="text-emerald-400 font-mono font-bold">
+                    {selectedTargets.watch ? "Bắt buộc xem đủ 15s" : "Lướt tự do (Không ép xem)"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="font-semibold text-white">Trạng thái phát:</span>
+                  <span className="text-emerald-400 font-mono font-bold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Toàn khung hình • Đã kết nối link
+                  </span>
+                </div>
+              </div>
+
+              {/* Nút thao tác nhanh */}
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <a
+                  href={targetUrl.startsWith('http') ? targetUrl : `https://www.tiktok.com/${channelHandle}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer border border-white/15 shadow-md text-center"
+                >
+                  <span>Xem Trên TikTok Của Bạn</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
                 <button
                   type="button"
                   onClick={() => openFeedRunner()}
-                  className="px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs font-mono font-bold flex items-center gap-2 transition-colors cursor-pointer border border-rose-500/40 shadow-md"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs font-mono font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer border border-rose-500/40 shadow-md text-center"
                 >
                   <Play className="w-3.5 h-3.5 fill-rose-400" />
-                  <span>Lướt thử Feed toàn sàn</span>
+                  <span>Lướt Thử Feed Toàn Sàn</span>
                 </button>
               </div>
             </div>
@@ -1473,6 +1474,17 @@ export const CreateCampaignScreen: React.FC<{
               <div className="flex items-center gap-2 text-[11px] font-mono text-emerald-400 pt-1">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Sẵn sàng phát sóng trên toàn bộ Feed lướt & Hệ thống đẩy view VIP</span>
+              </div>
+              <div className="pt-1">
+                <a
+                  href={targetUrl.startsWith('http') ? targetUrl : `https://www.tiktok.com/${channelHandle}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2 rounded-xl bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/40 font-mono font-bold text-xs flex items-center gap-2 transition-colors cursor-pointer w-fit"
+                >
+                  <span>Mở Xem Kênh TikTok Này</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
               </div>
             </div>
           </div>

@@ -70,14 +70,18 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const isFacebook = mediaInfo.isFacebook && Boolean(url);
   const isDirectVideo = mediaInfo.isDirectVideo;
   const hasTikTokVideoId = Boolean(mediaInfo.isTikTok && mediaInfo.videoId);
-  // Luôn mặc định phát Video HD (stream) để video chạy ngay lập tức
-  // Người dùng có thể bấm nút "TikTok Gốc" để chuyển sang iframe embed nếu muốn
-  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>('stream');
+
+  // Tự động chuyển sang xem video TikTok thật khi có video ID, hoặc Stream HD nếu là link kênh
+  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>(hasTikTokVideoId ? 'embed' : 'stream');
 
   useEffect(() => {
-    // Khi URL thay đổi, luôn reset về stream mode để đảm bảo video phát được ngay
-    setStreamMode('stream');
-  }, [url]);
+    // Khi URL thay đổi: Nếu có video ID TikTok thật -> mở TikTok Gốc; Nếu là link kênh -> mở Stream HD
+    if (hasTikTokVideoId) {
+      setStreamMode('embed');
+    } else {
+      setStreamMode('stream');
+    }
+  }, [hasTikTokVideoId, url]);
 
   // Link đích chính xác của người dùng
   const displayHandle = mediaInfo.handle || channelHandle || '@creator.vietnam';

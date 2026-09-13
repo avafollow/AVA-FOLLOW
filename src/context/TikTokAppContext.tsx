@@ -445,7 +445,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [tokenomics, setTokenomics] = useState<TokenomicsData>(TOKENOMICS_DATA);
   const [analytics, setAnalytics] = useState<UserAnalyticsData>(USER_ANALYTICS);
   const [escrowBookings, setEscrowBookings] = useState<EscrowBookingContract[]>(ESCROW_BOOKINGS);
-  const [adminUsers, setAdminUsers] = useState<AdminUserManagementItem[]>(ADMIN_USERS_LIST);
+  const [adminUsers, setAdminUsers] = useState<AdminUserManagementItem[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_admin_users') : null;
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return ADMIN_USERS_LIST;
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_admin_users', JSON.stringify(adminUsers));
+      }
+    } catch {}
+  }, [adminUsers]);
 
   // Escrow Permanent Audit Chat History (Lưu trữ vĩnh viễn không thể xóa trên LocalStorage & Smart Vault)
   const [contractChats, setContractChats] = useState<Record<string, EscrowChatMessage[]>>(() => {
@@ -4044,31 +4058,81 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // ADMIN GRANT CAPABILITIES
   // ==============================================================================
 
+  const isCurrentUser = (targetIdOrEmail: string, targetUser?: AdminUserManagementItem) => {
+    const cleanTarget = targetIdOrEmail.toLowerCase().replace(/^@/, '');
+    const userEmail = (user.email || '').toLowerCase();
+    const userHandle = (user.handle || '').toLowerCase().replace(/^@/, '');
+    const userTiktok = (user.tiktokConnected || '').toLowerCase().replace(/^@/, '');
+    
+    if (targetUser) {
+      const tEmail = (targetUser.email || '').toLowerCase();
+      const tHandle = (targetUser.handle || '').toLowerCase().replace(/^@/, '');
+      if (tEmail && (tEmail === userEmail || tEmail === userHandle)) return true;
+      if (tHandle && (tHandle === userHandle || tHandle === userTiktok)) return true;
+    }
+    return cleanTarget === userEmail || cleanTarget === userHandle || cleanTarget === userTiktok || targetIdOrEmail === user.id;
+  };
+
   const adminToggleUserStatus = (userId: string) => {
+    let matched = false;
     setAdminUsers(prev => prev.map(u => {
-      if (u.id === userId) {
+      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
         const nextStatus = u.status === 'active' ? 'banned' : 'active';
+        if (isCurrentUser(userId, u)) matched = true;
         return { ...u, status: nextStatus };
       }
       return u;
     }));
+    if (matched) {
+      setUser(prev => ({
+        ...prev,
+        status: prev.status === 'active' ? 'banned' : 'active'
+      }));
+    }
     showToast('Đã cập nhật trạng thái tài khoản người dùng!');
   };
 
   const adminAdjustUserCoins = (userId: string, amount: number) => {
+    let matchedUser: AdminUserManagementItem | null = null;
     setAdminUsers(prev => prev.map(u => {
-      if (u.id === userId) {
+      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
         const newBalance = Math.max(0, u.coinsBalance + amount);
+        if (isCurrentUser(userId, u)) matchedUser = u;
         return { ...u, coinsBalance: newBalance };
       }
       return u;
     }));
+
+    if (matchedUser || isCurrentUser(userId)) {
+      setUser(prev => {
+        const newCoins = Math.max(0, prev.avaliveCoins + amount);
+        const newTx: TransactionRecord = {
+          id: `tx_admin_${Date.now()}`,
+          type: amount >= 0 ? 'deposit' : 'spend',
+          title: `Quản Trị Viên (Admin) điều chỉnh: ${amount >= 0 ? '+' : ''}${amount.toLocaleString()} Xu`,
+          amount: `${amount >= 0 ? '+' : ''}${amount.toLocaleString()} Xu (${Math.abs(amount).toLocaleString()}đ)`,
+          isPositive: amount >= 0,
+          date: 'Vừa xong',
+          status: 'success'
+        };
+        return {
+          ...prev,
+          avaliveCoins: newCoins,
+          coinsValueVND: `${newCoins.toLocaleString()}đ`,
+          transactions: [newTx, ...prev.transactions]
+        };
+      });
+    }
+
     showToast(`Đã điều chỉnh ${amount > 0 ? '+' : ''}${amount.toLocaleString()} Xu cho tài khoản!`);
   };
 
   const adminGrantPackage = (userId: string, packageItem: GrowthServiceItem) => {
+    let matchedUser: AdminUserManagementItem | null = null;
+    let createdOrder: ServiceOrder | null = null;
+
     setAdminUsers(prev => prev.map(u => {
-      if (u.id === userId) {
+      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
         const newOrder: ServiceOrder = {
           id: `ord_grant_${Date.now()}`,
           packageId: packageItem.id,
@@ -4081,6 +4145,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           status: 'running',
           createdAt: 'Vừa xong'
         };
+        createdOrder = newOrder;
+        if (isCurrentUser(userId, u)) matchedUser = u;
         return {
           ...u,
           purchasedPackagesCount: (u.purchasedPackagesCount || 0) + 1,
@@ -4089,26 +4155,67 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
       return u;
     }));
+
+    if ((matchedUser || isCurrentUser(userId)) && createdOrder) {
+      setUser(prev => {
+        const newTx: TransactionRecord = {
+          id: `tx_grant_${Date.now()}`,
+          type: 'deposit',
+          title: `🎁 Admin cấp đặc quyền: ${packageItem.title} (Miễn Phí)`,
+          amount: `0đ (Giá gốc: ${packageItem.price})`,
+          isPositive: true,
+          date: 'Vừa xong',
+          status: 'success'
+        };
+        return {
+          ...prev,
+          purchasedPackagesCount: (prev.purchasedPackagesCount || 0) + 1,
+          myOrders: [createdOrder!, ...(prev.myOrders || [])],
+          transactions: [newTx, ...prev.transactions]
+        };
+      });
+    }
+
     showToast(`👑 Admin đã cấp đặc quyền gói "${packageItem.title}" miễn phí cho tài khoản!`);
   };
 
   const adminAdjustUserFollowers = (userId: string, count: number) => {
+    let matched = false;
     setAdminUsers(prev => prev.map(u => {
-      if (u.id === userId) {
+      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
+        if (isCurrentUser(userId, u)) matched = true;
         return { ...u, tiktokFollowers: Math.max(0, u.tiktokFollowers + count) };
       }
       return u;
     }));
+
+    if (matched || isCurrentUser(userId)) {
+      setUser(prev => ({
+        ...prev,
+        tiktokFollowers: Math.max(0, (prev.tiktokFollowers || 0) + count)
+      }));
+    }
+
     showToast(`Đã cộng +${count.toLocaleString()} Follower cho kênh của người dùng!`);
   };
 
   const adminChangeUserRank = (userId: string, rank: 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương') => {
+    let matched = false;
     setAdminUsers(prev => prev.map(u => {
-      if (u.id === userId) {
+      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
+        if (isCurrentUser(userId, u)) matched = true;
         return { ...u, rankLevel: rank };
       }
       return u;
     }));
+
+    if (matched || isCurrentUser(userId)) {
+      setUser(prev => ({
+        ...prev,
+        rankLevel: rank
+      }));
+    }
+
     showToast(`Đã nâng hạng tài khoản lên bậc ${rank}!`);
   };
 
@@ -4144,12 +4251,30 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const adminUpdateUser = (userId: string, data: Partial<AdminUserManagementItem>) => {
+    let matched = false;
     setAdminUsers(prev => prev.map(u => {
       if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
+        if (isCurrentUser(userId, u)) matched = true;
         return { ...u, ...data };
       }
       return u;
     }));
+
+    if (matched || isCurrentUser(userId)) {
+      setUser(prev => ({
+        ...prev,
+        ...(data.name ? { name: data.name } : {}),
+        ...(data.phone ? { phone: data.phone } : {}),
+        ...(data.handle ? { handle: data.handle } : {}),
+        ...(data.tiktokConnected ? { tiktokConnected: data.tiktokConnected } : {}),
+        ...(data.tiktokFollowers !== undefined ? { tiktokFollowers: data.tiktokFollowers } : {}),
+        ...(data.rankLevel ? { rankLevel: data.rankLevel } : {}),
+        ...(data.coinsBalance !== undefined ? { avaliveCoins: data.coinsBalance, coinsValueVND: `${data.coinsBalance.toLocaleString()}đ` } : {}),
+        ...(data.kycStatus ? { kycStatus: data.kycStatus } : {}),
+        ...(data.status ? { status: data.status } : {})
+      }));
+    }
+
     showToast('✅ Đã lưu cập nhật thông tin tài khoản!');
   };
 
@@ -4159,26 +4284,48 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const adminUpdateGrantedOrder = (userId: string, orderId: string, data: Partial<ServiceOrder>) => {
+    let matched = false;
     setAdminUsers(prev => prev.map(u => {
       if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
         const updatedOrders = (u.orders || []).map(ord => ord.id === orderId ? { ...ord, ...data } : ord);
+        if (isCurrentUser(userId, u)) matched = true;
         return { ...u, orders: updatedOrders };
       }
       return u;
     }));
+
+    if (matched || isCurrentUser(userId)) {
+      setUser(prev => ({
+        ...prev,
+        myOrders: (prev.myOrders || []).map(ord => ord.id === orderId ? { ...ord, ...data } : ord)
+      }));
+    }
+
     showToast('✅ Đã cập nhật gói dịch vụ của người dùng!');
   };
 
   const adminDeleteGrantedOrder = (userId: string, orderId: string) => {
+    let matched = false;
     setAdminUsers(prev => prev.map(u => {
       if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
         const updatedOrders = (u.orders || []).filter(ord => ord.id !== orderId);
+        if (isCurrentUser(userId, u)) matched = true;
         return { ...u, orders: updatedOrders, purchasedPackagesCount: Math.max(0, (u.purchasedPackagesCount || 1) - 1) };
       }
       return u;
     }));
+
+    if (matched || isCurrentUser(userId)) {
+      setUser(prev => ({
+        ...prev,
+        purchasedPackagesCount: Math.max(0, (prev.purchasedPackagesCount || 1) - 1),
+        myOrders: (prev.myOrders || []).filter(ord => ord.id !== orderId)
+      }));
+    }
+
     showToast('🗑️ Đã xóa gói dịch vụ được cấp!');
   };
+
 
 
   // Referral bonus claim & task verification

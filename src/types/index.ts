@@ -985,6 +985,9 @@ export interface UserProfileWallet {
   kycData?: KycVerificationData;
   citizenId?: string;
   selfiePhotoUrl?: string;
+  id?: string;
+  status?: 'active' | 'banned';
+  purchasedPackagesCount?: number;
   bankInfo?: BankAccountInfo;
   transactions: TransactionRecord[];
   myOrders?: ServiceOrder[];

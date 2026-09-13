@@ -83,21 +83,35 @@ export function extractTikTokVideoId(url: string): string | null {
   if (!url) return null;
   const clean = url.trim();
   
-  // 1. Dạng số thuần túy (15-22 chữ số)
-  if (/^\d{15,22}$/.test(clean)) {
+  // 1. Dạng số thuần túy (10-24 chữ số)
+  if (/^\d{10,24}$/.test(clean)) {
     return clean;
   }
   
-  // 2. /video/12345... hoặc /v/12345... hoặc /embed/v2/12345... hoặc /embed/12345...
-  const match = clean.match(/\/(?:video|v|embed\/v2|embed)\/(\d{15,22})/i);
+  // 2. /video/12345... hoặc /v/12345... hoặc /embed/v2/12345... hoặc /embed/12345... hoặc /share/video/12345...
+  const match = clean.match(/\/(?:video|v|embed\/v2|embed|share\/video)\/(\d{10,24})/i);
   if (match && match[1]) {
     return match[1];
   }
 
-  // 3. Fallback bất kỳ /video/ hoặc /v/ kèm chữ số
+  // 3. Query param ?item_id=123... hoặc ?video_id=123...
+  const paramMatch = clean.match(/[?&](?:item_id|video_id|mid)=(\d{10,24})/i);
+  if (paramMatch && paramMatch[1]) {
+    return paramMatch[1];
+  }
+
+  // 4. Fallback bất kỳ /video/ hoặc /v/ kèm chữ số
   const matchAny = clean.match(/\/(?:video|v)\/(\d+)/i);
-  if (matchAny && matchAny[1]) {
+  if (matchAny && matchAny[1] && matchAny[1].length >= 8) {
     return matchAny[1];
+  }
+
+  // 5. Chuỗi bất kỳ chứa dãy số 18-20 chữ số trong URL tiktok
+  if (clean.includes('tiktok.com')) {
+    const longDigits = clean.match(/(\d{18,21})/);
+    if (longDigits && longDigits[1]) {
+      return longDigits[1];
+    }
   }
 
   return null;

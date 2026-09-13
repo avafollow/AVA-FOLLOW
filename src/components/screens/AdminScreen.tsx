@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Flame, 
@@ -64,6 +64,17 @@ import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
 import { BrandLogo } from '../common/BrandLogo';
 import { MISSION_POOL, RANK_MISSION_CONFIG } from '../../data/weeklyMissions';
 import { KOC_PENALTY_TIERS } from '../../data/kocProfileData';
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  dept: string;
+  status: 'active' | 'inactive';
+  lastLogin: string;
+}
+
 
 export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const { 
@@ -178,20 +189,36 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
 
   // Staff Roles state
-  const [staffList, setStaffList] = useState([
-    { id: 'staff_001', name: 'Nguyễn Văn Admin', email: 'admin@avafollow.vn',   role: 'super_admin',      dept: 'Ban Lãnh Đạo',         status: 'active',   lastLogin: '2026-09-12 08:00' },
-    { id: 'staff_002', name: 'Trần Thị Kế Toán', email: 'ketoan@avafollow.vn', role: 'finance_manager',   dept: 'Tài Chính - Kế Toán',  status: 'active',   lastLogin: '2026-09-12 07:45' },
-    { id: 'staff_003', name: 'Lê Văn KYC',        email: 'kyc@avafollow.vn',   role: 'kyc_officer',       dept: 'Xác Minh KYC',         status: 'active',   lastLogin: '2026-09-11 22:30' },
-    { id: 'staff_004', name: 'Phạm Thị Support',  email: 'cs@avafollow.vn',    role: 'customer_support',  dept: 'Chăm Sóc Khách Hàng',  status: 'active',   lastLogin: '2026-09-12 08:10' },
-    { id: 'staff_005', name: 'Hoàng Văn KOC',     email: 'koc@avafollow.vn',   role: 'koc_manager',       dept: 'Quản Lý KOC',          status: 'active',   lastLogin: '2026-09-11 20:00' },
-    { id: 'staff_006', name: 'Đinh Thị Campaign', email: 'camp@avafollow.vn',  role: 'campaign_manager',  dept: 'Chiến Dịch & Quảng Cáo', status: 'inactive', lastLogin: '2026-09-10 15:00' },
-    { id: 'staff_007', name: 'Vũ Văn Tech',       email: 'tech@avafollow.vn',  role: 'tech_admin',        dept: 'Kỹ Thuật & Dev',       status: 'active',   lastLogin: '2026-09-12 07:00' },
-  ]);
+  const [staffList, setStaffList] = useState<StaffMember[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_admin_staff_list') : null;
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      { id: 'staff_001', name: 'Nguyễn Văn Admin', email: 'admin@avafollow.vn',   role: 'super_admin',      dept: 'Ban Lãnh Đạo',         status: 'active',   lastLogin: '2026-09-12 08:00' },
+      { id: 'staff_002', name: 'Trần Thị Kế Toán', email: 'ketoan@avafollow.vn', role: 'finance_manager',   dept: 'Tài Chính - Kế Toán',  status: 'active',   lastLogin: '2026-09-12 07:45' },
+      { id: 'staff_003', name: 'Lê Văn KYC',        email: 'kyc@avafollow.vn',   role: 'kyc_officer',       dept: 'Xác Minh KYC',         status: 'active',   lastLogin: '2026-09-11 22:30' },
+      { id: 'staff_004', name: 'Phạm Thị Support',  email: 'cs@avafollow.vn',    role: 'customer_support',  dept: 'Chăm Sóc Khách Hàng',  status: 'active',   lastLogin: '2026-09-12 08:10' },
+      { id: 'staff_005', name: 'Hoàng Văn KOC',     email: 'koc@avafollow.vn',   role: 'koc_manager',       dept: 'Quản Lý KOC',          status: 'active',   lastLogin: '2026-09-11 20:00' },
+      { id: 'staff_006', name: 'Đinh Thị Campaign', email: 'camp@avafollow.vn',  role: 'campaign_manager',  dept: 'Chiến Dịch & Quảng Cáo', status: 'inactive', lastLogin: '2026-09-10 15:00' },
+      { id: 'staff_007', name: 'Vũ Văn Tech',       email: 'tech@avafollow.vn',  role: 'tech_admin',        dept: 'Kỹ Thuật & Dev',       status: 'active',   lastLogin: '2026-09-12 07:00' },
+    ];
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_admin_staff_list', JSON.stringify(staffList));
+      }
+    } catch {}
+  }, [staffList]);
+
   const [addStaffOpen, setAddStaffOpen] = useState(false);
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffEmail, setNewStaffEmail] = useState('');
   const [newStaffRole, setNewStaffRole] = useState('customer_support');
   const [newStaffDept, setNewStaffDept] = useState('');
+
 
   // KOC Penalty modal state
   const [penaltyModalBooking, setPenaltyModalBooking] = useState<any>(null);
@@ -4200,7 +4227,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <button
                     onClick={() => {
                       if (!newStaffName || !newStaffEmail) { showToast('Vui lòng điền đầy đủ thông tin'); return; }
-                      const newS = { id: `staff_${Date.now()}`, name: newStaffName, email: newStaffEmail, role: newStaffRole, dept: newStaffDept || 'Chưa phân bộ phận', status: 'active', lastLogin: 'Chưa đăng nhập' };
+                      const newS: StaffMember = { id: `staff_${Date.now()}`, name: newStaffName, email: newStaffEmail, role: newStaffRole, dept: newStaffDept || 'Chưa phân bộ phận', status: 'active', lastLogin: 'Chưa đăng nhập' };
                       setStaffList(prev => [...prev, newS]);
                       showToast(`✅ Đã thêm nhân sự ${newStaffName} với vai trò ${newStaffRole}`);
                       setNewStaffName(''); setNewStaffEmail(''); setNewStaffDept('');

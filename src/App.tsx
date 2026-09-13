@@ -169,7 +169,7 @@ function AppContent() {
       showToast(`🎉 Thanh toán SePay thành công! Đã cấp bản quyền phần mềm "${item.title}".`);
     } else if (item.category === 'growth_package') {
       if (item.metadata?.pkg) {
-        purchaseServicePackage(item.metadata.pkg, item.metadata.targetUrl || '@kenh_tiktok', item.metadata.instructions);
+        purchaseServicePackage(item.metadata.pkg, item.metadata.targetUrl || '@kenh_tiktok', item.metadata.instructions, 'sepay');
       }
       showToast(`🎉 Thanh toán SePay thành công! Gói "${item.title}" đã kích hoạt vào hàng đợi xử lý.`);
     } else if (item.category === 'escrow_deposit') {

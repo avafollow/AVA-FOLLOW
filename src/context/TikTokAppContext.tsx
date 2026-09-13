@@ -139,7 +139,7 @@ interface TikTokAppContextType {
   selectedPackageForOrder: GrowthServiceItem | null;
   openOrderModal: (pkg: GrowthServiceItem) => void;
   closeOrderModal: () => void;
-  purchaseServicePackage: (pkg: GrowthServiceItem, targetUrl: string, instructions?: string) => boolean;
+  purchaseServicePackage: (pkg: GrowthServiceItem, targetUrl: string, instructions?: string, paymentMethod?: 'coins' | 'sepay') => boolean;
 
   // Modals state
   runnerTask: TikTokTaskItem | null;
@@ -1223,13 +1223,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   // Mua gói dịch vụ & Trả gói tự động sang hàng đợi nhiệm vụ
-  const purchaseServicePackage = (pkg: GrowthServiceItem, targetUrl: string, instructions?: string): boolean => {
-    if (user.avaliveCoins < pkg.priceNum) {
+  const purchaseServicePackage = (pkg: GrowthServiceItem, targetUrl: string, instructions?: string, paymentMethod: 'coins' | 'sepay' = 'coins'): boolean => {
+    if (paymentMethod === 'coins' && user.avaliveCoins < pkg.priceNum) {
       showToast('❌ Số dư Xu không đủ để kích hoạt gói này!');
       return false;
     }
 
-    const newCoins = user.avaliveCoins - pkg.priceNum;
+    const newCoins = paymentMethod === 'coins' ? user.avaliveCoins - pkg.priceNum : user.avaliveCoins;
     const isLive = pkg.category === 'livestream';
     const newOrder: ServiceOrder = {
       id: `ord_${Date.now()}`,
@@ -1332,10 +1332,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const newTx: TransactionRecord = {
       id: `tx_pkg_${Date.now()}`,
-      type: 'spend',
-      title: `Kích hoạt gói "${pkg.title}" cho ${targetUrl}`,
-      amount: `-${pkg.price}`,
-      isPositive: false,
+      type: paymentMethod === 'sepay' ? 'deposit' : 'spend',
+      title: paymentMethod === 'sepay'
+        ? `Thanh toán SePay VietQR gói "${pkg.title}" cho ${targetUrl}`
+        : `Kích hoạt gói "${pkg.title}" cho ${targetUrl}`,
+      amount: paymentMethod === 'sepay' ? `+${pkg.price}` : `-${pkg.price}`,
+      isPositive: paymentMethod === 'sepay',
       date: 'Vừa xong',
       status: 'success'
     };

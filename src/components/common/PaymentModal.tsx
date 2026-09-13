@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   QrCode, 
@@ -15,17 +15,18 @@ import {
   Clock,
   ExternalLink,
   Flame,
-  UserCheck,
   PlusCircle,
   Cpu,
-  Wallet
+  Wallet,
+  AlertCircle,
+  ArrowLeft
 } from 'lucide-react';
 import { 
   COIN_TOPUP_PACKAGES, 
   CoinTopupPackage, 
   SEPAY_BANK_CONFIG,
   generateSepayQrUrl,
-  generateVietQrUrl
+  generateVietQrUrl 
 } from '../../services/sepayService';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 
@@ -42,7 +43,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onDepositSuccess,
   onNavigate
 }) => {
-  const { addNotification, showToast, openFeedRunner } = useTikTokApp();
+  const { user, addNotification, showToast, openFeedRunner } = useTikTokApp();
 
   const [selectedPackage, setSelectedPackage] = useState<CoinTopupPackage>(COIN_TOPUP_PACKAGES[0]);
   const [isCustomAmount, setIsCustomAmount] = useState<boolean>(false);
@@ -52,15 +53,26 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   // Quy trình xác thực an toàn tuyệt đối: 'form' -> 'verifying' -> 'success'
   const [stage, setStage] = useState<'form' | 'verifying' | 'success'>('form');
-  const [verifyProgress, setVerifyProgress] = useState<number>(15);
+  const [checkCount, setCheckCount] = useState<number>(0);
+  const [isCheckingApi, setIsCheckingApi] = useState<boolean>(false);
+  const [checkErrorMsg, setCheckErrorMsg] = useState<string>('');
   const [confirmedRefId, setConfirmedRefId] = useState<string>('');
+
+  const pollingRef = useRef<any>(null);
 
   useEffect(() => {
     if (isOpen) {
       setStage('form');
-      setVerifyProgress(15);
+      setCheckCount(0);
+      setIsCheckingApi(false);
+      setCheckErrorMsg('');
       setConfirmedRefId('');
+    } else {
+      if (pollingRef.current) clearInterval(pollingRef.current);
     }
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -100,48 +112,81 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const activeQrUrl = qrProvider === 'sepay' ? sepayQrUrl : vietQrUrl;
 
-  // Bắt đầu quy trình chờ SePay đối soát an toàn
+  // Hàm kiểm tra giao dịch thực tế từ SePay
+  const checkPaymentStatus = async (showFeedback = false) => {
+    if (isCheckingApi) return;
+    setIsCheckingApi(true);
+    setCheckCount(prev => prev + 1);
+
+    try {
+      const res = await fetch(`/api/check-payment?orderCode=${memoContent}&amount=${activeAmountVnd}`);
+      const data = await res.json();
+
+      if (data && data.verified === true) {
+        // SePay ĐÃ XÁC NHẬN NHẬN ĐƯỢC TIỀN VÀO TECHCOMBANK!
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        const refId = data.transaction?.referenceCode || `SEPAY_TCB_${Date.now().toString().slice(-8)}`;
+        setConfirmedRefId(refId);
+
+        // 1. Mở khóa Xu vào ví
+        onDepositSuccess(activeCoins, 'SePay VietQR 24/7 (Techcombank)', refId);
+
+        // 2. Gửi thông báo vinh danh vào chuông thông báo
+        addNotification({
+          type: 'reward_claimed',
+          title: `🎉 Nạp Thành Công +${activeCoins.toLocaleString()} Xu Qua SePay`,
+          message: `Cổng SePay đã xác nhận biến động số dư Techcombank ${activeAmountVnd.toLocaleString()}đ (Mã: ${refId}). Đã mở khóa +${activeCoins.toLocaleString()} Xu vào ví an toàn!`,
+          rewardCoins: activeCoins
+        });
+
+        // 3. Mở màn hình vinh danh
+        setStage('success');
+        showToast(`🎉 SePay xác nhận thành công! Đã cộng +${activeCoins.toLocaleString()} Xu vào ví.`);
+      } else {
+        // CHƯA NHẬN ĐƯỢC TIỀN: Giữ nguyên trạng thái chờ, thông báo cho khách hàng
+        setCheckErrorMsg('Hệ thống chưa nhận được biến động số dư ghi có từ Techcombank (19035907828017). Vui lòng kiểm tra lại lệnh chuyển khoản.');
+        if (showFeedback) {
+          showToast('⏳ Chưa nhận được tiền. Đang tiếp tục kiểm tra...');
+        }
+      }
+    } catch (err) {
+      setCheckErrorMsg('Đang kiểm tra kết nối với cổng SePay VietQR...');
+    } finally {
+      setIsCheckingApi(false);
+    }
+  };
+
+  // Bắt đầu quy trình kiểm tra SePay an toàn
   const handleStartVerification = () => {
     setStage('verifying');
-    setVerifyProgress(25);
+    setCheckErrorMsg('');
+    setCheckCount(1);
 
-    const refId = `SEPAY_TCB_${Date.now().toString().slice(-8)}`;
+    // Kiểm tra ngay lần đầu
+    checkPaymentStatus(true);
+
+    // Bật polling kiểm tra mỗi 3.5 giây
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(() => {
+      checkPaymentStatus(false);
+    }, 3500);
+  };
+
+  // Admin Manual Bypass (Chỉ dành riêng cho tài khoản Admin quocthiencr90@gmail.com kiểm thử hệ thống)
+  const handleAdminTestApprove = () => {
+    if (user?.email !== 'quocthiencr90@gmail.com') return;
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    const refId = `ADMIN_TEST_${Date.now().toString().slice(-6)}`;
     setConfirmedRefId(refId);
 
-    // Mô phỏng tiến trình kết nối SePay API & Techcombank
-    const step1 = setTimeout(() => setVerifyProgress(50), 1000);
-    const step2 = setTimeout(() => setVerifyProgress(80), 2200);
-
-    const finalStep = setTimeout(async () => {
-      setVerifyProgress(100);
-
-      // Thử gọi API xác thực nếu backend online
-      try {
-        await fetch(`/api/check-payment?orderCode=${memoContent}&amount=${activeAmountVnd}`).catch(() => null);
-      } catch {
-        // Safe fallback
-      }
-
-      // 1. Cộng Xu an toàn vào ví
-      onDepositSuccess(activeCoins, 'SePay VietQR 24/7 (Techcombank)', refId);
-
-      // 2. Gửi thông báo vinh danh vào chuông thông báo
-      addNotification({
-        type: 'reward_claimed',
-        title: `🎉 Nạp Thành Công +${activeCoins.toLocaleString()} Xu Qua SePay`,
-        message: `Cổng SePay đã xác nhận biến động số dư Techcombank ${activeAmountVnd.toLocaleString()}đ (Mã: ${refId}). Đã mở khóa +${activeCoins.toLocaleString()} Xu vào ví an toàn!`,
-        rewardCoins: activeCoins
-      });
-
-      // 3. Chuyển sang màn hình chúc mừng & hướng dẫn sử dụng
-      setStage('success');
-    }, 3200);
-
-    return () => {
-      clearTimeout(step1);
-      clearTimeout(step2);
-      clearTimeout(finalStep);
-    };
+    onDepositSuccess(activeCoins, 'Admin Test Bypass', refId);
+    addNotification({
+      type: 'reward_claimed',
+      title: `👑 Admin Duyệt Thử Nghiệm: +${activeCoins.toLocaleString()} Xu`,
+      message: `Đã duyệt thử nghiệm tài khoản Admin cho mã ${memoContent}.`,
+      rewardCoins: activeCoins
+    });
+    setStage('success');
   };
 
   return (
@@ -366,6 +411,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                         </button>
                       </div>
                     </div>
+                    <p className="text-[10px] text-slate-400 italic">
+                      * Chuyển khoản đúng nội dung để SePay nhận diện và mở khóa Xu tự động.
+                    </p>
                   </div>
 
                 </div>
@@ -384,69 +432,96 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </button>
 
               <p className="text-[11px] text-center text-slate-400">
-                ⚡ Hệ thống SePay sẽ tự động đối soát giao dịch ghi có từ Techcombank và cộng Xu vào ví ngay khi nhận được tiền.
+                ⚡ Hệ thống chỉ mở khóa Xu khi SePay xác nhận biến động số dư thực tế vào Techcombank 19035907828017.
               </p>
             </div>
 
           </div>
         )}
 
-        {/* STAGE 2: TRẠNG THÁI CHỜ SEPAY DUYỆT & ĐỐI SOÁT AN TOÀN */}
+        {/* STAGE 2: TRẠNG THÁI CHỜ SEPAY DUYỆT (CHƯA NHẬN ĐƯỢC TIỀN THÌ PHẢI CHỜ, KHÔNG TỰ ĐỘNG THÀNH CÔNG) */}
         {stage === 'verifying' && (
-          <div className="p-8 sm:p-12 flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in duration-200">
+          <div className="p-6 sm:p-10 flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in duration-200">
             
             {/* Animated Radar Scanner */}
-            <div className="relative w-28 h-28 flex items-center justify-center">
+            <div className="relative w-24 h-24 flex items-center justify-center">
               <div className="absolute inset-0 rounded-full border-2 border-rose-500/30 animate-ping opacity-75" />
-              <div className="absolute inset-2 rounded-full border border-amber-500/40 animate-spin" style={{ animationDuration: '3s' }} />
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center shadow-xl shadow-rose-950/80">
-                <RefreshCw className="w-10 h-10 text-white animate-spin" />
+              <div className="absolute inset-1.5 rounded-full border border-amber-500/40 animate-spin" style={{ animationDuration: '3s' }} />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center shadow-xl shadow-rose-950/80">
+                <RefreshCw className={`w-8 h-8 text-white ${isCheckingApi ? 'animate-spin' : ''}`} />
               </div>
             </div>
 
             <div className="space-y-2 max-w-md">
-              <h3 className="text-lg font-black text-white font-display">
-                Đang Xác Thực Biến Động Số Dư Với SePay...
+              <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold inline-flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                <span>ĐANG CHỜ SEPAY &amp; TECHCOMBANK XÁC NHẬN</span>
+              </span>
+              <h3 className="text-base sm:text-lg font-black text-white font-display">
+                Đang Kiểm Tra Biến Động Số Dư Thực Tế...
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed font-mono">
-                Hệ thống đang kết nối trực tiếp cổng SePay và ngân hàng Techcombank (STK: 19035907828017) để kiểm tra giao dịch ghi có cho mã: <strong className="text-rose-400">{memoContent}</strong>
+                Mã đơn: <strong className="text-rose-400">{memoContent}</strong> • Số tiền: <strong className="text-amber-300">{activeAmountVnd.toLocaleString()}đ</strong>
               </p>
             </div>
 
-            {/* Verification Checklist */}
-            <div className="w-full max-w-md p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3 text-left font-mono text-xs">
-              <div className="flex items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-slate-200">1. Khởi tạo mã QR SePay VietQR (Hoàn tất)</span>
+            {/* Thông báo trạng thái an toàn */}
+            <div className="w-full max-w-md p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-left space-y-2 font-mono text-xs text-amber-200/90">
+              <div className="flex items-center gap-2 font-bold text-amber-300">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>Trạng thái: Chưa nhận được giao dịch ghi có</span>
               </div>
-              <div className="flex items-center gap-2.5">
-                <RefreshCw className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
-                <span className="text-amber-300 font-bold">2. Chờ tín hiệu ghi có từ Techcombank...</span>
-              </div>
-              <div className="flex items-center gap-2.5 opacity-60">
-                <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-slate-400">3. SePay duyệt & Mở khóa {activeCoins.toLocaleString()} Xu vào ví</span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Hệ thống chỉ mở khóa Xu khi SePay ghi nhận tiền đã vào tài khoản Techcombank <strong>19035907828017</strong> (NGUYEN QUOC THIEN). Nếu bạn vừa chuyển tiền, vui lòng chờ 10-30 giây để ngân hàng gửi thông báo.
+              </p>
+              <div className="pt-1 text-[10px] text-slate-400 flex justify-between">
+                <span>Số lần kiểm tra: {checkCount}</span>
+                <span>{isCheckingApi ? 'Đang gửi truy vấn SePay...' : 'Tự động kiểm tra mỗi 3.5s'}</span>
               </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="w-full max-w-md space-y-1.5">
-              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-400 transition-all duration-500"
-                  style={{ width: `${verifyProgress}%` }}
-                />
-              </div>
-              <div className="text-[10px] text-slate-400 font-mono flex justify-between">
-                <span>Đối soát tự động...</span>
-                <span>{verifyProgress}%</span>
-              </div>
+            {/* Action Buttons Trong Trạng Thái Chờ */}
+            <div className="w-full max-w-md space-y-2.5">
+              <button
+                type="button"
+                disabled={isCheckingApi}
+                onClick={() => checkPaymentStatus(true)}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs font-mono flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isCheckingApi ? 'animate-spin' : ''}`} />
+                <span>{isCheckingApi ? 'Đang truy vấn SePay...' : 'Kiểm Tra Lại Ngay'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (pollingRef.current) clearInterval(pollingRef.current);
+                  setStage('form');
+                }}
+                className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-mono text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Quay lại xem mã QR &amp; thông tin chuyển khoản</span>
+              </button>
+
+              {/* Admin Test Button (Chỉ Admin quocthiencr90@gmail.com mới thấy để thử nghiệm) */}
+              {user?.email === 'quocthiencr90@gmail.com' && (
+                <div className="pt-2 border-t border-white/5">
+                  <button
+                    type="button"
+                    onClick={handleAdminTestApprove}
+                    className="w-full py-2 rounded-xl bg-purple-950/60 border border-purple-500/40 hover:bg-purple-900/60 text-purple-200 text-[11px] font-mono font-bold flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <span>👑 Admin Test: Bỏ qua kiểm tra thực tế (Chỉ dành cho Admin)</span>
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>
         )}
 
-        {/* STAGE 3: MÀN HÌNH CHÚC MỪNG & VINH DANH MỞ KHÓA XU THÀNH CÔNG */}
+        {/* STAGE 3: MÀN HÌNH CHÚC MỪNG & VINH DANH MỞ KHÓA XU (CHỈ KHI SEPAY ĐÃ XÁC NHẬN TIỀN VỀ THỰC TẾ) */}
         {stage === 'success' && (
           <div className="p-6 sm:p-8 space-y-6 overflow-y-auto animate-in zoom-in-95 duration-200">
             
@@ -461,13 +536,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
               <div className="space-y-1">
                 <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-mono font-bold border border-emerald-500/30">
-                  SEPAY ĐÃ PHÊ DUYỆT & NHẬN TIỀN THÀNH CÔNG
+                  ✓ SEPAY ĐÃ XÁC NHẬN TIỀN VỀ TECHCOMBANK
                 </span>
                 <h3 className="text-xl font-black text-white font-display">
                   🎉 Chúc Mừng Bạn Đã Mở Khóa Xu Thành Công!
                 </h3>
                 <p className="text-xs text-slate-300 max-w-md leading-relaxed">
-                  Cổng SePay đã xác nhận biến động số dư Techcombank. Toàn bộ số Xu của bạn đã được kích hoạt an toàn vào ví hệ thống.
+                  Giao dịch đã được ghi có an toàn vào tài khoản của bạn trên nền tảng AVA FOLLOW.
                 </p>
               </div>
             </div>
@@ -495,7 +570,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
             </div>
 
-            {/* GỢI Ý ĐIỀU HƯỚNG SỬ DỤNG XU (Click vào là mở ngay) */}
+            {/* GỢI Ý ĐIỀU HƯỚNG SỬ DỤNG XU */}
             <div className="space-y-2.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -503,8 +578,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                
-                {/* Gợi ý 1: Lướt Video & Follow Chéo */}
                 <button
                   type="button"
                   onClick={() => {
@@ -524,7 +597,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   </div>
                 </button>
 
-                {/* Gợi ý 2: Tạo Chiến Dịch Tăng Trưởng */}
                 <button
                   type="button"
                   onClick={() => {
@@ -544,7 +616,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   </div>
                 </button>
 
-                {/* Gợi ý 3: Mua Bản Quyền App Kiếm Tiền */}
                 <button
                   type="button"
                   onClick={() => {
@@ -558,13 +629,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-white group-hover:text-indigo-300 transition-colors">
-                      Kho App & Tool Kiếm Tiền
+                      Kho App &amp; Tool Kiếm Tiền
                     </div>
                     <div className="text-[10px] text-slate-400 line-clamp-1">Bản quyền phần mềm tự động</div>
                   </div>
                 </button>
 
-                {/* Gợi ý 4: Xem Lịch Sử Ví Xu */}
                 <button
                   type="button"
                   onClick={() => {
@@ -583,7 +653,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     <div className="text-[10px] text-slate-400 line-clamp-1">Kiểm tra số dư và sao kê SePay</div>
                   </div>
                 </button>
-
               </div>
             </div>
 

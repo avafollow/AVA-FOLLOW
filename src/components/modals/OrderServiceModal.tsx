@@ -106,59 +106,112 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
     return true;
   };
 
+  // Polling check SePay payment status
+  const [isCheckingApi, setIsCheckingApi] = useState(false);
+  const [checkCount, setCheckCount] = useState(0);
+  const [checkErrorMsg, setCheckErrorMsg] = useState('');
+  const pollingRef = React.useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
+
+  const checkPaymentStatus = async (showFeedback = false) => {
+    if (isCheckingApi) return;
+    setIsCheckingApi(true);
+    setCheckCount(prev => prev + 1);
+
+    try {
+      const res = await fetch(`/api/check-payment?orderCode=${orderCode}&amount=${effectivePriceNum}`);
+      const data = await res.json();
+
+      if (data && data.verified === true) {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        const refId = data.transaction?.referenceCode || `SEPAY_TCB_${Date.now().toString().slice(-8)}`;
+        setConfirmedRefId(refId);
+
+        const packageToOrder: GrowthServiceItem = {
+          ...packageItem,
+          priceNum: effectivePriceNum,
+          price: `${effectivePriceNum.toLocaleString()}đ`,
+          title: isLivestream 
+            ? `${packageItem.title.replace(/\(.*?\)/g, '').trim()} (${selectedDuration} Phút)`
+            : packageItem.title,
+          unit: isLivestream ? `Mắt xem / ${selectedDuration} phút` : packageItem.unit
+        };
+
+        // 1. Kích hoạt gói dịch vụ & đưa vào mạng lưới nhiệm vụ
+        purchaseServicePackage(packageToOrder, targetUrl.trim(), undefined, 'sepay');
+
+        // 2. Gửi thông báo thời gian thực về chuông thông báo
+        addNotification({
+          type: 'boosted_campaign',
+          title: `🎉 SePay Xác Nhận Giao Dịch Gói "${packageToOrder.title}"`,
+          message: `Đã nhận ${effectivePriceNum.toLocaleString()}đ qua Techcombank (Ref: ${refId}). Gói tăng trưởng cho kênh ${targetUrl} đã kích hoạt vào hàng đợi xử lý!`,
+          rewardCoins: effectivePriceNum
+        });
+
+        // 3. Chuyển sang màn hình chúc mừng
+        setStage('success');
+        showToast(`🎉 SePay xác nhận thành công! Gói dịch vụ đã được kích hoạt.`);
+      } else {
+        setCheckErrorMsg('Hệ thống chưa nhận được biến động số dư ghi có từ Techcombank (19035907828017). Vui lòng kiểm tra lại lệnh chuyển khoản.');
+        if (showFeedback) {
+          showToast('⏳ Chưa nhận được tiền. Đang tiếp tục kiểm tra...');
+        }
+      }
+    } catch (err) {
+      setCheckErrorMsg('Đang kiểm tra kết nối với cổng SePay VietQR...');
+    } finally {
+      setIsCheckingApi(false);
+    }
+  };
+
   // Xác nhận đã thanh toán chuyển khoản SePay VietQR -> Quy trình chờ SePay đối soát an toàn
   const handleConfirmSepayPayment = () => {
     if (!validateTargetUrl()) return;
 
     setStage('verifying');
-    setVerifyProgress(30);
+    setCheckErrorMsg('');
+    setCheckCount(1);
 
-    const refId = `SEPAY_PKG_${Date.now().toString().slice(-8)}`;
+    // Kiểm tra ngay lần đầu
+    checkPaymentStatus(true);
+
+    // Polling mỗi 3.5s
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(() => {
+      checkPaymentStatus(false);
+    }, 3500);
+  };
+
+  // Admin Manual Bypass cho quocthiencr90@gmail.com
+  const handleAdminTestApprove = () => {
+    if (user?.email !== 'quocthiencr90@gmail.com') return;
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    const refId = `ADMIN_TEST_${Date.now().toString().slice(-6)}`;
     setConfirmedRefId(refId);
 
-    const step1 = setTimeout(() => setVerifyProgress(60), 1100);
-    const step2 = setTimeout(() => setVerifyProgress(85), 2200);
-
-    const finalStep = setTimeout(async () => {
-      setVerifyProgress(100);
-
-      // Thử gọi backend check-payment nếu có
-      try {
-        await fetch(`/api/check-payment?orderCode=${orderCode}&amount=${effectivePriceNum}`).catch(() => null);
-      } catch {
-        // Safe fallback
-      }
-
-      const packageToOrder: GrowthServiceItem = {
-        ...packageItem,
-        priceNum: effectivePriceNum,
-        price: `${effectivePriceNum.toLocaleString()}đ`,
-        title: isLivestream 
-          ? `${packageItem.title.replace(/\(.*?\)/g, '').trim()} (${selectedDuration} Phút)`
-          : packageItem.title,
-        unit: isLivestream ? `Mắt xem / ${selectedDuration} phút` : packageItem.unit
-      };
-
-      // 1. Kích hoạt gói dịch vụ & đưa vào mạng lưới nhiệm vụ
-      purchaseServicePackage(packageToOrder, targetUrl.trim(), undefined, 'sepay');
-
-      // 2. Gửi thông báo thời gian thực về chuông thông báo
-      addNotification({
-        type: 'boosted_campaign',
-        title: `🎉 SePay Xác Nhận Giao Dịch Gói "${packageToOrder.title}"`,
-        message: `Đã nhận ${effectivePriceNum.toLocaleString()}đ qua Techcombank (Ref: ${refId}). Gói tăng trưởng cho kênh ${targetUrl} đã kích hoạt vào hàng đợi xử lý!`,
-        rewardCoins: effectivePriceNum
-      });
-
-      // 3. Chuyển sang màn hình chúc mừng
-      setStage('success');
-    }, 3200);
-
-    return () => {
-      clearTimeout(step1);
-      clearTimeout(step2);
-      clearTimeout(finalStep);
+    const packageToOrder: GrowthServiceItem = {
+      ...packageItem,
+      priceNum: effectivePriceNum,
+      price: `${effectivePriceNum.toLocaleString()}đ`,
+      title: isLivestream 
+        ? `${packageItem.title.replace(/\(.*?\)/g, '').trim()} (${selectedDuration} Phút)`
+        : packageItem.title,
+      unit: isLivestream ? `Mắt xem / ${selectedDuration} phút` : packageItem.unit
     };
+
+    purchaseServicePackage(packageToOrder, targetUrl.trim(), undefined, 'sepay');
+    addNotification({
+      type: 'boosted_campaign',
+      title: `👑 Admin Duyệt Thử Nghiệm: "${packageToOrder.title}"`,
+      message: `Đã duyệt thử nghiệm đơn hàng gói dịch vụ cho mã ${orderCode}.`,
+      rewardCoins: effectivePriceNum
+    });
+    setStage('success');
   };
 
   // Thanh toán bằng số dư Ví Xu (nếu có đủ Xu)
@@ -452,55 +505,78 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
           </div>
         )}
 
-        {/* STAGE 2: TRẠNG THÁI CHỜ SEPAY DUYỆT & ĐỐI SOÁT AN TOÀN */}
+        {/* STAGE 2: TRẠNG THÁI CHỜ SEPAY DUYỆT & ĐỐI SOÁT AN TOÀN (CHƯA NHẬN ĐƯỢC TIỀN THÌ PHẢI CHỜ) */}
         {stage === 'verifying' && (
-          <div className="p-8 sm:p-12 flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in duration-200">
-            <div className="relative w-28 h-28 flex items-center justify-center">
+          <div className="p-6 sm:p-8 flex flex-col items-center justify-center text-center space-y-5 animate-in fade-in duration-200">
+            <div className="relative w-24 h-24 flex items-center justify-center">
               <div className="absolute inset-0 rounded-full border-2 border-purple-500/30 animate-ping opacity-75" />
               <div className="absolute inset-2 rounded-full border border-rose-500/40 animate-spin" style={{ animationDuration: '3s' }} />
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-purple-600 to-rose-500 flex items-center justify-center shadow-xl shadow-purple-950/80">
-                <RefreshCw className="w-10 h-10 text-white animate-spin" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-600 to-rose-500 flex items-center justify-center shadow-xl shadow-purple-950/80">
+                <RefreshCw className={`w-8 h-8 text-white ${isCheckingApi ? 'animate-spin' : ''}`} />
               </div>
             </div>
 
-            <div className="space-y-2 max-w-md">
-              <h3 className="text-lg font-black text-white font-display">
-                Đang Xác Thực Biến Động Số Dư Với SePay...
+            <div className="space-y-1.5 max-w-md">
+              <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold inline-flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                <span>ĐANG CHỜ SEPAY &amp; TECHCOMBANK XÁC NHẬN</span>
+              </span>
+              <h3 className="text-base sm:text-lg font-black text-white font-display">
+                Đang Kiểm Tra Biến Động Số Dư Thực Tế...
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed font-mono">
-                Hệ thống đang kết nối cổng SePay và Techcombank (19035907828017) để kiểm tra giao dịch: <strong className="text-rose-400">{orderCode}</strong>
+                Mã giao dịch: <strong className="text-rose-400">{orderCode}</strong> • Số tiền: <strong className="text-amber-300">{effectivePriceNum.toLocaleString()}đ</strong>
               </p>
             </div>
 
-            {/* Checklist */}
-            <div className="w-full max-w-md p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3 text-left font-mono text-xs">
-              <div className="flex items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-slate-200">1. Tạo lệnh chuyển khoản SePay VietQR (Hoàn tất)</span>
+            {/* Thông báo trạng thái an toàn */}
+            <div className="w-full max-w-md p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-left space-y-2 font-mono text-xs text-amber-200/90">
+              <div className="flex items-center gap-2 font-bold text-amber-300">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>Trạng thái: Chưa nhận được giao dịch ghi có</span>
               </div>
-              <div className="flex items-center gap-2.5">
-                <RefreshCw className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
-                <span className="text-amber-300 font-bold">2. Chờ SePay ghi có từ Techcombank...</span>
-              </div>
-              <div className="flex items-center gap-2.5 opacity-60">
-                <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-slate-400">3. Kích hoạt và điều phối nhiệm vụ vào mạng lưới</span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Hệ thống chỉ kích hoạt gói khi SePay xác nhận tiền đã vào tài khoản Techcombank <strong>19035907828017</strong> (NGUYEN QUOC THIEN). Nếu bạn vừa chuyển tiền, vui lòng đợi vài giây để hệ thống nhận webhook.
+              </p>
+              <div className="pt-1 text-[10px] text-slate-400 flex justify-between">
+                <span>Số lần kiểm tra: {checkCount}</span>
+                <span>{isCheckingApi ? 'Đang gửi truy vấn SePay...' : 'Tự động kiểm tra mỗi 3.5s'}</span>
               </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="w-full max-w-md space-y-1.5">
-              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-purple-500 via-rose-500 to-emerald-400 transition-all duration-500"
-                  style={{ width: `${verifyProgress}%` }}
-                />
-              </div>
-              <div className="text-[10px] text-slate-400 font-mono flex justify-between">
-                <span>Đối soát tự động SePay...</span>
-                <span>{verifyProgress}%</span>
-              </div>
+            {/* Điều khiển thao tác khi chờ */}
+            <div className="w-full max-w-md flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setStage('form')}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs transition-all cursor-pointer"
+              >
+                ← Quay Lại Mã QR
+              </button>
+              <button
+                type="button"
+                disabled={isCheckingApi}
+                onClick={() => checkPaymentStatus(true)}
+                className="flex-1 py-2.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isCheckingApi ? 'animate-spin' : ''}`} />
+                <span>Kiểm Tra Lại Ngay</span>
+              </button>
             </div>
+
+            {/* Admin Manual Test Button */}
+            {user?.email === 'quocthiencr90@gmail.com' && (
+              <div className="w-full max-w-md p-2.5 rounded-xl bg-purple-950/30 border border-purple-500/30 flex items-center justify-between text-[11px] font-mono">
+                <span className="text-purple-300 font-bold">👑 Admin Test Mode:</span>
+                <button
+                  type="button"
+                  onClick={handleAdminTestApprove}
+                  className="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold cursor-pointer transition-all"
+                >
+                  Duyệt Thử Nghiệm Ngay
+                </button>
+              </div>
+            )}
           </div>
         )}
 

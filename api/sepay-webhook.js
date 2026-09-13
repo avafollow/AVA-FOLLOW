@@ -10,7 +10,6 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
  * Ngân hàng tích hợp: Techcombank - 19035907828017 - NGUYEN QUOC THIEN
  */
 export default async function handler(req, res) {
-  // Cho phép CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-SePay-API-Key');
@@ -38,7 +37,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // POST request: SePay gửi dữ liệu biến động số dư chuyển khoản
+  // POST request: SePay gửi dữ liệu biến động số dư chuyển khoản thực tế
   if (req.method === 'POST') {
     try {
       const data = req.body || {};
@@ -63,52 +62,65 @@ export default async function handler(req, res) {
         });
       }
 
-      // Phân tích mã đơn hàng từ nội dung chuyển khoản
-      const orderMemo = (content || '').toString().toUpperCase();
+      // Trích xuất mã đơn hàng từ nội dung chuyển khoản
+      const orderMemo = (content || '').toString().toUpperCase().trim();
       let orderType = 'UNKNOWN';
 
       if (orderMemo.includes('AVAXU')) {
-        orderType = 'TOPUP_XU'; // Nạp Xu vào ví
+        orderType = 'TOPUP_XU';
       } else if (orderMemo.includes('AVAPKG')) {
-        orderType = 'GROWTH_PACKAGE'; // Mua gói tăng trưởng TikTok
+        orderType = 'GROWTH_PACKAGE';
       } else if (orderMemo.includes('AVAAPP')) {
-        orderType = 'SOFTWARE_APP'; // Mua bản quyền phần mềm / App
+        orderType = 'SOFTWARE_APP';
       } else if (orderMemo.includes('AVAESC')) {
-        orderType = 'ESCROW_DEPOSIT'; // Ký quỹ Booking KOC
+        orderType = 'ESCROW_DEPOSIT';
       }
 
       console.log(`✅ [SEPAY TRANSACTION VERIFIED]: ID=${id}, Số tiền=${transferAmount}đ, Nội dung="${orderMemo}", Loại đơn=${orderType}`);
 
-      // Ghi sổ cái tự động vào Supabase để đối soát an toàn
+      const verifiedRecord = {
+        id: id || Date.now(),
+        orderCode: orderMemo,
+        gateway: gateway || 'Techcombank',
+        accountNumber: accountNumber || '19035907828017',
+        transferAmount: Number(transferAmount || 0),
+        transferType: 'in',
+        orderType,
+        content: orderMemo,
+        referenceCode: referenceCode || `REF_${Date.now()}`,
+        transactionDate: transactionDate || new Date().toISOString(),
+        verifiedAt: new Date().toISOString(),
+        status: 'PAID'
+      };
+
+      // Lưu trữ xác nhận an toàn vào Supabase Storage (bền vững trên Vercel)
       try {
-        await supabaseAdmin.from('token_ledger').insert([{
-          user_id: 'sepay_gateway',
-          user_email: 'sepay_webhook@avafollow.vn',
-          tx_type: 'deposit',
-          token_amount: Math.round(Number(transferAmount || 0) / 1000),
-          coins_amount: Number(transferAmount || 0),
-          balance_after: Number(transferAmount || 0),
-          vnd_equivalent: Number(transferAmount || 0),
-          note: `[SEPAY_CONFIRMED] Mã đơn: ${orderMemo} | Ngân hàng: ${gateway || 'Techcombank'} | Ref: ${referenceCode || id}`,
-          status: 'success'
-        }]);
-      } catch (dbErr) {
-        console.warn('⚠️ Ghi token_ledger Supabase ghi nhận cảnh báo:', dbErr.message);
+        // 1. Lưu theo file mã đơn duy nhất: sepay/orders/${orderMemo}.json
+        await supabaseAdmin.storage
+          .from('ava_data_sync')
+          .upload(`sepay/orders/${orderMemo}.json`, JSON.stringify(verifiedRecord), {
+            upsert: true,
+            contentType: 'application/json'
+          });
+
+        // 2. Lưu theo id giao dịch: sepay/transactions/${id}.json
+        if (id) {
+          await supabaseAdmin.storage
+            .from('ava_data_sync')
+            .upload(`sepay/transactions/${id}.json`, JSON.stringify(verifiedRecord), {
+              upsert: true,
+              contentType: 'application/json'
+            });
+        }
+      } catch (storageErr) {
+        console.warn('⚠️ Lỗi lưu trữ Supabase Storage:', storageErr.message);
       }
 
-      // Phản hồi 200 OK ngay lập tức cho SePay
+      // Phản hồi 200 OK cho SePay
       return res.status(200).json({
         success: true,
-        message: 'Giao dịch SePay đã được tiếp nhận và xử lý thành công',
-        data: {
-          transactionId: id,
-          gateway: gateway || 'Techcombank',
-          amount: transferAmount,
-          orderCode: orderMemo,
-          orderType,
-          accountNumber: accountNumber || '19035907828017',
-          processedAt: new Date().toISOString()
-        }
+        message: 'Giao dịch SePay đã được tiếp nhận và xác thực thành công',
+        data: verifiedRecord
       });
     } catch (error) {
       console.error('❌ [SEPAY WEBHOOK ERROR]:', error);

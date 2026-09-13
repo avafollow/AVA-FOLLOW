@@ -81,11 +81,15 @@ export const Header: React.FC<HeaderProps> = ({
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
   const profileMenuRef = React.useRef<HTMLDivElement>(null);
+  const notificationsRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
         setIsProfileMenuOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+        setIsNotificationsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -345,18 +349,100 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {/* Notification Button next to Avatar */}
-          <button
-            onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-            className="relative p-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 transition-all cursor-pointer shadow-md flex items-center justify-center shrink-0"
-            title="Xem thông báo chiến dịch Hot & Đẩy Top"
-          >
-            <Bell className="h-4 w-4 text-rose-400 animate-bounce" />
-            {unreadNotificationsCount > 0 && (
-              <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-black bg-rose-600 text-white rounded-full min-w-[16px] shadow-sm">
-                {unreadNotificationsCount}
-              </span>
+          <div ref={notificationsRef} className="relative">
+            <button
+              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+              className="relative p-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 transition-all cursor-pointer shadow-md flex items-center justify-center shrink-0"
+              title="Xem thông báo chiến dịch Hot & Đẩy Top"
+            >
+              <Bell className="h-4 w-4 text-rose-400 animate-bounce" />
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-black bg-rose-600 text-white rounded-full min-w-[16px] shadow-sm">
+                  {unreadNotificationsCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Dropdown Menu: Định vị chính xác, không tràn viền, có nút tắt đầy đủ */}
+            {isNotificationsOpen && (
+              <div 
+                className="absolute right-0 top-full mt-2 w-[340px] sm:w-[390px] max-w-[92vw] bg-[#0D111E] border border-rose-500/50 rounded-3xl p-4 shadow-2xl shadow-black/90 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl flex flex-col max-h-[80vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header with Title and Prominent Close Button */}
+                <div className="flex items-center justify-between pb-2.5 border-b border-white/10 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                      <Bell className="w-4 h-4 text-rose-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-white font-display">Thông Báo Hệ Thống</h3>
+                      <p className="text-[10px] text-slate-400 font-mono">Cập nhật Xu & chiến dịch Hot</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {userNotifications.length > 0 && (
+                      <button
+                        onClick={clearAllNotifications}
+                        className="text-[10px] font-mono text-cyan-400 hover:underline cursor-pointer px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10"
+                      >
+                        Đọc tất cả
+                      </button>
+                    )}
+                    {/* Nút X tắt thông báo */}
+                    <button 
+                      onClick={() => setIsNotificationsOpen(false)} 
+                      className="p-1.5 rounded-xl bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-white transition-all cursor-pointer flex items-center justify-center"
+                      title="Tắt thông báo"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Notifications List with scroll */}
+                <div className="overflow-y-auto space-y-2 flex-1 pr-1">
+                  {userNotifications.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 text-xs font-mono">
+                      Chưa có thông báo mới nào.
+                    </div>
+                  ) : (
+                    userNotifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        onClick={() => markNotificationAsRead(notif.id)}
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer space-y-1.5 ${
+                          notif.isRead 
+                            ? 'bg-black/30 border-white/5 opacity-75 hover:opacity-100 hover:border-white/20' 
+                            : 'bg-rose-950/25 border-rose-500/35 hover:border-rose-400 shadow-md shadow-rose-950/20'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="text-xs font-bold text-white leading-tight">{notif.title}</div>
+                          {!notif.isRead && (
+                            <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1" />
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-relaxed">{notif.message}</p>
+                        <span className="text-[9px] font-mono text-slate-400 block">{notif.timestamp}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Footer Action: Nút Tắt Bảng Thông Báo */}
+                <div className="pt-2 border-t border-white/10 shrink-0">
+                  <button
+                    onClick={() => setIsNotificationsOpen(false)}
+                    className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Đóng Bảng Thông Báo</span>
+                  </button>
+                </div>
+              </div>
             )}
-          </button>
+          </div>
 
           {/* User Profile Pill & Dropdown Menu */}
           <div ref={profileMenuRef} className="relative">
@@ -485,61 +571,6 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Notifications Modal */}
-      {isNotificationsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div 
-            className="relative w-full max-w-md bg-[#0D111E] border border-rose-500/40 rounded-3xl p-5 shadow-2xl space-y-4 max-h-[80vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <Bell className="w-5 h-5 text-rose-500" />
-                <h3 className="text-base font-black text-white font-display">Thông Báo Hệ Thống</h3>
-                {unreadNotificationsCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-mono font-bold">
-                    {unreadNotificationsCount} mới
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {userNotifications.length > 0 && (
-                  <button
-                    onClick={clearAllNotifications}
-                    className="text-[10px] font-mono text-slate-400 hover:text-white"
-                  >
-                    Đọc tất cả
-                  </button>
-                )}
-                <button onClick={() => setIsNotificationsOpen(false)} className="text-slate-400 hover:text-white">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-y-auto space-y-2 flex-1">
-              {userNotifications.length === 0 ? (
-                <div className="p-6 text-center text-slate-400 text-xs font-mono">
-                  Chưa có thông báo mới nào.
-                </div>
-              ) : (
-                userNotifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    onClick={() => markNotificationAsRead(notif.id)}
-                    className="p-3 rounded-2xl bg-black/40 border border-white/10 hover:border-rose-500/40 transition-all cursor-pointer"
-                  >
-                    <div className="text-xs font-bold text-white">{notif.title}</div>
-                    <p className="text-[11px] text-slate-300 mt-1">{notif.message}</p>
-                    <span className="text-[9px] font-mono text-slate-400 mt-1 block">{notif.timestamp}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };

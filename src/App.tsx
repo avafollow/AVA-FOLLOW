@@ -152,6 +152,18 @@ function AppContent() {
     }
   }, [isAuthenticated, user?.email]);
 
+  // Check SePay Payment return query params (?payment=success / ?payment=cancel)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'success') {
+      showToast('🎉 Giao dịch SePay thành công! Hệ thống đã ghi nhận thanh toán của bạn.');
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('payment') === 'cancel') {
+      showToast('ℹ️ Bạn đã hủy giao dịch thanh toán.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   const handleDepositSuccess = (amount: number, method: string) => {
     const amountVND = amount >= 10000 ? amount : amount * 25400;
     deposit(amountVND, method);

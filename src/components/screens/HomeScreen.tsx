@@ -115,29 +115,8 @@ export const HomeScreen: React.FC<{
                 <span className="text-[10px] text-slate-400 font-mono">Bấm vào ô để truy cập nhanh</span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5">
-                {/* Tab 1: Lướt Video FYP */}
-                <button
-                  type="button"
-                  onClick={() => openFeedRunner('all')}
-                  className="p-3.5 rounded-2xl bg-gradient-to-br from-rose-950/40 via-black to-[#0D111E] border border-rose-500/40 hover:border-rose-400 hover:scale-[1.03] active:scale-[0.98] transition-all text-left flex flex-col justify-between space-y-2 shadow-lg group cursor-pointer"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 group-hover:bg-rose-500 group-hover:text-white transition-all">
-                      <Play className="w-4 h-4 fill-current" />
-                    </div>
-                    <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 text-[9px] font-mono font-bold">15 Giây</span>
-                  </div>
-                  <div>
-                    <div className="text-xs font-black text-white font-display group-hover:text-rose-300 transition-colors">
-                      Xem Video
-                    </div>
-                    <div className="text-[10px] text-amber-300 font-mono font-bold mt-0.5">+500đ - 1K Xu</div>
-                    <div className="text-[9px] text-slate-400 line-clamp-1 mt-0.5">Lướt tự động rảnh tay</div>
-                  </div>
-                </button>
-
-                {/* Tab 2: Follow Chéo Cộng Đồng Creator */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                {/* Tab 1: Follow Chéo Cộng Đồng Creator & Xem Video */}
                 <button
                   type="button"
                   onClick={() => openFeedRunner('cross_follow')}
@@ -153,12 +132,12 @@ export const HomeScreen: React.FC<{
                     <div className="text-xs font-black text-white font-display group-hover:text-emerald-300 transition-colors">
                       Follow Chéo
                     </div>
-                    <div className="text-[10px] text-emerald-300 font-mono font-bold mt-0.5">+200đ - 500đ Xu</div>
-                    <div className="text-[9px] text-slate-400 line-clamp-1 mt-0.5">Lướt chiến dịch &amp; live chéo</div>
+                    <div className="text-[10px] text-emerald-300 font-mono font-bold mt-0.5">Kiếm xu ngay</div>
+                    <div className="text-[9px] text-slate-400 line-clamp-1 mt-0.5">Lướt video &amp; tương tác chéo</div>
                   </div>
                 </button>
 
-                {/* Tab 3: Nhiệm Vụ Follow & Tim */}
+                {/* Tab 2: Nhiệm Vụ Follow & Tim */}
                 <button
                   type="button"
                   onClick={() => onNavigate('tasks')}
@@ -174,7 +153,7 @@ export const HomeScreen: React.FC<{
                     <div className="text-xs font-black text-white font-display group-hover:text-cyan-300 transition-colors">
                       Làm Nhiệm Vụ
                     </div>
-                    <div className="text-[10px] text-cyan-300 font-mono font-bold mt-0.5">+200đ - 400đ Xu</div>
+                    <div className="text-[10px] text-cyan-300 font-mono font-bold mt-0.5">Nhận Xu ngay</div>
                     <div className="text-[9px] text-slate-400 line-clamp-1 mt-0.5">Follow, like &amp; seeding</div>
                   </div>
                 </button>

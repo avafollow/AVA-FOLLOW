@@ -150,8 +150,10 @@ interface TikTokAppContextType {
   
   isFeedRunnerOpen: boolean;
   feedRunnerFilter: 'all' | 'cross_follow' | 'community' | 'partner' | 'live';
+  feedRunnerTargetId: string | null;
+  setFeedRunnerTargetId: (id: string | null) => void;
   setFeedRunnerFilter: (filter: 'all' | 'cross_follow' | 'community' | 'partner' | 'live') => void;
-  openFeedRunner: (filter?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | any) => void;
+  openFeedRunner: (filterOrId?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | string | any) => void;
   closeFeedRunner: () => void;
 
   activeLiveTask: LivestreamTaskItem | null;
@@ -842,6 +844,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
   const [isFeedRunnerOpen, setIsFeedRunnerOpen] = useState(false);
   const [feedRunnerFilter, setFeedRunnerFilter] = useState<'all' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
+  const [feedRunnerTargetId, setFeedRunnerTargetId] = useState<string | null>(null);
   const [activeLiveTask, setActiveLiveTask] = useState<LivestreamTaskItem | null>(null);
   const [isLiveRunnerOpen, setIsLiveRunnerOpen] = useState(false);
   const [isLuckyWheelOpen, setIsLuckyWheelOpen] = useState(false);
@@ -1465,9 +1468,16 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setRunnerTask(null);
   };
 
-  const openFeedRunner = (filter?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | any) => {
-    if (typeof filter === 'string' && ['all', 'cross_follow', 'community', 'partner', 'live'].includes(filter)) {
-      setFeedRunnerFilter(filter as any);
+  const openFeedRunner = (filterOrId?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | string | any) => {
+    if (typeof filterOrId === 'string') {
+      if (['all', 'cross_follow', 'community', 'partner', 'live'].includes(filterOrId)) {
+        setFeedRunnerFilter(filterOrId as any);
+        setFeedRunnerTargetId(null);
+      } else {
+        setFeedRunnerTargetId(filterOrId);
+      }
+    } else {
+      setFeedRunnerTargetId(null);
     }
     setIsFeedRunnerOpen(true);
   };
@@ -4268,6 +4278,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         closeRunner,
         isFeedRunnerOpen,
         feedRunnerFilter,
+        feedRunnerTargetId,
+        setFeedRunnerTargetId,
         setFeedRunnerFilter,
         openFeedRunner,
         closeFeedRunner,

@@ -1667,7 +1667,11 @@ export const CreateCampaignScreen: React.FC<{
               >
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-3.5">
                   {/* Realtime Video Stream of this Campaign */}
-                  <div className="w-20 h-28 sm:w-24 sm:h-32 shrink-0 rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-black">
+                  <div 
+                    onClick={() => openFeedRunner(camp.id)}
+                    className="w-20 h-28 sm:w-24 sm:h-32 shrink-0 rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-black cursor-pointer group hover:border-rose-500/60 transition-colors"
+                    title="Bấm để mở video chiến dịch này trong Feed lướt toàn sàn"
+                  >
                     <TikTokVideoPreviewPlayer
                       url={camp.targetUrl}
                       channelHandle={camp.channelHandle}
@@ -1697,7 +1701,7 @@ export const CreateCampaignScreen: React.FC<{
 
                       <div className="flex items-center gap-2 shrink-0">
                         <button
-                          onClick={() => openFeedRunner()}
+                          onClick={() => openFeedRunner(camp.id)}
                           className="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/40 text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer transition-colors"
                           title="Xem chiến dịch phát sóng trong Feed lướt video"
                         >

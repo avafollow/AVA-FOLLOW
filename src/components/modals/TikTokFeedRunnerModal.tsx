@@ -60,6 +60,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const { 
     tasks, 
     livestreamTasks,
+    campaigns,
     isFeedRunnerOpen, 
     closeFeedRunner, 
     completeTask, 
@@ -68,7 +69,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     showToast,
     openShareModal,
     interactWithLiveBroadcast,
-    feedRunnerFilter
+    feedRunnerFilter,
+    feedRunnerTargetId
   } = useTikTokApp();
 
   const [filterMode, setFilterMode] = useState<'all' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
@@ -76,7 +78,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number>(15);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(true);
-  const [autoAdvance, setAutoAdvance] = useState<boolean>(true);
+  const [autoAdvance, setAutoAdvance] = useState<boolean>(false); // GIỮ NGUYÊN VIDEO PHÁT HẾT ĐỘ DÀI, KHÔNG TỰ Ý CHUYỂN
   const [sessionCoinsEarned, setSessionCoinsEarned] = useState<number>(0);
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; x: number; y: number }[]>([]);
   const [showCommentInput, setShowCommentInput] = useState<boolean>(false);
@@ -94,7 +96,34 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     watch?: boolean;
   }>>({});
 
-  // Build unified feed items combining ALL active campaigns from the website
+  // 1. Toàn bộ Chiến Dịch Thật Tạo Mới & Đang Chạy (Đồng bộ chuỗi video ưu tiên hàng đầu)
+  const createdCampaignFeedItems: UnifiedFeedItem[] = campaigns.map((c) => ({
+    id: c.id,
+    kind: (c.type === 'livestream' || c.type === 'livestream_viewers') ? 'livestream' : 'video',
+    title: c.title,
+    type: c.type,
+    requiresWatch: c.type === 'watch' || c.type === 'livestream',
+    channelName: c.channelHandle,
+    channelHandle: c.channelHandle,
+    channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+    targetUrl: c.targetUrl,
+    rewardCoins: 200,
+    videoUrl: parseMediaUrl(c.targetUrl, c.channelHandle).streamUrl,
+    sampleComments: [
+      'Chiến dịch chất lượng quá!',
+      'Ủng hộ kênh bạn nhé ❤️',
+      'Đã tương tác đầy đủ cho kênh!'
+    ],
+    guide: c.instructions || 'Tương tác thật 100% để nhận Xu thưởng vào ví.',
+    campaignCategory: 'partner',
+    partnerName: 'Chiến Dịch Đang Chạy',
+    partnerBadge: 'Chiến Dịch Thật',
+    totalSlots: c.targetQuantity,
+    remainingSlots: Math.max(1, c.targetQuantity - c.completedQuantity),
+    isUrgent: true
+  }));
+
+  // 2. Build unified feed items combining ALL active campaigns from the website
   const videoFeedItems: UnifiedFeedItem[] = tasks.map(t => ({
     id: t.id,
     kind: 'video',
@@ -117,8 +146,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     isUrgent: t.isUrgent
   }));
 
-  // Feed items từ kho Follow Chéo Cộng Đồng Creator (Không khống chế 15s)
-  const crossFollowFeedItems: UnifiedFeedItem[] = INITIAL_CROSS_FOLLOW_ITEMS.map((cf, idx) => ({
+  // 3. Feed items từ kho Follow Chéo Cộng Đồng Creator (Không khống chế 15s)
+  const crossFollowFeedItems: UnifiedFeedItem[] = INITIAL_CROSS_FOLLOW_ITEMS.map((cf) => ({
     id: cf.id,
     kind: 'video',
     title: cf.title,
@@ -143,6 +172,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     remainingSlots: Math.max(10, (cf.followersCount || 10000) - (cf.completedByUsersCount || 0))
   }));
 
+  // 4. Feed items từ kho Livestream Mắt Xem Thật
   const liveFeedItems: UnifiedFeedItem[] = livestreamTasks.map(l => ({
     id: l.id,
     kind: 'livestream',
@@ -166,18 +196,18 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     remainingSlots: 350
   }));
 
+  // CHUỖI TOÀN BỘ VIDEO & CHIẾN DỊCH HỆ THỐNG LIÊN KẾT ĐỒNG BỘ
   const combinedFeed: UnifiedFeedItem[] = 
     filterMode === 'cross_follow' ? crossFollowFeedItems :
     filterMode === 'community' ? videoFeedItems.filter(i => i.campaignCategory === 'community') :
-    filterMode === 'partner' ? videoFeedItems.filter(i => i.campaignCategory === 'partner') :
-    filterMode === 'live' ? liveFeedItems :
-    [...videoFeedItems, ...crossFollowFeedItems, ...liveFeedItems];
+    filterMode === 'partner' ? [...createdCampaignFeedItems, ...videoFeedItems.filter(i => i.campaignCategory === 'partner')] :
+    filterMode === 'live' ? [...createdCampaignFeedItems.filter(i => i.kind === 'livestream'), ...liveFeedItems] :
+    [...createdCampaignFeedItems, ...videoFeedItems, ...crossFollowFeedItems, ...liveFeedItems];
 
   const currentItem = combinedFeed[currentIndex] || combinedFeed[0];
   const currentClaimed = currentItem ? (taskClaimedMap[currentItem.id] || {}) : {};
 
   // Kiểm tra xem chiến dịch hiện tại có bắt buộc xem video / live không
-  // Người nào không mua gói xem video thì không bị khống chế 15s (lướt tiếp ngay lập tức)
   const isWatchRequired = currentItem 
     ? (currentItem.kind === 'livestream' || currentItem.type === 'watch' || currentItem.requiresWatch === true)
     : false;
@@ -186,9 +216,22 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   useEffect(() => {
     if (isFeedRunnerOpen && feedRunnerFilter) {
       setFilterMode(feedRunnerFilter);
-      setCurrentIndex(0);
     }
   }, [isFeedRunnerOpen, feedRunnerFilter]);
+
+  // Sync with specific campaign ID if opened directly from campaign card
+  useEffect(() => {
+    if (isFeedRunnerOpen && feedRunnerTargetId) {
+      const idx = combinedFeed.findIndex(item => 
+        item.id === feedRunnerTargetId || 
+        item.targetUrl === feedRunnerTargetId || 
+        item.channelHandle === feedRunnerTargetId
+      );
+      if (idx !== -1) {
+        setCurrentIndex(idx);
+      }
+    }
+  }, [isFeedRunnerOpen, feedRunnerTargetId, combinedFeed.length]);
 
   // Reset timer on item change or open
   useEffect(() => {
@@ -198,7 +241,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       } else if (currentItem.type === 'watch' || currentItem.requiresWatch === true) {
         setTimeLeft(15);
       } else {
-        // Không mua gói xem video 15s (chỉ follow/tim/cmt/share, follow chéo): KHÔNG KHỐNG CHẾ 15s
         setTimeLeft(0);
       }
       setIsPlaying(true);
@@ -229,7 +271,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     return () => clearInterval(timer);
   }, [isFeedRunnerOpen, isWatchRequired, timeLeft, isPlaying]);
 
-  // When timer reaches 0 for video watch package, claim watch reward (+200 Xu) and optionally auto-advance
+  // When timer reaches 0 for video watch package, claim watch reward (+200 Xu) - KHÔNG TỰ Ý CHUYỂN VIDEO
   useEffect(() => {
     if (isWatchRequired && timeLeft === 0 && currentItem && currentItem.kind === 'video' && !currentClaimed.watch) {
       const reward = claimTaskAction(currentItem.id, 'watch');
@@ -242,16 +284,10 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         }
       }));
 
-      // Auto advance to next video if enabled
-      if (autoAdvance) {
-        showToast('✓ Đã xem đủ 15s (+200 Xu)! Tự động chuyển video sau 2 giây...');
-        const autoTimer = setTimeout(() => {
-          handleNextItem();
-        }, 2000);
-        return () => clearTimeout(autoTimer);
-      }
+      // Báo nhận Xu thành công nhưng GIỮ NGUYÊN VIDEO PHÁT TRỌN VẸN
+      showToast('🎉 Đã xem đủ 15s (+200 Xu vào ví)! Bạn có thể tiếp tục xem trọn vẹn video hoặc bấm nút để chuyển tiếp.');
     }
-  }, [timeLeft, isWatchRequired, currentItem, currentClaimed.watch, autoAdvance, claimTaskAction]);
+  }, [timeLeft, isWatchRequired, currentItem, currentClaimed.watch, claimTaskAction]);
 
   // Keyboard navigation (ArrowDown / ArrowUp)
   useEffect(() => {

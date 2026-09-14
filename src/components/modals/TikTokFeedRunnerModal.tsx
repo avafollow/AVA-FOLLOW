@@ -81,13 +81,16 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(15);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const [isMuted, setIsMuted] = useState<boolean>(true);
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    const saved = localStorage.getItem('tiktok_sound_enabled');
+    return saved === 'false'; // Default unmuted for audio playback
+  });
   const [autoAdvance, setAutoAdvance] = useState<boolean>(false); // GIỮ NGUYÊN VIDEO PHÁT HẾT ĐỘ DÀI, KHÔNG TỰ Ý CHUYỂN
   const [sessionCoinsEarned, setSessionCoinsEarned] = useState<number>(0);
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; x: number; y: number }[]>([]);
   const [showCommentInput, setShowCommentInput] = useState<boolean>(false);
   const [customComment, setCustomComment] = useState<string>('');
-  const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('embed');
+  const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('stream'); // Mặc định Stream HD 100% full-screen vừa khít khung hình chuẩn TikTok
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -105,8 +108,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     watch?: boolean;
   }>>({});
 
-  // 1. Toàn bộ Chiến Dịch Thật Tạo Mới & Đang Chạy (Đồng bộ chuỗi video ưu tiên hàng đầu)
-  const createdCampaignFeedItems: UnifiedFeedItem[] = campaigns.map((c) => ({
+  // 1. Toàn bộ Chiến Dịch Thật Tạo Mới & Đang Chạy (Tự động ẩn khi hoàn thành đủ số lượng đã mua)
+  const activeCampaigns = (campaigns || []).filter(c => c.status !== 'completed' && (c.completedQuantity || 0) < (c.targetQuantity || 100));
+  const createdCampaignFeedItems: UnifiedFeedItem[] = activeCampaigns.map((c) => ({
     id: c.id,
     kind: (c.type === 'livestream' || c.type === 'livestream_viewers') ? 'livestream' : 'video',
     title: c.title,
@@ -128,13 +132,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     partnerName: 'Chiến Dịch Đang Chạy',
     partnerBadge: c.isBoosted ? '🔥 TOP 1 TOÀN SÀN' : 'Chiến Dịch Thật',
     totalSlots: c.targetQuantity,
-    remainingSlots: Math.max(1, c.targetQuantity - c.completedQuantity),
+    remainingSlots: Math.max(1, c.targetQuantity - (c.completedQuantity || 0)),
     isUrgent: true,
     isBoosted: c.isBoosted
   }));
 
-  // 2. Build unified feed items combining ALL active campaigns from the website
-  const videoFeedItems: UnifiedFeedItem[] = tasks.map(t => ({
+  // 2. Build unified feed items combining ALL active campaigns from the website (Tự động ẩn khi hết suất)
+  const activeTasks = (tasks || []).filter(t => t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0));
+  const videoFeedItems: UnifiedFeedItem[] = activeTasks.map(t => ({
     id: t.id,
     kind: 'video',
     title: t.title,
@@ -157,30 +162,32 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   }));
 
   // 3. Feed items từ kho Follow Chéo Cộng Đồng Creator (Không khống chế 15s)
-  const crossFollowFeedItems: UnifiedFeedItem[] = INITIAL_CROSS_FOLLOW_ITEMS.map((cf) => ({
-    id: cf.id,
-    kind: 'video',
-    title: cf.title,
-    type: cf.type,
-    requiresWatch: false,
-    channelName: cf.channelName,
-    channelHandle: cf.channelHandle,
-    channelAvatar: cf.channelAvatar,
-    targetUrl: cf.targetUrl,
-    rewardCoins: cf.rewardXu || 200,
-    videoUrl: parseMediaUrl(cf.targetUrl, cf.channelHandle).streamUrl,
-    sampleComments: [
-      'Đã follow chéo ủng hộ kênh bạn nhé!',
-      'Nội dung hay quá, chúc kênh sớm triệu follow!',
-      'Tương tác chéo uy tín nha bạn ơi!'
-    ],
-    guide: `Follow kênh & tương tác chéo với ${cf.channelHandle} để cùng nhận Xu thưởng.`,
-    campaignCategory: 'community',
-    partnerName: 'Follow Chéo Tự Do',
-    partnerBadge: 'Cộng Đồng Chéo',
-    totalSlots: cf.followersCount || 10000,
-    remainingSlots: Math.max(10, (cf.followersCount || 10000) - (cf.completedByUsersCount || 0))
-  }));
+  const crossFollowFeedItems: UnifiedFeedItem[] = INITIAL_CROSS_FOLLOW_ITEMS
+    .filter(cf => (cf.followersCount || 1000) > (cf.completedByUsersCount || 0))
+    .map((cf) => ({
+      id: cf.id,
+      kind: 'video',
+      title: cf.title,
+      type: cf.type,
+      requiresWatch: false,
+      channelName: cf.channelName,
+      channelHandle: cf.channelHandle,
+      channelAvatar: cf.channelAvatar,
+      targetUrl: cf.targetUrl,
+      rewardCoins: cf.rewardXu || 200,
+      videoUrl: parseMediaUrl(cf.targetUrl, cf.channelHandle).streamUrl,
+      sampleComments: [
+        'Đã follow chéo ủng hộ kênh bạn nhé!',
+        'Nội dung hay quá, chúc kênh sớm triệu follow!',
+        'Tương tác chéo uy tín nha bạn ơi!'
+      ],
+      guide: `Follow kênh & tương tác chéo với ${cf.channelHandle} để cùng nhận Xu thưởng.`,
+      campaignCategory: 'community',
+      partnerName: 'Follow Chéo Tự Do',
+      partnerBadge: 'Cộng Đồng Chéo',
+      totalSlots: cf.followersCount || 10000,
+      remainingSlots: Math.max(10, (cf.followersCount || 10000) - (cf.completedByUsersCount || 0))
+    }));
 
   // 4. Feed items từ kho Livestream Mắt Xem Thật
   const liveFeedItems: UnifiedFeedItem[] = livestreamTasks.map(l => ({
@@ -438,7 +445,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     showToast(`🔗 Đang mở ${currentItem.channelHandle} trực tiếp trên ứng dụng TikTok!`);
   };
 
-  // 1-CLICK FOLLOW TRỰC TIẾP TRÊN WEB APP (TỰ ĐỘNG ĐỒNG BỘ NỀN VỚI TIKTOK - KHÔNG NHẢY TAB)
+  // 1-CLICK FOLLOW TRỰC TIẾP TRÊN WEB APP & ĐỒNG BỘ TIKTOK THẬT
   const handleFollowAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     // 1. Tự động kết nối tài khoản TikTok nếu người dùng chưa kết nối
@@ -447,7 +454,10 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       connectTikTok(handleToLink);
     }
 
-    // 2. Ghi nhận nhận Xu và đổi icon sang tích xanh thành công ngay lập tức (KHÔNG MỞ TAB NGOÀI)
+    // 2. Ghi nhận nhận Xu và mở kênh TikTok thật để follow
+    const cleanHandle = currentItem.channelHandle.replace('@', '');
+    const realTikTokUrl = currentItem.targetUrl?.startsWith('http') ? currentItem.targetUrl : `https://www.tiktok.com/@${cleanHandle}`;
+
     if (!currentClaimed.follow) {
       const reward = claimTaskAction(currentItem.id, 'follow');
       setSessionCoinsEarned(prev => prev + (reward || 200));
@@ -455,13 +465,15 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         ...prev,
         [currentItem.id]: { ...(prev[currentItem.id] || {}), follow: true }
       }));
-      showToast(`✨ ĐÃ ĐỒNG BỘ 1-CHẠM TIKTOK: Bạn đã Follow thành công ${currentItem.channelHandle} (+${reward || 200} Xu)!`);
+      window.open(realTikTokUrl, '_blank');
+      showToast(`✨ ĐÃ ĐỒNG BỘ 1-CHẠM TIKTOK: Đã mở kênh ${currentItem.channelHandle} & cộng +${reward || 200} Xu vào ví!`);
     } else {
-      showToast(`✅ Bạn đã Follow và đồng bộ tài khoản TikTok với ${currentItem.channelHandle}!`);
+      window.open(realTikTokUrl, '_blank');
+      showToast(`✅ Bạn đã Follow kênh TikTok ${currentItem.channelHandle}!`);
     }
   };
 
-  // 1-CLICK LIKE / THẢ TIM TRỰC TIẾP (TỰ ĐỘNG ĐỒNG BỘ NỀN VỚI TIKTOK - KHÔNG NHẢY TAB)
+  // 1-CLICK LIKE / THẢ TIM TRỰC TIẾP & ĐỒNG BỘ TIKTOK THẬT
   const handleLikeAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (!currentClaimed.like) {
@@ -487,6 +499,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }, 1200);
   };
 
+  // 1-CLICK BÌNH LUẬN SEEDING & ĐỒNG BỘ TIKTOK THẬT
   const handleCommentAction = (commentText: string) => {
     setCustomComment(commentText);
     if (!currentClaimed.comment) {
@@ -497,11 +510,22 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         [currentItem.id]: { ...(prev[currentItem.id] || {}), comment: true }
       }));
     }
+    // Sao chép bình luận vào clipboard & mở video TikTok để dán ngay
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(commentText).catch(() => {});
+    }
+    const cleanHandle = currentItem.channelHandle.replace('@', '');
+    const realTikTokUrl = currentItem.targetUrl?.startsWith('http') ? currentItem.targetUrl : `https://www.tiktok.com/@${cleanHandle}`;
+    window.open(realTikTokUrl, '_blank');
+    showToast(`💬 ĐÃ SAO CHÉP: "${commentText}" & mở TikTok để dán (+200 Xu vào ví)!`);
     setShowCommentInput(false);
   };
 
+  // 1-CLICK CHIA SẺ VIDEO ĐỒNG BỘ TIKTOK THẬT
   const handleShareAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
+    const cleanHandle = currentItem.channelHandle.replace('@', '');
+    const realTikTokUrl = currentItem.targetUrl?.startsWith('http') ? currentItem.targetUrl : `https://www.tiktok.com/@${cleanHandle}`;
     if (!currentClaimed.share) {
       const reward = claimTaskAction(currentItem.id, 'share');
       setSessionCoinsEarned(prev => prev + (reward || 240));
@@ -510,10 +534,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         [currentItem.id]: { ...(prev[currentItem.id] || {}), share: true }
       }));
     }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(realTikTokUrl).catch(() => {});
+    }
     openShareModal({
-      targetUrl: currentItem.targetUrl,
+      targetUrl: realTikTokUrl,
       title: currentItem.title
     });
+    showToast(`🚀 ĐÃ SAO CHÉP LINK VIDEO TIKTOK & ĐỒNG BỘ CHIA SẺ (+240 Xu)!`);
   };
 
   const handleBookmarkAction = (e?: React.MouseEvent) => {
@@ -524,6 +552,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         ...prev,
         [currentItem.id]: { ...(prev[currentItem.id] || {}), bookmark: true }
       }));
+      showToast(`⭐ Đã lưu video vào danh sách yêu thích!`);
     }
   };
 
@@ -846,117 +875,119 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Action Bar (Authentic TikTok v2 Layout) */}
-          <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-4 pointer-events-auto">
-            {/* Creator Avatar with Follow Plus Badge (Ảnh số 1: Bấm avatar mở kênh TikTok, bấm + kết nối và follow ghi nhận Xu) */}
-            <div 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenTikTokApp();
-              }}
-              className="relative mb-2 cursor-pointer group"
-              title="Bấm avatar để mở kênh TikTok chính thức"
-            >
-              <img 
-                src={currentItem.channelAvatar} 
-                alt="" 
-                className="w-12 h-12 rounded-full object-cover border-2 border-white group-hover:border-rose-500 transition-all shadow-xl"
-              />
+          {/* Right Action Bar (Chỉ hiển thị ở chế độ Stream HD / Ẩn khi dùng TikTok Embed để tránh trùng lặp nút) */}
+          {playerMode !== 'embed' && (
+            <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-4 pointer-events-auto">
+              {/* Creator Avatar with Follow Plus Badge */}
+              <div 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenTikTokApp();
+                }}
+                className="relative mb-2 cursor-pointer group"
+                title="Bấm avatar để mở kênh TikTok chính thức"
+              >
+                <img 
+                  src={currentItem.channelAvatar} 
+                  alt="" 
+                  className="w-12 h-12 rounded-full object-cover border-2 border-white group-hover:border-rose-500 transition-all shadow-xl"
+                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFollowAction();
+                  }}
+                  className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-[22px] h-[22px] rounded-full flex items-center justify-center text-white transition-all shadow-lg cursor-pointer ${
+                    currentClaimed.follow 
+                      ? 'bg-emerald-500 ring-2 ring-emerald-400/60 scale-100' 
+                      : 'bg-[#FE2C55] hover:scale-110 active:scale-95 shadow-red-500/50'
+                  }`}
+                  title={currentClaimed.follow ? 'Đã Follow trên TikTok' : 'Bấm Follow trên TikTok & nhận +200 Xu'}
+                >
+                  {currentClaimed.follow ? (
+                    <Check className="w-3.5 h-3.5 stroke-[3.5] text-white" />
+                  ) : (
+                    <Plus className="w-4 h-4 stroke-[3] text-white" />
+                  )}
+                </button>
+              </div>
+
+              {/* Like Button */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleFollowAction();
+                  handleLikeAction();
                 }}
-                className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-[22px] h-[22px] rounded-full flex items-center justify-center text-white transition-all shadow-lg cursor-pointer ${
-                  currentClaimed.follow 
-                    ? 'bg-emerald-500 ring-2 ring-emerald-400/60 scale-100' 
-                    : 'bg-[#FE2C55] hover:scale-110 active:scale-95 shadow-red-500/50'
-                }`}
-                title={currentClaimed.follow ? 'Đã Follow trên TikTok' : 'Bấm Follow trên TikTok & nhận +200 Xu'}
+                className="flex flex-col items-center gap-1 group cursor-pointer"
               >
-                {currentClaimed.follow ? (
-                  <Check className="w-3.5 h-3.5 stroke-[3.5] text-white" />
-                ) : (
-                  <Plus className="w-4 h-4 stroke-[3] text-white" />
-                )}
+                <div className={`p-2 rounded-full transition-transform duration-200 active:scale-125 ${
+                  currentClaimed.like ? 'text-[#FE2C55]' : 'text-white/90 hover:text-white'
+                }`}>
+                  <Heart className={`h-7 w-7 drop-shadow-lg ${currentClaimed.like ? 'fill-[#FE2C55]' : ''}`} />
+                </div>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">
+                  {currentClaimed.like ? '128.5K' : '128.4K'}
+                </span>
               </button>
+
+              {/* Comment Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCommentInput(!showCommentInput);
+                }}
+                className="flex flex-col items-center gap-1 group cursor-pointer"
+              >
+                <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
+                  <MessageCircle className={`h-7 w-7 drop-shadow-lg ${currentClaimed.comment ? 'fill-cyan-400 text-cyan-400' : ''}`} />
+                </div>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">
+                  {currentClaimed.comment ? '3.2K' : '3.1K'}
+                </span>
+              </button>
+
+              {/* Bookmark / Favorite Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleBookmarkAction();
+                }}
+                className="flex flex-col items-center gap-1 group cursor-pointer"
+              >
+                <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
+                  <Bookmark className={`h-7 w-7 drop-shadow-lg ${currentClaimed.bookmark ? 'fill-amber-400 text-amber-400' : ''}`} />
+                </div>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">
+                  {currentClaimed.bookmark ? '1.2K' : '1.1K'}
+                </span>
+              </button>
+
+              {/* Share Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShareAction();
+                }}
+                className="flex flex-col items-center gap-1 group cursor-pointer"
+              >
+                <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
+                  <Share2 className="h-7 w-7 drop-shadow-lg" />
+                </div>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">
+                  {currentClaimed.share ? '856' : '855'}
+                </span>
+              </button>
+
+              {/* Spinning Music Vinyl Disc */}
+              <div className="mt-1 w-9 h-9 rounded-full bg-slate-900/90 border-2 border-slate-700/80 p-1 flex items-center justify-center shadow-2xl animate-spin-slow">
+                <img 
+                  src={currentItem.channelAvatar} 
+                  alt="" 
+                  className="w-5 h-5 rounded-full object-cover"
+                />
+              </div>
             </div>
-
-            {/* Like Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleLikeAction();
-              }}
-              className="flex flex-col items-center gap-1 group cursor-pointer"
-            >
-              <div className={`p-2 rounded-full transition-transform duration-200 active:scale-125 ${
-                currentClaimed.like ? 'text-[#FE2C55]' : 'text-white/90 hover:text-white'
-              }`}>
-                <Heart className={`h-7 w-7 drop-shadow-lg ${currentClaimed.like ? 'fill-[#FE2C55]' : ''}`} />
-              </div>
-              <span className="text-[11px] font-bold text-white drop-shadow-md">
-                {currentClaimed.like ? '128.5K' : '128.4K'}
-              </span>
-            </button>
-
-            {/* Comment Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowCommentInput(!showCommentInput);
-              }}
-              className="flex flex-col items-center gap-1 group cursor-pointer"
-            >
-              <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
-                <MessageCircle className={`h-7 w-7 drop-shadow-lg ${currentClaimed.comment ? 'fill-cyan-400 text-cyan-400' : ''}`} />
-              </div>
-              <span className="text-[11px] font-bold text-white drop-shadow-md">
-                {currentClaimed.comment ? '3.2K' : '3.1K'}
-              </span>
-            </button>
-
-            {/* Bookmark / Favorite Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleBookmarkAction();
-              }}
-              className="flex flex-col items-center gap-1 group cursor-pointer"
-            >
-              <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
-                <Bookmark className={`h-7 w-7 drop-shadow-lg ${currentClaimed.bookmark ? 'fill-amber-400 text-amber-400' : ''}`} />
-              </div>
-              <span className="text-[11px] font-bold text-white drop-shadow-md">
-                {currentClaimed.bookmark ? '1.2K' : '1.1K'}
-              </span>
-            </button>
-
-            {/* Share Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleShareAction();
-              }}
-              className="flex flex-col items-center gap-1 group cursor-pointer"
-            >
-              <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
-                <Share2 className="h-7 w-7 drop-shadow-lg" />
-              </div>
-              <span className="text-[11px] font-bold text-white drop-shadow-md">
-                {currentClaimed.share ? '856' : '855'}
-              </span>
-            </button>
-
-            {/* Spinning Music Vinyl Disc */}
-            <div className="mt-1 w-9 h-9 rounded-full bg-slate-900/90 border-2 border-slate-700/80 p-1 flex items-center justify-center shadow-2xl animate-spin-slow">
-              <img 
-                src={currentItem.channelAvatar} 
-                alt="" 
-                className="w-5 h-5 rounded-full object-cover"
-              />
-            </div>
-          </div>
+          )}
 
           {/* Up / Down Navigation Controls (Lướt Lướt Liên Tục) */}
           <div className="absolute left-3 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2 pointer-events-auto">

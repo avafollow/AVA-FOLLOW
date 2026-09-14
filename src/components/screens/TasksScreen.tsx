@@ -185,39 +185,43 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
   // Video Campaigns (all tasks with watch type or with videos)
   const videoCampaignTasks = tasks.filter(t => t.type === "watch" || t.videoPreviewUrl || t.campaignCategory === "partner");
 
-  // Map user created campaigns to feed cards
-  const createdFeedCards = (campaigns || []).map(c => {
-    const isLive = c.type === 'livestream' || c.type === 'livestream_viewers';
-    const stream = parseMediaUrl(c.targetUrl, c.channelHandle);
-    return {
-      id: c.id,
-      category: isLive ? ('live' as const) : ('partner' as const),
-      taskType: c.type,
-      title: c.title || `Chiến Dịch: ${c.channelHandle}`,
-      channelName: c.channelHandle,
-      channelHandle: c.channelHandle,
-      channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-      thumbnail: stream.streamUrl || '/videos/sample1.mp4',
-      videoUrl: stream.streamUrl || '/videos/sample1.mp4',
-      rewardXu: 200,
-      durationBadge: isLive ? 'TRỰC TIẾP' : '15 GIÂY',
-      remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0)),
-      isRealCampaign: true,
-      isBoosted: c.isBoosted,
-      targetUrl: c.targetUrl
-    };
-  });
+  // Map user created campaigns to feed cards (Tự động ẩn khi hoàn thành đủ số lượng đã mua)
+  const createdFeedCards = (campaigns || [])
+    .filter(c => c.status !== 'completed' && (c.completedQuantity || 0) < (c.targetQuantity || 100))
+    .map(c => {
+      const isLive = c.type === 'livestream' || c.type === 'livestream_viewers';
+      const stream = parseMediaUrl(c.targetUrl, c.channelHandle);
+      return {
+        id: c.id,
+        category: isLive ? ('live' as const) : ('partner' as const),
+        taskType: c.type,
+        title: c.title || `Chiến Dịch: ${c.channelHandle}`,
+        channelName: c.channelHandle,
+        channelHandle: c.channelHandle,
+        channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+        thumbnail: stream.streamUrl || '/videos/sample1.mp4',
+        videoUrl: stream.streamUrl || '/videos/sample1.mp4',
+        rewardXu: 200,
+        durationBadge: isLive ? 'TRỰC TIẾP' : '15 GIÂY',
+        remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0)),
+        isRealCampaign: true,
+        isBoosted: c.isBoosted,
+        targetUrl: c.targetUrl
+      };
+    });
 
-  // Map task items to feed cards
-  const missionFeedCards = tasks.map(t => ({
-    id: t.id,
-    category: (t.campaignCategory === 'partner' ? 'partner' : 'missions') as 'partner' | 'missions',
-    taskType: t.type,
-    title: t.title,
-    channelName: t.channelName,
-    channelHandle: t.channelHandle,
-    channelAvatar: t.channelAvatar,
-    thumbnail: t.videoPreviewUrl || t.channelAvatar,
+  // Map task items to feed cards (Tự động ẩn khi hết suất)
+  const missionFeedCards = tasks
+    .filter(t => t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0))
+    .map(t => ({
+      id: t.id,
+      category: (t.campaignCategory === 'partner' ? 'partner' : 'missions') as 'partner' | 'missions',
+      taskType: t.type,
+      title: t.title,
+      channelName: t.channelName,
+      channelHandle: t.channelHandle,
+      channelAvatar: t.channelAvatar,
+      thumbnail: t.videoPreviewUrl || t.channelAvatar,
     rewardXu: t.rewardCoins || 200,
     durationBadge: t.type === 'watch' ? '15 GIÂY' : 'NHẬN XU',
     remainingSlots: t.remainingSlots || 50,

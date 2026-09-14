@@ -2338,6 +2338,20 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return t;
     }));
 
+    // Cập nhật tiến độ và tự động ẩn chiến dịch khi hoàn thành đủ số lượng đã mua
+    setCampaigns(prev => prev.map(c => {
+      if (c.id === taskId || taskId.includes(c.id)) {
+        const nextDone = (c.completedQuantity || 0) + 1;
+        const isDone = nextDone >= (c.targetQuantity || 1);
+        return {
+          ...c,
+          completedQuantity: nextDone,
+          status: isDone ? 'completed' : c.status
+        };
+      }
+      return c;
+    }));
+
     showToast(`✓ +${finalReward.toLocaleString()} Xu! Đã ghi nhận 1 lượt ${label}.`);
     return finalReward;
   };

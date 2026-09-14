@@ -286,3 +286,181 @@ export async function signInWithGoogleOAuth() {
     }
   });
 }
+
+/**
+ * 7. ĐỒNG BỘ TOÀN BỘ HỒ SƠ & VÍ TIỀN NGƯỜI DÙNG LÊN SUPABASE
+ */
+export async function syncUserProfileToSupabase(userProfile: any) {
+  try {
+    if (!userProfile || !userProfile.email) return { success: false };
+    
+    // Thử lưu vào bảng profiles nếu có
+    const payload = {
+      id: userProfile.id || userProfile.email,
+      email: userProfile.email,
+      name: userProfile.name,
+      avatar: userProfile.avatar,
+      phone: userProfile.phone,
+      bio: userProfile.bio,
+      tiktok_connected: userProfile.tiktokConnected,
+      facebook_connected: userProfile.facebookConnected,
+      avalive_coins: userProfile.avaliveCoins,
+      coins_value_vnd: userProfile.coinsValueVND,
+      locked_escrow_coins: userProfile.lockedEscrowCoins,
+      pending_commission_vnd: userProfile.pendingCommissionVND,
+      total_commission_withdrawn_vnd: userProfile.totalCommissionWithdrawnVND,
+      rank_level: userProfile.rankLevel,
+      kyc_status: userProfile.kycStatus,
+      bank_info: userProfile.bankInfo,
+      transactions: userProfile.transactions,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error: dbError } = await supabaseAdmin
+      .from('user_profiles')
+      .upsert([payload], { onConflict: 'email' });
+
+    if (!dbError) return { success: true };
+
+    // Fallback lưu file an toàn lên Supabase Storage bucket ava_data_sync
+    const cleanEmail = userProfile.email.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    await supabaseAdmin.storage
+      .from('ava_data_sync')
+      .upload(`profiles/${cleanEmail}.json`, JSON.stringify(userProfile, null, 2), {
+        contentType: 'application/json',
+        upsert: true
+      });
+
+    return { success: true, fallback: true };
+  } catch (err: any) {
+    console.warn('Lưu hồ sơ người dùng lên Supabase:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * 8. ĐỒNG BỘ TOÀN BỘ CHIẾN DỊCH THẬT LÊN SUPABASE
+ */
+export async function syncCampaignsToSupabase(campaigns: any[]) {
+  try {
+    if (!Array.isArray(campaigns)) return { success: false };
+
+    // Lưu vào bảng campaigns
+    if (campaigns.length > 0) {
+      const dbPayload = campaigns.map(c => ({
+        id: c.id,
+        title: c.title,
+        type: c.type,
+        channel_handle: c.channelHandle,
+        target_url: c.targetUrl,
+        target_quantity: c.targetQuantity,
+        completed_quantity: c.completedQuantity || 0,
+        budget_total: c.budgetTotal,
+        price_per_action: c.pricePerAction,
+        instructions: c.instructions,
+        status: c.status,
+        is_boosted: c.isBoosted || false,
+        created_at: c.createdAt,
+        updated_at: new Date().toISOString()
+      }));
+
+      const { error: dbError } = await supabaseAdmin
+        .from('campaigns')
+        .upsert(dbPayload, { onConflict: 'id' });
+
+      if (!dbError) return { success: true };
+    }
+
+    // Fallback lưu snapshot toàn bộ chiến dịch lên Storage
+    await supabaseAdmin.storage
+      .from('ava_data_sync')
+      .upload('campaigns/all_campaigns.json', JSON.stringify(campaigns, null, 2), {
+        contentType: 'application/json',
+        upsert: true
+      });
+
+    return { success: true, fallback: true };
+  } catch (err: any) {
+    console.warn('Lưu chiến dịch lên Supabase:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * 9. ĐỒNG BỘ TOÀN BỘ NHIỆM VỤ LÊN SUPABASE
+ */
+export async function syncTasksToSupabase(tasks: any[], livestreamTasks: any[]) {
+  try {
+    const payload = {
+      tasks,
+      livestreamTasks,
+      updatedAt: new Date().toISOString()
+    };
+
+    await supabaseAdmin.storage
+      .from('ava_data_sync')
+      .upload('tasks/all_tasks.json', JSON.stringify(payload, null, 2), {
+        contentType: 'application/json',
+        upsert: true
+      });
+
+    return { success: true };
+  } catch (err: any) {
+    console.warn('Lưu danh sách nhiệm vụ lên Supabase:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * 10. ĐỒNG BỘ HOA HỒNG & MẠNG LƯỚI AFFILIATE LÊN SUPABASE
+ */
+export async function syncAffiliateToSupabase(affiliateData: any) {
+  try {
+    await supabaseAdmin.storage
+      .from('ava_data_sync')
+      .upload('affiliate/affiliate_stats.json', JSON.stringify(affiliateData, null, 2), {
+        contentType: 'application/json',
+        upsert: true
+      });
+
+    return { success: true };
+  } catch (err: any) {
+    console.warn('Lưu dữ liệu Affiliate lên Supabase:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * 11. ĐỒNG BỘ BẢN SAO LƯU MASTER SNAPSHOT TOÀN HỆ THỐNG
+ */
+export async function syncMasterSnapshotToSupabase(snapshot: {
+  user: any;
+  adminUsers: any[];
+  campaigns: any[];
+  tasks: any[];
+  livestreamTasks: any[];
+  escrowBookings: any[];
+  affiliateData: any;
+  adminData: any;
+}) {
+  try {
+    const masterPayload = {
+      ...snapshot,
+      backupTimestamp: new Date().toISOString(),
+      systemVersion: 'AVA_GROWTH_OS_3.0_PERMANENT'
+    };
+
+    await supabaseAdmin.storage
+      .from('ava_data_sync')
+      .upload('system/master_snapshot.json', JSON.stringify(masterPayload, null, 2), {
+        contentType: 'application/json',
+        upsert: true
+      });
+
+    return { success: true };
+  } catch (err: any) {
+    console.warn('Lưu Master Snapshot lên Supabase:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+

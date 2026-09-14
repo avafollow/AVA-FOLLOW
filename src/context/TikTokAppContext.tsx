@@ -79,7 +79,12 @@ import {
   syncKycToSupabase, 
   syncOrderToSupabase,
   syncEscrowContractToSupabase,
-  registerUserToSupabase
+  registerUserToSupabase,
+  syncUserProfileToSupabase,
+  syncCampaignsToSupabase,
+  syncTasksToSupabase,
+  syncAffiliateToSupabase,
+  syncMasterSnapshotToSupabase
 } from '../services/supabaseClient';
 import { SecurityLayerDef } from '../types';
 import { 
@@ -282,6 +287,8 @@ interface TikTokAppContextType {
   boostCampaignToTop: (campaignId: string) => boolean;
   approveCampaign: (campaignId: string) => void;
   rejectCampaign: (campaignId: string) => void;
+  deleteCampaign: (campaignId: string) => void;
+  deleteAdminUser: (userId: string) => void;
   orderService: (service: GrowthServiceItem) => void;
   convertTokenToCoins: (tokenAmount: number) => void;
 
@@ -404,6 +411,20 @@ const TikTokAppContext = createContext<TikTokAppContextType | undefined>(undefin
 export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfileWallet>(() => {
     try {
+      const savedUser = typeof window !== 'undefined' ? localStorage.getItem('ava_user_profile') : null;
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        const savedEmail = (typeof window !== 'undefined' ? localStorage.getItem('ava_user_email') : null) || parsed.email;
+        const savedTiktok = (typeof window !== 'undefined' ? localStorage.getItem('ava_tiktok_connected') : null) || parsed.tiktokConnected;
+        const isAdmin = savedEmail === 'quocthiencr90@gmail.com' || parsed.isAdmin;
+        return {
+          ...USER_PROFILE_WALLET,
+          ...parsed,
+          email: savedEmail || parsed.email || USER_PROFILE_WALLET.email,
+          tiktokConnected: savedTiktok !== null ? savedTiktok : parsed.tiktokConnected,
+          isAdmin
+        };
+      }
       const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('ava_user_email') : null;
       const savedTiktok = typeof window !== 'undefined' ? localStorage.getItem('ava_tiktok_connected') : null;
       const baseTiktok = savedTiktok !== null ? savedTiktok : USER_PROFILE_WALLET.tiktokConnected;
@@ -436,15 +457,88 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       isAdmin: false
     };
   });
-  const [tasks, setTasks] = useState<TikTokTaskItem[]>(TIKTOK_TASKS);
-  const [livestreamTasks, setLivestreamTasks] = useState<LivestreamTaskItem[]>(LIVESTREAM_TASKS);
-  const [campaigns, setCampaigns] = useState<CampaignItem[]>(ACTIVE_CAMPAIGNS);
+
+  const [tasks, setTasks] = useState<TikTokTaskItem[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_tasks') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return TIKTOK_TASKS;
+  });
+
+  const [livestreamTasks, setLivestreamTasks] = useState<LivestreamTaskItem[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_livestream_tasks') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return LIVESTREAM_TASKS;
+  });
+
+  const [campaigns, setCampaigns] = useState<CampaignItem[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_campaigns') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return ACTIVE_CAMPAIGNS;
+  });
+
   const [growthServices, setGrowthServices] = useState<GrowthServiceItem[]>(COMPREHENSIVE_GROWTH_PACKAGES);
-  const [affiliateData, setAffiliateData] = useState<AffiliateStats>(AFFILIATE_DATA);
-  const [adminData, setAdminData] = useState<AdminDashboardData>(ADMIN_DATA);
-  const [tokenomics, setTokenomics] = useState<TokenomicsData>(TOKENOMICS_DATA);
+
+  const [affiliateData, setAffiliateData] = useState<AffiliateStats>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_affiliate_data') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed) return parsed;
+      }
+    } catch {}
+    return AFFILIATE_DATA;
+  });
+
+  const [adminData, setAdminData] = useState<AdminDashboardData>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_admin_data') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed) return parsed;
+      }
+    } catch {}
+    return ADMIN_DATA;
+  });
+
+  const [tokenomics, setTokenomics] = useState<TokenomicsData>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_tokenomics_data') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed) return parsed;
+      }
+    } catch {}
+    return TOKENOMICS_DATA;
+  });
+
   const [analytics, setAnalytics] = useState<UserAnalyticsData>(USER_ANALYTICS);
-  const [escrowBookings, setEscrowBookings] = useState<EscrowBookingContract[]>(ESCROW_BOOKINGS);
+
+  const [escrowBookings, setEscrowBookings] = useState<EscrowBookingContract[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_escrow_bookings') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return ESCROW_BOOKINGS;
+  });
+
   const [adminUsers, setAdminUsers] = useState<AdminUserManagementItem[]>(() => {
     try {
       const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_admin_users') : null;
@@ -458,6 +552,41 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return ADMIN_USERS_LIST;
   });
 
+  // TỰ ĐỘNG LƯU VĨNH VIỄN VÀO LOCALSTORAGE VÀ ĐỒNG BỘ SUPABASE CLOUD (KHÔNG MẤT DỮ LIỆU)
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_user_profile', JSON.stringify(user));
+        if (user.email) {
+          localStorage.setItem('ava_user_email', user.email);
+        }
+        if (user.tiktokConnected) {
+          localStorage.setItem('ava_tiktok_connected', user.tiktokConnected);
+        }
+      }
+      syncUserProfileToSupabase(user);
+    } catch {}
+  }, [user]);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_campaigns', JSON.stringify(campaigns));
+      }
+      syncCampaignsToSupabase(campaigns);
+    } catch {}
+  }, [campaigns]);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_tasks', JSON.stringify(tasks));
+        localStorage.setItem('ava_livestream_tasks', JSON.stringify(livestreamTasks));
+      }
+      syncTasksToSupabase(tasks, livestreamTasks);
+    } catch {}
+  }, [tasks, livestreamTasks]);
+
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -465,6 +594,56 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     } catch {}
   }, [adminUsers]);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_affiliate_data', JSON.stringify(affiliateData));
+      }
+      syncAffiliateToSupabase(affiliateData);
+    } catch {}
+  }, [affiliateData]);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_escrow_bookings', JSON.stringify(escrowBookings));
+      }
+    } catch {}
+  }, [escrowBookings]);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_admin_data', JSON.stringify(adminData));
+      }
+    } catch {}
+  }, [adminData]);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_tokenomics_data', JSON.stringify(tokenomics));
+      }
+    } catch {}
+  }, [tokenomics]);
+
+  // Master Snapshot Backup Định kỳ lên Supabase
+  useEffect(() => {
+    const backupTimer = setTimeout(() => {
+      syncMasterSnapshotToSupabase({
+        user,
+        adminUsers,
+        campaigns,
+        tasks,
+        livestreamTasks,
+        escrowBookings,
+        affiliateData,
+        adminData
+      });
+    }, 4000);
+    return () => clearTimeout(backupTimer);
+  }, [user, adminUsers.length, campaigns.length, tasks.length]);
 
   // Escrow Permanent Audit Chat History (Lưu trữ vĩnh viễn không thể xóa trên LocalStorage & Smart Vault)
   const [contractChats, setContractChats] = useState<Record<string, EscrowChatMessage[]>>(() => {
@@ -3612,6 +3791,18 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`Đã tạm dừng / từ chối chiến dịch ${campaignId}.`);
   };
 
+  const deleteCampaign = (campaignId: string) => {
+    setCampaigns(prev => prev.filter(c => c.id !== campaignId));
+    setTasks(prev => prev.filter(t => !t.id.includes(campaignId)));
+    setLivestreamTasks(prev => prev.filter(l => !l.id.includes(campaignId)));
+    showToast(`🗑️ Đã xóa vĩnh viễn chiến dịch ${campaignId} theo lệnh Admin!`);
+  };
+
+  const deleteAdminUser = (userId: string) => {
+    setAdminUsers(prev => prev.filter(u => u.id !== userId));
+    showToast(`🗑️ Đã xóa vĩnh viễn tài khoản người dùng ${userId} theo lệnh Admin!`);
+  };
+
   const orderService = (service: GrowthServiceItem) => {
     openOrderModal(service);
   };
@@ -4582,6 +4773,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         boostCampaignToTop,
         approveCampaign,
         rejectCampaign,
+        deleteCampaign,
+        deleteAdminUser,
         orderService,
         convertTokenToCoins,
         createEscrowBooking,

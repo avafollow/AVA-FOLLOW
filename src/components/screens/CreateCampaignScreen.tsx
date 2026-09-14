@@ -1494,7 +1494,7 @@ export const CreateCampaignScreen: React.FC<{
                 className="w-full h-full"
                 badgeText="MEGA LIVE"
                 autoPlay={true}
-                muted={true}
+                muted={false}
                 fullSize={true}
               />
             </div>

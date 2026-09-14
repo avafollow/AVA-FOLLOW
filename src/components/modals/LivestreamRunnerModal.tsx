@@ -137,7 +137,7 @@ export const LivestreamRunnerModal: React.FC = () => {
       setIsPlaying(true);
 
       if (videoRef.current && !isYouTube) {
-        videoRef.current.defaultMuted = true;
+        videoRef.current.defaultMuted = false;
         videoRef.current.muted = isMuted;
         videoRef.current.playsInline = true;
         const playPromise = videoRef.current.play();
@@ -147,7 +147,6 @@ export const LivestreamRunnerModal: React.FC = () => {
             .catch(() => {
               if (videoRef.current) {
                 videoRef.current.muted = true;
-                setIsMuted(true);
                 videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
               } else {
                 setIsPlaying(false);
@@ -475,11 +474,29 @@ export const LivestreamRunnerModal: React.FC = () => {
           {/* Vignette overlay for readable text while keeping live video bright */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/40 pointer-events-none z-[1]" />
 
-          {/* Real Live Video Player / YouTube Live */}
+          {/* Real Live Video Player: YouTube Live, Facebook Live, TikTok Live or Native HD Stream */}
           {isYouTube && mediaInfo?.youtubeId ? (
             <iframe
               key={activeLiveTask.id + '_yt_' + mediaInfo.youtubeId}
-              src={`https://www.youtube.com/embed/${mediaInfo.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${mediaInfo.youtubeId}&modestbranding=1&rel=0`}
+              src={`https://www.youtube.com/embed/${mediaInfo.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${mediaInfo.youtubeId}&modestbranding=1&rel=0&enablejsapi=1`}
+              title={activeLiveTask.roomTitle}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
+            />
+          ) : mediaInfo?.isFacebook ? (
+            <iframe
+              key={activeLiveTask.id + '_fb_' + encodeURIComponent(activeLiveTask.targetUrl)}
+              src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(activeLiveTask.targetUrl)}&show_text=0&autoplay=1&muted=${isMuted ? 1 : 0}&allowfullscreen=true`}
+              title={activeLiveTask.roomTitle}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
+            />
+          ) : mediaInfo?.embedUrl ? (
+            <iframe
+              key={activeLiveTask.id + '_tt_live_' + (mediaInfo.videoId || mediaInfo.handle)}
+              src={mediaInfo.embedUrl}
               title={activeLiveTask.roomTitle}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -490,7 +507,7 @@ export const LivestreamRunnerModal: React.FC = () => {
               ref={(el) => {
                 videoRef.current = el;
                 if (el) {
-                  el.defaultMuted = true;
+                  el.defaultMuted = false;
                   el.muted = isMuted;
                   el.playsInline = true;
                   el.play().then(() => setIsPlaying(true)).catch(() => {

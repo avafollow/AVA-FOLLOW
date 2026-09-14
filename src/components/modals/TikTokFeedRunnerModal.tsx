@@ -685,7 +685,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               return (
                 <iframe
                   key={currentItem.id + '_yt_' + itemMedia.youtubeId + '_' + isMuted}
-                  src={`https://www.youtube.com/embed/${itemMedia.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${itemMedia.youtubeId}&modestbranding=1&rel=0`}
+                  src={`https://www.youtube.com/embed/${itemMedia.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${itemMedia.youtubeId}&modestbranding=1&rel=0&enablejsapi=1`}
                   title={currentItem.title}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
@@ -694,7 +694,35 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // 2. TikTok Official Embed Player (Tự động phát video TikTok thật từ link người dùng)
+            // 2. Facebook Player
+            if (itemMedia.isFacebook) {
+              return (
+                <iframe
+                  key={currentItem.id + '_fb_' + encodeURIComponent(currentItem.targetUrl)}
+                  src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(currentItem.targetUrl)}&show_text=0&autoplay=1&muted=${isMuted ? 1 : 0}&allowfullscreen=true`}
+                  title={currentItem.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
+                />
+              );
+            }
+
+            // 3. TikTok Live Stream Player
+            if (itemMedia.isTikTok && itemMedia.isLive && itemMedia.embedUrl) {
+              return (
+                <iframe
+                  key={currentItem.id + '_tt_live_' + itemMedia.handle}
+                  src={itemMedia.embedUrl}
+                  title={currentItem.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
+                />
+              );
+            }
+
+            // 4. TikTok Official Embed Player (Tự động phát video TikTok thật từ link người dùng)
             if (itemMedia.isTikTok && itemMedia.videoId && playerMode === 'embed') {
               return (
                 <iframe

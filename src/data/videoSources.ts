@@ -137,12 +137,16 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
     sourceType = 'youtube_embed';
     streamUrl = url;
   } else if (isFacebook) {
-    embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=0`;
+    embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=0&allowfullscreen=true`;
     sourceType = 'facebook_embed';
     streamUrl = url;
   } else if (isTikTok && videoId) {
     embedUrl = `https://www.tiktok.com/embed/v2/${videoId}`;
     sourceType = 'tiktok_embed';
+    streamUrl = url;
+  } else if (isTikTok && isLive) {
+    embedUrl = `https://www.tiktok.com/player/v1/live?unique_id=${handle.replace('@', '')}`;
+    sourceType = 'live_stream';
     streamUrl = url;
   } else if (isLive) {
     sourceType = 'live_stream';

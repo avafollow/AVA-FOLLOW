@@ -40,7 +40,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   isLive = false,
   className = '',
   autoPlay = true,
-  muted = true,
+  muted = false,
   badgeText,
   showControls = true,
   compact = false,
@@ -266,17 +266,30 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             allowFullScreen
             className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
           />
+        ) : (effectiveIsLive || mediaInfo.isLive) && mediaInfo.embedUrl ? (
+          /* TRƯỜNG HỢP D: TIKTOK LIVE STREAM TRỰC TIẾP */
+          <iframe
+            key={`live-${mediaInfo.handle}-${isMuted}`}
+            src={mediaInfo.embedUrl}
+            title={mediaInfo.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
+          />
         ) : isDirectVideo ? (
-          /* TRƯỜNG HỢP D: DIRECT MP4 / WEBM VIDEO FILE */
+          /* TRƯỜNG HỢP E: DIRECT MP4 / WEBM VIDEO FILE */
           <video
             key={url}
             ref={(el) => {
               videoRef.current = el;
               if (el) {
-                el.defaultMuted = true;
+                el.defaultMuted = false;
                 el.muted = isMuted;
                 el.playsInline = true;
-                el.play().then(() => setIsPlaying(true)).catch(() => {});
+                el.play().then(() => setIsPlaying(true)).catch(() => {
+                  el.muted = true;
+                  el.play().catch(() => {});
+                });
               }
             }}
             src={url}

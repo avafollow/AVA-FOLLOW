@@ -196,6 +196,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               viewersCount={1420}
               isMuted={isMuted}
               onToggleMute={toggleMute}
+              mode="preview"
             />
           )
         ) : streamMode === 'embed' && hasTikTokVideoId && mediaInfo.videoId ? (

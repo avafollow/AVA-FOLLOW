@@ -789,6 +789,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   viewersCount={currentItem.currentViewers || 1580}
                   isMuted={isMuted}
                   onToggleMute={() => setIsMuted(!isMuted)}
+                  mode="feed"
                 />
               );
             }

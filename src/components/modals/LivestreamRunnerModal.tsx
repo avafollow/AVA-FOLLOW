@@ -336,7 +336,7 @@ export const LivestreamRunnerModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-200 font-sans">
       <div 
-        className="relative w-full max-w-md h-[92vh] max-h-[850px] rounded-3xl bg-[#090C16] border border-white/20 shadow-2xl overflow-hidden flex flex-col select-none"
+        className="relative w-full max-w-[380px] h-[90vh] max-h-[800px] rounded-3xl bg-[#090C16] border-2 border-rose-500/30 shadow-2xl overflow-hidden flex flex-col select-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* UNIFIED LUXURY TOP HEADER: Gọn gàng, sang xịn, đẩy Mở App + Đổi Phòng lên trên */}
@@ -376,7 +376,7 @@ export const LivestreamRunnerModal: React.FC = () => {
               <span>Đổi Phòng ({livestreamTasks.length})</span>
             </button>
 
-            {/* Nút Mở App TikTok */}
+            {/* Nút Mở App TikTok Duy Nhất */}
             <button
               type="button"
               onClick={handleOpenTikTokApp}
@@ -429,6 +429,7 @@ export const LivestreamRunnerModal: React.FC = () => {
               viewersCount={activeLiveTask.currentViewers || 1420}
               isMuted={isMuted}
               onToggleMute={() => setIsMuted(!isMuted)}
+              mode="feed"
             />
           )}
 

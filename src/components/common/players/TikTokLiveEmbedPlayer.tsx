@@ -108,14 +108,15 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     window.open(directLiveUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // Căn chỉnh chính giữa chuẩn xác 100%:
-  // Khóa chặt left -69%, width 270%, height 116% để live stream nằm đúng giữa màn hình, hai bên canh đều
+  // Căn chỉnh riêng biệt:
+  // 1. Preview (Xem trước - Khung viền đỏ): Căn chuẩn chính giữa khung màu đỏ (left -59%, width 270%, height 114%)
+  // 2. Feed (Trên Feed & Livestream Runner): KHÓA CHẶT CHUẨN XÁC 100% (left -69%, width 270%, height 116%)
   const isPreview = mode === 'preview';
   const iframeStyle: React.CSSProperties = isPreview
     ? {
         width: '270%',
         height: '114%',
-        left: '-69%',
+        left: '-59%',
         top: '0',
         maxWidth: 'none',
         maxHeight: 'none'

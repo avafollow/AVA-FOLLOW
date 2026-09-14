@@ -61,15 +61,10 @@ export const BuyerLiveManagerModal: React.FC = () => {
   );
   const [includeMarqueeBoost, setIncludeMarqueeBoost] = useState<boolean>(false);
 
-  // Seeding scripts state
+  // Seeding scripts state (xóa các câu mẫu sẵn, để trống cho người dùng tự nhập riêng)
   const [selectedIndustry, setSelectedIndustry] = useState<string>('fashion');
   const [customComment, setCustomComment] = useState<string>('');
-  const [activeScripts, setActiveScripts] = useState<string[]>([
-    'Mẫu áo khoác nỉ này còn size L không shop ơi?',
-    'Shop ơi ghim mã số 03 lên giỏ hàng giúp em với nha!',
-    'Vừa nhận hàng hôm qua xong, form chuẩn xịn đẹp mê li luôn!',
-    'Màu kem be này tôn da dã man, chốt luôn 2 chiếc ạ ❤️'
-  ]);
+  const [activeScripts, setActiveScripts] = useState<string[]>([]);
 
   // Scheduled lives state
   const [scheduledList, setScheduledList] = useState<ScheduledLiveSession[]>(INITIAL_SCHEDULED_LIVES);
@@ -548,26 +543,32 @@ export const BuyerLiveManagerModal: React.FC = () => {
                   <span>Danh sách {activeScripts.length} bình luận đang được phân phát cho người xem:</span>
                   <span className="text-emerald-400">+350 Xu thưởng / comment</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
-                  {activeScripts.map((cmt, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 rounded-xl bg-black/40 border border-white/10 hover:border-cyan-500/40 transition-colors flex items-center justify-between gap-3 group"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-cyan-400 font-bold shrink-0">#{idx + 1}</span>
-                        <span className="text-slate-200 text-xs font-sans">{cmt}</span>
-                      </div>
-                      <button
-                        onClick={() => handleCopyScript(cmt)}
-                        className="p-1.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-300 transition-colors shrink-0"
-                        title="Sao chép câu này"
+                {activeScripts.length === 0 ? (
+                  <div className="py-8 text-center text-slate-500 text-xs font-mono border border-dashed border-white/10 rounded-2xl bg-black/20">
+                    Chưa có kịch bản bình luận mẫu nào. Bạn có thể nhập câu bình luận mồi riêng của shop bạn ở trên và bấm &quot;Thêm Kịch Bản&quot;.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
+                    {activeScripts.map((cmt, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl bg-black/40 border border-white/10 hover:border-cyan-500/40 transition-colors flex items-center justify-between gap-3 group"
                       >
-                        <Copy className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-cyan-400 font-bold shrink-0">#{idx + 1}</span>
+                          <span className="text-slate-200 text-xs font-sans">{cmt}</span>
+                        </div>
+                        <button
+                          onClick={() => handleCopyScript(cmt)}
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-300 transition-colors shrink-0"
+                          title="Sao chép câu này"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -104,13 +104,7 @@ export const LivestreamRunnerModal: React.FC = () => {
   const [claimedShareReward, setClaimedShareReward] = useState<boolean>(false);
 
   const [heartsBurst, setHeartsBurst] = useState<{ id: number; x: number; color: string }[]>([]);
-  const [chatMessages, setChatMessages] = useState<string[]>([
-    'Shop ơi áo này còn size L không ạ?',
-    'Đã chốt đơn 2 chiếc màu be nhé chủ shop ❤️',
-    'Review chất vải đỉnh thực sự, vừa nhận hàng hôm qua!',
-    'Mọi người thả tim nhiệt tình để shop tung mã giảm giá 50k nhé!',
-    'Mắt xem đang lên nhanh quá shop ơi, chuẩn bị bão đơn nhé 🔥'
-  ]);
+  const [chatMessages, setChatMessages] = useState<string[]>([]);
   const [inputMsg, setInputMsg] = useState<string>('');
 
   const targetMinutes = activeLiveTask?.targetMinutes || 3;

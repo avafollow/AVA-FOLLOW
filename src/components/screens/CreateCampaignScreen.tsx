@@ -209,14 +209,22 @@ export const CreateCampaignScreen: React.FC<{
       setChannelHandle(`@${trimmed}`);
     }
 
-    // Tự động nhận diện link Live (TikTok / YouTube / Facebook Live) và phát live ngay lập tức
+    // Tự động nhận diện link Live (TikTok / YouTube / Facebook Live) vs Video thường và phát tức thì
     const isLiveUrl = trimmed.includes('/live') || trimmed.toLowerCase().includes('live');
     if (isLiveUrl) {
       setSelectedTargets(prev => ({
         ...prev,
-        livestream: true
+        livestream: true,
+        watch: false
       }));
       showToast('🔴 Đã nhận diện đường link Livestream! Trình phát Live đang kết nối tức thì...');
+    } else {
+      setSelectedTargets(prev => ({
+        ...prev,
+        livestream: false,
+        watch: true
+      }));
+      showToast('🎬 Đã nhận diện đường link Video! Đang phát video tức thì...');
     }
   };
 
@@ -728,6 +736,12 @@ export const CreateCampaignScreen: React.FC<{
                   type="text"
                   value={targetUrl}
                   onChange={(e) => handleTargetUrlChange(e.target.value)}
+                  onPaste={(e) => {
+                    const text = e.clipboardData?.getData('text');
+                    if (text) {
+                      setTimeout(() => handleTargetUrlChange(text), 0);
+                    }
+                  }}
                   placeholder="👉 Dán link video TikTok, YouTube, Facebook hoặc phiên Live chính thức..."
                   className="w-full bg-black/80 border-2 border-rose-500/70 hover:border-rose-400 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/20 rounded-2xl px-4 py-3.5 sm:py-4 text-white placeholder-slate-400 font-mono text-xs sm:text-sm font-bold transition-all shadow-inner"
                   required

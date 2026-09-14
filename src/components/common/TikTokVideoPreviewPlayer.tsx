@@ -81,20 +81,9 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const isDirectVideo = mediaInfo.isDirectVideo;
   const hasTikTokVideoId = Boolean(mediaInfo.isTikTok && mediaInfo.videoId);
 
-  // Tự động phát video TikTok thật nếu có Video ID, hoặc video Stream HD
-  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>(hasTikTokVideoId ? 'embed' : 'stream');
-
   useEffect(() => {
-    if (hasTikTokVideoId) {
-      setStreamMode('embed');
-    } else {
-      setStreamMode('stream');
-    }
-  }, [hasTikTokVideoId, url]);
-
-  useEffect(() => {
-    setCurrentStream(mediaInfo.streamUrl);
-  }, [mediaInfo.streamUrl, url]);
+    setCurrentStream(url);
+  }, [url]);
 
   // Link đích chính xác của người dùng
   const displayHandle = mediaInfo.handle || channelHandle || '@creator.vietnam';
@@ -204,34 +193,43 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               mode="preview"
             />
           )
-        ) : streamMode === 'embed' && hasTikTokVideoId && mediaInfo.videoId ? (
-          /* TAB 2: TIKTOK OFFICIAL VIDEO EMBED (CÓ VIDEO ID CHUẨN) */
-          <TikTokVideoEmbedPlayer
-            videoId={mediaInfo.videoId}
-            title={mediaInfo.title}
-          />
-        ) : mediaInfo.isTikTok && url && url.startsWith('http') ? (
-          /* TAB 2B: TIKTOK IFRAME TRỰC TIẾP (KHI KHÔNG TRÍCH XUẤT ĐƯỢC VIDEO ID) — PHÁT NGAY LINK GỐC */
-          <TikTokVideoEmbedPlayer
-            directUrl={url}
-            title={mediaInfo.title}
-          />
         ) : isYouTube && mediaInfo.youtubeId ? (
-          /* TAB 3: YOUTUBE VIDEO EMBED PLAYER */
+          /* TAB 2: YOUTUBE VIDEO EMBED PLAYER */
           <YouTubeEmbedPlayer
             youtubeId={mediaInfo.youtubeId}
             title={mediaInfo.title}
             isMuted={isMuted}
           />
         ) : isFacebook && url ? (
-          /* TAB 4: FACEBOOK VIDEO EMBED PLAYER */
+          /* TAB 3: FACEBOOK VIDEO EMBED PLAYER */
           <FacebookEmbedPlayer
             url={url}
             title={mediaInfo.title}
             isMuted={isMuted}
           />
+        ) : hasTikTokVideoId && mediaInfo.videoId ? (
+          /* TAB 4: TIKTOK OFFICIAL VIDEO EMBED (CÓ VIDEO ID CHUẨN) */
+          <TikTokVideoEmbedPlayer
+            videoId={mediaInfo.videoId}
+            title={mediaInfo.title}
+          />
+        ) : mediaInfo.isTikTok && url && url.startsWith('http') ? (
+          /* TAB 4B: TIKTOK IFRAME TRỰC TIẾP (KHI LINK TIKTOK RÚT GỌN / CHƯA CÓ VIDEO ID) — PHÁT NGAY LINK GỐC */
+          <TikTokVideoEmbedPlayer
+            directUrl={url}
+            title={mediaInfo.title}
+          />
         ) : isDirectVideo ? (
-          /* TAB 5: DIRECT VIDEO PLAYER */
+          /* TAB 5: DIRECT VIDEO PLAYER (MP4 / WEBM) */
+          <DirectVideoPlayer
+            src={url}
+            autoPlay={autoPlay}
+            isMuted={isMuted}
+            isPlaying={isPlaying}
+            onTogglePlay={togglePlay}
+          />
+        ) : url && url.startsWith('http') ? (
+          /* TAB 6: PHÁT TRỰC TIẾP URL ĐƯỢC DÁN VÀO QUA EMBED HOẶC DIRECT PLAYER */
           <DirectVideoPlayer
             src={url}
             autoPlay={autoPlay}
@@ -240,14 +238,11 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             onTogglePlay={togglePlay}
           />
         ) : (
-          /* TAB 6: DIRECT NATIVE HD STREAM PLAYER */
-          <DirectVideoPlayer
-            src={currentStream}
-            autoPlay={autoPlay}
-            isMuted={isMuted}
-            isPlaying={isPlaying}
-            onTogglePlay={togglePlay}
-          />
+          /* CHỜ DÁN LINK */
+          <div className="flex flex-col items-center justify-center p-6 text-center text-slate-500 space-y-2">
+            <Radio className="w-8 h-8 text-rose-500/60 animate-pulse" />
+            <span className="text-xs font-mono text-slate-400">Dán link video TikTok, YouTube hoặc Live để phát ngay</span>
+          </div>
         )}
       </div>
 
@@ -255,21 +250,14 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
       {!effectiveIsLive && !mediaInfo.isLive && (
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-30 pointer-events-none">
           <div className="flex items-center gap-2 pointer-events-auto">
-            {hasTikTokVideoId && (
-              <button
-                type="button"
-                onClick={() => setStreamMode(streamMode === 'embed' ? 'stream' : 'embed')}
-                className="px-2.5 py-1 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white text-[9px] font-mono font-bold border border-rose-400/40 backdrop-blur-md transition-all flex items-center gap-1 shadow-md cursor-pointer"
-                title={streamMode === 'embed' ? 'Đang phát TikTok Gốc (Bấm để chuyển sang Stream HD)' : 'Đang phát Stream HD (Bấm để chuyển sang TikTok Gốc)'}
-              >
-                {streamMode === 'embed' ? '🎬 TikTok Gốc' : '⚡ Stream HD'}
-              </button>
-            )}
+            <span className="px-2.5 py-1 rounded-full bg-black/80 text-white text-[9px] font-mono font-bold border border-white/20 backdrop-blur-md flex items-center gap-1 shadow-md">
+              {isYouTube ? '▶️ YouTube' : isFacebook ? '🌐 Facebook' : '🎬 TikTok'}
+            </span>
           </div>
 
           <div className="flex items-center gap-1.5 pointer-events-auto">
             {/* Play/Pause Button */}
-            {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && (
+            {isDirectVideo && (
               <button
                 type="button"
                 onClick={togglePlay}
@@ -281,16 +269,14 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             )}
 
             {/* Sound Mute/Unmute */}
-            {streamMode !== 'embed' && (
-              <button
-                type="button"
-                onClick={toggleMute}
-                className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
-                title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
-              >
-                {isMuted ? <VolumeX className="w-4 h-4 text-slate-300" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
+              title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4 text-slate-300" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            </button>
 
             {/* Fullscreen Button */}
             <button
@@ -315,8 +301,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         </div>
       )}
 
-      {/* 3. RIGHT ACTION BUTTONS (Chỉ hiển thị cho Video Stream thường) */}
-      {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && !effectiveIsLive && !mediaInfo.isLive && (
+      {/* 3. RIGHT ACTION BUTTONS (Chỉ hiển thị cho Video Direct) */}
+      {isDirectVideo && !effectiveIsLive && !mediaInfo.isLive && (
         <div className="absolute right-3 bottom-20 z-20 flex flex-col items-center gap-3.5 pointer-events-auto">
           {/* Creator Avatar & Follow Button */}
           <div className="relative mb-1">
@@ -396,8 +382,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         </div>
       )}
 
-      {/* 4. BOTTOM INFO OVERLAY (Dành cho Video thường) */}
-      {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && !effectiveIsLive && !mediaInfo.isLive && (
+      {/* 4. BOTTOM INFO OVERLAY (Dành cho Video Direct) */}
+      {isDirectVideo && !effectiveIsLive && !mediaInfo.isLive && (
         <div className="absolute bottom-3 left-3 right-16 z-20 pointer-events-none space-y-2">
           {/* Creator Handle */}
           <div 

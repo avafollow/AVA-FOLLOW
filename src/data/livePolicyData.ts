@@ -192,85 +192,37 @@ export const LIVE_SEEDING_TEMPLATES: LiveSeedingScriptTemplate[] = [
     id: 'script_fashion',
     categoryName: 'Thời Trang & Phụ Kiện',
     industry: 'fashion',
-    comments: [
-      'Mẫu áo khoác nỉ này còn size L không shop ơi?',
-      'Chất vải sờ vào êm không ạ, có bị xù lông không shop?',
-      'Em cao 1m65 nặng 58kg mặc size nào vừa đẹp vậy chị?',
-      'Vừa nhận hàng hôm qua xong, form chuẩn xịn đẹp mê li luôn!',
-      'Shop ơi ghim mã số 03 lên giỏ hàng giúp em với nha!',
-      'Màu kem be này tôn da dã man, chốt luôn 2 chiếc ạ ❤️',
-      'Có được kiểm tra hàng trước khi thanh toán không shop ơi?',
-      'Mọi người nhanh tay săn deal đi kẻo hết size đó ạ!'
-    ]
+    comments: []
   },
   {
     id: 'script_beauty',
     categoryName: 'Mỹ Phẩm & Skincare',
     industry: 'beauty',
-    comments: [
-      'Da dầu mụn dùng dòng serum B5 này có bị bí tắc không shop?',
-      'Kem chống nắng này nâng tone tự nhiên hay trắng bệch vậy ạ?',
-      'Em đã dùng sang lọ thứ 3 rồi, mờ thâm căng bóng thấy rõ luôn!',
-      'Shop ơi son mã 05 đỏ gạch còn hàng không em chốt liền?',
-      'Hàng chính hãng có tem phụ tiếng Việt đầy đủ không chị?',
-      'Săn được voucher giảm 50k trong live mừng quá!',
-      'Chất kem thấm nhanh, không bết dính chút nào luôn nha cả nhà.',
-      'Ghim combo dưỡng trắng da mờ nám lên giỏ hàng đi shop ơi!'
-    ]
+    comments: []
   },
   {
     id: 'script_home',
     categoryName: 'Đồ Gia Dụng & Tiện Ích',
     industry: 'home',
-    comments: [
-      'Nồi chiên không dầu này bảo hành chính hãng bao lâu vậy shop?',
-      'Công suất bao nhiêu Watt vậy ạ, dùng có tốn điện không shop?',
-      'Đã chốt đơn mã 01 nhé, shop đóng gói cẩn thận giúp em nha!',
-      'Dùng máy hút bụi này êm re, hút sạch lông thú cưng thích lắm!',
-      'Shop ơi ship về Đà Nẵng thì mấy ngày nhận được vậy ạ?',
-      'Bộ dao kéo inox nhìn bén và đầm tay ghê, xứng đáng 5 sao!',
-      'Giá trong live hôm nay hời hơn mua ngoài sàn nhiều luôn á!'
-    ]
+    comments: []
   },
   {
     id: 'script_food',
     categoryName: 'Ăn Vặt & Ẩm Thực Nông Sản',
     industry: 'food',
-    comments: [
-      'Khô gà cay này có lá chanh không shop ơi, có cay lắm không?',
-      'Bánh tráng phơi sương dẻo không ạ, kèm bơ hay muối tôm vậy?',
-      'Vừa ăn thử đợt trước ngon quá nay phải vào rủ bạn mua chung!',
-      'Shop tặng thêm quà kèm đơn combo 3 hũ đúng không ạ?',
-      'Hạn sử dụng bao lâu vậy shop, để được ngoài nhiệt độ thường không?',
-      'Ghim lại mã khô bò miếng giúp em với em chưa kịp bấm mua!',
-      'Chốt đơn 2 set ăn vặt nha shop, giao nhanh ăn Tết nhé ạ!'
-    ]
+    comments: []
   },
   {
     id: 'script_tech',
     categoryName: 'Công Nghệ & Phụ Kiện Điện Thoại',
     industry: 'tech',
-    comments: [
-      'Tai nghe bluetooth này pin trâu không shop, nghe được mấy tiếng?',
-      'Có tương thích tốt với iPhone 15 và Android không ạ?',
-      'Âm bass nghe đầm không shop, mic đàm thoại có lọc ồn không?',
-      'Đã nhận củ sạc nhanh 65W, sạc vèo cái đầy pin cực kỳ hài lòng!',
-      'Bảo hành 1 đổi 1 trong 12 tháng nếu có lỗi đúng không shop?',
-      'Ghim mã sạc dự phòng không dây 20.000mAh lên giỏ hàng đi ạ!'
-    ]
+    comments: []
   },
   {
     id: 'script_course',
     categoryName: 'Khóa Học & Dịch Vụ Số',
     industry: 'course',
-    comments: [
-      'Người mới chưa biết gì có học được khóa xây kênh này không thầy?',
-      'Học xong có được hỗ trợ vào nhóm kín giải đáp 1-1 không ạ?',
-      'Em đã áp dụng bài học đầu tiên và video đã cắn xu hướng 50k view!',
-      'Tài liệu kịch bản tải ở đâu vậy thầy, khóa học học trọn đời đúng không?',
-      'Giá khóa học hôm nay ưu đãi bao nhiêu phần trăm vậy thầy ơi?',
-      'Đã thanh toán thành công, mong được thầy duyệt vào lớp sớm ạ!'
-    ]
+    comments: []
   }
 ];
 

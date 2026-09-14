@@ -156,20 +156,20 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
   } else if (isYouTube && youtubeId) {
     embedUrl = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`;
     sourceType = 'youtube_embed';
-    streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];
+    streamUrl = url;
   } else if (isFacebook) {
     embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=0&allowfullscreen=true`;
     sourceType = 'facebook_embed';
-    streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];
+    streamUrl = url;
   } else if (isTikTok && videoId) {
     embedUrl = `https://www.tiktok.com/embed/v2/${videoId}`;
     sourceType = 'tiktok_embed';
-    streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];
+    streamUrl = url;
   } else if (isLive) {
     sourceType = 'live_stream';
-    streamUrl = HIGH_SPEED_CDN_VIDEOS.livestream[absHash % HIGH_SPEED_CDN_VIDEOS.livestream.length];
+    streamUrl = url;
   } else {
-    streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];
+    streamUrl = url;
   }
 
   let title = `Video TikTok: ${handle}`;

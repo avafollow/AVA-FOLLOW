@@ -31,7 +31,6 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   channelHandle,
   targetUrl,
   channelName,
-  viewersCount = 1845,
   isMuted = false,
   onToggleMute,
   className = ''
@@ -43,19 +42,20 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
 
   const [iframeKey, setIframeKey] = useState<number>(Date.now());
   const [loadError, setLoadError] = useState<boolean>(false);
+  const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
 
-  // Mắt xem real-time biến động tự nhiên theo thời gian thực
-  const [currentViewers, setCurrentViewers] = useState<number>(viewersCount);
   useEffect(() => {
-    setCurrentViewers(viewersCount);
-    const timer = setInterval(() => {
-      setCurrentViewers(prev => {
-        const change = Math.floor(Math.random() * 11) - 5; // -5 đến +5
-        return Math.max(120, prev + change);
-      });
-    }, 2500);
-    return () => clearInterval(timer);
-  }, [viewersCount]);
+    setInternalMuted(isMuted);
+  }, [isMuted]);
+
+  const handleToggleSound = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const nextMuted = !internalMuted;
+    setInternalMuted(nextMuted);
+    if (onToggleMute) {
+      onToggleMute();
+    }
+  };
 
   const reloadLive = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -68,36 +68,39 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     window.open(directLiveUrl, '_blank', 'noopener,noreferrer');
   };
 
+  // URL khi tắt âm thanh
+  const activeLiveSrc = internalMuted 
+    ? `${directLiveUrl}${directLiveUrl.includes('?') ? '&' : '?'}muted=1&mute=1&volume=0`
+    : directLiveUrl;
+
   return (
-    <div className={`relative w-full h-full bg-black flex flex-col overflow-hidden rounded-3xl select-none ${className}`}>
-      {/* 1. TOP LIVE REAL-TIME HUD BAR (GỌN GÀNG, KHÔNG CHE KHUNG HÌNH) */}
-      <div className="absolute top-0 inset-x-0 z-30 p-2 sm:p-2.5 bg-gradient-to-b from-black/90 via-black/50 to-transparent flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-1.5 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-rose-500/40 shadow-lg pointer-events-auto">
-          <div className="relative flex h-2 w-2">
+    <div className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none ${className}`}>
+      {/* 1. TOP LIVE REAL-TIME HUD BAR (ĐÃ LOẠI BỎ MẮT XEM ẢO THEO YÊU CẦU) */}
+      <div className="absolute top-0 inset-x-0 z-30 p-2 sm:p-2.5 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between pointer-events-none">
+        <div className="flex items-center gap-2 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-rose-500/40 shadow-lg pointer-events-auto">
+          <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-          </div>
-          <span className="text-[10px] font-mono font-black text-white uppercase tracking-wider">
-            LIVE
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
           </span>
-          <span className="text-white/30">|</span>
-          <span className="text-[10px] font-mono font-bold text-rose-300 flex items-center gap-1">
-            <Users className="w-3 h-3 text-rose-400 animate-pulse" />
-            <span>{currentViewers.toLocaleString()}</span>
+          <span className="text-[11px] font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1">
+            <Radio className="w-3.5 h-3.5 text-rose-400" />
+            <span>@{cleanHandle}</span>
           </span>
         </div>
 
         <div className="flex items-center gap-1.5 pointer-events-auto">
-          {onToggleMute && (
-            <button
-              type="button"
-              onClick={onToggleMute}
-              className="p-1.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
-              title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
-            >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleToggleSound}
+            className={`p-1.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg ${
+              internalMuted 
+                ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' 
+                : 'bg-black/80 text-emerald-400 border-emerald-500/40'
+            }`}
+            title={internalMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+          >
+            {internalMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
 
           <button
             type="button"
@@ -105,13 +108,13 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
             className="p-1.5 rounded-full bg-black/70 hover:bg-black/90 text-slate-300 hover:text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
             title="Tải lại phiên live"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className="w-4 h-4" />
           </button>
 
           <button
             type="button"
             onClick={openApp}
-            className="px-2.5 py-1 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-[10px] font-mono font-bold border border-rose-400/40 shadow-lg flex items-center gap-1 cursor-pointer transition-transform active:scale-95 font-display"
+            className="px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-[10px] font-mono font-bold border border-rose-400/40 shadow-lg flex items-center gap-1 cursor-pointer transition-transform active:scale-95 font-display"
             title="Mở phiên live trực tiếp trên TikTok"
           >
             <span>Mở TikTok</span>
@@ -120,24 +123,26 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         </div>
       </div>
 
-      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM EMBED (CĂN CHÍNH GIỮA 100%, TRÀN VIỀN TOÀN BỘ KHUNG HÌNH) */}
+      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM (GÓC NHÌN TOÀN CẢNH RÕ MẶT & NHÂN VẬT, CÂN ĐỐI 2 BÊN) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
         <iframe
-          key={`tt-live-${cleanHandle}-${iframeKey}`}
-          src={directLiveUrl}
+          key={`tt-live-${cleanHandle}-${iframeKey}-${internalMuted ? 'muted' : 'sound'}`}
+          src={activeLiveSrc}
           title={`TikTok Live: @${cleanHandle}`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; camera; microphone"
+          allow={internalMuted 
+            ? "accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            : "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; camera; microphone"
+          }
           allowFullScreen
           onError={() => setLoadError(true)}
           className="absolute border-0 bg-black pointer-events-auto"
           style={{
-            width: '285%',
-            height: '114%',
-            left: '-52%',
-            top: '-4%',
+            width: '235%',
+            height: '100%',
+            left: '-40%',
+            top: '0',
             maxWidth: 'none',
-            maxHeight: 'none',
-            objectFit: 'cover'
+            maxHeight: 'none'
           }}
         />
 

@@ -845,117 +845,119 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Action Bar (Luôn hiển thị đầy đủ các nút tương tác 1-chạm đồng bộ TikTok) */}
-          <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-3.5 pointer-events-auto">
-            {/* Creator Avatar with Follow Plus Badge */}
-            <div 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleFollowAction();
-              }}
-              className="relative mb-2 cursor-pointer group"
-              title="Bấm avatar để Follow kênh & nhận +200 Xu"
-            >
-              <img 
-                src={currentItem.channelAvatar} 
-                alt="" 
-                className="w-12 h-12 rounded-full object-cover border-2 border-white group-hover:border-rose-500 transition-all shadow-xl"
-              />
-              <button
+          {/* Right Action Bar (Chỉ hiển thị khi phát Video Stream HD, ẩn khi phát TikTok Embed để tránh trùng lặp 2 cột icon) */}
+          {playerMode !== 'embed' && (
+            <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-3.5 pointer-events-auto">
+              {/* Creator Avatar with Follow Plus Badge */}
+              <div 
                 onClick={(e) => {
                   e.stopPropagation();
                   handleFollowAction();
                 }}
-                className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-[22px] h-[22px] rounded-full flex items-center justify-center text-white transition-all shadow-lg cursor-pointer ${
-                  currentClaimed.follow 
-                    ? 'bg-emerald-500 ring-2 ring-emerald-400/60 scale-100' 
-                    : 'bg-[#FE2C55] hover:scale-110 active:scale-95 shadow-red-500/50'
-                }`}
-                title={currentClaimed.follow ? 'Đã Follow trên hệ thống' : 'Bấm Follow & nhận +200 Xu'}
+                className="relative mb-2 cursor-pointer group"
+                title="Bấm avatar để Follow kênh & nhận +200 Xu"
               >
-                {currentClaimed.follow ? (
-                  <Check className="w-3.5 h-3.5 stroke-[3.5] text-white" />
-                ) : (
-                  <Plus className="w-4 h-4 stroke-[3] text-white" />
-                )}
+                <img 
+                  src={currentItem.channelAvatar} 
+                  alt="" 
+                  className="w-12 h-12 rounded-full object-cover border-2 border-white group-hover:border-rose-500 transition-all shadow-xl"
+                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFollowAction();
+                  }}
+                  className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-[22px] h-[22px] rounded-full flex items-center justify-center text-white transition-all shadow-lg cursor-pointer ${
+                    currentClaimed.follow 
+                      ? 'bg-emerald-500 ring-2 ring-emerald-400/60 scale-100' 
+                      : 'bg-[#FE2C55] hover:scale-110 active:scale-95 shadow-red-500/50'
+                  }`}
+                  title={currentClaimed.follow ? 'Đã Follow trên hệ thống' : 'Bấm Follow & nhận +200 Xu'}
+                >
+                  {currentClaimed.follow ? (
+                    <Check className="w-3.5 h-3.5 stroke-[3.5] text-white" />
+                  ) : (
+                    <Plus className="w-4 h-4 stroke-[3] text-white" />
+                  )}
+                </button>
+              </div>
+
+              {/* Like Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLikeAction();
+                }}
+                className="flex flex-col items-center gap-1 group cursor-pointer"
+              >
+                <div className={`p-2 rounded-full transition-transform duration-200 active:scale-125 ${
+                  currentClaimed.like ? 'text-[#FE2C55]' : 'text-white/90 hover:text-white'
+                }`}>
+                  <Heart className={`h-7 w-7 drop-shadow-lg ${currentClaimed.like ? 'fill-[#FE2C55]' : ''}`} />
+                </div>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">
+                  {currentClaimed.like ? '128.5K' : '128.4K'}
+                </span>
               </button>
+
+              {/* Comment Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCommentInput(!showCommentInput);
+                }}
+                className="flex flex-col items-center gap-1 group cursor-pointer"
+              >
+                <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
+                  <MessageCircle className={`h-7 w-7 drop-shadow-lg ${currentClaimed.comment ? 'fill-cyan-400 text-cyan-400' : ''}`} />
+                </div>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">
+                  {currentClaimed.comment ? '3.2K' : '3.1K'}
+                </span>
+              </button>
+
+              {/* Bookmark / Favorite Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleBookmarkAction();
+                }}
+                className="flex flex-col items-center gap-1 group cursor-pointer"
+              >
+                <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-75">
+                  <Bookmark className={`h-7 w-7 drop-shadow-lg ${currentClaimed.bookmark ? 'fill-amber-400 text-amber-400' : ''}`} />
+                </div>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">
+                  {currentClaimed.bookmark ? '1.2K' : '1.1K'}
+                </span>
+              </button>
+
+              {/* Share Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShareAction();
+                }}
+                className="flex flex-col items-center gap-1 group cursor-pointer"
+              >
+                <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
+                  <Share2 className="h-7 w-7 drop-shadow-lg" />
+                </div>
+                <span className="text-[11px] font-bold text-white drop-shadow-md">
+                  {currentClaimed.share ? '856' : '855'}
+                </span>
+              </button>
+
+              {/* Spinning Music Vinyl Disc */}
+              <div className="mt-1 w-9 h-9 rounded-full bg-slate-900/90 border-2 border-slate-700/80 p-1 flex items-center justify-center shadow-2xl animate-spin-slow">
+                <img 
+                  src={currentItem.channelAvatar} 
+                  alt="" 
+                  className="w-5 h-5 rounded-full object-cover"
+                />
+              </div>
             </div>
-
-            {/* Like Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleLikeAction();
-              }}
-              className="flex flex-col items-center gap-1 group cursor-pointer"
-            >
-              <div className={`p-2 rounded-full transition-transform duration-200 active:scale-125 ${
-                currentClaimed.like ? 'text-[#FE2C55]' : 'text-white/90 hover:text-white'
-              }`}>
-                <Heart className={`h-7 w-7 drop-shadow-lg ${currentClaimed.like ? 'fill-[#FE2C55]' : ''}`} />
-              </div>
-              <span className="text-[11px] font-bold text-white drop-shadow-md">
-                {currentClaimed.like ? '128.5K' : '128.4K'}
-              </span>
-            </button>
-
-            {/* Comment Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowCommentInput(!showCommentInput);
-              }}
-              className="flex flex-col items-center gap-1 group cursor-pointer"
-            >
-              <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
-                <MessageCircle className={`h-7 w-7 drop-shadow-lg ${currentClaimed.comment ? 'fill-cyan-400 text-cyan-400' : ''}`} />
-              </div>
-              <span className="text-[11px] font-bold text-white drop-shadow-md">
-                {currentClaimed.comment ? '3.2K' : '3.1K'}
-              </span>
-            </button>
-
-            {/* Bookmark / Favorite Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleBookmarkAction();
-              }}
-              className="flex flex-col items-center gap-1 group cursor-pointer"
-            >
-              <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-75">
-                <Bookmark className={`h-7 w-7 drop-shadow-lg ${currentClaimed.bookmark ? 'fill-amber-400 text-amber-400' : ''}`} />
-              </div>
-              <span className="text-[11px] font-bold text-white drop-shadow-md">
-                {currentClaimed.bookmark ? '1.2K' : '1.1K'}
-              </span>
-            </button>
-
-            {/* Share Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleShareAction();
-              }}
-              className="flex flex-col items-center gap-1 group cursor-pointer"
-            >
-              <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
-                <Share2 className="h-7 w-7 drop-shadow-lg" />
-              </div>
-              <span className="text-[11px] font-bold text-white drop-shadow-md">
-                {currentClaimed.share ? '856' : '855'}
-              </span>
-            </button>
-
-            {/* Spinning Music Vinyl Disc */}
-            <div className="mt-1 w-9 h-9 rounded-full bg-slate-900/90 border-2 border-slate-700/80 p-1 flex items-center justify-center shadow-2xl animate-spin-slow">
-              <img 
-                src={currentItem.channelAvatar} 
-                alt="" 
-                className="w-5 h-5 rounded-full object-cover"
-              />
-            </div>
-          </div>
+          )}
 
           {/* Up / Down Navigation Controls (Lướt Lướt Liên Tục) */}
           <div className="absolute left-3 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2 pointer-events-auto">
@@ -1035,6 +1037,61 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* QUICK IN-APP TASK INTERACTION DECK (4 Nút tương tác nhận Xu trực tiếp 1-chạm) */}
+        <div className="flex items-center justify-between gap-1.5 p-2 bg-[#080B14] border-t border-white/10 text-[11px] font-mono shrink-0">
+          <button 
+            type="button"
+            onClick={handleFollowAction} 
+            className={`flex-1 py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 font-bold transition-all cursor-pointer select-none ${
+              currentClaimed.follow 
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm' 
+                : 'bg-rose-600/30 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 active:scale-95 shadow-sm'
+            }`}
+          >
+            {currentClaimed.follow ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Plus className="w-3.5 h-3.5 stroke-[3]" />}
+            <span className="truncate">{currentClaimed.follow ? 'Đã Follow' : 'Follow (+200)'}</span>
+          </button>
+          
+          <button 
+            type="button"
+            onClick={handleLikeAction} 
+            className={`flex-1 py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 font-bold transition-all cursor-pointer select-none ${
+              currentClaimed.like 
+                ? 'bg-pink-500/20 text-pink-400 border border-pink-500/40 shadow-sm' 
+                : 'bg-pink-600/30 hover:bg-pink-600 text-pink-300 hover:text-white border border-pink-500/40 active:scale-95 shadow-sm'
+            }`}
+          >
+            <Heart className={`w-3.5 h-3.5 ${currentClaimed.like ? 'fill-pink-400 text-pink-400' : ''}`} />
+            <span className="truncate">{currentClaimed.like ? 'Đã Tim' : 'Thả Tim (+100)'}</span>
+          </button>
+
+          <button 
+            type="button"
+            onClick={() => setShowCommentInput(!showCommentInput)} 
+            className={`flex-1 py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 font-bold transition-all cursor-pointer select-none ${
+              currentClaimed.comment 
+                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm' 
+                : 'bg-cyan-600/30 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-500/40 active:scale-95 shadow-sm'
+            }`}
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span className="truncate">{currentClaimed.comment ? 'Đã Cmt' : 'Bình Luận (+200)'}</span>
+          </button>
+
+          <button 
+            type="button"
+            onClick={handleShareAction} 
+            className={`flex-1 py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 font-bold transition-all cursor-pointer select-none ${
+              currentClaimed.share 
+                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-sm' 
+                : 'bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/40 active:scale-95 shadow-sm'
+            }`}
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="truncate">{currentClaimed.share ? 'Đã Share' : 'Chia Sẻ (+240)'}</span>
+          </button>
         </div>
 
         {/* Bottom Progress Bar & Claim Button */}

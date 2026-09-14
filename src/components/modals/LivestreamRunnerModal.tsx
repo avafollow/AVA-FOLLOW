@@ -67,7 +67,7 @@ export const LivestreamRunnerModal: React.FC = () => {
   const [isOpenedOnTikTok, setIsOpenedOnTikTok] = useState<boolean>(false);
   const [showRoomSwitcher, setShowRoomSwitcher] = useState<boolean>(false);
   const [showShopProduct, setShowShopProduct] = useState<boolean>(false);
-  const [isMuted, setIsMuted] = useState<boolean>(true);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -506,14 +506,8 @@ export const LivestreamRunnerModal: React.FC = () => {
               poster={activeLiveTask.channelAvatar}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
-              onError={() => {
-                if (videoRef.current && videoRef.current.src !== '/videos/sample2.mp4') {
-                  videoRef.current.src = '/videos/sample2.mp4';
-                  videoRef.current.play().catch(() => {});
-                }
-              }}
               className="absolute inset-0 w-full h-full object-cover"
-              src={mediaInfo?.streamUrl || '/videos/sample2.mp4'}
+              src={mediaInfo?.streamUrl || activeLiveTask.targetUrl}
             />
           )}
 

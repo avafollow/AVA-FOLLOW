@@ -5,12 +5,9 @@ import {
   Radio, 
   Volume2, 
   VolumeX, 
-  Maximize2,
   RefreshCw,
-  Sparkles,
   ShieldCheck,
-  Smartphone,
-  Tv
+  Maximize2
 } from 'lucide-react';
 
 export interface TikTokLiveEmbedPlayerProps {
@@ -26,8 +23,9 @@ export interface TikTokLiveEmbedPlayerProps {
 /**
  * Component chuyên biệt: Trình phát LIVE TIKTOK THẬT 100% (Tab Code Riêng Biệt)
  * Nhúng trực tiếp phiên Live TikTok từ đường link chính thức của creator.
- * Căn chỉnh chuẩn xác khung hình 9:16 / 16:9, hiển thị trọn vẹn nhân vật và giao diện live.
+ * Căn giữa 100% khung hình chính xác, hiển thị sắc nét trọn vẹn nhân vật và giao diện live.
  * Mắt xem real-time cập nhật liên tục theo thời gian thực.
+ * Tối giản hoàn toàn, loại bỏ mọi thông tin rác và các lớp phủ dư thừa.
  */
 export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   channelHandle,
@@ -45,7 +43,6 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
 
   const [iframeKey, setIframeKey] = useState<number>(Date.now());
   const [loadError, setLoadError] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'portrait_fit' | 'fill' | 'desktop'>('portrait_fit');
 
   // Mắt xem real-time biến động tự nhiên theo thời gian thực
   const [currentViewers, setCurrentViewers] = useState<number>(viewersCount);
@@ -53,10 +50,10 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     setCurrentViewers(viewersCount);
     const timer = setInterval(() => {
       setCurrentViewers(prev => {
-        const change = Math.floor(Math.random() * 13) - 6; // -6 đến +6
-        return Math.max(150, prev + change);
+        const change = Math.floor(Math.random() * 11) - 5; // -5 đến +5
+        return Math.max(120, prev + change);
       });
-    }, 2800);
+    }, 2500);
     return () => clearInterval(timer);
   }, [viewersCount]);
 
@@ -71,70 +68,26 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     window.open(directLiveUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // Tính toán căn chỉnh khung hình chuẩn 9:16 loại bỏ thanh menu thừa bên trái
-  const getIframeStyles = () => {
-    switch (viewMode) {
-      case 'portrait_fit':
-        // Căn giữa nhân vật livestream 9:16, dịch thanh sidebar trái ra khỏi tầm nhìn
-        return {
-          width: '138%',
-          height: '100%',
-          marginLeft: '-19%',
-          transform: 'scale(1.02)',
-        };
-      case 'fill':
-        return {
-          width: '160%',
-          height: '100%',
-          marginLeft: '-30%',
-          transform: 'scale(1.05)',
-        };
-      case 'desktop':
-      default:
-        return {
-          width: '100%',
-          height: '100%',
-          marginLeft: '0',
-          transform: 'scale(1)',
-        };
-    }
-  };
-
   return (
     <div className={`relative w-full h-full bg-black flex flex-col overflow-hidden rounded-3xl select-none ${className}`}>
-      {/* 1. TOP LIVE REAL-TIME HUD BAR */}
-      <div className="absolute top-0 inset-x-0 z-30 p-2.5 sm:p-3 bg-gradient-to-b from-black/95 via-black/70 to-transparent flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-2 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-rose-500/40 shadow-xl pointer-events-auto">
-          <div className="relative flex h-2.5 w-2.5">
+      {/* 1. TOP LIVE REAL-TIME HUD BAR (GỌN GÀNG, KHÔNG CHE KHUNG HÌNH) */}
+      <div className="absolute top-0 inset-x-0 z-30 p-2 sm:p-2.5 bg-gradient-to-b from-black/90 via-black/50 to-transparent flex items-center justify-between pointer-events-none">
+        <div className="flex items-center gap-1.5 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-rose-500/40 shadow-lg pointer-events-auto">
+          <div className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
           </div>
           <span className="text-[10px] font-mono font-black text-white uppercase tracking-wider">
-            TIKTOK LIVE
+            LIVE
           </span>
           <span className="text-white/30">|</span>
           <span className="text-[10px] font-mono font-bold text-rose-300 flex items-center gap-1">
             <Users className="w-3 h-3 text-rose-400 animate-pulse" />
-            <span>{currentViewers.toLocaleString()} mắt xem</span>
+            <span>{currentViewers.toLocaleString()}</span>
           </span>
         </div>
 
         <div className="flex items-center gap-1.5 pointer-events-auto">
-          {/* Nút chuyển đổi tỷ lệ khung hình (Chuẩn 9:16 Dọc / Trọng Tâm / Toàn Cảnh) */}
-          <button
-            type="button"
-            onClick={() => {
-              const modes: Array<'portrait_fit' | 'fill' | 'desktop'> = ['portrait_fit', 'fill', 'desktop'];
-              const nextIdx = (modes.indexOf(viewMode) + 1) % modes.length;
-              setViewMode(modes[nextIdx]);
-            }}
-            className="px-2 py-1 rounded-full bg-black/70 hover:bg-black/90 text-cyan-300 text-[9px] font-mono font-bold backdrop-blur-md border border-cyan-500/30 transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1"
-            title="Đổi tỷ lệ khung hình (Chuẩn 9:16 Dọc / Phóng To / Toàn Cảnh)"
-          >
-            {viewMode === 'portrait_fit' ? <Smartphone className="w-3 h-3 text-cyan-400" /> : <Tv className="w-3 h-3 text-cyan-400" />}
-            <span>{viewMode === 'portrait_fit' ? '9:16 Dọc' : viewMode === 'fill' ? 'Trọng Tâm' : 'Toàn Cảnh'}</span>
-          </button>
-
           {onToggleMute && (
             <button
               type="button"
@@ -167,17 +120,16 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         </div>
       </div>
 
-      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM EMBED (KHUNG HÌNH CHUẨN 9:16 CĂN GIỮA NHÂN VẬT) */}
+      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM EMBED (CĂN CHÍNH GIỮA 100%, KHÔNG BỊ LỆCH) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
         <iframe
-          key={`tt-live-${cleanHandle}-${iframeKey}-${viewMode}`}
+          key={`tt-live-${cleanHandle}-${iframeKey}`}
           src={directLiveUrl}
           title={`TikTok Live: @${cleanHandle}`}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; camera; microphone"
           allowFullScreen
           onError={() => setLoadError(true)}
-          style={getIframeStyles()}
-          className="h-full max-w-none border-0 bg-black pointer-events-auto transition-all duration-300"
+          className="w-full h-full border-0 bg-black pointer-events-auto"
         />
 
         {/* Fallback Overlay if browser blocks iframe permissions */}
@@ -206,10 +158,10 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         )}
       </div>
 
-      {/* 3. BOTTOM INFO BAR */}
-      <div className="absolute bottom-0 inset-x-0 z-20 p-3 bg-gradient-to-t from-black/95 via-black/70 to-transparent flex items-center justify-between text-[11px] font-mono pointer-events-none">
+      {/* 3. BOTTOM INFO BAR (TỐI GIẢN) */}
+      <div className="absolute bottom-0 inset-x-0 z-20 p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex items-center justify-between text-[11px] font-mono pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-rose-500 to-pink-600 p-0.5 shrink-0 shadow-md">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-rose-500 to-pink-600 p-0.5 shrink-0 shadow-md">
             <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-white font-black text-xs">
               {cleanHandle.charAt(0).toUpperCase() || 'L'}
             </div>
@@ -219,16 +171,13 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
               <span>@{cleanHandle}</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             </div>
-            <div className="text-[10px] text-slate-400 truncate max-w-[180px]">
-              {channelName || 'Phiên Live Trực Tuyến'}
-            </div>
           </div>
         </div>
 
         <div className="pointer-events-auto">
-          <span className="px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-bold border border-rose-500/30 flex items-center gap-1">
+          <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[9px] font-bold border border-rose-500/30 flex items-center gap-1">
             <ShieldCheck className="w-3 h-3 text-emerald-400" />
-            <span>Phát Live Thật 100%</span>
+            <span>Live Thật 100%</span>
           </span>
         </div>
       </div>

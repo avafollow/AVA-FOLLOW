@@ -483,14 +483,11 @@ export const LivestreamRunnerModal: React.FC = () => {
           </div>
         </div>
 
-        {/* MAIN VIDEO STREAM CONTAINER (SIMULATOR WITH REAL INTERACTIONS) */}
+        {/* MAIN REAL LIVE VIDEO STREAM CONTAINER */}
         <div 
-          className="flex-1 relative bg-slate-950 overflow-hidden cursor-pointer flex flex-col justify-end p-4"
+          className="flex-1 relative bg-black overflow-hidden flex flex-col justify-end"
           onClick={handleScreenTap}
         >
-          {/* Vignette overlay for readable text while keeping live video bright */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/40 pointer-events-none z-[1]" />
-
           {/* 3 TRÌNH PHÁT LIVE THẬT 100% (TAB CODE RIÊNG BIỆT CHO YOUTUBE, FACEBOOK, TIKTOK) */}
           {isYouTube && mediaInfo?.youtubeId ? (
             <YouTubeLiveEmbedPlayer
@@ -520,88 +517,10 @@ export const LivestreamRunnerModal: React.FC = () => {
             />
           )}
 
-          {/* Sound & Play Toggle Buttons */}
-          <div className="absolute top-14 right-3 z-20 flex items-center gap-1.5">
-            {!isYouTube && (
-              <button
-                type="button"
-                onClick={togglePlayLive}
-                className="p-2 rounded-xl bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-lg active:scale-95"
-                title={isPlaying ? 'Tạm dừng live' : 'Tiếp tục phát live'}
-              >
-                {isPlaying ? <Pause className="h-4 w-4 text-white" /> : <Play className="h-4 w-4 text-emerald-400 fill-emerald-400" />}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
-              className="p-2 rounded-xl bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-lg active:scale-95"
-              title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
-            >
-              {isMuted ? <VolumeX className="h-4 w-4 text-slate-400" /> : <Volume2 className="h-4 w-4 text-emerald-400" />}
-            </button>
-          </div>
-
-          {/* Large Center Play Button when Paused */}
-          {!isPlaying && !isYouTube && (
-            <div 
-              onClick={togglePlayLive}
-              className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
-            >
-              <div className="p-5 rounded-full bg-gradient-to-tr from-rose-600 to-amber-500 text-white shadow-2xl shadow-rose-600/60 border-2 border-white/40 hover:scale-110 active:scale-95 transition-all animate-pulse">
-                <Play className="h-12 w-12 fill-white ml-1" />
-              </div>
-              <div className="mt-3 px-4 py-1.5 rounded-full bg-black/85 border border-white/20 text-white text-xs font-bold font-mono uppercase tracking-wider shadow-xl">
-                ▶️ BẤM ĐỂ PHÁT PHIÊN LIVE
-              </div>
-            </div>
-          )}
-
-          {/* Active TikTok Sync Banner (if user opened on TikTok) */}
-          {isOpenedOnTikTok && (
-            <div className="absolute top-14 inset-x-3 z-20 p-2 rounded-xl bg-emerald-950/90 backdrop-blur-md border border-emerald-500/50 text-left flex items-center justify-between gap-2 shadow-lg animate-in fade-in duration-300">
-              <div className="flex items-center gap-2 text-emerald-300 text-[10px] font-mono min-w-0">
-                <span className="relative flex h-2.5 w-2.5 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                </span>
-                <span className="truncate">Đang đồng bộ xem trên App TikTok: <strong>{activeLiveTask.channelHandle}</strong></span>
-              </div>
-              <span className="text-[10px] font-mono font-bold text-neonGold shrink-0">
-                +{currentEarnedCoins} Xu
-              </span>
-            </div>
-          )}
-
-          {/* Floating Tap Hearts Animation */}
-          {heartsBurst.map((h) => (
-            <div
-              key={h.id}
-              className="absolute bottom-16 pointer-events-none animate-bounce z-20"
-              style={{
-                left: `${h.x}px`,
-                animation: 'floatHeart 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards'
-              }}
-            >
-              <Heart className="h-6 w-6 fill-current drop-shadow-md" style={{ color: h.color }} />
-            </div>
-          ))}
-
-          {/* Room Title Floating Banner */}
-          <div className="absolute top-3 inset-x-3 p-2.5 rounded-2xl bg-black/70 backdrop-blur-md border border-white/10 text-left pointer-events-none z-10">
-            <div className="text-[10px] text-neonGold font-mono font-bold flex items-center gap-1">
-              <ShoppingBag className="h-3 w-3" />
-              <span>TIKTOK SHOP GIỎ HÀNG CHÍNH HÃNG</span>
-            </div>
-            <p className="text-white text-xs font-bold line-clamp-1 mt-0.5">
-              {activeLiveTask.roomTitle}
-            </p>
-          </div>
-
           {/* Pinned TikTok Shop Cart Bag Button */}
           <div 
             onClick={(e) => { e.stopPropagation(); setShowShopProduct(!showShopProduct); }}
-            className="absolute bottom-20 left-3 z-20 flex items-center gap-2 px-2.5 py-1.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-black shadow-xl cursor-pointer hover:scale-105 active:scale-95 transition-all"
+            className="absolute bottom-4 left-3 z-20 flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-black shadow-xl cursor-pointer hover:scale-105 active:scale-95 transition-all font-display"
           >
             <ShoppingBag className="h-4 w-4 text-black" />
             <div className="text-left leading-tight font-bold">
@@ -732,65 +651,7 @@ export const LivestreamRunnerModal: React.FC = () => {
             </div>
           )}
 
-          {/* Right Action Icons Column */}
-          <div className="absolute right-3 bottom-20 flex flex-col items-center gap-3 z-10">
-            {/* Heart Tap Button */}
-            <div 
-              onClick={handleScreenTap}
-              className="flex flex-col items-center group cursor-pointer"
-            >
-              <div className={`p-3 rounded-full backdrop-blur-md shadow-lg transition-transform active:scale-75 ${
-                claimedHeartReward 
-                  ? 'bg-rose-600 text-white animate-pulse' 
-                  : 'bg-black/60 text-rose-400 border border-white/10 hover:border-rose-500'
-              }`}>
-                <Heart className="h-6 w-6 fill-current" />
-              </div>
-              <span className="text-[10px] font-mono text-white font-bold mt-0.5 drop-shadow">
-                {tapsCount} / 20
-              </span>
-              <span className="text-[8px] font-mono text-rose-300">
-                {claimedHeartReward ? '✓ +200 Xu' : 'Tap +200 Xu'}
-              </span>
-            </div>
-
-            {/* Quick Seeding Script Opener */}
-            <div 
-              onClick={(e) => { e.stopPropagation(); setShowSeedingDrawer(true); }}
-              className="flex flex-col items-center cursor-pointer"
-            >
-              <div className="p-3 rounded-full bg-cyan-600/80 hover:bg-cyan-500 text-white backdrop-blur-md shadow-lg transition-transform active:scale-75">
-                <MessageSquare className="h-6 w-6" />
-              </div>
-              <span className="text-[9px] font-mono text-cyan-300 mt-0.5">
-                {claimedCommentReward ? '✓ +350 Xu' : 'Mồi +350 Xu'}
-              </span>
-            </div>
-
-            {/* Human Verification Badge */}
-            <div className="flex flex-col items-center">
-              <div className={`p-2.5 rounded-full backdrop-blur-md ${
-                passedCaptcha ? 'bg-emerald-600 text-white' : 'bg-black/60 text-slate-400 border border-white/10'
-              }`}>
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <span className="text-[8px] font-mono text-slate-300 mt-0.5">
-                {passedCaptcha ? '100% Người thật' : 'Anti-bot'}
-              </span>
-            </div>
-          </div>
-
-          {/* Left Live Chat Messages Feed */}
-          <div className="w-4/5 space-y-1.5 text-left pointer-events-none z-10 max-h-48 overflow-hidden flex flex-col justify-end pb-2">
-            {chatMessages.slice(-4).map((msg, i) => (
-              <div 
-                key={i} 
-                className="px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-sm border border-white/5 text-[11px] text-white inline-block max-w-full leading-snug drop-shadow"
-              >
-                {msg}
-              </div>
-            ))}
-          </div>
+          {/* ANTI-BOT CAPTCHA POPUP MODAL (Chỉ hiện khi cần xác thực) */}
 
           {/* ANTI-BOT CAPTCHA POPUP MODAL */}
           {showCaptcha && (

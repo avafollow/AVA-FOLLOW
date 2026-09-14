@@ -938,13 +938,15 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               {currentItem.title}
             </p>
 
-            {/* Music Sound Tag */}
-            <div className="flex items-center gap-1.5 text-[11px] text-white/90 font-medium">
-              <Music className="h-3.5 w-3.5 text-[#FE2C55] animate-spin-slow shrink-0" />
-              <span className="truncate drop-shadow-md">
-                Âm thanh gốc - {currentItem.channelName} • Nhạc xu hướng TikTok
-              </span>
-            </div>
+            {/* Music Sound Tag (Chỉ hiện cho video thường) */}
+            {currentItem.kind !== 'livestream' && (
+              <div className="flex items-center gap-1.5 text-[11px] text-white/90 font-medium">
+                <Music className="h-3.5 w-3.5 text-[#FE2C55] animate-spin-slow shrink-0" />
+                <span className="truncate drop-shadow-md">
+                  Âm thanh gốc - {currentItem.channelName} • Nhạc xu hướng TikTok
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Right Action Bar (Chỉ hiển thị khi phát Video Stream HD, ẩn khi phát TikTok Embed để tránh trùng lặp 2 cột icon) */}

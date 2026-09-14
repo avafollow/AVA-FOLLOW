@@ -46,92 +46,8 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
-  // Web Audio Synthesizer Refs
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const masterGainRef = useRef<GainNode | null>(null);
-  const activeNodesRef = useRef<AudioNode[]>([]);
-
-  const startLiveAudio = () => {
-    try {
-      const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtxClass) return;
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioCtxClass();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
-      }
-
-      // Stop previous nodes if any
-      activeNodesRef.current.forEach(node => {
-        try {
-          if ('stop' in node) (node as unknown as { stop: () => void }).stop();
-          node.disconnect();
-        } catch (e) {}
-      });
-      activeNodesRef.current = [];
-
-      // Create master gain
-      const masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(0.1, ctx.currentTime);
-      masterGain.connect(ctx.destination);
-      masterGainRef.current = masterGain;
-
-      // Harmonic ambient live room sound
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const lfo = ctx.createOscillator();
-      const lfoGain = ctx.createGain();
-
-      osc1.type = 'triangle';
-      osc1.frequency.setValueAtTime(261.63, ctx.currentTime); // C4 Live Room Tone
-
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(392.00, ctx.currentTime); // G4 Harmonics
-
-      lfo.type = 'sine';
-      lfo.frequency.setValueAtTime(1.5, ctx.currentTime);
-      lfoGain.gain.setValueAtTime(0.03, ctx.currentTime);
-      lfo.connect(lfoGain);
-      lfoGain.connect(masterGain.gain);
-
-      osc1.connect(masterGain);
-      osc2.connect(masterGain);
-
-      osc1.start();
-      osc2.start();
-      lfo.start();
-
-      activeNodesRef.current = [osc1, osc2, lfo, lfoGain, masterGain];
-    } catch (err) {}
-  };
-
-  const stopLiveAudio = () => {
-    try {
-      if (masterGainRef.current && audioCtxRef.current) {
-        masterGainRef.current.gain.setValueAtTime(0, audioCtxRef.current.currentTime);
-      }
-      activeNodesRef.current.forEach(node => {
-        try {
-          if ('stop' in node) (node as unknown as { stop: () => void }).stop();
-          node.disconnect();
-        } catch (e) {}
-      });
-      activeNodesRef.current = [];
-    } catch (err) {}
-  };
-
   useEffect(() => {
     setInternalMuted(isMuted);
-    if (!isMuted) {
-      startLiveAudio();
-    } else {
-      stopLiveAudio();
-    }
-    return () => {
-      stopLiveAudio();
-    };
   }, [isMuted]);
 
   const handleToggleSound = (e?: React.MouseEvent) => {
@@ -139,17 +55,12 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     const nextMuted = !internalMuted;
     setInternalMuted(nextMuted);
 
-    if (!nextMuted) {
-      startLiveAudio();
-    } else {
-      stopLiveAudio();
-    }
-
-    // Gửi postMessage điều khiển iframe (nếu iframe hỗ trợ)
+    // Gửi tín hiệu điều khiển âm thanh trực tiếp đến luồng nhúng video live
     try {
       if (iframeRef.current?.contentWindow) {
         const cw = iframeRef.current.contentWindow;
         cw.postMessage({ type: 'mute', value: nextMuted }, '*');
+        cw.postMessage({ type: nextMuted ? 'mute' : 'unmute' }, '*');
         cw.postMessage({ event: 'command', func: nextMuted ? 'mute' : 'unMute' }, '*');
         cw.postMessage({ type: 'changeVolume', volume: nextMuted ? 0 : 1 }, '*');
         cw.postMessage(JSON.stringify({ event: 'command', func: nextMuted ? 'mute' : 'unMute' }), '*');

@@ -289,6 +289,9 @@ interface TikTokAppContextType {
   rejectCampaign: (campaignId: string) => void;
   deleteCampaign: (campaignId: string) => void;
   deleteAdminUser: (userId: string) => void;
+  createGrowthService: (pkg: GrowthServiceItem) => void;
+  updateGrowthService: (pkg: GrowthServiceItem) => void;
+  deleteGrowthService: (pkgId: string) => void;
   orderService: (service: GrowthServiceItem) => void;
   convertTokenToCoins: (tokenAmount: number) => void;
 
@@ -491,7 +494,16 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return ACTIVE_CAMPAIGNS;
   });
 
-  const [growthServices, setGrowthServices] = useState<GrowthServiceItem[]>(COMPREHENSIVE_GROWTH_PACKAGES);
+  const [growthServices, setGrowthServices] = useState<GrowthServiceItem[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_growth_packages') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return COMPREHENSIVE_GROWTH_PACKAGES;
+  });
 
   const [affiliateData, setAffiliateData] = useState<AffiliateStats>(() => {
     try {
@@ -586,6 +598,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       syncTasksToSupabase(tasks, livestreamTasks);
     } catch {}
   }, [tasks, livestreamTasks]);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_growth_packages', JSON.stringify(growthServices));
+      }
+    } catch {}
+  }, [growthServices]);
 
   useEffect(() => {
     try {
@@ -3803,6 +3823,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`🗑️ Đã xóa vĩnh viễn tài khoản người dùng ${userId} theo lệnh Admin!`);
   };
 
+  const createGrowthService = (pkg: GrowthServiceItem) => {
+    setGrowthServices(prev => [pkg, ...prev]);
+    showToast(`✅ Đã thêm mới gói dịch vụ "${pkg.title}" thành công!`);
+  };
+
+  const updateGrowthService = (pkg: GrowthServiceItem) => {
+    setGrowthServices(prev => prev.map(p => p.id === pkg.id ? pkg : p));
+    showToast(`✅ Đã cập nhật thông tin gói dịch vụ "${pkg.title}" thành công!`);
+  };
+
+  const deleteGrowthService = (pkgId: string) => {
+    setGrowthServices(prev => prev.filter(p => p.id !== pkgId));
+    showToast(`🗑️ Đã xóa gói dịch vụ ${pkgId} khỏi toàn bộ hệ thống!`);
+  };
+
   const orderService = (service: GrowthServiceItem) => {
     openOrderModal(service);
   };
@@ -4775,6 +4810,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         rejectCampaign,
         deleteCampaign,
         deleteAdminUser,
+        createGrowthService,
+        updateGrowthService,
+        deleteGrowthService,
         orderService,
         convertTokenToCoins,
         createEscrowBooking,

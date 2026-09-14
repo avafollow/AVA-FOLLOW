@@ -755,47 +755,18 @@ export const AFFILIATE_DATA: AffiliateStats = {
   referralsList: []
 };
 
-// Dữ liệu Bảng điều khiển Admin
-
+// Dữ liệu Bảng điều khiển Admin (100% Thực Tế)
 export const ADMIN_DATA: AdminDashboardData = {
-  totalFollowsDelivered: 12482910,
-  activeCampaignsCount: 148,
-  totalTokensCirculating: 75200000,
-  totalTokensBurned: 14250000,
-  totalRevenueVND: '3,842,500,000đ',
-  totalEscrowLockedVND: '18,500,000đ',
-  totalRegisteredUsers: 154200,
-  pendingApprovalsCount: 3,
+  totalFollowsDelivered: 0,
+  activeCampaignsCount: 0,
+  totalTokensCirculating: 0,
+  totalTokensBurned: 0,
+  totalRevenueVND: '0đ',
+  totalEscrowLockedVND: '0đ',
+  totalRegisteredUsers: 0,
+  pendingApprovalsCount: 0,
   fraudAlertsCount: 0,
-  campaignsQueue: [
-    {
-      id: 'camp_queue_1',
-      client: 'Thương hiệu Giày GenZ Sneaker',
-      type: '10,000 Follow Thật',
-      quantity: 10000,
-      amount: '3,000,000đ',
-      status: 'Chờ duyệt',
-      date: '10 phút trước'
-    },
-    {
-      id: 'camp_queue_2',
-      client: 'Nha Khoa Nụ Cười Xinh',
-      type: 'Booking 5 KOC Review',
-      quantity: 5,
-      amount: '4,500,000đ',
-      status: 'Chờ duyệt',
-      date: '25 phút trước'
-    },
-    {
-      id: 'camp_queue_3',
-      client: 'Shop Phụ Kiện Điện Thoại iTech',
-      type: '5,000 Follow + 1,000 Tim',
-      quantity: 6000,
-      amount: '1,800,000đ',
-      status: 'Đang chạy',
-      date: '1 giờ trước'
-    }
-  ]
+  campaignsQueue: []
 };
 
 // ==============================================================================
@@ -803,104 +774,7 @@ export const ADMIN_DATA: AdminDashboardData = {
 // ==============================================================================
 import { EscrowBookingContract, AdminUserManagementItem } from '../types';
 
-export const ESCROW_BOOKINGS: EscrowBookingContract[] = [
-  {
-    id: 'esc_1',
-    contractCode: 'ESC-2026-9988',
-    clientName: 'Mỹ Phẩm Cao Cấp ZenSkin',
-    clientAvatar: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=120',
-    kocName: 'Đặng Mai Phương (Phương Beauty)',
-    kocHandle: '@phuongbeauty_koc',
-    kocAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120',
-    title: 'Booking Combo 3 Video Review Serum Dưỡng Ẩm Căng Bóng',
-    category: 'review',
-    creatorType: 'human',
-    videoDuration: '3_min',
-    videoQuantity: 3,
-    totalEscrowAmount: '4,500,000đ',
-    pricePerVideo: '1,500,000đ',
-    productName: 'Serum ZenSkin B5 Hyaluronic Acid 50ml',
-    requirements: 'KOC Người thật trải nghiệm thực tế 3 phút, test chất serum trực tiếp lên da, gắn link giỏ hàng TikTok Shop và hashtag #ZenSkin #SerumB5.',
-    deadlineDays: 5,
-    warrantyDays: 3,
-    autoReleaseHoursLeft: 68,
-    status: 'demo_submitted',
-    demoVideoUrl: 'https://tiktok.com/@phuongbeauty_koc/video/738291048',
-    demoNote: 'Em đã nộp video review chi tiết 3 phút. Đang trong thời gian bảo hành 3 ngày (72h) để bên Brand kiểm tra & đối soát nhé!',
-    demoSubmittedAt: '4 giờ trước',
-    createdAt: '1 ngày trước'
-  },
-  {
-    id: 'esc_2',
-    contractCode: 'ESC-2026-9989',
-    clientName: 'GenZ Sneaker Official',
-    clientAvatar: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=120',
-    kocName: 'AI Studio Triệu View',
-    kocHandle: '@aivideo_procreator',
-    kocAvatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=120',
-    title: 'Booking 5 Video AI Creator 1 Phút Phủ Sóng FYP',
-    category: 'normal_video',
-    creatorType: 'ai',
-    videoDuration: '1_min',
-    videoQuantity: 5,
-    totalEscrowAmount: '712,500đ',
-    pricePerVideo: '142,500đ',
-    productName: 'Giày Thể Thao Streetwear GenZ Pro Air',
-    requirements: 'Sản xuất bằng AI MC ảo lồng tiếng bắt trend, video 1 phút hook nhanh 3s đầu, bàn giao nhanh trong 24h kèm mã Spark Ads.',
-    deadlineDays: 2,
-    warrantyDays: 3,
-    autoReleaseHoursLeft: 72,
-    status: 'in_progress',
-    createdAt: 'Hôm nay, 09:15'
-  },
-  {
-    id: 'esc_3',
-    contractCode: 'ESC-2026-9990',
-    clientName: 'Skyline Coffee & Rooftop Bar',
-    clientAvatar: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=120',
-    kocName: 'Lê Thu Trang (Foody Sài Gòn)',
-    kocHandle: '@foody_saigonreview',
-    kocAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120',
-    title: 'Booking 1 Buổi Check-in & Review View Hoàng Hôn 5 Phút',
-    category: 'checkin',
-    creatorType: 'human',
-    videoDuration: '5_min',
-    videoQuantity: 1,
-    totalEscrowAmount: '2,800,000đ',
-    pricePerVideo: '2,800,000đ',
-    productName: 'Trải Nghiệm Menu Nước Chill & View Landmark 81',
-    requirements: 'KOC Người thật đến quán quay trải nghiệm 5 phút lúc 17h chiều, gắn vị trí quán trên TikTok và review không gian.',
-    deadlineDays: 3,
-    warrantyDays: 3,
-    autoReleaseHoursLeft: 0,
-    status: 'disbursed',
-    disbursedAt: 'Hôm qua',
-    createdAt: '3 ngày trước'
-  },
-  {
-    id: 'esc_4',
-    contractCode: 'ESC-2026-9991',
-    clientName: 'EcoVibe Global Store',
-    clientAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120',
-    kocName: 'Global AI Voice Studio',
-    kocHandle: '@global_ai_tiktok',
-    kocAvatar: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=120',
-    title: 'Booking 2 Video AI Đa Ngôn Ngữ Tiếng Anh & Tiếng Thái 3 Phút',
-    category: 'ai_multilingual',
-    creatorType: 'ai',
-    videoDuration: '3_min',
-    videoQuantity: 2,
-    totalEscrowAmount: '1,121,000đ',
-    pricePerVideo: '560,500đ',
-    productName: 'Bình Giữ Nhiệt Khắc Tên Thông Minh Smart Bottle',
-    requirements: 'Dựng video AI 3 phút chuẩn giọng bản xứ US và Thái Lan để chạy TikTok Shop Global, lồng ghép nhạc FYP thịnh hành.',
-    deadlineDays: 3,
-    warrantyDays: 3,
-    autoReleaseHoursLeft: 72,
-    status: 'escrow_locked',
-    createdAt: 'Hôm nay, 10:30'
-  }
-];
+export const ESCROW_BOOKINGS: EscrowBookingContract[] = [];
 
 // ==============================================================================
 // DANH SÁCH TOÀN BỘ NGƯỜI DÙNG QUẢN TRỊ ADMIN (SUPABASE USER DATABASE)

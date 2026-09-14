@@ -46,57 +46,35 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const [loadError, setLoadError] = useState<boolean>(false);
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const oscRef = useRef<OscillatorNode | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setInternalMuted(isMuted);
-    updateAudioPlayback(isMuted);
-  }, [isMuted]);
-
-  // Khởi tạo và điều khiển âm thanh trực tiếp (Web Audio Live Ambient)
-  const updateAudioPlayback = (muted: boolean) => {
-    try {
-      if (!muted) {
-        if (!audioContextRef.current) {
-          const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-          if (AudioContextClass) {
-            audioContextRef.current = new AudioContextClass();
-            const ctx = audioContextRef.current;
-            const gain = ctx.createGain();
-            gain.gain.setValueAtTime(0.04, ctx.currentTime);
-            gainNodeRef.current = gain;
-
-            // Ambient background sound generator (realistic live studio room buzz)
-            const osc = ctx.createOscillator();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(432, ctx.currentTime);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            oscRef.current = osc;
-          }
-        }
-        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-          audioContextRef.current.resume().catch(() => {});
-        }
-        if (gainNodeRef.current && audioContextRef.current) {
-          gainNodeRef.current.gain.setValueAtTime(0.04, audioContextRef.current.currentTime);
-        }
+    if (audioRef.current) {
+      if (!isMuted) {
+        audioRef.current.muted = false;
+        audioRef.current.volume = 0.8;
+        audioRef.current.play().catch(() => {});
       } else {
-        if (gainNodeRef.current && audioContextRef.current) {
-          gainNodeRef.current.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-        }
+        audioRef.current.pause();
       }
-    } catch (e) {}
-  };
+    }
+  }, [isMuted]);
 
   const handleToggleSound = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     const nextMuted = !internalMuted;
     setInternalMuted(nextMuted);
-    updateAudioPlayback(nextMuted);
+
+    if (audioRef.current) {
+      if (!nextMuted) {
+        audioRef.current.muted = false;
+        audioRef.current.volume = 0.8;
+        audioRef.current.play().catch(() => {});
+      } else {
+        audioRef.current.pause();
+      }
+    }
 
     // Phát tín hiệu PostMessage điều khiển âm thanh đến iframe mà KHÔNG reload
     try {
@@ -126,23 +104,23 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     window.open(directLiveUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // Căn chỉnh riêng biệt:
-  // 1. Preview (Xem trước / build reel): KHÓA CHẶT KHÔNG THAY ĐỔI
-  // 2. Feed (Trên Feed): Dịch sang trái (-86%) đưa streamer vào chính giữa tâm 9:16 và ẩn sạch quà tặng ở đáy (124% height)
+  // Căn chỉnh độc lập & chính xác tuyệt đối:
+  // 1. Preview (Xem trước / Build Reel - Ảnh 2): Xích sang trái một chút (-58%) để nhân vật nằm chính giữa cân đối, KHÓA CHẶT.
+  // 2. Feed (Trên Feed - Ảnh 1): Tinh chỉnh qua bên phải (-70%) để nhân vật nằm ngay giữa 9:16, ẩn sạch quà tặng ở đáy (124% height).
   const isPreview = mode === 'preview';
   const iframeStyle: React.CSSProperties = isPreview
     ? {
         width: '270%',
         height: '114%',
-        left: '-52%',
+        left: '-58%',
         top: '0',
         maxWidth: 'none',
         maxHeight: 'none'
       }
     : {
-        width: '276%',
+        width: '272%',
         height: '124%',
-        left: '-86%',
+        left: '-70%',
         top: '-2%',
         maxWidth: 'none',
         maxHeight: 'none'
@@ -164,19 +142,21 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 pointer-events-auto">
-          {/* Nút Tắt/Bật Âm Thanh */}
+          {/* Nút Tắt/Bật Âm Thanh - Chuẩn xác trạng thái & âm thanh tức thì */}
           <button
             type="button"
             onClick={handleToggleSound}
             className={`p-1.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1 px-2.5 ${
               internalMuted 
-                ? 'bg-rose-500/30 text-rose-300 border-rose-500/50' 
-                : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 hover:bg-rose-500/40' 
+                : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30'
             }`}
-            title={internalMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+            title={internalMuted ? 'Bấm để Bật Âm Thanh' : 'Bấm để Tắt Tiếng'}
           >
-            {internalMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            <span className="text-[9px] font-mono font-bold">{internalMuted ? 'Tắt tiếng' : 'Bật tiếng'}</span>
+            {internalMuted ? <VolumeX className="w-4 h-4 text-rose-300" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            <span className="text-[9px] font-mono font-bold">
+              {internalMuted ? 'Bật tiếng' : 'Tắt tiếng'}
+            </span>
           </button>
 
           {/* Nút Tải Lại Phiên Live */}
@@ -216,6 +196,16 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           onError={() => setLoadError(true)}
           className="absolute border-0 bg-black pointer-events-auto"
           style={iframeStyle}
+        />
+
+        {/* Audio Element cho âm thanh Live mượt mà không delay */}
+        <audio
+          ref={audioRef}
+          src="/videos/sample2.mp4"
+          loop
+          playsInline
+          preload="auto"
+          className="hidden"
         />
 
         {/* Lớp che chân đáy loại bỏ hoàn toàn các icon quà tặng TikTok Web */}

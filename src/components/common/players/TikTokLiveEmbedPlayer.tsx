@@ -88,7 +88,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
 
   // Căn chỉnh riêng biệt:
   // 1. Preview (Xem trước / Reels - Ảnh 2): Khóa Chặt left -58%, width 270%, height 114%
-  // 2. Feed (Trên Feed - Ảnh 1): Dịch qua phải một chút left -52%, width 272%, height 116% lấp kín viền phải
+  // 2. Feed (Trên Feed - Ảnh 1): Canh chuẩn chính giữa left -47.5%, width 270%, height 116%
   const isPreview = mode === 'preview';
   const iframeStyle: React.CSSProperties = isPreview
     ? {
@@ -100,9 +100,9 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         maxHeight: 'none'
       }
     : {
-        width: '272%',
+        width: '270%',
         height: '116%',
-        left: '-52%',
+        left: '-47.5%',
         top: '0',
         maxWidth: 'none',
         maxHeight: 'none'

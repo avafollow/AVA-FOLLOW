@@ -25,7 +25,8 @@ import {
   Layers,
   Check,
   Plus,
-  RefreshCw
+  RefreshCw,
+  ShoppingBag
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS, TikTokTaskItem, LivestreamTaskItem } from '../../types';
@@ -708,21 +709,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // 3. TikTok Live Stream Player
-            if (itemMedia.isTikTok && itemMedia.isLive && itemMedia.embedUrl) {
-              return (
-                <iframe
-                  key={currentItem.id + '_tt_live_' + itemMedia.handle}
-                  src={itemMedia.embedUrl}
-                  title={currentItem.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
-                />
-              );
-            }
-
-            // 4. TikTok Official Embed Player (Tự động phát video TikTok thật từ link người dùng)
+            // 3. TikTok Official Embed Player (Tự động phát video TikTok thật từ link người dùng)
             if (itemMedia.isTikTok && itemMedia.videoId && playerMode === 'embed') {
               return (
                 <iframe
@@ -733,6 +720,108 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   allowFullScreen
                   className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
                 />
+              );
+            }
+
+            // 4. TikTok Live Broadcast Studio (Hiển thị phòng live trực tuyến sắc nét, không bị lỗi iframe)
+            if (currentItem.kind === 'livestream' || itemMedia.isLive) {
+              const handleClean = (currentItem.channelHandle || itemMedia.handle || '@creator').replace(/^@+/, '');
+              return (
+                <div 
+                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-slate-950 via-[#130722] to-[#080B14] flex flex-col justify-between p-4 overflow-hidden select-none cursor-pointer"
+                  onClick={togglePlay}
+                >
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(244,63,94,0.25),transparent_70%)] animate-pulse pointer-events-none" />
+                  
+                  {/* Top Live Status */}
+                  <div className="relative z-10 flex items-center justify-between pt-10 px-1">
+                    <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
+                      <div className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                      </div>
+                      <span className="text-[10px] font-mono font-black text-rose-300 uppercase tracking-wider">
+                        LIVE 🔴 TRỰC TIẾP
+                      </span>
+                      <span className="text-white/40">|</span>
+                      <span className="text-[10px] font-mono font-bold text-slate-300 flex items-center gap-1">
+                        <Eye className="w-3 h-3 text-rose-400" />
+                        <span>{(currentItem.currentViewers || 1580).toLocaleString()} mắt xem</span>
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenTikTokApp}
+                      className="px-2.5 py-1 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-mono font-bold border border-rose-400/40 shadow-lg flex items-center gap-1 cursor-pointer transition-transform active:scale-95"
+                    >
+                      <span>Mở App TikTok</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  {/* Center Host Broadcast Visualizer */}
+                  <div className="relative z-10 flex flex-col items-center justify-center my-auto space-y-3 pointer-events-none">
+                    <div className="relative">
+                      <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-rose-500 via-purple-500 to-pink-500 animate-spin opacity-75 blur-[2px]" style={{ animationDuration: '6s' }} />
+                      <img
+                        src={currentItem.channelAvatar}
+                        alt=""
+                        className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-white shadow-2xl"
+                      />
+                      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-rose-600 text-white font-mono text-[9px] font-black uppercase tracking-wider shadow-lg border border-rose-300/40 animate-pulse">
+                        ON AIR
+                      </div>
+                    </div>
+
+                    <div className="text-center space-y-0.5">
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-white font-black text-base drop-shadow-lg">@{handleClean}</span>
+                        <CheckCircle2 className="w-4 h-4 text-cyan-400 fill-cyan-400/20" />
+                      </div>
+                      <p className="text-[11px] text-rose-300 font-mono font-bold flex items-center justify-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                        <span>Phiên Live Đang Phát Sóng Trực Tuyến</span>
+                      </p>
+                    </div>
+
+                    {/* Equalizer */}
+                    <div className="flex items-end justify-center gap-1 h-8 pt-1">
+                      {[40, 75, 55, 90, 65, 80, 45, 95, 70, 85, 60, 100, 50, 75].map((h, i) => (
+                        <div
+                          key={i}
+                          className="w-1 bg-gradient-to-t from-rose-500 to-amber-400 rounded-full animate-pulse"
+                          style={{ 
+                            height: `${isPlaying ? h : 20}%`, 
+                            animationDelay: `${i * 0.08}s`,
+                            animationDuration: '0.8s'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Shopping Deal Banner */}
+                  <div className="relative z-10 space-y-2 pointer-events-auto pb-12">
+                    <div 
+                      onClick={handleOpenTikTokApp}
+                      className="p-2.5 rounded-2xl bg-amber-400/90 hover:bg-amber-300 text-black flex items-center justify-between gap-2 shadow-xl cursor-pointer transition-transform active:scale-95"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-xl bg-black/10">
+                          <ShoppingBag className="w-4 h-4 text-black" />
+                        </div>
+                        <div className="text-left leading-tight">
+                          <div className="text-[8px] uppercase font-mono font-bold text-black/70">TikTok Shop Giỏ Hàng</div>
+                          <div className="text-[11px] font-extrabold text-black">Deal Đang Ghim Trong Live 🔥</div>
+                        </div>
+                      </div>
+                      <span className="px-2 py-1 rounded-lg bg-black text-amber-300 text-[10px] font-mono font-bold">
+                        Xem Deal
+                      </span>
+                    </div>
+                  </div>
+                </div>
               );
             }
 

@@ -144,10 +144,6 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
     embedUrl = `https://www.tiktok.com/embed/v2/${videoId}`;
     sourceType = 'tiktok_embed';
     streamUrl = url;
-  } else if (isTikTok && isLive) {
-    embedUrl = `https://www.tiktok.com/player/v1/live?unique_id=${handle.replace('@', '')}`;
-    sourceType = 'live_stream';
-    streamUrl = url;
   } else if (isLive) {
     sourceType = 'live_stream';
     streamUrl = url;

@@ -133,6 +133,7 @@ export const ProfileWalletScreen: React.FC<{
   const [selfiePreview, setSelfiePreview] = useState<string>(user.kycData?.selfiePhotoUrl || user.selfiePhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80');
   const [kycSaved, setKycSaved] = useState(false);
   const [kycStatus, setKycStatus] = useState<'pending' | 'verified' | 'unsubmitted'>(user.kycStatus === 'verified' ? 'verified' : user.kycStatus === 'pending' ? 'pending' : 'unsubmitted');
+  const isKycVerified = kycStatus === 'verified' || user.kycStatus === 'verified';
   const [avatarPreview, setAvatarPreview] = useState<string>(user.avatar || '');
   const [albumImages, setAlbumImages] = useState<Array<{ id: string; url: string; name: string; type: 'image' | 'video' }>>([]);
 
@@ -519,45 +520,96 @@ export const ProfileWalletScreen: React.FC<{
 
           {/* KYC Form */}
           <form onSubmit={handleKycSave} className="p-5 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
-            <h3 className="text-sm font-black text-white font-mono uppercase flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-cyan-400" /> Cập Nhật Thông Tin Cá Nhân (KYC)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-white font-mono uppercase flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-cyan-400" /> Cập Nhật Thông Tin Cá Nhân (KYC)
+              </h3>
+              {kycStatus === 'verified' && (
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Đã Khóa Bảo Vệ Vĩnh Viễn
+                </span>
+              )}
+            </div>
+
+            {kycStatus === 'verified' && (
+              <div className="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 flex items-center gap-2.5 text-xs text-emerald-300 font-mono">
+                <Lock className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>
+                  <strong>Hồ sơ KYC & Kênh TikTok đã được phê duyệt chính thức:</strong> Toàn bộ thông tin cá nhân, CCCD, kênh TikTok và STK ngân hàng đã được khóa cố định để bảo vệ tài khoản và đảm bảo tính minh bạch. Nếu cần cập nhật thông tin đặc biệt, vui lòng liên hệ trực tiếp Quản trị viên (Admin).
+                </span>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Họ tên */}
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-mono font-bold">Họ & Tên <span className="text-rose-400">*</span></label>
-                <input type="text" value={kycFullName} onChange={e => setKycFullName(e.target.value)} required
+                <input 
+                  type="text" 
+                  value={kycFullName} 
+                  onChange={e => !isKycVerified && setKycFullName(e.target.value)} 
+                  required
+                  disabled={isKycVerified}
                   placeholder="Nguyễn Văn A"
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono uppercase"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono uppercase transition-colors ${
+                    isKycVerified 
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90' 
+                      : 'bg-black/40 border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
 
               {/* Email */}
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-mono font-bold">Email (Gmail) <span className="text-rose-400">*</span></label>
-                <input type="email" value={kycEmail} onChange={e => setKycEmail(e.target.value)} required
+                <input 
+                  type="email" 
+                  value={kycEmail} 
+                  onChange={e => !isKycVerified && setKycEmail(e.target.value)} 
+                  required
+                  disabled={isKycVerified}
                   placeholder="example@gmail.com"
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono transition-colors ${
+                    isKycVerified 
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90' 
+                      : 'bg-black/40 border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
 
               {/* Số CCCD / Hộ chiếu */}
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-mono font-bold">Số Căn Cước Công Dân (CCCD 12 Số) <span className="text-rose-400">*</span></label>
-                <input type="text" value={kycIdNumber} onChange={e => setKycIdNumber(e.target.value)} required
+                <input 
+                  type="text" 
+                  value={kycIdNumber} 
+                  onChange={e => !isKycVerified && setKycIdNumber(e.target.value)} 
+                  required
+                  disabled={isKycVerified}
                   placeholder="001200088999"
                   maxLength={12}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono font-bold text-amber-300"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono font-bold text-amber-300 transition-colors ${
+                    isKycVerified 
+                      ? 'bg-slate-900/60 border-slate-700/50 cursor-not-allowed opacity-90' 
+                      : 'bg-black/40 border-white/10 placeholder-slate-500 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
 
               {/* SĐT */}
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-mono font-bold">Số Điện Thoại</label>
-                <input type="tel" value={kycPhone} onChange={e => setKycPhone(e.target.value)}
+                <input 
+                  type="tel" 
+                  value={kycPhone} 
+                  onChange={e => !isKycVerified && setKycPhone(e.target.value)}
+                  disabled={isKycVerified}
                   placeholder="0901 234 567"
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono transition-colors ${
+                    isKycVerified 
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90' 
+                      : 'bg-black/40 border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
 
@@ -571,16 +623,32 @@ export const ProfileWalletScreen: React.FC<{
                     </span>
                   )}
                 </div>
-                <input type="date" value={kycDob} onChange={e => setKycDob(e.target.value)} required
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-rose-500 transition-colors font-mono"
+                <input 
+                  type="date" 
+                  value={kycDob} 
+                  onChange={e => !isKycVerified && setKycDob(e.target.value)} 
+                  required
+                  disabled={isKycVerified}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono transition-colors ${
+                    isKycVerified 
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90' 
+                      : 'bg-black/40 border-white/10 text-white focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
 
               {/* Giới tính */}
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-mono font-bold">Giới Tính <span className="text-rose-400">*</span></label>
-                <select value={kycGender} onChange={e => setKycGender(e.target.value as 'male' | 'female' | 'other')}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-rose-500 transition-colors font-mono"
+                <select 
+                  value={kycGender} 
+                  onChange={e => !isKycVerified && setKycGender(e.target.value as 'male' | 'female' | 'other')}
+                  disabled={isKycVerified}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono transition-colors ${
+                    isKycVerified 
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90' 
+                      : 'bg-black/40 border-white/10 text-white focus:outline-none focus:border-rose-500'
+                  }`}
                 >
                   <option value="male">Nam</option>
                   <option value="female">Nữ</option>
@@ -591,8 +659,16 @@ export const ProfileWalletScreen: React.FC<{
               {/* Nghề nghiệp */}
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-mono font-bold">Nghề Nghiệp / Công Việc <span className="text-rose-400">*</span></label>
-                <select value={kycJob} onChange={e => setKycJob(e.target.value)} required
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-rose-500 transition-colors font-mono"
+                <select 
+                  value={kycJob} 
+                  onChange={e => !isKycVerified && setKycJob(e.target.value)} 
+                  required
+                  disabled={isKycVerified}
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono transition-colors ${
+                    isKycVerified 
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90' 
+                      : 'bg-black/40 border-white/10 text-white focus:outline-none focus:border-rose-500'
+                  }`}
                 >
                   <option value="">-- Chọn nghề nghiệp --</option>
                   <option>Content Creator / KOL / KOC</option>
@@ -610,18 +686,35 @@ export const ProfileWalletScreen: React.FC<{
               {/* Tỉnh/Thành */}
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-mono font-bold">Tỉnh / Thành Phố Đang Sống <span className="text-rose-400">*</span></label>
-                <input type="text" value={kycProvince} onChange={e => setKycProvince(e.target.value)} required
+                <input 
+                  type="text" 
+                  value={kycProvince} 
+                  onChange={e => !isKycVerified && setKycProvince(e.target.value)} 
+                  required
+                  disabled={isKycVerified}
                   placeholder="Hồ Chí Minh / Hà Nội / Đà Nẵng..."
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono transition-colors ${
+                    isKycVerified 
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90' 
+                      : 'bg-black/40 border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
 
               {/* Quận/Huyện */}
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-mono font-bold">Quận / Huyện / Thị Xã</label>
-                <input type="text" value={kycDistrict} onChange={e => setKycDistrict(e.target.value)}
+                <input 
+                  type="text" 
+                  value={kycDistrict} 
+                  onChange={e => !isKycVerified && setKycDistrict(e.target.value)}
+                  disabled={isKycVerified}
                   placeholder="Quận 1 / Huyện Bình Chánh..."
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono transition-colors ${
+                    isKycVerified 
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90' 
+                      : 'bg-black/40 border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
             </div>
@@ -648,22 +741,30 @@ export const ProfileWalletScreen: React.FC<{
                   </div>
                   <div className="relative h-28 rounded-xl overflow-hidden bg-black/60 border border-white/10 group">
                     <img src={frontCardPreview} alt="Mặt trước CCCD" className="w-full h-full object-cover" />
-                    <label className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
-                      <UploadCloud className="w-5 h-5 text-rose-400" />
-                      <span>Tải / Đổi Ảnh</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            const url = URL.createObjectURL(e.target.files[0]);
-                            setFrontCardPreview(url);
-                            showToast('✅ Đã tải ảnh mặt trước CCCD');
-                          }
-                        }} 
-                      />
-                    </label>
+                    {!isKycVerified ? (
+                      <label className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                        <UploadCloud className="w-5 h-5 text-rose-400" />
+                        <span>Tải / Đổi Ảnh</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              const url = URL.createObjectURL(e.target.files[0]);
+                              setFrontCardPreview(url);
+                              showToast('✅ Đã tải ảnh mặt trước CCCD');
+                            }
+                          }} 
+                        />
+                      </label>
+                    ) : (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                        <span className="px-2 py-0.5 rounded-full bg-black/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-mono font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Đã Duyệt
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -675,22 +776,30 @@ export const ProfileWalletScreen: React.FC<{
                   </div>
                   <div className="relative h-28 rounded-xl overflow-hidden bg-black/60 border border-white/10 group">
                     <img src={backCardPreview} alt="Mặt sau CCCD" className="w-full h-full object-cover" />
-                    <label className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
-                      <UploadCloud className="w-5 h-5 text-rose-400" />
-                      <span>Tải / Đổi Ảnh</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            const url = URL.createObjectURL(e.target.files[0]);
-                            setBackCardPreview(url);
-                            showToast('✅ Đã tải ảnh mặt sau CCCD');
-                          }
-                        }} 
-                      />
-                    </label>
+                    {!isKycVerified ? (
+                      <label className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                        <UploadCloud className="w-5 h-5 text-rose-400" />
+                        <span>Tải / Đổi Ảnh</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              const url = URL.createObjectURL(e.target.files[0]);
+                              setBackCardPreview(url);
+                              showToast('✅ Đã tải ảnh mặt sau CCCD');
+                            }
+                          }} 
+                        />
+                      </label>
+                    ) : (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                        <span className="px-2 py-0.5 rounded-full bg-black/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-mono font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Đã Duyệt
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -705,22 +814,30 @@ export const ProfileWalletScreen: React.FC<{
                   </div>
                   <div className="relative h-28 rounded-xl overflow-hidden bg-black/60 border border-purple-500/30 group">
                     <img src={selfiePreview} alt="Ảnh selfie khuôn mặt" className="w-full h-full object-cover" />
-                    <label className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
-                      <Camera className="w-5 h-5 text-pink-400" />
-                      <span>Chụp / Tải Selfie</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            const url = URL.createObjectURL(e.target.files[0]);
-                            setSelfiePreview(url);
-                            showToast('✅ Đã tải ảnh selfie khuôn mặt cá nhân');
-                          }
-                        }} 
-                      />
-                    </label>
+                    {!isKycVerified ? (
+                      <label className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                        <Camera className="w-5 h-5 text-pink-400" />
+                        <span>Chụp / Tải Selfie</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              const url = URL.createObjectURL(e.target.files[0]);
+                              setSelfiePreview(url);
+                              showToast('✅ Đã tải ảnh selfie khuôn mặt cá nhân');
+                            }
+                          }} 
+                        />
+                      </label>
+                    ) : (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                        <span className="px-2 py-0.5 rounded-full bg-black/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-mono font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Đã Duyệt
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -741,31 +858,49 @@ export const ProfileWalletScreen: React.FC<{
             <div className="space-y-3 pt-2 border-t border-white/5">
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-mono font-bold">Giới Thiệu Bản Thân (Bio Giới Thiệu Với Đối Tác & Nhãn Hàng)</label>
-                <textarea value={kycBio} onChange={e => setKycBio(e.target.value)} rows={3}
+                <textarea 
+                  value={kycBio} 
+                  onChange={e => !isKycVerified && setKycBio(e.target.value)} 
+                  rows={3}
+                  disabled={isKycVerified}
                   placeholder="Mô tả phong cách, thế mạnh review (mỹ phẩm, công nghệ, ẩm thực...), lượng tương tác kênh để đối tác doanh nghiệp dễ dàng booking..."
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono resize-none"
+                  className={`w-full border rounded-xl px-3 py-2.5 text-sm font-mono resize-none transition-colors ${
+                    isKycVerified 
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90' 
+                      : 'bg-black/40 border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] text-slate-400 font-mono font-bold">Tạo Link Bio Kết Nối Đối Tác</label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const autoBio = `avalive.vn/bio/${(user.tiktokConnected || user.name || 'creator').replace('@', '').toLowerCase().replace(/\s+/g, '_')}`;
-                      setKycBioLink(autoBio);
-                      showToast('✅ Đã tạo link Bio đối tác tự động!');
-                    }}
-                    className="text-[10px] text-amber-400 hover:text-amber-300 font-mono font-bold cursor-pointer"
-                  >
-                    ⚡ Tự động tạo link Bio
-                  </button>
+                  {!isKycVerified && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const autoBio = `avalive.vn/bio/${(user.tiktokConnected || user.name || 'creator').replace('@', '').toLowerCase().replace(/\s+/g, '_')}`;
+                        setKycBioLink(autoBio);
+                        showToast('✅ Đã tạo link Bio đối tác tự động!');
+                      }}
+                      className="text-[10px] text-amber-400 hover:text-amber-300 font-mono font-bold cursor-pointer"
+                    >
+                      ⚡ Tự động tạo link Bio
+                    </button>
+                  )}
                 </div>
                 <div className="flex gap-2">
-                  <input type="text" value={kycBioLink} onChange={e => setKycBioLink(e.target.value)}
+                  <input 
+                    type="text" 
+                    value={kycBioLink} 
+                    onChange={e => !isKycVerified && setKycBioLink(e.target.value)}
+                    disabled={isKycVerified}
                     placeholder="linktr.ee/username hoặc avalive.vn/bio/your_name"
-                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono"
+                    className={`flex-1 border rounded-xl px-3 py-2.5 text-sm font-mono transition-colors ${
+                      isKycVerified 
+                        ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90' 
+                        : 'bg-black/40 border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500'
+                    }`}
                   />
                   {kycBioLink && (
                     <button
@@ -785,7 +920,10 @@ export const ProfileWalletScreen: React.FC<{
               {/* Đường link TikTok */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] text-slate-400 font-mono font-bold">Đường Link Kênh TikTok Cá Nhân</label>
+                  <label className="text-[10px] text-slate-400 font-mono font-bold flex items-center gap-1.5">
+                    <span>Đường Link Kênh TikTok Cá Nhân</span>
+                    {isKycVerified && <span className="text-[9px] text-emerald-400 font-mono font-bold">(🔒 Đã Khóa)</span>}
+                  </label>
                   <a
                     href={kycTiktokUrl.startsWith('http') ? kycTiktokUrl : `https://${kycTiktokUrl}`}
                     target="_blank"
@@ -800,9 +938,14 @@ export const ProfileWalletScreen: React.FC<{
                   <input
                     type="text"
                     value={kycTiktokUrl}
-                    onChange={e => setKycTiktokUrl(e.target.value)}
+                    onChange={e => !isKycVerified && setKycTiktokUrl(e.target.value)}
+                    disabled={isKycVerified}
                     placeholder="https://www.tiktok.com/@your_channel"
-                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors font-mono"
+                    className={`flex-1 border rounded-xl px-3 py-2.5 text-sm font-mono transition-colors ${
+                      isKycVerified 
+                        ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90' 
+                        : 'bg-black/40 border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500'
+                    }`}
                   />
                   <button
                     type="button"
@@ -820,14 +963,22 @@ export const ProfileWalletScreen: React.FC<{
 
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button type="submit"
+              <button 
+                type="submit"
+                disabled={isKycVerified}
                 className={`flex-1 py-3 rounded-2xl font-black text-sm font-mono transition-all ${
-                  kycSaved
+                  isKycVerified
+                    ? 'bg-slate-800 text-slate-400 border border-slate-700 cursor-not-allowed'
+                    : kycSaved
                     ? 'bg-emerald-600 text-white'
                     : 'bg-gradient-to-r from-rose-600 to-purple-600 text-white hover:opacity-90 shadow-lg shadow-rose-600/20 cursor-pointer'
                 }`}
               >
-                {kycSaved ? '✅ Đã Lưu Thông Tin KYC Thành Công!' : '📋 Cập Nhật Thông Tin KYC'}
+                {isKycVerified 
+                  ? '🔒 Hồ Sơ KYC & Kênh TikTok Đã Được Duyệt & Khóa Bảo Vệ' 
+                  : kycSaved 
+                  ? '✅ Đã Lưu Thông Tin KYC Thành Công!' 
+                  : '📋 Cập Nhật Thông Tin KYC'}
               </button>
 
               <button
@@ -1608,15 +1759,31 @@ export const ProfileWalletScreen: React.FC<{
       {/* TAB 6: Tài Khoản Rút Tiền */}
       {activeProfileTab === 'bank' && (
         <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl max-w-xl">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-emerald-400" />
-            <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">
-              Tài Khoản Ngân Hàng Thụ Hưởng
-            </h3>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-emerald-400" />
+              <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">
+                Tài Khoản Ngân Hàng Thụ Hưởng
+              </h3>
+            </div>
+            {isKycVerified && (
+              <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Đã Khóa Bảo Vệ
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">
             Hệ thống Napas247 tự động chuyển tiền thưởng vào tài khoản này khi bạn bấm rút Xu.
           </p>
+
+          {isKycVerified && (
+            <div className="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 flex items-center gap-2.5 text-xs text-emerald-300 font-mono">
+              <Lock className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>
+                <strong>Tài khoản thụ hưởng đã được khóa cố định theo hồ sơ KYC đã duyệt:</strong> Tên chủ thẻ khớp 100% với CCCD để đảm bảo an toàn tuyệt đối và chống rửa tiền.
+              </span>
+            </div>
+          )}
 
           <form onSubmit={handleSaveBank} className="space-y-3.5 text-xs">
             <div className="space-y-1">
@@ -1624,9 +1791,14 @@ export const ProfileWalletScreen: React.FC<{
               <input
                 type="text"
                 value={bankName}
-                onChange={(e) => setBankName(e.target.value)}
+                onChange={(e) => !isKycVerified && setBankName(e.target.value)}
+                disabled={isKycVerified}
                 placeholder="VD: MB Bank, Vietcombank, Techcombank"
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-emerald-500"
+                className={`w-full border rounded-xl px-3.5 py-2.5 text-white font-mono transition-colors ${
+                  isKycVerified
+                    ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90'
+                    : 'bg-black/40 border-white/10 focus:outline-none focus:border-emerald-500'
+                }`}
               />
             </div>
 
@@ -1635,9 +1807,14 @@ export const ProfileWalletScreen: React.FC<{
               <input
                 type="text"
                 value={accountNumber}
-                onChange={(e) => setAccountNumber(e.target.value)}
+                onChange={(e) => !isKycVerified && setAccountNumber(e.target.value)}
+                disabled={isKycVerified}
                 placeholder="Nhập số tài khoản ngân hàng..."
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-emerald-500"
+                className={`w-full border rounded-xl px-3.5 py-2.5 text-white font-mono transition-colors ${
+                  isKycVerified
+                    ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90'
+                    : 'bg-black/40 border-white/10 focus:outline-none focus:border-emerald-500'
+                }`}
               />
             </div>
 
@@ -1646,9 +1823,14 @@ export const ProfileWalletScreen: React.FC<{
               <input
                 type="text"
                 value={accountHolder}
-                onChange={(e) => setAccountHolder(e.target.value.toUpperCase())}
+                onChange={(e) => !isKycVerified && setAccountHolder(e.target.value.toUpperCase())}
+                disabled={isKycVerified}
                 placeholder="VD: NGUYEN VAN A"
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-mono uppercase focus:outline-none focus:border-emerald-500"
+                className={`w-full border rounded-xl px-3.5 py-2.5 text-white font-mono uppercase transition-colors ${
+                  isKycVerified
+                    ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90'
+                    : 'bg-black/40 border-white/10 focus:outline-none focus:border-emerald-500'
+                }`}
               />
             </div>
 
@@ -1660,9 +1842,14 @@ export const ProfileWalletScreen: React.FC<{
 
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all font-mono"
+              disabled={isKycVerified}
+              className={`w-full py-2.5 rounded-xl font-bold text-xs shadow-md transition-all font-mono ${
+                isKycVerified
+                  ? 'bg-slate-800 text-slate-400 border border-slate-700 cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer'
+              }`}
             >
-              Lưu Thông Tin Ngân Hàng
+              {isKycVerified ? '🔒 Thông Tin Ngân Hàng Đã Được Khóa Bảo Vệ' : 'Lưu Thông Tin Ngân Hàng'}
             </button>
           </form>
         </div>

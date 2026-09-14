@@ -381,12 +381,19 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-mono font-bold text-rose-300 uppercase">KÊNH TIKTOK:</span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  ĐÃ KẾT NỐI
-                </span>
+                {user.kycStatus === 'verified' ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
+                    <Lock className="w-3 h-3 text-emerald-400" />
+                    ĐÃ DUYỆT KYC (KHÓA KÊNH)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    ĐÃ KẾT NỐI
+                  </span>
+                )}
               </div>
-              {editingTikTok ? (
+              {editingTikTok && user.kycStatus !== 'verified' ? (
                 <div className="flex items-center gap-1 mt-0.5">
                   <input
                     type="text"
@@ -420,30 +427,39 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
                   <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
                     ({(user.tiktokFollowers || 248500).toLocaleString()} fl)
                   </span>
-                  <button
-                    onClick={() => {
-                      setTempTikTokHandle(user.tiktokConnected || "@thienvuaapp_official");
-                      setEditingTikTok(true);
-                    }}
-                    className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
-                    title="Đổi tên kênh TikTok"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                  </button>
+                  {user.kycStatus !== 'verified' && (
+                    <button
+                      onClick={() => {
+                        setTempTikTokHandle(user.tiktokConnected || "@thienvuaapp_official");
+                        setEditingTikTok(true);
+                      }}
+                      className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                      title="Đổi tên kênh TikTok"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={() => {
-                setTempTikTokHandle(user.tiktokConnected || "@thienvuaapp_official");
-                setEditingTikTok(true);
-              }}
-              className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10"
-            >
-              Đổi Kênh
-            </button>
+            {user.kycStatus !== 'verified' ? (
+              <button
+                onClick={() => {
+                  setTempTikTokHandle(user.tiktokConnected || "@thienvuaapp_official");
+                  setEditingTikTok(true);
+                }}
+                className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10"
+              >
+                Đổi Kênh
+              </button>
+            ) : (
+              <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1">
+                <Lock className="w-3 h-3 text-emerald-400" />
+                Cố Định
+              </span>
+            )}
             <a
               href={`https://www.tiktok.com/@${(user.tiktokConnected || "thienvuaapp").replace("@", "")}`}
               target="_blank"
@@ -470,7 +486,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
                   SẴN SÀNG
                 </span>
               </div>
-              {editingFacebook ? (
+              {editingFacebook && user.kycStatus !== 'verified' ? (
                 <div className="flex items-center gap-1 mt-0.5">
                   <input
                     type="text"
@@ -504,30 +520,39 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
                   <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
                     ({(user.facebookFollowers || 18500).toLocaleString()} fl)
                   </span>
-                  <button
-                    onClick={() => {
-                      setTempFacebookUrl(user.facebookConnected || "fb.com/thienvuaapp");
-                      setEditingFacebook(true);
-                    }}
-                    className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
-                    title="Đổi nick Facebook"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                  </button>
+                  {user.kycStatus !== 'verified' && (
+                    <button
+                      onClick={() => {
+                        setTempFacebookUrl(user.facebookConnected || "fb.com/thienvuaapp");
+                        setEditingFacebook(true);
+                      }}
+                      className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                      title="Đổi nick Facebook"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={() => {
-                setTempFacebookUrl(user.facebookConnected || "fb.com/thienvuaapp");
-                setEditingFacebook(true);
-              }}
-              className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10"
-            >
-              Đổi Nick
-            </button>
+            {user.kycStatus !== 'verified' ? (
+              <button
+                onClick={() => {
+                  setTempFacebookUrl(user.facebookConnected || "fb.com/thienvuaapp");
+                  setEditingFacebook(true);
+                }}
+                className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10"
+              >
+                Đổi Nick
+              </button>
+            ) : (
+              <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1">
+                <Lock className="w-3 h-3 text-emerald-400" />
+                Cố Định
+              </span>
+            )}
             <a
               href={`https://${(user.facebookConnected || "facebook.com").startsWith("http") ? user.facebookConnected : (user.facebookConnected || "facebook.com")}`}
               target="_blank"
@@ -748,6 +773,94 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
 
           {/* Panel nhiệm vụ tuần & ngày toàn diện */}
           <WeeklyMissionsPanel darkMode={darkMode} />
+
+          {/* Lưới nhiệm vụ tương tác trực tiếp với khung video 1/4 */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 text-rose-400" />
+                <h4 className="text-sm font-black text-white font-mono uppercase">
+                  NHIỆM VỤ TƯƠNG TÁC ĐANG MỞ ({displayVideoTasks.length} Nhiệm Vụ)
+                </h4>
+              </div>
+              <span className="text-[11px] font-mono text-rose-300">
+                Làm ngay • Nhận Xu tức thì
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {displayVideoTasks.map((task) => {
+                const completed = userCompletedActions[task.id];
+                const isHorizontal = task.targetUrl?.includes('youtube.com/watch') || (task.targetUrl?.includes('youtu.be') && !task.targetUrl?.includes('/shorts/'));
+
+                return (
+                  <div
+                    key={task.id}
+                    onClick={() => openFeedRunner(task.id)}
+                    className="p-3 sm:p-3.5 rounded-2xl bg-[#090C16] border border-rose-500/30 hover:border-rose-400 transition-all flex flex-row gap-3 shadow-lg cursor-pointer group hover:scale-[1.01]"
+                  >
+                    {/* KHUNG MEDIA CHIẾM 1/4 CARD (DỌC 9:16 HOẶC NGANG 16:9) */}
+                    <div className={`relative w-[30%] sm:w-[28%] max-w-[120px] ${isHorizontal ? 'aspect-video self-center' : 'aspect-[9/16]'} rounded-xl overflow-hidden bg-black/80 border border-rose-500/40 shrink-0 shadow-inner group-hover:border-rose-400`}>
+                      <img src={task.videoPreviewUrl || task.channelAvatar} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-between p-1">
+                        <span className="self-start px-1.5 py-0.2 rounded bg-rose-600 text-white text-[8px] font-black font-mono uppercase">
+                          {task.type}
+                        </span>
+                        <div className="px-1 py-0.2 rounded bg-amber-500 text-black font-mono text-[8px] font-black text-center truncate">
+                          +{task.rewardCoins.toLocaleString()} Xu
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* THÔNG TIN VÀ NÚT BẤM 1 CHẠM */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-mono font-bold text-rose-300 truncate">
+                            {task.title}
+                          </span>
+                          <span className="text-[9px] font-mono text-slate-400 shrink-0">
+                            Còn {task.remainingSlots.toLocaleString()} suất
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <img src={task.channelAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-rose-400/50 shrink-0" />
+                          <div className="min-w-0 flex-1 truncate">
+                            <div className="text-xs font-bold text-white group-hover:text-rose-300 transition-colors truncate">
+                              {task.channelName}
+                            </div>
+                            <div className="text-[10px] font-mono text-rose-400 truncate">{task.channelHandle}</div>
+                          </div>
+                        </div>
+
+                        <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
+                          {task.title}
+                        </h5>
+                      </div>
+
+                      <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono font-black text-amber-400">
+                          +{task.rewardCoins.toLocaleString()} Xu
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openFeedRunner(task.id); }}
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                            completed
+                              ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
+                              : "bg-gradient-to-r from-rose-600 to-pink-600 hover:opacity-90 text-white font-black shadow-md"
+                          }`}
+                        >
+                          {completed ? <Check className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current" />}
+                          <span>{completed ? "Đã Xong" : "Làm Ngay"}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 
@@ -833,7 +946,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
             ))}
           </div>
 
-          {/* LƯỚI CÁC Ô VUÔNG VIDEO CHIẾN DỊCH (SẮP XẾP Ô VUÔNG GỌN GÀNG) */}
+          {/* LƯỚI CÁC Ô VIDEO CHIẾN DỊCH (CHUẨN TỈ LỆ 1/4 LAYOUT) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -847,8 +960,8 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
               </span>
             </div>
 
-            {/* Grid 2-3 cột các ô vuông Video */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {/* Grid 1-2-3 cột các ô video chuẩn tỉ lệ 1/4 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {filteredFeedCards.map((card) => {
                 const completed = userCompletedActions[card.id];
                 const typeLabels: Record<string, string> = {
@@ -861,19 +974,20 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
                   livestream_viewers: '🔴 Mắt Live Thật'
                 };
                 const taskLabel = typeLabels[card.taskType] || '⚡ Làm Nhiệm Vụ';
+                const isHorizontal = card.targetUrl?.includes('youtube.com/watch') || (card.targetUrl?.includes('youtu.be') && !card.targetUrl?.includes('/shorts/'));
 
                 return (
                   <div
                     key={card.id}
                     onClick={() => openFeedRunner(card.id)}
-                    className="group p-3.5 rounded-2xl bg-[#090C16] border border-cyan-500/30 hover:border-cyan-400 transition-all flex flex-col justify-between space-y-3 shadow-lg cursor-pointer hover:scale-[1.01]"
+                    className="group p-3 sm:p-3.5 rounded-2xl bg-[#090C16] border border-cyan-500/30 hover:border-cyan-400 hover:shadow-cyan-950/40 transition-all flex flex-row gap-3 shadow-lg cursor-pointer hover:scale-[1.01]"
                   >
-                    {/* Ô VUÔNG THUMBNAIL VIDEO */}
-                    <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black/80 border border-white/10 group-hover:border-cyan-400/60 transition-all">
+                    {/* KHUNG MEDIA CHIẾM 1/4 CARD (TỰ ĐỘNG DỌC 9:16 HOẶC NGANG 16:9) */}
+                    <div className={`relative w-[30%] sm:w-[28%] max-w-[120px] ${isHorizontal ? 'aspect-video self-center' : 'aspect-[9/16]'} rounded-xl overflow-hidden bg-black/80 border border-white/10 group-hover:border-cyan-400/60 shrink-0 transition-all shadow-inner`}>
                       {card.thumbnail && card.thumbnail.includes('.mp4') ? (
                         <video
                           src={card.thumbnail}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-85"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
                           muted
                           playsInline
                           loop
@@ -884,76 +998,69 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
                         <img
                           src={card.thumbnail}
                           alt=""
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
                         />
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-center justify-center">
-                        <div className="w-11 h-11 rounded-full bg-cyan-500/80 group-hover:bg-cyan-400 text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition-all">
-                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full bg-cyan-500/80 group-hover:bg-cyan-400 text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition-all">
+                          <Play className="w-4 h-4 fill-current ml-0.5" />
                         </div>
                       </div>
-                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 text-cyan-300 font-mono text-[10px] font-bold border border-cyan-400/40">
+                      <div className="absolute top-1 left-1 px-1.5 py-0.2 rounded bg-black/80 text-cyan-300 font-mono text-[8px] font-bold border border-cyan-400/40">
                         {card.durationBadge}
                       </div>
-                      <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-rose-600 text-white font-mono text-[10px] font-black shadow">
-                        +{card.rewardXu.toLocaleString()} XU
-                      </div>
                       {card.isBoosted ? (
-                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-gradient-to-r from-amber-400 to-rose-500 text-black font-mono text-[9px] font-black shadow animate-pulse flex items-center gap-1">
-                          <span>🔥 TOP 1 TOÀN SÀN</span>
+                        <div className="absolute bottom-1 left-1 right-1 px-1 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-black text-center truncate">
+                          TOP 1
                         </div>
-                      ) : card.isRealCampaign ? (
-                        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-amber-500 text-black font-mono text-[9px] font-black shadow">
-                          THẬT 100%
+                      ) : (
+                        <div className="absolute bottom-1 left-1 right-1 px-1 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-black text-center truncate">
+                          +{card.rewardXu.toLocaleString()} XU
                         </div>
-                      ) : null}
+                      )}
                     </div>
 
-                    {/* Task type badge */}
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] font-mono font-bold text-cyan-300">
-                        {taskLabel}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400">
-                        Còn {card.remainingSlots.toLocaleString()} suất
-                      </span>
-                    </div>
+                    {/* NỘI DUNG THÔNG TIN CHIẾN DỊCH & NÚT BẤM 1 CHẠM */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-mono font-bold text-cyan-300 truncate">
+                            {taskLabel}
+                          </span>
+                          <span className="text-[9px] font-mono text-slate-400 shrink-0">
+                            Còn {card.remainingSlots.toLocaleString()} suất
+                          </span>
+                        </div>
 
-                    {/* Channel & Title Info */}
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <img src={card.channelAvatar} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-cyan-400/50" />
-                        <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
-                          {card.channelHandle || card.channelName}
-                        </span>
-                        <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                        <div className="flex items-center gap-1.5">
+                          <img src={card.channelAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-cyan-400/50 shrink-0" />
+                          <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
+                            {card.channelHandle || card.channelName}
+                          </span>
+                          <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                        </div>
+
+                        <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
+                          {card.title}
+                        </h5>
                       </div>
-                      <h5 className="text-xs text-slate-200 line-clamp-1 font-medium">{card.title}</h5>
-                    </div>
 
-                    {/* Actions */}
-                    <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (card.targetUrl) window.open(card.targetUrl, '_blank');
-                        }}
-                        className="text-[10px] font-mono text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        <span>Mở TikTok</span>
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openFeedRunner(card.id); }}
-                        className={`px-3 py-1.5 rounded-xl text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                          completed
-                            ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
-                            : "bg-cyan-500 hover:bg-cyan-400 text-black font-black shadow-md"
-                        }`}
-                      >
-                        {completed ? <Check className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current" />}
-                        <span>{completed ? "Đã Xem Xong" : "Xem & Nhận Xu"}</span>
-                      </button>
+                      <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono font-black text-amber-400">
+                          +{card.rewardXu.toLocaleString()} Xu
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openFeedRunner(card.id); }}
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                            completed
+                              ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
+                              : "bg-cyan-500 hover:bg-cyan-400 text-black font-black shadow-md"
+                          }`}
+                        >
+                          {completed ? <Check className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current" />}
+                          <span>{completed ? "Đã Xem Xong" : "Xem & Nhận Xu"}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1008,7 +1115,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
             </div>
           </div>
 
-          {/* LƯỚI Ô VUÔNG CÁC PHÒNG LIVE TIKTOK */}
+          {/* LƯỚI CÁC PHÒNG LIVE TIKTOK (CHUẨN TỈ LỆ 1/4 KHUNG LIVE DỌC 9:16) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1018,11 +1125,12 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
                 </h4>
               </div>
               <span className="text-[11px] font-mono text-pink-300">
-                Xem theo phút • Cộng Xu trực tiếp
+                Xem theo phút • Bấm 1 phát vào xem ngay
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {/* Grid Live Rooms với Khung Live 1/4 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {displayLiveTasks.map((live) => {
                 const baseEarnings = Math.round((live.rewardPerMinute || 300) * live.targetMinutes * quota.multiplier);
                 const milestoneBonus = Math.round((live.milestoneBonusCoins || 500) * quota.multiplier);
@@ -1032,56 +1140,67 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
                   <div
                     key={live.id}
                     onClick={() => openLiveRunner(live)}
-                    className="p-4 rounded-2xl bg-[#090C16] border border-pink-500/30 hover:border-pink-400 transition-all flex flex-col justify-between space-y-3 shadow-lg cursor-pointer group"
+                    className="p-3 sm:p-3.5 rounded-2xl bg-[#090C16] border border-pink-500/30 hover:border-pink-400 transition-all flex flex-row gap-3 shadow-lg cursor-pointer group hover:scale-[1.01]"
                   >
-                    {/* Header Live */}
-                    <div className="flex items-start justify-between gap-2.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="relative">
-                          <img src={live.channelAvatar} alt="" className="h-10 w-10 rounded-full object-cover ring-2 ring-pink-500/60" />
-                          <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[8px] font-black uppercase font-mono animate-pulse">
-                            LIVE
+                    {/* KHUNG LIVESTREAM DỌC 9:16 CHIẾM 1/4 CARD */}
+                    <div className="relative w-[30%] sm:w-[28%] max-w-[120px] aspect-[9/16] rounded-xl overflow-hidden bg-black/80 border border-pink-500/40 shrink-0 shadow-inner group-hover:border-pink-400">
+                      <img src={live.channelAvatar} alt="" className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-between p-1.5">
+                        <span className="self-start px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[8px] font-black uppercase font-mono animate-pulse flex items-center gap-0.5">
+                          <Radio className="w-2.5 h-2.5" /> LIVE
+                        </span>
+                        <div className="text-center">
+                          <div className="w-8 h-8 mx-auto rounded-full bg-pink-500/80 group-hover:bg-pink-400 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-all">
+                            <Radio className="w-4 h-4 animate-pulse" />
+                          </div>
+                        </div>
+                        <div className="px-1 py-0.2 rounded bg-black/80 text-pink-300 font-mono text-[8px] font-bold text-center truncate">
+                          {live.currentViewers.toLocaleString()} mắt
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* NỘI DUNG PHÒNG LIVE & NÚT BẤM 1 CHẠM */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-300 text-[9px] font-mono font-bold truncate">
+                            {live.category || "TikTok Shop"}
+                          </span>
+                          <span className="text-[9px] font-mono text-amber-400 font-bold">
+                            +{totalEstReward.toLocaleString()} Xu
                           </span>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-1 font-bold text-white text-xs">
-                            <span>{live.channelName}</span>
-                            <CheckCircle2 className="h-3 w-3 text-cyan-400" />
+
+                        <div className="flex items-center gap-1.5">
+                          <img src={live.channelAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-pink-500/60 shrink-0" />
+                          <div className="min-w-0 flex-1 truncate">
+                            <div className="text-xs font-bold text-white group-hover:text-pink-300 transition-colors truncate flex items-center gap-1">
+                              <span>{live.channelName}</span>
+                              <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                            </div>
+                            <div className="text-[10px] font-mono text-pink-400 truncate">{live.channelHandle}</div>
                           </div>
-                          <div className="text-[11px] font-mono text-pink-400">{live.channelHandle}</div>
                         </div>
+
+                        <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
+                          {live.roomTitle}
+                        </h5>
                       </div>
 
-                      <div className="text-right">
-                        <div className="text-xs font-black text-amber-400 font-mono">
-                          +{totalEstReward.toLocaleString()} Xu
-                        </div>
-                        <div className="text-[9px] text-emerald-400 font-mono">
-                          {live.targetMinutes} phút
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Room title & Viewers */}
-                    <div className="space-y-1">
-                      <h5 className="text-xs font-bold text-white leading-snug line-clamp-2">{live.roomTitle}</h5>
-                      <div className="flex items-center gap-2 pt-1 text-[10px] font-mono text-slate-400">
-                        <span className="flex items-center gap-1 text-rose-300">
-                          <Users className="w-3 h-3" /> {live.currentViewers.toLocaleString()} mắt
+                      <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono text-slate-400">
+                          ⏱️ {live.targetMinutes} phút
                         </span>
-                        <span>•</span>
-                        <span className="text-slate-300">{live.category || "TikTok Shop"}</span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openLiveRunner(live); }}
+                          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-cyan-500 hover:opacity-95 text-white font-black text-[10px] font-mono flex items-center gap-1 shadow-md cursor-pointer shrink-0"
+                        >
+                          <Radio className="w-3 h-3 animate-pulse" />
+                          <span>Vào Xem Live</span>
+                        </button>
                       </div>
                     </div>
-
-                    {/* Action */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openLiveRunner(live); }}
-                      className="w-full py-2 rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-cyan-500 hover:opacity-95 text-white font-black text-xs font-mono flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
-                    >
-                      <Radio className="h-3.5 w-3.5 animate-pulse" />
-                      <span>Vào Xem Live (+{totalEstReward.toLocaleString()} Xu)</span>
-                    </button>
                   </div>
                 );
               })}
@@ -1158,95 +1277,93 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
             ))}
           </div>
 
-          {/* LƯỚI Ô VUÔNG CHIẾN DỊCH DOANH NGHIỆP */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {/* LƯỚI CHIẾN DỊCH DOANH NGHIỆP (CHUẨN TỈ LỆ 1/4 MEDIA) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {displayEnterpriseTasks.map((task) => {
               const completed = userCompletedActions[task.id];
               const isBoosted = !!task.isBoosted;
+              const isHorizontal = task.targetUrl?.includes('youtube.com/watch') || (task.targetUrl?.includes('youtu.be') && !task.targetUrl?.includes('/shorts/'));
 
               return (
                 <div
                   key={task.id}
                   onClick={() => openRunner(task)}
-                  className={`p-4 rounded-2xl transition-all flex flex-col justify-between space-y-3 shadow-lg cursor-pointer group relative overflow-hidden ${
+                  className={`p-3 sm:p-3.5 rounded-2xl transition-all flex flex-row gap-3 shadow-lg cursor-pointer group relative overflow-hidden ${
                     isBoosted
-                      ? "bg-gradient-to-b from-[#24081c] via-[#0D111E] to-[#07131b] border-2 border-rose-500 shadow-rose-950/30"
+                      ? "bg-gradient-to-r from-[#24081c] via-[#0D111E] to-[#07131b] border-2 border-rose-500 shadow-rose-950/30"
                       : "bg-[#090C16] border border-amber-500/30 hover:border-amber-400"
                   }`}
                 >
-                  {/* Top Bar */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono font-bold">
-                      {task.partnerName || "Doanh Nghiệp Ký Quỹ"}
-                    </span>
-                    <span className="text-xs font-black text-amber-400 font-mono">
-                      +{task.rewardCoins.toLocaleString()} Xu
-                    </span>
-                  </div>
-
-                  {/* Channel info */}
-                  <div className="flex items-center gap-2.5">
-                    <img src={task.channelAvatar} alt="" className="w-10 h-10 rounded-full object-cover ring-1 ring-amber-400/50" />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors truncate">
-                        {task.channelName}
+                  {/* KHUNG MEDIA CHIẾM 1/4 CARD */}
+                  <div className={`relative w-[30%] sm:w-[28%] max-w-[120px] ${isHorizontal ? 'aspect-video self-center' : 'aspect-[9/16]'} rounded-xl overflow-hidden bg-black/80 border border-amber-500/40 shrink-0 shadow-inner group-hover:border-amber-400`}>
+                    <img src={task.videoPreviewUrl || task.channelAvatar} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-between p-1">
+                      <span className="self-start px-1.5 py-0.2 rounded bg-amber-500 text-black text-[8px] font-black font-mono">
+                        ESCROW
+                      </span>
+                      <div className="px-1 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-black text-center truncate">
+                        +{task.rewardCoins.toLocaleString()} Xu
                       </div>
-                      <div className="text-[11px] font-mono text-amber-400">{task.channelHandle}</div>
                     </div>
                   </div>
 
-                  {/* Title */}
-                  <h5 className="text-xs text-slate-200 line-clamp-2 font-medium leading-snug">
-                    {task.title}
-                  </h5>
+                  {/* NỘI DUNG CHIẾN DỊCH & NÚT BẤM 1 CHẠM */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono font-bold truncate">
+                          {task.partnerName || "Doanh Nghiệp Ký Quỹ"}
+                        </span>
+                        <span className="text-[9px] font-mono text-emerald-400 font-bold shrink-0">
+                          {task.remainingSlots.toLocaleString()} suất
+                        </span>
+                      </div>
 
-                  {/* Progress & Slots */}
-                  <div className="space-y-1 pt-1 border-t border-white/5">
-                    <div className="flex justify-between text-[10px] font-mono text-slate-400">
-                      <span>Tiến độ: {task.completedSlots.toLocaleString()}/{task.totalSlots.toLocaleString()}</span>
-                      <span className="text-emerald-400 font-bold">{task.remainingSlots.toLocaleString()} còn lại</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500"
-                        style={{ width: `${Math.min(100, (task.completedSlots / task.totalSlots) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
+                      <div className="flex items-center gap-1.5">
+                        <img src={task.channelAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-amber-400/50 shrink-0" />
+                        <div className="min-w-0 flex-1 truncate">
+                          <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors truncate">
+                            {task.channelName}
+                          </div>
+                          <div className="text-[10px] font-mono text-amber-400 truncate">{task.channelHandle}</div>
+                        </div>
+                      </div>
 
-                  {/* Actions */}
-                  <div className="pt-2 flex items-center gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setBoostConfirmTask(task);
-                      }}
-                      className="px-2 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold cursor-pointer"
-                      title="Đẩy Top"
-                    >
-                      🚀 Đẩy Top
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openShareModal({ targetUrl: task.targetUrl, title: task.title, taskId: task.id });
-                      }}
-                      className="p-1.5 rounded-xl bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 cursor-pointer"
-                      title="Chia sẻ"
-                    >
-                      <Share2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openRunner(task); }}
-                      className={`flex-1 py-1.5 rounded-xl text-xs font-mono font-black flex items-center justify-center gap-1 cursor-pointer ${
-                        completed
-                          ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
-                          : "bg-amber-500 hover:bg-amber-400 text-black shadow"
-                      }`}
-                    >
-                      {completed ? <Check className="w-3.5 h-3.5" /> : <ArrowRight className="w-3.5 h-3.5" />}
-                      <span>{completed ? "Đã Xong" : "Làm Ngay"}</span>
-                    </button>
+                      <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
+                        {task.title}
+                      </h5>
+
+                      {/* Progress */}
+                      <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                        <div
+                          className="h-full bg-amber-500"
+                          style={{ width: `${Math.min(100, (task.completedSlots / task.totalSlots) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBoostConfirmTask(task);
+                        }}
+                        className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold cursor-pointer"
+                      >
+                        🚀 Đẩy Top
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openRunner(task); }}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-mono font-black flex items-center gap-1 cursor-pointer transition-all ${
+                          completed
+                            ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
+                            : "bg-amber-500 hover:bg-amber-400 text-black shadow"
+                        }`}
+                      >
+                        {completed ? <Check className="w-3 h-3" /> : <ArrowRight className="w-3 h-3" />}
+                        <span>{completed ? "Đã Xong" : "Làm Ngay"}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -1295,57 +1412,81 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
             </button>
           </div>
 
-          {/* LƯỚI Ô VUÔNG CÁC KÊNH FOLLOW CHÉO */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {/* LƯỚI CÁC KÊNH FOLLOW CHÉO (CHUẨN TỈ LỆ 1/4) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {displayCrossFollow.map((item) => (
               <div
                 key={item.id}
-                className="p-4 rounded-2xl bg-[#090C16] border border-emerald-500/20 hover:border-emerald-400 transition-all flex flex-col justify-between space-y-3 shadow-lg group"
+                className="p-3 sm:p-3.5 rounded-2xl bg-[#090C16] border border-emerald-500/20 hover:border-emerald-400 transition-all flex flex-row gap-3 shadow-lg group hover:scale-[1.01]"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <img src={item.channelAvatar} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-500/40" />
-                    <div>
-                      <div className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">
-                        {item.channelName}
-                      </div>
-                      <span className="text-[10px] font-mono text-emerald-400">{item.channelHandle}</span>
+                {/* KHUNG KÊNH CHIẾM 1/4 CARD */}
+                <div className="relative w-[30%] sm:w-[28%] max-w-[120px] aspect-[9/16] rounded-xl overflow-hidden bg-black/80 border border-emerald-500/40 shrink-0 shadow-inner group-hover:border-emerald-400">
+                  <img src={item.channelAvatar} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-between p-1">
+                    <span className="self-start px-1.5 py-0.2 rounded bg-emerald-500 text-black text-[8px] font-black font-mono">
+                      CHÉO
+                    </span>
+                    <div className="px-1 py-0.2 rounded bg-emerald-600 text-white font-mono text-[8px] font-black text-center truncate">
+                      +{item.rewardXu} Xu
                     </div>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    +{item.rewardXu} Xu
-                  </span>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="text-xs text-slate-200 line-clamp-1 font-medium">{item.title}</div>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-                    <span>Chủ đề: <strong className="text-slate-300">{item.category}</strong></span>
-                    <span>Đã làm: <strong className="text-emerald-400">{item.completedByUsersCount}/{item.followersCount}</strong></span>
+                {/* NỘI DUNG KÊNH & NÚT BẤM 1 CHẠM */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold truncate">
+                        {item.category || "TikTok Creator"}
+                      </span>
+                      <span className="text-[9px] font-mono text-emerald-400 font-bold">
+                        +{item.rewardXu} Xu
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <img src={item.channelAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-emerald-500/40 shrink-0" />
+                      <div className="min-w-0 flex-1 truncate">
+                        <div className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors truncate">
+                          {item.channelName}
+                        </div>
+                        <div className="text-[10px] font-mono text-emerald-400 truncate">{item.channelHandle}</div>
+                      </div>
+                    </div>
+
+                    <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
+                      {item.title}
+                    </h5>
+
+                    <div className="text-[9px] font-mono text-slate-400">
+                      Đã làm: <strong className="text-emerald-400">{item.completedByUsersCount}/{item.followersCount}</strong>
+                    </div>
+                  </div>
+
+                  <div className="pt-1.5 border-t border-white/5">
+                    <button
+                      onClick={() => handleExecuteCrossFollow(item)}
+                      disabled={item.isCompleted}
+                      className={`w-full py-1.5 rounded-xl text-[10px] font-mono font-bold transition-all flex items-center justify-center gap-1 ${
+                        item.isCompleted
+                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default"
+                          : "bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-md"
+                      }`}
+                    >
+                      {item.isCompleted ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Đã Tương Tác Kênh</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Tương Tác Chéo (+{item.rewardXu} Xu)</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
-
-                <button
-                  onClick={() => handleExecuteCrossFollow(item)}
-                  disabled={item.isCompleted}
-                  className={`w-full py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
-                    item.isCompleted
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default"
-                      : "bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-md"
-                  }`}
-                >
-                  {item.isCompleted ? (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Đã Tương Tác Kênh</span>
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Tương Tác Chéo (+{item.rewardXu} Xu)</span>
-                    </>
-                  )}
-                </button>
               </div>
             ))}
           </div>

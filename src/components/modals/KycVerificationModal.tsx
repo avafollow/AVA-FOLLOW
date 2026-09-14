@@ -171,35 +171,47 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
 
           <form onSubmit={handleSubmit} className="space-y-4">
             
-            {/* Row 1: Full Name & ID Number */}
+            {/* Form Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Full Name */}
               <div className="space-y-1.5">
                 <label className="font-bold text-white flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Họ Và Tên Thật (Theo CCCD):</span>
+                  <span>Họ & Tên Chính Chủ (CCCD):</span>
                 </label>
                 <input
                   type="text"
                   required
+                  disabled={user.kycStatus === 'verified'}
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => !(user.kycStatus === 'verified') && setFullName(e.target.value)}
                   placeholder="NGUYEN VAN MINH"
-                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-mono uppercase focus:outline-none focus:border-rose-500 transition-colors"
+                  className={`w-full border rounded-xl px-3.5 py-2.5 text-white font-mono uppercase transition-colors ${
+                    user.kycStatus === 'verified'
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90'
+                      : 'bg-slate-900/90 border-white/10 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
 
+              {/* ID Number */}
               <div className="space-y-1.5">
                 <label className="font-bold text-white flex items-center gap-1.5">
                   <CreditCard className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Số CCCD / Hộ Chiếu (12 Số):</span>
+                  <span>Số CCCD / CMND / Hộ Chiếu:</span>
                 </label>
                 <input
                   type="text"
                   required
+                  disabled={user.kycStatus === 'verified'}
                   value={idNumber}
-                  onChange={(e) => setIdNumber(e.target.value)}
+                  onChange={(e) => !(user.kycStatus === 'verified') && setIdNumber(e.target.value)}
                   placeholder="001200088999"
-                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-rose-500 transition-colors"
+                  className={`w-full border rounded-xl px-3.5 py-2.5 text-white font-mono transition-colors ${
+                    user.kycStatus === 'verified'
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90'
+                      : 'bg-slate-900/90 border-white/10 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
             </div>
@@ -214,9 +226,14 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
                 <input
                   type="date"
                   required
+                  disabled={user.kycStatus === 'verified'}
                   value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-rose-500 transition-colors"
+                  onChange={(e) => !(user.kycStatus === 'verified') && setDateOfBirth(e.target.value)}
+                  className={`w-full border rounded-xl px-3.5 py-2.5 text-white font-mono transition-colors ${
+                    user.kycStatus === 'verified'
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90'
+                      : 'bg-slate-900/90 border-white/10 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
 
@@ -227,8 +244,13 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
                 </label>
                 <select
                   value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-rose-500 transition-colors"
+                  disabled={user.kycStatus === 'verified'}
+                  onChange={(e) => !(user.kycStatus === 'verified') && setBankName(e.target.value)}
+                  className={`w-full border rounded-xl px-3.5 py-2.5 text-white transition-colors ${
+                    user.kycStatus === 'verified'
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90'
+                      : 'bg-slate-900/90 border-white/10 focus:outline-none focus:border-rose-500'
+                  }`}
                 >
                   {VIETNAM_BANKS.map((b) => (
                     <option key={b} value={b}>{b}</option>
@@ -244,10 +266,15 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
                 <input
                   type="text"
                   required
+                  disabled={user.kycStatus === 'verified'}
                   value={bankAccountNumber}
-                  onChange={(e) => setBankAccountNumber(e.target.value)}
+                  onChange={(e) => !(user.kycStatus === 'verified') && setBankAccountNumber(e.target.value)}
                   placeholder="999988886666"
-                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-rose-500 transition-colors"
+                  className={`w-full border rounded-xl px-3.5 py-2.5 text-white font-mono transition-colors ${
+                    user.kycStatus === 'verified'
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90'
+                      : 'bg-slate-900/90 border-white/10 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
 
@@ -256,10 +283,15 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
                 <input
                   type="text"
                   required
+                  disabled={user.kycStatus === 'verified'}
                   value={bankAccountHolder}
-                  onChange={(e) => setBankAccountHolder(e.target.value.toUpperCase())}
+                  onChange={(e) => !(user.kycStatus === 'verified') && setBankAccountHolder(e.target.value.toUpperCase())}
                   placeholder="NGUYEN VAN MINH"
-                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-mono uppercase focus:outline-none focus:border-rose-500 transition-colors"
+                  className={`w-full border rounded-xl px-3.5 py-2.5 text-white font-mono uppercase transition-colors ${
+                    user.kycStatus === 'verified'
+                      ? 'bg-slate-900/60 border-slate-700/50 text-slate-300 cursor-not-allowed opacity-90'
+                      : 'bg-slate-900/90 border-white/10 focus:outline-none focus:border-rose-500'
+                  }`}
                 />
               </div>
             </div>
@@ -281,21 +313,29 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
                   <span className="text-[11px] font-bold text-slate-300 block font-mono">1. Mặt Trước CCCD</span>
                   <div className="relative h-28 rounded-xl overflow-hidden bg-black/40 border border-white/5 group">
                     <img src={frontCardPreview} alt="Front ID" className="w-full h-full object-cover" />
-                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
-                      <UploadCloud className="w-5 h-5 text-rose-400" />
-                      <span>Đổi Ảnh Khác</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            const url = URL.createObjectURL(e.target.files[0]);
-                            setFrontCardPreview(url);
-                          }
-                        }} 
-                      />
-                    </label>
+                    {user.kycStatus !== 'verified' ? (
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                        <UploadCloud className="w-5 h-5 text-rose-400" />
+                        <span>Đổi Ảnh Khác</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              const url = URL.createObjectURL(e.target.files[0]);
+                              setFrontCardPreview(url);
+                            }
+                          }} 
+                        />
+                      </label>
+                    ) : (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                        <span className="px-2 py-0.5 rounded-full bg-black/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-mono font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Đã Duyệt
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -304,21 +344,29 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
                   <span className="text-[11px] font-bold text-slate-300 block font-mono">2. Mặt Sau CCCD</span>
                   <div className="relative h-28 rounded-xl overflow-hidden bg-black/40 border border-white/5 group">
                     <img src={backCardPreview} alt="Back ID" className="w-full h-full object-cover" />
-                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
-                      <UploadCloud className="w-5 h-5 text-rose-400" />
-                      <span>Đổi Ảnh Khác</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            const url = URL.createObjectURL(e.target.files[0]);
-                            setBackCardPreview(url);
-                          }
-                        }} 
-                      />
-                    </label>
+                    {user.kycStatus !== 'verified' ? (
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                        <UploadCloud className="w-5 h-5 text-rose-400" />
+                        <span>Đổi Ảnh Khác</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              const url = URL.createObjectURL(e.target.files[0]);
+                              setBackCardPreview(url);
+                            }
+                          }} 
+                        />
+                      </label>
+                    ) : (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                        <span className="px-2 py-0.5 rounded-full bg-black/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-mono font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Đã Duyệt
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -330,21 +378,29 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
                   </span>
                   <div className="relative h-28 rounded-xl overflow-hidden bg-black/40 border border-purple-500/30 group">
                     <img src={selfiePreview} alt="Ảnh selfie" className="w-full h-full object-cover" />
-                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
-                      <Camera className="w-5 h-5 text-pink-400" />
-                      <span>Chụp / Đổi Selfie</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            const url = URL.createObjectURL(e.target.files[0]);
-                            setSelfiePreview(url);
-                          }
-                        }} 
-                      />
-                    </label>
+                    {user.kycStatus !== 'verified' ? (
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-[11px] font-mono gap-1">
+                        <Camera className="w-5 h-5 text-pink-400" />
+                        <span>Chụp / Đổi Selfie</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              const url = URL.createObjectURL(e.target.files[0]);
+                              setSelfiePreview(url);
+                            }
+                          }} 
+                        />
+                      </label>
+                    ) : (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                        <span className="px-2 py-0.5 rounded-full bg-black/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-mono font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Đã Duyệt
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -360,8 +416,12 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={isSubmitting || submittedSuccess}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-rose-900/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                disabled={isSubmitting || submittedSuccess || user.kycStatus === 'verified'}
+                className={`w-full py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                  user.kycStatus === 'verified'
+                    ? 'bg-slate-800 text-slate-400 border border-slate-700 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white shadow-lg shadow-rose-900/30 cursor-pointer'
+                }`}
               >
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
@@ -373,10 +433,15 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
                     <CheckCircle2 className="w-4 h-4" />
                     Đã Nộp Hồ Sơ Thành Công!
                   </span>
+                ) : user.kycStatus === 'verified' ? (
+                  <span className="flex items-center gap-2 text-slate-300">
+                    <Lock className="w-4 h-4 text-emerald-400" />
+                    Hồ Sơ KYC Đã Được Phê Duyệt & Khóa Bảo Vệ
+                  </span>
                 ) : (
                   <span className="flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4" />
-                    {user.kycStatus === 'verified' ? 'Cập Nhật Lại Thông Tin KYC' : 'Xác Nhận & Nộp Hồ Sơ KYC Xét Duyệt'}
+                    Xác Nhận & Nộp Hồ Sơ KYC Xét Duyệt
                   </span>
                 )}
               </button>

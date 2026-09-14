@@ -695,70 +695,87 @@ export const CreateCampaignScreen: React.FC<{
           </div>
         </div>
 
-        {/* 3. TikTok Channel Handle & URL */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="block text-zinc-300 font-mono font-bold uppercase text-[10px]">
-                3. TikTok Channel Handle (@):
-              </label>
-              <span className="text-[10px] text-emerald-400 font-semibold">Tự động điền kênh kết nối</span>
+        {/* 3. TikTok Channel Handle & URL - NỔI BẬT, TO RÕ, DỄ NHÌN THEO ẢNH SỐ 2 */}
+        <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#0F172A]/90 via-[#0B0F1E] to-[#1E112A]/90 border-2 border-rose-500/60 shadow-[0_0_35px_rgba(244,63,94,0.25)] space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* CỘT 1: NHẬP LINK CHÍNH THỨC (NỔI BẬT NHẤT) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-rose-400 font-mono font-black uppercase text-xs sm:text-sm tracking-wide">
+                  <span className="flex h-2.5 w-2.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                  </span>
+                  <span>2. ĐƯỜNG DẪN VIDEO / PHIÊN LIVE:</span>
+                </label>
+                <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-mono font-black animate-pulse">
+                  🔥 DÁN LINK TẠI ĐÂY
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={targetUrl}
+                  onChange={(e) => handleTargetUrlChange(e.target.value)}
+                  placeholder="👉 Dán link video TikTok, YouTube, Facebook hoặc phiên Live chính thức..."
+                  className="w-full bg-black/80 border-2 border-rose-500/70 hover:border-rose-400 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/20 rounded-2xl px-4 py-3.5 sm:py-4 text-white placeholder-slate-400 font-mono text-xs sm:text-sm font-bold transition-all shadow-inner"
+                  required
+                />
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                <span className="text-[10px] text-slate-400 font-mono font-bold">Dán nhanh:</span>
+                <button
+                  type="button"
+                  onClick={() => handleTargetUrlChange('https://www.tiktok.com/@hoaa.hanassii/video/7234567890123456789')}
+                  className="px-2.5 py-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 text-[10px] font-mono font-bold border border-rose-500/40 cursor-pointer transition-all active:scale-95"
+                >
+                  🎬 Video TikTok
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTargetUrlChange('https://www.tiktok.com/@vtv24news/live')}
+                  className="px-2.5 py-1 rounded-xl bg-purple-500/20 hover:bg-purple-500/40 text-purple-300 text-[10px] font-mono font-bold border border-purple-500/40 cursor-pointer transition-all active:scale-95"
+                >
+                  🔴 Live TikTok
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTargetUrlChange('https://www.youtube.com/watch?v=dQw4w9WgXcQ')}
+                  className="px-2.5 py-1 rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-300 text-[10px] font-mono font-bold border border-red-500/40 cursor-pointer transition-all active:scale-95"
+                >
+                  ▶️ YouTube
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTargetUrlChange('https://www.facebook.com/reel/123456789')}
+                  className="px-2.5 py-1 rounded-xl bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 text-[10px] font-mono font-bold border border-blue-500/40 cursor-pointer transition-all active:scale-95"
+                >
+                  🌐 Facebook
+                </button>
+              </div>
             </div>
-            <input
-              type="text"
-              value={channelHandle}
-              onChange={(e) => setChannelHandle(e.target.value)}
-              placeholder="@username_chinh_thuc"
-              className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono text-xs"
-              required
-            />
-          </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="block text-zinc-300 font-mono font-bold uppercase text-[10px]">
-                2. Đường dẫn Video / Phiên Live chính thức:
-              </label>
-              <span className="text-[10px] text-cyan-400 font-mono font-bold">Dán link hiển thị ngay</span>
-            </div>
-            <input
-              type="text"
-              value={targetUrl}
-              onChange={(e) => handleTargetUrlChange(e.target.value)}
-              placeholder="Dán link video TikTok, YouTube, Facebook hoặc phiên Live chính thức"
-              className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 font-mono text-xs"
-              required
-            />
-            <div className="flex items-center gap-1.5 flex-wrap pt-1">
-              <span className="text-[10px] text-slate-400 font-mono">Dán nhanh link thử:</span>
-              <button
-                type="button"
-                onClick={() => handleTargetUrlChange('https://www.tiktok.com/@hoaa.hanassii/video/7234567890123456789')}
-                className="px-2 py-0.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[10px] font-mono border border-rose-500/30 cursor-pointer transition-colors"
-              >
-                🎬 Video TikTok
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTargetUrlChange('https://www.tiktok.com/@vtv24news/live')}
-                className="px-2 py-0.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-mono border border-purple-500/30 cursor-pointer transition-colors"
-              >
-                🔴 Live TikTok
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTargetUrlChange('https://www.youtube.com/watch?v=dQw4w9WgXcQ')}
-                className="px-2 py-0.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-[10px] font-mono border border-red-500/30 cursor-pointer transition-colors"
-              >
-                ▶️ YouTube
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTargetUrlChange('https://www.facebook.com/reel/123456789')}
-                className="px-2 py-0.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-[10px] font-mono border border-blue-500/30 cursor-pointer transition-colors"
-              >
-                🌐 Facebook
-              </button>
+            {/* CỘT 2: TIKTOK CHANNEL HANDLE */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-cyan-300 font-mono font-black uppercase text-xs sm:text-sm tracking-wide">
+                  3. TIKTOK CHANNEL HANDLE (@):
+                </label>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold">
+                  ✓ Tự động điền kênh
+                </span>
+              </div>
+              <input
+                type="text"
+                value={channelHandle}
+                onChange={(e) => setChannelHandle(e.target.value)}
+                placeholder="@username_chinh_thuc"
+                className="w-full bg-black/80 border-2 border-cyan-500/50 hover:border-cyan-400 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-500/20 rounded-2xl px-4 py-3.5 sm:py-4 text-white placeholder-slate-400 font-mono text-xs sm:text-sm font-bold transition-all shadow-inner"
+                required
+              />
+              <p className="text-[10px] text-slate-400 font-mono">
+                Kênh TikTok sẽ nhận tương tác & hiển thị huy hiệu xác thực.
+              </p>
             </div>
           </div>
         </div>

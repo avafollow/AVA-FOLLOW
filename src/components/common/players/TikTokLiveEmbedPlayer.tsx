@@ -123,7 +123,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         </div>
       </div>
 
-      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM (GÓC NHÌN TOÀN CẢNH RÕ MẶT & NHÂN VẬT, CÂN ĐỐI 2 BÊN) */}
+      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM (VỪA KHÍT KHUNG VIỀN ĐỎ, CĂN CHÍNH GIỮA 100%, ẨN Ô QUÀ TẶNG) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
         <iframe
           key={`tt-live-${cleanHandle}-${iframeKey}-${internalMuted ? 'muted' : 'sound'}`}
@@ -137,9 +137,9 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           onError={() => setLoadError(true)}
           className="absolute border-0 bg-black pointer-events-auto"
           style={{
-            width: '235%',
-            height: '100%',
-            left: '-40%',
+            width: '272%',
+            height: '112%',
+            left: '-60%',
             top: '0',
             maxWidth: 'none',
             maxHeight: 'none'

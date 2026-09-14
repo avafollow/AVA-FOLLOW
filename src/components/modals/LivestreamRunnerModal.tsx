@@ -718,8 +718,12 @@ export const LivestreamRunnerModal: React.FC = () => {
             {/* Nút Bật/Tắt Âm Thanh */}
             <button
               type="button"
-              onClick={() => setIsMuted(!isMuted)}
-              className={`py-1 px-2 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1 ${
+              onClick={() => {
+                const next = !isMuted;
+                setIsMuted(next);
+                showToast(next ? '🔇 Đã tắt tiếng phiên live' : '🔊 Đã bật âm thanh livestream sống động');
+              }}
+              className={`py-1 px-2.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1.5 ${
                 isMuted 
                   ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 hover:bg-rose-500/40' 
                   : 'bg-emerald-500/25 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/35'
@@ -727,7 +731,7 @@ export const LivestreamRunnerModal: React.FC = () => {
               title={isMuted ? 'Bấm để Bật Âm Thanh Live' : 'Bấm để Tắt Tiếng'}
             >
               {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-300 animate-pulse" />}
-              <span className="text-[9px] font-mono font-bold whitespace-nowrap">
+              <span className="text-[10px] font-mono font-bold whitespace-nowrap">
                 {isMuted ? 'Bật tiếng' : 'Tắt tiếng'}
               </span>
             </button>

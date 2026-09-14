@@ -790,6 +790,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   isMuted={isMuted}
                   onToggleMute={() => setIsMuted(!isMuted)}
                   mode="feed"
+                  hideHud={true}
                 />
               );
             }

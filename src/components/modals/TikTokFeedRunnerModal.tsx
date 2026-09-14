@@ -258,7 +258,36 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     });
   };
 
+  // Dynamic custom test feed item if targetUrl / handle is passed directly from CreateCampaign test
+  const customTestItem: UnifiedFeedItem | null = (feedRunnerTargetId && (typeof feedRunnerTargetId === 'string') && (feedRunnerTargetId.startsWith('http') || feedRunnerTargetId.startsWith('@'))) ? {
+    id: `test_top1_${feedRunnerTargetId}`,
+    kind: (feedRunnerTargetId.includes('/live') || feedRunnerTargetId.toLowerCase().includes('live')) ? 'livestream' : 'video',
+    title: `🔥 [ĐANG XEM THỬ #1] ${parseMediaUrl(feedRunnerTargetId).handle}`,
+    type: (feedRunnerTargetId.includes('/live') || feedRunnerTargetId.toLowerCase().includes('live')) ? 'livestream' : 'watch',
+    requiresWatch: false,
+    channelName: parseMediaUrl(feedRunnerTargetId).handle,
+    channelHandle: parseMediaUrl(feedRunnerTargetId).handle,
+    channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+    targetUrl: feedRunnerTargetId,
+    rewardCoins: 500,
+    videoUrl: parseMediaUrl(feedRunnerTargetId).streamUrl,
+    sampleComments: [
+      'Nội dung rất hay và chất lượng ❤️',
+      'Đã tương tác đầy đủ cho phiên live/video của bạn!',
+      'Kênh phát trực tiếp siêu nét và uy tín!'
+    ],
+    guide: 'Xem trước phiên live / video thực tế trên Feed người dùng.',
+    campaignCategory: 'partner',
+    partnerName: 'Xem Thử Chiến Dịch',
+    partnerBadge: '🔥 TOP 1 ĐANG TEST',
+    totalSlots: 1000,
+    remainingSlots: 999,
+    isUrgent: true,
+    isBoosted: true
+  } : null;
+
   const allFeedDeduplicated = deduplicateAndSortFeed([
+    ...(customTestItem ? [customTestItem] : []),
     ...createdCampaignFeedItems,
     ...videoFeedItems,
     ...crossFollowFeedItems,
@@ -266,16 +295,19 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   ]);
 
   const missionsFeedDeduplicated = deduplicateAndSortFeed([
+    ...(customTestItem && customTestItem.kind === 'video' ? [customTestItem] : []),
     ...createdCampaignFeedItems.filter(i => i.kind === 'video'),
     ...videoFeedItems
   ]);
 
   const liveFeedDeduplicated = deduplicateAndSortFeed([
+    ...(customTestItem && customTestItem.kind === 'livestream' ? [customTestItem] : []),
     ...createdCampaignFeedItems.filter(i => i.kind === 'livestream'),
     ...liveFeedItems
   ]);
 
   const partnerFeedDeduplicated = deduplicateAndSortFeed([
+    ...(customTestItem ? [customTestItem] : []),
     ...createdCampaignFeedItems,
     ...videoFeedItems.filter(i => i.campaignCategory === 'partner')
   ]);
@@ -317,14 +349,18 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
   }, [isFeedRunnerOpen, feedRunnerFilter]);
 
-  // Sync with specific campaign ID if opened directly from campaign card
+  // Sync with specific campaign ID if opened directly from campaign card or test preview
   useEffect(() => {
     if (isFeedRunnerOpen) {
       if (feedRunnerTargetId) {
+        if (typeof feedRunnerTargetId === 'string' && (feedRunnerTargetId.includes('/live') || feedRunnerTargetId.toLowerCase().includes('live'))) {
+          setFilterMode('live');
+        }
         const idx = combinedFeed.findIndex(item => 
           item.id === feedRunnerTargetId || 
           item.targetUrl === feedRunnerTargetId || 
-          item.channelHandle === feedRunnerTargetId
+          item.channelHandle === feedRunnerTargetId ||
+          item.id === `test_top1_${feedRunnerTargetId}`
         );
         if (idx !== -1) {
           setCurrentIndex(idx);

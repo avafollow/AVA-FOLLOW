@@ -72,16 +72,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const isDirectVideo = mediaInfo.isDirectVideo;
   const hasTikTokVideoId = Boolean(mediaInfo.isTikTok && mediaInfo.videoId);
 
-  // Tự động phát video TikTok thật nếu có Video ID, hoặc video Stream HD
-  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>(hasTikTokVideoId ? 'embed' : 'stream');
-
-  useEffect(() => {
-    if (hasTikTokVideoId) {
-      setStreamMode('embed');
-    } else {
-      setStreamMode('stream');
-    }
-  }, [hasTikTokVideoId, url]);
+  // Tự động phát video ngay lập tức với âm thanh ở chế độ Stream HD
+  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>('stream');
 
   // Link đích chính xác của người dùng
   const displayHandle = mediaInfo.handle || channelHandle || '@creator.vietnam';
@@ -94,11 +86,11 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
     directUserUrl = url;
   }
 
-  // Đảm bảo video native tự động phát mượt mà khi dán link mới
+  // Đảm bảo video native tự động phát mượt mà khi dán link mới (0.00s delay)
   useEffect(() => {
     setCurrentStream(mediaInfo.streamUrl);
     if (videoRef.current && (!isYouTube || streamMode === 'stream') && streamMode !== 'embed') {
-      videoRef.current.defaultMuted = true;
+      videoRef.current.defaultMuted = false;
       videoRef.current.muted = isMuted;
       videoRef.current.playsInline = true;
       const playPromise = videoRef.current.play();
@@ -108,7 +100,6 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
           .catch(() => {
             if (videoRef.current) {
               videoRef.current.muted = true;
-              setIsMuted(true);
               videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {
                 setIsPlaying(false);
               });

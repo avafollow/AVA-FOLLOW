@@ -88,7 +88,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; x: number; y: number }[]>([]);
   const [showCommentInput, setShowCommentInput] = useState<boolean>(false);
   const [customComment, setCustomComment] = useState<string>('');
-  const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('embed'); // Tự động phát video TikTok thật nếu có ID video
+  const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('stream'); // Luôn tự động phát video HD kèm âm thanh tức thì
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -314,12 +314,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   // Reset timer on item change or open
   useEffect(() => {
     if (isFeedRunnerOpen && currentItem) {
-      const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
-      if (itemMedia.isTikTok && itemMedia.videoId) {
-        setPlayerMode('embed');
-      } else {
-        setPlayerMode('stream');
-      }
       if (currentItem.kind === 'livestream') {
         setTimeLeft(currentItem.targetMinutes ? currentItem.targetMinutes * 60 : 180);
       } else if (currentItem.type === 'watch' || currentItem.requiresWatch === true) {
@@ -331,7 +325,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       setShowCommentInput(false);
       setCustomComment('');
       if (videoRef.current) {
-        videoRef.current.defaultMuted = true;
+        videoRef.current.defaultMuted = false;
         videoRef.current.muted = isMuted;
         videoRef.current.playsInline = true;
         videoRef.current.currentTime = 0;

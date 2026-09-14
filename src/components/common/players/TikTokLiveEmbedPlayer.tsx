@@ -120,7 +120,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         </div>
       </div>
 
-      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM EMBED (CĂN CHÍNH GIỮA 100%, KHÔNG BỊ LỆCH) */}
+      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM EMBED (CĂN CHÍNH GIỮA 100% THEO ẢNH SỐ 1) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
         <iframe
           key={`tt-live-${cleanHandle}-${iframeKey}`}
@@ -129,7 +129,15 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; camera; microphone"
           allowFullScreen
           onError={() => setLoadError(true)}
-          className="w-full h-full border-0 bg-black pointer-events-auto"
+          className="absolute border-0 bg-black pointer-events-auto"
+          style={{
+            width: '265%',
+            height: '100%',
+            left: '-75%',
+            top: '0',
+            maxWidth: 'none',
+            maxHeight: 'none'
+          }}
         />
 
         {/* Fallback Overlay if browser blocks iframe permissions */}

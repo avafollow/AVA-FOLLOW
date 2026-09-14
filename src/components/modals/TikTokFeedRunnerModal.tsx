@@ -73,10 +73,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     openShareModal,
     interactWithLiveBroadcast,
     feedRunnerFilter,
-    feedRunnerTargetId
+    feedRunnerTargetId,
+    userMissions
   } = useTikTokApp();
 
-  const [filterMode, setFilterMode] = useState<'all' | 'missions' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
+  const [filterMode, setFilterMode] = useState<'all' | 'missions' | 'cross_follow' | 'community' | 'partner' | 'live'>('missions');
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(15);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
@@ -86,9 +87,13 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; x: number; y: number }[]>([]);
   const [showCommentInput, setShowCommentInput] = useState<boolean>(false);
   const [customComment, setCustomComment] = useState<string>('');
-  const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('stream');
+  const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('embed');
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Kiểm tra hoàn thành nhiệm vụ ngày (Bắt buộc xong nhiệm vụ ngày mới mở Live & Follow chéo)
+  const dailyMissions = userMissions?.filter(m => m.category === 'daily') || [];
+  const isDailyMissionsCompleted = dailyMissions.length === 0 || dailyMissions.every(m => m.status === 'claimed' || m.completedCount >= m.targetCount);
 
   // Per-task claimed actions tracking (Idempotent 1 time only)
   const [taskClaimedMap, setTaskClaimedMap] = useState<Record<string, {
@@ -584,25 +589,13 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Row 2: 5 CATEGORY TABS (TẤT CẢ, NHIỆM VỤ, LIVE STREAM, CHIẾN DỊCH, FOLLOW CHÉO) */}
-          {/* Sắp xếp thành 1 thanh cuộn ngang cực mượt, hiển thị trọn vẹn, không bị cắt chữ */}
-          <div className="flex items-center gap-1 p-1 bg-black/60 rounded-2xl border border-white/10 backdrop-blur-md text-[10px] font-mono overflow-x-auto no-scrollbar scroll-smooth">
-            <button
-              onClick={() => { setFilterMode('all'); setCurrentIndex(0); }}
-              className={`px-2.5 py-1 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                filterMode === 'all' 
-                  ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md' 
-                  : 'text-slate-300 hover:text-white bg-white/5'
-              }`}
-            >
-              <span>⚡ Tất Cả ({countAll})</span>
-            </button>
-
+          {/* Row 2: CATEGORY TABS (LÀM NHIỆM VỤ, LIVE STREAM [KHÓA], FOLLOW CHÉO [KHÓA], TẤT CẢ) */}
+          <div className="flex items-center gap-1.5 p-1 bg-black/60 rounded-2xl border border-white/10 backdrop-blur-md text-[10px] font-mono overflow-x-auto no-scrollbar scroll-smooth">
             <button
               onClick={() => { setFilterMode('missions'); setCurrentIndex(0); }}
-              className={`px-2.5 py-1 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
                 filterMode === 'missions' 
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md' 
+                  ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md ring-1 ring-rose-400/50' 
                   : 'text-slate-300 hover:text-white bg-white/5'
               }`}
             >
@@ -610,36 +603,54 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             </button>
 
             <button
-              onClick={() => { setFilterMode('live'); setCurrentIndex(0); }}
-              className={`px-2.5 py-1 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+              onClick={() => { 
+                if (!isDailyMissionsCompleted) {
+                  showToast('🔒 YÊU CẦU HOÀN THÀNH NHIỆM VỤ NGÀY: Hãy làm xong các nhiệm vụ ngày trong mục "🎯 Làm Nhiệm Vụ" để mở khóa phòng Live Stream!');
+                  return;
+                }
+                setFilterMode('live'); 
+                setCurrentIndex(0); 
+              }}
+              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
                 filterMode === 'live' 
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md' 
-                  : 'text-slate-300 hover:text-white bg-white/5'
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md ring-1 ring-purple-400/50' 
+                  : isDailyMissionsCompleted
+                    ? 'text-slate-300 hover:text-white bg-white/5'
+                    : 'text-slate-500 bg-white/[0.02] border border-white/5 opacity-75'
               }`}
             >
-              <span>🔴 Live Stream ({countLive})</span>
+              <span>{isDailyMissionsCompleted ? '🔴' : '🔒'} Live Stream ({countLive})</span>
             </button>
 
             <button
-              onClick={() => { setFilterMode('partner'); setCurrentIndex(0); }}
-              className={`px-2.5 py-1 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                filterMode === 'partner' 
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md' 
-                  : 'text-slate-300 hover:text-white bg-white/5'
-              }`}
-            >
-              <span>💎 Đối Tác ({countPartner})</span>
-            </button>
-
-            <button
-              onClick={() => { setFilterMode('cross_follow'); setCurrentIndex(0); }}
-              className={`px-2.5 py-1 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+              onClick={() => { 
+                if (!isDailyMissionsCompleted) {
+                  showToast('🔒 YÊU CẦU HOÀN THÀNH NHIỆM VỤ NGÀY: Hãy làm xong các nhiệm vụ ngày trong mục "🎯 Làm Nhiệm Vụ" để mở khóa tính năng Follow Chéo!');
+                  return;
+                }
+                setFilterMode('cross_follow'); 
+                setCurrentIndex(0); 
+              }}
+              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
                 filterMode === 'cross_follow' 
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md' 
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md ring-1 ring-emerald-400/50' 
+                  : isDailyMissionsCompleted
+                    ? 'text-slate-300 hover:text-white bg-white/5'
+                    : 'text-slate-500 bg-white/[0.02] border border-white/5 opacity-75'
+              }`}
+            >
+              <span>{isDailyMissionsCompleted ? '🔄' : '🔒'} Follow Chéo ({countCross})</span>
+            </button>
+
+            <button
+              onClick={() => { setFilterMode('all'); setCurrentIndex(0); }}
+              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                filterMode === 'all' 
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md ring-1 ring-cyan-400/50' 
                   : 'text-slate-300 hover:text-white bg-white/5'
               }`}
             >
-              <span>🔄 Follow Chéo ({countCross})</span>
+              <span>⚡ Tất Cả ({countAll})</span>
             </button>
           </div>
         </div>
@@ -668,8 +679,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // 2. TikTok Official Embed Player (khi có videoId và bật chế độ Embed)
-            if (itemMedia.isTikTok && itemMedia.videoId && playerMode === 'embed') {
+            // 2. TikTok Official Embed Player (Tự động phát video TikTok thật từ link người dùng)
+            if (itemMedia.isTikTok && itemMedia.videoId && playerMode !== 'stream') {
               return (
                 <iframe
                   key={currentItem.id + '_tt_' + itemMedia.videoId}

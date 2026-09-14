@@ -100,6 +100,11 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
   const [editingFacebook, setEditingFacebook] = useState<boolean>(false);
   const [tempFacebookUrl, setTempFacebookUrl] = useState<string>(user.facebookConnected || "fb.com/thienvuaapp");
 
+  // Kiểm tra hoàn thành toàn bộ Nhiệm Vụ Ngày để mở khóa Live Stream & Follow Chéo
+  const dailyMissions = userMissions?.filter(m => m.category === 'daily') || [];
+  const dailyDoneCount = dailyMissions.filter(m => m.completedCount >= m.targetCount || m.status === 'claimed').length;
+  const isDailyMissionsCompleted = dailyMissions.length === 0 || dailyDoneCount === dailyMissions.length;
+
   const currentTierQuota = TIER_CROSS_FOLLOW_QUOTAS[user.rankLevel] || TIER_CROSS_FOLLOW_QUOTAS["Đồng"];
   const quota = getUserLiveQuota();
 
@@ -642,59 +647,99 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
             </div>
           </button>
 
-          {/* TAB 3: XEM LIVESTREAM */}
+          {/* TAB 3: XEM LIVESTREAM (KHÓA KHI CHƯA XONG NHIỆM VỤ NGÀY) */}
           <button
-            onClick={() => setActiveTab("livestreams")}
+            onClick={() => {
+              if (!isDailyMissionsCompleted) {
+                showToast(`🔒 YÊU CẦU HOÀN THÀNH NHIỆM VỤ NGÀY: Bạn cần hoàn thành các nhiệm vụ ngày (${dailyDoneCount}/${dailyMissions.length}) để mở khóa Live Stream!`);
+              }
+              setActiveTab("livestreams");
+            }}
             className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between space-y-2 cursor-pointer shadow-md ${
               activeTab === "livestreams"
                 ? "bg-gradient-to-b from-[#240810] via-[#16060c] to-[#0D111E] border-pink-500 shadow-pink-950/40 ring-2 ring-pink-500/40 scale-[1.02]"
-                : "bg-[#0A0D18] border-white/10 hover:border-pink-500/40"
+                : isDailyMissionsCompleted
+                  ? "bg-[#0A0D18] border-white/10 hover:border-pink-500/40"
+                  : "bg-[#0A0D18]/60 border-white/5 opacity-80 hover:opacity-100"
             }`}
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-xl bg-pink-500/20 border border-pink-500/40 flex items-center justify-center text-pink-400">
-                <Radio className="w-4 h-4 animate-pulse" />
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                isDailyMissionsCompleted ? "bg-pink-500/20 border border-pink-500/40 text-pink-400" : "bg-slate-800 border border-slate-700 text-slate-400"
+              }`}>
+                {isDailyMissionsCompleted ? <Radio className="w-4 h-4 animate-pulse" /> : <Lock className="w-4 h-4" />}
               </div>
               <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-black ${
-                activeTab === "livestreams" ? "bg-pink-500 text-white" : "bg-pink-500/20 text-pink-300"
+                activeTab === "livestreams" 
+                  ? "bg-pink-500 text-white" 
+                  : isDailyMissionsCompleted 
+                    ? "bg-pink-500/20 text-pink-300"
+                    : "bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-0.5"
               }`}>
-                ${filteredLiveTasks.length} PHÒNG
+                {isDailyMissionsCompleted ? `${filteredLiveTasks.length} PHÒNG` : "🔒 KHÓA"}
               </span>
             </div>
             <div>
-              <div className="text-xs font-black text-white uppercase font-display">Xem Livestream</div>
-              <p className="text-[10px] text-slate-400 truncate">Mắt Thật • TikTok Shop</p>
+              <div className="text-xs font-black text-white uppercase font-display flex items-center gap-1">
+                <span>Xem Livestream</span>
+                {!isDailyMissionsCompleted && <Lock className="w-3 h-3 text-rose-400 inline shrink-0" />}
+              </div>
+              <p className="text-[10px] text-slate-400 truncate">
+                {isDailyMissionsCompleted ? "Mắt Thật • TikTok Shop" : `Cần xong ${dailyDoneCount}/${dailyMissions.length} nv ngày`}
+              </p>
             </div>
-            <div className="text-[10px] font-mono text-pink-300 font-bold flex items-center gap-1">
-              <span>{activeTab === "livestreams" ? "● Đang mở" : "Bấm xem ➔"}</span>
+            <div className={`text-[10px] font-mono font-bold flex items-center gap-1 ${
+              isDailyMissionsCompleted ? "text-pink-300" : "text-rose-400"
+            }`}>
+              <span>{activeTab === "livestreams" ? "● Đang mở" : isDailyMissionsCompleted ? "Bấm xem ➔" : "🔒 Khóa"}</span>
             </div>
           </button>
 
-          {/* TAB 4: FOLLOW CHÉO CỘNG ĐỒNG */}
+          {/* TAB 4: FOLLOW CHÉO CỘNG ĐỒNG (KHÓA KHI CHƯA XONG NHIỆM VỤ NGÀY) */}
           <button
-            onClick={() => setActiveTab("cross_follow")}
+            onClick={() => {
+              if (!isDailyMissionsCompleted) {
+                showToast(`🔒 YÊU CẦU HOÀN THÀNH NHIỆM VỤ NGÀY: Bạn cần hoàn thành các nhiệm vụ ngày (${dailyDoneCount}/${dailyMissions.length}) để mở khóa Follow Chéo!`);
+              }
+              setActiveTab("cross_follow");
+            }}
             className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between space-y-2 cursor-pointer shadow-md ${
               activeTab === "cross_follow"
                 ? "bg-gradient-to-b from-[#08201b] via-[#091714] to-[#0D111E] border-emerald-500 shadow-emerald-950/40 ring-2 ring-emerald-500/40 scale-[1.02]"
-                : "bg-[#0A0D18] border-white/10 hover:border-emerald-500/40"
+                : isDailyMissionsCompleted
+                  ? "bg-[#0A0D18] border-white/10 hover:border-emerald-500/40"
+                  : "bg-[#0A0D18]/60 border-white/5 opacity-80 hover:opacity-100"
             }`}
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                <RefreshCw className="w-4 h-4" />
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                isDailyMissionsCompleted ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-400" : "bg-slate-800 border border-slate-700 text-slate-400"
+              }`}>
+                {isDailyMissionsCompleted ? <RefreshCw className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
               </div>
               <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-black ${
-                activeTab === "cross_follow" ? "bg-emerald-500 text-black" : "bg-emerald-500/20 text-emerald-300"
+                activeTab === "cross_follow" 
+                  ? "bg-emerald-500 text-black" 
+                  : isDailyMissionsCompleted 
+                    ? "bg-emerald-500/20 text-emerald-300"
+                    : "bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-0.5"
               }`}>
-                HẠNG ${user.rankLevel}
+                {isDailyMissionsCompleted ? `HẠNG ${user.rankLevel}` : "🔒 KHÓA"}
               </span>
             </div>
             <div>
-              <div className="text-xs font-black text-white uppercase font-display">Follow Chéo</div>
-              <p className="text-[10px] text-slate-400 truncate">Trao đổi kênh tự do</p>
+              <div className="text-xs font-black text-white uppercase font-display flex items-center gap-1">
+                <span>Follow Chéo</span>
+                {!isDailyMissionsCompleted && <Lock className="w-3 h-3 text-rose-400 inline shrink-0" />}
+              </div>
+              <p className="text-[10px] text-slate-400 truncate">
+                {isDailyMissionsCompleted ? "Trao đổi kênh tự do" : `Cần xong ${dailyDoneCount}/${dailyMissions.length} nv ngày`}
+              </p>
             </div>
-            <div className="text-[10px] font-mono text-emerald-300 font-bold flex items-center gap-1">
-              <span>{activeTab === "cross_follow" ? "● Đang mở" : "Bấm xem ➔"}</span>
+            <div className={`text-[10px] font-mono font-bold flex items-center gap-1 ${
+              isDailyMissionsCompleted ? "text-emerald-300" : "text-rose-400"
+            }`}>
+              <span>{activeTab === "cross_follow" ? "● Đang mở" : isDailyMissionsCompleted ? "Bấm xem ➔" : "🔒 Khóa"}</span>
             </div>
           </button>
         </div>
@@ -1043,9 +1088,45 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
       )}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* NHÁNH 3: XEM LIVESTREAM TIKTOK MẮT THẬT                                   */}
+      {/* NHÁNH 3: XEM LIVESTREAM TIKTOK MẮT THẬT (KHÓA KHI CHƯA XONG NHIỆM VỤ NGÀY) */}
       {/* ------------------------------------------------------------------------- */}
       {activeTab === "livestreams" && (
+        !isDailyMissionsCompleted ? (
+          <div className="p-8 sm:p-12 rounded-3xl bg-[#090C16] border-2 border-dashed border-rose-500/40 text-center space-y-5 shadow-2xl animate-in fade-in duration-200">
+            <div className="w-16 h-16 rounded-3xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto shadow-lg">
+              <Lock className="w-8 h-8 animate-bounce" />
+            </div>
+            <div className="space-y-2 max-w-lg mx-auto">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 text-xs font-mono font-bold">
+                <span>🔒 TÍNH NĂNG ĐANG TẠM KHÓA</span>
+              </div>
+              <h3 className="text-xl font-black text-white font-display">
+                Hoàn Thành Nhiệm Vụ Ngày Để Mở Khóa Xem LiveStream
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Theo cơ chế thăng cấp & bảo vệ chất lượng sàn, người dùng cần hoàn thành toàn bộ danh sách <strong className="text-rose-400 font-bold">Nhiệm Vụ Ngày</strong> trước khi mở khóa phòng Live Stream và nhận thù lao theo phút.
+              </p>
+              
+              <div className="p-3.5 rounded-2xl bg-black/60 border border-white/10 text-xs font-mono text-slate-300 flex items-center justify-between mt-3">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                  Tiến độ nhiệm vụ ngày:
+                </span>
+                <span className="font-black text-amber-400 text-sm">
+                  {dailyDoneCount} / {dailyMissions.length} Nhiệm Vụ
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setActiveTab('missions')}
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-amber-500 hover:opacity-95 text-white font-black text-xs font-mono shadow-xl shadow-rose-600/30 transition-all cursor-pointer inline-flex items-center gap-2 hover:scale-[1.02]"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>🎯 ĐẾN BẢNG LÀM NHIỆM VỤ NGÀY NGAY</span>
+            </button>
+          </div>
+        ) : (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Quota bar */}
           <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-950/40 via-[#0D111E] to-rose-950/30 border border-pink-500/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1179,6 +1260,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* ------------------------------------------------------------------------- */}
@@ -1345,9 +1427,45 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
       )}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* NHÁNH 5: FOLLOW CHÉO CỘNG ĐỒNG (HẠN MỨC CẤP BẬC)                          */}
+      {/* NHÁNH 5: FOLLOW CHÉO CỘNG ĐỒNG (KHÓA KHI CHƯA XONG NHIỆM VỤ NGÀY)        */}
       {/* ------------------------------------------------------------------------- */}
       {activeTab === "cross_follow" && (
+        !isDailyMissionsCompleted ? (
+          <div className="p-8 sm:p-12 rounded-3xl bg-[#090C16] border-2 border-dashed border-rose-500/40 text-center space-y-5 shadow-2xl animate-in fade-in duration-200">
+            <div className="w-16 h-16 rounded-3xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto shadow-lg">
+              <Lock className="w-8 h-8 animate-bounce" />
+            </div>
+            <div className="space-y-2 max-w-lg mx-auto">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 text-xs font-mono font-bold">
+                <span>🔒 TÍNH NĂNG ĐANG TẠM KHÓA</span>
+              </div>
+              <h3 className="text-xl font-black text-white font-display">
+                Hoàn Thành Nhiệm Vụ Ngày Để Mở Khóa Follow Chéo
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Người dùng bắt buộc phải hoàn thành toàn bộ danh sách <strong className="text-rose-400 font-bold">Nhiệm Vụ Ngày</strong> trước khi tham gia trao đổi kênh chéo với cộng đồng Creator.
+              </p>
+              
+              <div className="p-3.5 rounded-2xl bg-black/60 border border-white/10 text-xs font-mono text-slate-300 flex items-center justify-between mt-3">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                  Tiến độ nhiệm vụ ngày:
+                </span>
+                <span className="font-black text-amber-400 text-sm">
+                  {dailyDoneCount} / {dailyMissions.length} Nhiệm Vụ
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setActiveTab('missions')}
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-amber-500 hover:opacity-95 text-white font-black text-xs font-mono shadow-xl shadow-rose-600/30 transition-all cursor-pointer inline-flex items-center gap-2 hover:scale-[1.02]"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>🎯 ĐẾN BẢNG LÀM NHIỆM VỤ NGÀY NGAY</span>
+            </button>
+          </div>
+        ) : (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Header Quota Bar */}
           <div className="p-4 rounded-2xl bg-[#090C16] border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
@@ -1463,6 +1581,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
             ))}
           </div>
         </div>
+        )
       )}
 
       {/* ========================================================================= */}

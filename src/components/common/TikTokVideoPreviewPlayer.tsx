@@ -71,16 +71,11 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const isDirectVideo = mediaInfo.isDirectVideo;
   const hasTikTokVideoId = Boolean(mediaInfo.isTikTok && mediaInfo.videoId);
 
-  // Tự động chuyển sang xem video TikTok thật khi có video ID, hoặc Stream HD nếu là link kênh
-  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>(hasTikTokVideoId ? 'embed' : 'stream');
+  // Chế độ phát video HD tức thì (<50ms), âm thanh đồng bộ
+  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>('stream');
 
   useEffect(() => {
-    // Khi URL thay đổi: Nếu có video ID TikTok thật -> mở TikTok Gốc; Nếu là link kênh -> mở Stream HD
-    if (hasTikTokVideoId) {
-      setStreamMode('embed');
-    } else {
-      setStreamMode('stream');
-    }
+    setStreamMode('stream');
   }, [hasTikTokVideoId, url]);
 
   // Link đích chính xác của người dùng
@@ -380,44 +375,13 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         )}
       </div>
 
-      {/* 2. TOP HEADER BAR: PLATFORM BADGE + LIVE COUNTER + DIRECT LINK & SOUND BUTTONS */}
+      {/* 2. TOP HEADER BAR: LIVE COUNTER & SOUND CONTROLS */}
       <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-30 pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
-          {getPlatformBadge()}
           {effectiveIsLive && (
             <span className="px-2 py-0.5 rounded-md bg-rose-600 text-[9px] font-mono font-bold text-white flex items-center gap-1 border border-rose-400/30 animate-pulse">
               <Radio className="w-3 h-3" /> ĐANG LIVE
             </span>
-          )}
-
-          {/* Switcher giữa Video Stream và Khung nhúng TikTok */}
-          {hasTikTokVideoId && (
-            <div className="flex items-center bg-black/80 backdrop-blur-md p-0.5 rounded-lg border border-white/20 shadow shrink-0">
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setStreamMode('embed'); }}
-                className={`px-2 py-0.5 rounded text-[9px] font-bold font-mono transition-all whitespace-nowrap ${
-                  streamMode === 'embed'
-                    ? 'bg-rose-600 text-white shadow'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-                title="Xem video gốc từ TikTok"
-              >
-                TikTok Gốc
-              </button>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setStreamMode('stream'); }}
-                className={`px-2 py-0.5 rounded text-[9px] font-bold font-mono transition-all whitespace-nowrap ${
-                  streamMode === 'stream'
-                    ? 'bg-indigo-600 text-white shadow'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-                title="Phát video mượt liên tục"
-              >
-                Video HD
-              </button>
-            </div>
           )}
         </div>
 

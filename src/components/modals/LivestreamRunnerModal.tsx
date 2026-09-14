@@ -160,10 +160,9 @@ export const LivestreamRunnerModal: React.FC = () => {
 
   const handleOpenTikTokApp = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (!activeLiveTask?.targetUrl) return;
-    window.open(activeLiveTask.targetUrl, '_blank');
+    if (!activeLiveTask?.channelHandle) return;
     setIsOpenedOnTikTok(true);
-    showToast(`🔗 Đang mở live của ${activeLiveTask.channelHandle} trên TikTok! Sàn tiếp tục đếm phút và cộng xu tự động.`);
+    showToast(`🔴 Đang xem phiên live của ${activeLiveTask.channelHandle}. Hệ thống tự động đếm phút và cộng Xu.`);
   };
 
   const handleSwitchRoom = (task: LivestreamTaskItem) => {

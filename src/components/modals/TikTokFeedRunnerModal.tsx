@@ -440,12 +440,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
   const handleOpenTikTokApp = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (!currentItem.targetUrl) return;
-    window.open(currentItem.targetUrl, '_blank');
-    showToast(`🔗 Đang mở ${currentItem.channelHandle} trực tiếp trên ứng dụng TikTok!`);
+    if (!currentItem.channelHandle) return;
+    showToast(`✨ Kênh chính thức: ${currentItem.channelHandle}`);
   };
 
-  // 1-CLICK FOLLOW TRỰC TIẾP TRÊN WEB APP & ĐỒNG BỘ TIKTOK THẬT
+  // 1-CLICK FOLLOW TRỰC TIẾP TRÊN WEB APP & NHẬN XU THƯỞNG
   const handleFollowAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     // 1. Tự động kết nối tài khoản TikTok nếu người dùng chưa kết nối
@@ -454,10 +453,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       connectTikTok(handleToLink);
     }
 
-    // 2. Ghi nhận nhận Xu và mở kênh TikTok thật để follow
-    const cleanHandle = currentItem.channelHandle.replace('@', '');
-    const realTikTokUrl = currentItem.targetUrl?.startsWith('http') ? currentItem.targetUrl : `https://www.tiktok.com/@${cleanHandle}`;
-
     if (!currentClaimed.follow) {
       const reward = claimTaskAction(currentItem.id, 'follow');
       setSessionCoinsEarned(prev => prev + (reward || 200));
@@ -465,15 +460,13 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         ...prev,
         [currentItem.id]: { ...(prev[currentItem.id] || {}), follow: true }
       }));
-      window.open(realTikTokUrl, '_blank');
-      showToast(`✨ ĐÃ ĐỒNG BỘ 1-CHẠM TIKTOK: Đã mở kênh ${currentItem.channelHandle} & cộng +${reward || 200} Xu vào ví!`);
+      showToast(`✨ +${reward || 200} Xu! Đã Follow thành công kênh ${currentItem.channelHandle}!`);
     } else {
-      window.open(realTikTokUrl, '_blank');
-      showToast(`✅ Bạn đã Follow kênh TikTok ${currentItem.channelHandle}!`);
+      showToast(`✅ Bạn đã Follow kênh ${currentItem.channelHandle}!`);
     }
   };
 
-  // 1-CLICK LIKE / THẢ TIM TRỰC TIẾP & ĐỒNG BỘ TIKTOK THẬT
+  // 1-CLICK LIKE / THẢ TIM TRỰC TIẾP TRÊN WEB APP
   const handleLikeAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (!currentClaimed.like) {
@@ -483,7 +476,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         ...prev,
         [currentItem.id]: { ...(prev[currentItem.id] || {}), like: true }
       }));
-      showToast(`❤️ ĐÃ THẢ TIM 1-CHẠM & ĐỒNG BỘ TIKTOK (+${reward || 100} Xu)!`);
+      showToast(`❤️ +${reward || 100} Xu! Đã thả tim video thành công!`);
     }
   };
 
@@ -499,7 +492,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }, 1200);
   };
 
-  // 1-CLICK BÌNH LUẬN SEEDING & ĐỒNG BỘ TIKTOK THẬT
+  // 1-CLICK BÌNH LUẬN SEEDING TRỰC TIẾP TRÊN WEB APP
   const handleCommentAction = (commentText: string) => {
     setCustomComment(commentText);
     if (!currentClaimed.comment) {
@@ -509,23 +502,16 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         ...prev,
         [currentItem.id]: { ...(prev[currentItem.id] || {}), comment: true }
       }));
+      showToast(`💬 +${reward || 200} Xu! Đã gửi bình luận: "${commentText}"`);
+    } else {
+      showToast(`💬 Bình luận: "${commentText}"`);
     }
-    // Sao chép bình luận vào clipboard & mở video TikTok để dán ngay
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(commentText).catch(() => {});
-    }
-    const cleanHandle = currentItem.channelHandle.replace('@', '');
-    const realTikTokUrl = currentItem.targetUrl?.startsWith('http') ? currentItem.targetUrl : `https://www.tiktok.com/@${cleanHandle}`;
-    window.open(realTikTokUrl, '_blank');
-    showToast(`💬 ĐÃ SAO CHÉP: "${commentText}" & mở TikTok để dán (+200 Xu vào ví)!`);
     setShowCommentInput(false);
   };
 
-  // 1-CLICK CHIA SẺ VIDEO ĐỒNG BỘ TIKTOK THẬT
+  // 1-CLICK CHIA SẺ VIDEO TRỰC TIẾP
   const handleShareAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    const cleanHandle = currentItem.channelHandle.replace('@', '');
-    const realTikTokUrl = currentItem.targetUrl?.startsWith('http') ? currentItem.targetUrl : `https://www.tiktok.com/@${cleanHandle}`;
     if (!currentClaimed.share) {
       const reward = claimTaskAction(currentItem.id, 'share');
       setSessionCoinsEarned(prev => prev + (reward || 240));
@@ -534,14 +520,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         [currentItem.id]: { ...(prev[currentItem.id] || {}), share: true }
       }));
     }
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(realTikTokUrl).catch(() => {});
-    }
     openShareModal({
-      targetUrl: realTikTokUrl,
+      targetUrl: currentItem.targetUrl || `https://www.tiktok.com/@${currentItem.channelHandle.replace('@', '')}`,
       title: currentItem.title
     });
-    showToast(`🚀 ĐÃ SAO CHÉP LINK VIDEO TIKTOK & ĐỒNG BỘ CHIA SẺ (+240 Xu)!`);
+    showToast(`🚀 +240 Xu! Đã chia sẻ video thành công!`);
   };
 
   const handleBookmarkAction = (e?: React.MouseEvent) => {
@@ -574,29 +557,13 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           {/* Top Row: Clean Minimal Header (Mute Toggle & Close) */}
           <div className="flex items-center justify-between gap-2 px-1">
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 border border-white/10 text-[10px] font-mono text-white/80 backdrop-blur-md">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 border border-white/10 text-[10px] font-mono text-white/80 backdrop-blur-md">
                 <svg className="w-3 h-3 fill-rose-500 shrink-0" viewBox="0 0 24 24">
                   <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.3 6.3 0 0 0 1.93-4.57V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76c-.31-.02-.62-.05-.94-.07z" />
                 </svg>
                 <span className="font-bold text-white tracking-wide">TikTok Video Runner</span>
-                <span className="text-slate-400">({currentIndex + 1}/{combinedFeed.length})</span>
+                <span className="text-slate-400 font-bold">({currentIndex + 1}/{combinedFeed.length})</span>
               </span>
-
-              {(() => {
-                const itemMedia = parseMediaUrl(currentItem?.targetUrl || currentItem?.videoUrl || '', currentItem?.channelHandle);
-                if (itemMedia.isTikTok && itemMedia.videoId) {
-                  return (
-                    <button
-                      onClick={() => setPlayerMode(playerMode === 'stream' ? 'embed' : 'stream')}
-                      className="px-2 py-0.5 rounded-full bg-rose-600/80 hover:bg-rose-500 text-white text-[9px] font-mono font-bold border border-rose-400/40 backdrop-blur-md transition-all flex items-center gap-1 shadow-sm cursor-pointer"
-                      title={playerMode === 'stream' ? 'Chuyển sang TikTok Embed gốc' : 'Chuyển sang Stream HD siêu tốc'}
-                    >
-                      {playerMode === 'stream' ? '⚡ Stream HD' : '🎬 TikTok Embed'}
-                    </button>
-                  );
-                }
-                return null;
-              })()}
             </div>
 
             {/* Right Buttons: Mute Toggle & Close */}
@@ -882,10 +849,10 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               <div 
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleOpenTikTokApp();
+                  handleFollowAction();
                 }}
                 className="relative mb-2 cursor-pointer group"
-                title="Bấm avatar để mở kênh TikTok chính thức"
+                title="Bấm avatar để Follow kênh & nhận +200 Xu"
               >
                 <img 
                   src={currentItem.channelAvatar} 
@@ -902,7 +869,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                       ? 'bg-emerald-500 ring-2 ring-emerald-400/60 scale-100' 
                       : 'bg-[#FE2C55] hover:scale-110 active:scale-95 shadow-red-500/50'
                   }`}
-                  title={currentClaimed.follow ? 'Đã Follow trên TikTok' : 'Bấm Follow trên TikTok & nhận +200 Xu'}
+                  title={currentClaimed.follow ? 'Đã Follow trên hệ thống' : 'Bấm Follow & nhận +200 Xu'}
                 >
                   {currentClaimed.follow ? (
                     <Check className="w-3.5 h-3.5 stroke-[3.5] text-white" />

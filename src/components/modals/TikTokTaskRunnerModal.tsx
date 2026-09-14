@@ -38,7 +38,8 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     claimTaskAction, 
     openShareModal, 
     openFeedRunner,
-    userCompletedActions
+    userCompletedActions,
+    showToast
   } = useTikTokApp();
 
   const previousCompletion = runnerTask ? userCompletedActions[runnerTask.id] : undefined;
@@ -249,8 +250,8 @@ export const TikTokTaskRunnerModal: React.FC = () => {
   };
 
   const handleOpenTikTok = () => {
-    window.open(runnerTask.targetUrl, '_blank');
     handleFollowAction();
+    showToast(`✨ Đã theo dõi kênh ${runnerTask.channelHandle}!`);
   };
 
   return (

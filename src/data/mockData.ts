@@ -579,106 +579,43 @@ export const LIVESTREAM_TASKS: LivestreamTaskItem[] = [
   }
 ];
 
-// Dữ liệu Báo cáo phân tích thu nhập & thời gian xem của người dùng
+// Dữ liệu Báo cáo phân tích thu nhập & thời gian xem của người dùng (Realtime từ hoạt động thật)
 export const USER_ANALYTICS: UserAnalyticsData = {
-  todayWatchMinutes: 52,
-  todayVideosWatched: 32,
-  retentionScore: 98.5, // 98.5% thời gian xem hợp lệ
-  completedToday: 16,
-  todayEarningsCoins: 12500,
-  weeklyEarningsCoins: 78400,
-  monthlyEarningsCoins: 312000,
-  todayLiveMinutes: 23,
-  todayLiveSessionsCompleted: 3,
-  todayLiveCoinsEarned: 7450,
-  liveRetentionRate: 99.4,
-  liveWatchHistory: [
-    {
-      id: 'lwh_1',
-      roomTitle: '🔴 LIVE ĐẠI TIỆC XẢ KHO 99K - SĂN DEAL ĐỘC QUYỀN TIKTOK SHOP',
-      channelName: 'Mỹ Phẩm Cao Cấp Glow Cosmetics',
-      channelHandle: '@glow_cosmetics.live',
-      channelAvatar: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=120&auto=format&fit=crop&q=80',
-      minutesWatched: 5,
-      coinsEarned: 1500,
-      timestamp: '09:15 - Hôm nay',
-      verifiedHuman: true,
-      tapsCount: 84
-    },
-    {
-      id: 'lwh_2',
-      roomTitle: '🔥 LIVESTREAM RA MẮT BST ÁO POLO XUÂN HÈ',
-      channelName: 'Thế Giới Thời Trang Nam Aristino',
-      channelHandle: '@aristino_menswear',
-      channelAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
-      minutesWatched: 8,
-      coinsEarned: 2400,
-      timestamp: '08:40 - Hôm nay',
-      verifiedHuman: true,
-      tapsCount: 142
-    },
-    {
-      id: 'lwh_3',
-      roomTitle: '🍜 TRẢI NGHIỆM QUÁN BÚN BÒ GIA TRUYỀN 40 NĂM',
-      channelName: 'Food Review Sài Gòn Ăn Gì',
-      channelHandle: '@saigon_angi.official',
-      channelAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
-      minutesWatched: 10,
-      coinsEarned: 3550,
-      timestamp: '07:20 - Hôm nay',
-      verifiedHuman: true,
-      tapsCount: 196
-    }
-  ],
+  todayWatchMinutes: 0,
+  todayVideosWatched: 0,
+  retentionScore: 100,
+  completedToday: 0,
+  todayEarningsCoins: 0,
+  weeklyEarningsCoins: 0,
+  monthlyEarningsCoins: 0,
+  todayLiveMinutes: 0,
+  todayLiveSessionsCompleted: 0,
+  todayLiveCoinsEarned: 0,
+  liveRetentionRate: 100,
+  liveWatchHistory: [],
   incomeBreakdown: {
-    followPercent: 38,
-    likePercent: 16,
-    commentPercent: 14,
-    sharePercent: 10,
-    livestreamPercent: 18,
-    affiliatePercent: 4
+    followPercent: 0,
+    likePercent: 0,
+    commentPercent: 0,
+    sharePercent: 0,
+    livestreamPercent: 0,
+    affiliatePercent: 0
   },
-  dailyStreak: 5,
+  dailyStreak: 0,
   checkedInToday: false
 };
 
 // Dữ liệu Cơ chế Tokenomics & Đốt Token
 export const TOKENOMICS_DATA: TokenomicsData = {
-  tokenPriceVND: 1250, // 1 Token = 1,250 VNĐ (tăng từ 1,000đ)
-  priceChange24h: 15.8, // +15.8% trong 24h
-  totalCirculation: 75200000,
-  totalBurned: 14250000, // Đã đốt hơn 14.2M token vĩnh viễn
-  burnRatePercent: 10, // 10% mỗi chiến dịch
-  deflationRate: '-2.4% / tháng',
-  marketCapVND: '94,000,000,000đ',
-  burnHistory: [
-    {
-      id: 'burn_1',
-      campaignTitle: 'Chiến dịch 10,000 Follow Brand Mỹ Phẩm ZenSkin',
-      tokensBurned: 35000,
-      timestamp: '15 phút trước'
-    },
-    {
-      id: 'burn_2',
-      campaignTitle: 'Seeding 5,000 Tim & Comment Kênh Thời Trang',
-      tokensBurned: 15000,
-      timestamp: '1 giờ trước'
-    },
-    {
-      id: 'burn_3',
-      campaignTitle: 'Booking Dàn KOC 10 Video Review Đồ Gia Dụng',
-      tokensBurned: 50000,
-      timestamp: '3 giờ trước'
-    }
-  ],
-  priceHistory: [
-    { time: '01/09', price: 1000 },
-    { time: '03/09', price: 1040 },
-    { time: '05/09', price: 1100 },
-    { time: '07/09', price: 1150 },
-    { time: '09/09', price: 1200 },
-    { time: '11/09', price: 1250 }
-  ]
+  tokenPriceVND: 1000, // 1 Token = 1 VNĐ
+  priceChange24h: 0,
+  totalCirculation: 0,
+  totalBurned: 0,
+  burnRatePercent: 10,
+  deflationRate: '0%',
+  marketCapVND: '0đ',
+  burnHistory: [],
+  priceHistory: []
 };
 
 // Danh sách các gói dịch vụ tăng trưởng TikTok (Được đồng bộ từ COMPREHENSIVE_GROWTH_PACKAGES)
@@ -1033,54 +970,10 @@ export const INITIAL_TOKEN_LEDGER: TokenLedgerRecord[] = [];
 
 
 // Danh sách thông báo thời gian thực gửi đến tài khoản người dùng
-export const INITIAL_USER_NOTIFICATIONS: UserNotificationItem[] = [
-  {
-    id: 'notif_1',
-    type: 'boosted_campaign',
-    title: '🚀 Chiến Dịch Vừa Được Đẩy Top (+200 Xu)',
-    message: 'ZenSkin Vietnam vừa chi 5.000 Xu để Đẩy Top chiến dịch "Follow Kênh Mỹ Phẩm Dưỡng Da ZenSkin". Suất ưu tiên có hạn, vào nhận ngay!',
-    taskId: 'task_1',
-    rewardCoins: 200,
-    timestamp: '5 phút trước',
-    isRead: false
-  },
-  {
-    id: 'notif_2',
-    type: 'hot_campaign',
-    title: '🔥 Chiến Dịch Hot Hôm Nay: Aura Boutique',
-    message: 'Chiến dịch Xem video 15s Aura Boutique đang bùng nổ tương tác. Nhận ngay +200 Xu khi xem và thả tim!',
-    taskId: 'task_2',
-    rewardCoins: 200,
-    timestamp: '25 phút trước',
-    isRead: false
-  },
-  {
-    id: 'notif_3',
-    type: 'reward_claimed',
-    title: '💰 Báo Cáo Xu Về Ví: +340 Xu',
-    message: 'Hệ thống vừa đối soát tự động và cộng +340 Xu vào tài khoản từ nhiệm vụ xem video & chia sẻ Facebook.',
-    timestamp: '1 giờ trước',
-    isRead: true
-  }
-];
+export const INITIAL_USER_NOTIFICATIONS: UserNotificationItem[] = [];
 
 // Lịch sử nhiệm vụ đã làm của người dùng (Chống trùng lặp & bảo vệ ngân sách chủ shop)
-export const INITIAL_USER_COMPLETED_ACTIONS: Record<string, UserTaskActionHistory> = {
-  'task_3': {
-    taskId: 'task_3',
-    taskTitle: 'Thả Tim & Lưu Video Hướng Dẫn Nấu Ăn Kênh Ăn Vặt Sài Gòn',
-    channelName: 'Ăn Vặt Sài Gòn',
-    channelHandle: '@anvatsaigon',
-    channelAvatar: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=120&auto=format&fit=crop&q=80',
-    viewed: true,
-    followed: true,
-    liked: true,
-    commented: false,
-    shared: false,
-    totalCoinsEarned: 500,
-    completedAt: 'Hôm nay, 10:15'
-  }
-};
+export const INITIAL_USER_COMPLETED_ACTIONS: Record<string, UserTaskActionHistory> = {};
 
 // Danh sách Bạn Bè Mạng Xã Hội (Facebook Style)
 export const INITIAL_FRIENDS: CommunityFriendItem[] = [

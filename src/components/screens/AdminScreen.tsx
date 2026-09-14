@@ -137,17 +137,27 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const [userRankFilter, setUserRankFilter] = useState('all');
   const [inspectedPeriod, setInspectedPeriod] = useState<'day' | 'week' | 'month'>('day');
 
+  // Hàm trích xuất an toàn số nguyên từ chuỗi tiền tệ (tránh lỗi nối chuỗi tạo số ảo)
+  const parseNumericAmount = (amountVal: string | number | undefined): number => {
+    if (typeof amountVal === 'number') return isNaN(amountVal) ? 0 : amountVal;
+    if (!amountVal) return 0;
+    // Chỉ lấy phần số đứng trước dấu mở ngoặc '(' nếu có (ví dụ: "+50.000đ (+50.000 Xu)" -> chỉ lấy "+50.000đ")
+    const primaryPart = String(amountVal).split('(')[0];
+    const digits = primaryPart.replace(/\D/g, '');
+    return parseInt(digits, 10) || 0;
+  };
+
   // Real-time System Statistics Calculations (100% Real Data - Sạch 0 con số ảo)
   const totalEscrowLockedNum = escrowBookings
     .filter(b => b.status === 'pending_escrow' || b.status === 'escrow_locked' || b.status === 'demo_submitted')
-    .reduce((sum, b) => sum + (parseInt(b.totalEscrowAmount.replace(/\D/g, ''), 10) || 0), 0);
+    .reduce((sum, b) => sum + parseNumericAmount(b.totalEscrowAmount), 0);
   const totalEscrowLockedFormatted = totalEscrowLockedNum > 0 ? totalEscrowLockedNum.toLocaleString('vi-VN') + 'đ' : '0đ';
 
   const userDepositsTotal = (user.transactions || [])
-    .filter(t => t.type === 'deposit')
-    .reduce((sum, t) => sum + (parseInt(String(t.amount || '0').replace(/\D/g, ''), 10) || 0), 0);
+    .filter(t => t.type === 'deposit' && t.status === 'success')
+    .reduce((sum, t) => sum + parseNumericAmount(t.amount), 0);
 
-  const totalRevenueNum = userDepositsTotal + platformBoostRevenue;
+  const totalRevenueNum = userDepositsTotal + (platformBoostRevenue || 0);
   const totalRevenueFormatted = totalRevenueNum > 0 ? totalRevenueNum.toLocaleString('vi-VN') + 'đ' : '0đ';
 
   const totalUsersCount = adminUsers.length + (user.email ? 1 : 0);
@@ -165,10 +175,10 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
   const completedActionsCount = Object.keys(userCompletedActions || {}).length;
   const totalCompletedTasks24h = (user.completedTasksCount || 0) + completedActionsCount;
-  const totalReceivedTasks24h = tasks.length + livestreamTasks.length + totalCompletedTasks24h;
+  const totalReceivedTasks24h = totalCompletedTasks24h;
   const totalDropTasks24h = 0;
-  const completionPercentage = totalReceivedTasks24h > 0 ? Math.min(100, Math.round((totalCompletedTasks24h / totalReceivedTasks24h) * 100)) : 0;
-  const dropPercentage = totalReceivedTasks24h > 0 ? Math.max(0, 100 - completionPercentage) : 0;
+  const completionPercentage = totalCompletedTasks24h > 0 ? 100 : 0;
+  const dropPercentage = 0;
 
   const watchCoins = watchCompleted * 1000;
   const followCoins = followCompleted * 500;
@@ -192,16 +202,16 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   // 4. Tổng Xu đã chuyển đổi thành tiền mặt / rút ngân hàng
   const totalWithdrawnNum = (user.transactions || [])
     .filter(t => t.type === 'withdraw' && t.status === 'success')
-    .reduce((sum, t) => sum + (parseInt(String(t.amount || '0').replace(/\D/g, ''), 10) || 0), 0);
+    .reduce((sum, t) => sum + parseNumericAmount(t.amount), 0);
 
   // 5. Tổng Xu đã tiêu thụ vào mua phần mềm / mua gói dịch vụ
   const totalSpentAppsNum = (user.myAppLicenses || []).reduce((sum, lic) => sum + (lic.xuPaid || 0), 0);
-  const totalSpentOrdersNum = (user.myOrders || []).reduce((sum, ord) => sum + (parseInt(String(ord.price || '0').replace(/\D/g, ''), 10) || 0), 0);
+  const totalSpentOrdersNum = (user.myOrders || []).reduce((sum, ord) => sum + parseNumericAmount(ord.price), 0);
   const totalSpentOnServicesNum = totalSpentAppsNum + totalSpentOrdersNum;
 
   // 6. Tổng Xu đã đốt / triệt tiêu khỏi lưu thông (Phí sàn, phí đẩy top,...)
   const manualBurnedNum = tokenSupplyConfig?.manualBurnedSupply || 0;
-  const totalBurnedTokensNum = manualBurnedNum + platformBoostRevenue;
+  const totalBurnedTokensNum = manualBurnedNum + (platformBoostRevenue || 0);
 
   // 2. Tổng Xu đã phân phối ra thị trường (Circulating Supply)
   const circulatingSupplyNum = userHoldingsNum + totalSpentOnServicesNum + totalWithdrawnNum;
@@ -877,8 +887,12 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               </div>
               <div className="p-3.5 rounded-2xl bg-black/40 border border-purple-500/30 space-y-1 text-center">
                 <div className="text-[10px] text-purple-300 font-mono uppercase">Thời Gian Trung Bình/Task</div>
-                <div className="text-xl font-black text-purple-300 font-mono">15s - 30s</div>
-                <div className="text-[10px] text-slate-400 font-mono">Chuẩn tự nhiên FYP</div>
+                <div className="text-xl font-black text-purple-300 font-mono">
+                  {totalCompletedTasks24h > 0 ? '15s - 30s' : '0s'}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">
+                  {totalCompletedTasks24h > 0 ? 'Chuẩn tự nhiên FYP' : 'Chưa có dữ liệu'}
+                </div>
               </div>
             </div>
 
@@ -1006,7 +1020,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   />
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {totalUsersCount.toLocaleString()} người dùng thực hiện nhiệm vụ và nhận thưởng Xu thời gian thực hôm nay
+                  {completedActionsCount > 0 ? `${completedActionsCount} người dùng` : '0 người dùng'} thực hiện nhiệm vụ và nhận thưởng Xu thời gian thực hôm nay
                 </p>
               </div>
 

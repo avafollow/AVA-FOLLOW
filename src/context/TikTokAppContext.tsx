@@ -1082,8 +1082,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setPartnerAnnouncements(prev => prev.filter(a => a.id !== id));
   };
 
-  // Platform Boost Revenue & Campaign Priority
-  const [platformBoostRevenue, setPlatformBoostRevenue] = useState<number>(45000);
+  // Platform Boost Revenue & Campaign Priority (100% Real Time)
+  const [platformBoostRevenue, setPlatformBoostRevenue] = useState<number>(0);
 
   // User Completed Actions Map (Chống trùng lặp & bảo vệ ngân sách chủ shop)
   const [userCompletedActions, setUserCompletedActions] = useState<Record<string, UserTaskActionHistory>>(INITIAL_USER_COMPLETED_ACTIONS);

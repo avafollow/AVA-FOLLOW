@@ -326,6 +326,7 @@ export const CreateCampaignScreen: React.FC<{
       targetUrl,
       targetQuantity: activeTargetsList.reduce((sum, t) => sum + (targetQuantities[t.id] || 10), 0),
       budgetTotal: `${totalCostXu.toLocaleString()} Xu (${totalCostVND})`,
+      budgetCoins: totalCostXu,
       pricePerAction: isMultiTarget ? 'Đa mục tiêu' : `${getTargetUnitPrice(activeTargetsList[0].id).toLocaleString('vi-VN')} Xu`,
       instructions,
       livestreamMinutes: selectedTargets.livestream ? livestreamMinutes : undefined,
@@ -392,6 +393,7 @@ export const CreateCampaignScreen: React.FC<{
       targetUrl,
       targetQuantity: megaLiveGoal,
       budgetTotal: `${megaCostXu.toLocaleString()} Xu (${megaCostVND})`,
+      budgetCoins: megaCostXu,
       pricePerAction: `${basePricePerUnit.toLocaleString('vi-VN')} Xu`,
       instructions: isMegaLive
         ? `Xem phiên Mega Live tối thiểu ${megaLiveDuration} phút, thả tim, bình luận và nhận mã ưu đãi ${megaVoucher}.`

@@ -277,6 +277,7 @@ interface TikTokAppContextType {
     targetUrl: string;
     targetQuantity: number;
     budgetTotal: string;
+    budgetCoins?: number;
     pricePerAction: string;
     instructions: string;
     livestreamMinutes?: number;
@@ -3654,19 +3655,26 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     targetUrl: string;
     targetQuantity: number;
     budgetTotal: string;
+    budgetCoins?: number;
     pricePerAction: string;
     instructions: string;
     livestreamMinutes?: number;
     multiTargets?: MultiTargetConfig[];
     audienceTargeting?: CampaignAudienceTargeting;
   }): boolean => {
-    const rawBudget = parseInt(campaignData.budgetTotal.replace(/\D/g, '')) || 0;
+    // Trích xuất an toàn số Xu ngân sách thực tế (từ budgetCoins trực tiếp hoặc chỉ lấy phần số đầu tiên trước chữ Xu/VND)
+    let rawBudget = campaignData.budgetCoins || 0;
+    if (!rawBudget && campaignData.budgetTotal) {
+      const firstChunk = campaignData.budgetTotal.split(/Xu|\(|đ/i)[0];
+      rawBudget = parseInt(firstChunk.replace(/\D/g, ''), 10) || 0;
+    }
+
     if ((user.avaliveCoins || 0) < rawBudget) {
       showToast(`❌ Số dư Xu không đủ (${(user.avaliveCoins || 0).toLocaleString()} Xu < ${rawBudget.toLocaleString()} Xu). Vui lòng nạp thêm Xu để chạy chiến dịch!`);
       setIsDepositOpen(true);
       return false;
     }
-    const newCoins = Math.max(0, user.avaliveCoins - rawBudget);
+    const newCoins = Math.max(0, (user.avaliveCoins || 0) - rawBudget);
     let singleNewTask: TikTokTaskItem | null = null;
 
     // Phân bổ chuẩn xác 40% ngân sách cho thợ làm nhiệm vụ

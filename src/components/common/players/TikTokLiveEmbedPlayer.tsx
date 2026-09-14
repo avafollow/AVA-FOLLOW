@@ -47,73 +47,50 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const [loadError, setLoadError] = useState<boolean>(false);
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Đồng bộ trạng thái âm thanh từ props
+  // Hàm gửi toàn bộ tín hiệu tắt/mở âm thanh đồng bộ trực tiếp vào iframe livestream
+  const sendMuteCommandToIframe = (muted: boolean) => {
+    try {
+      if (!iframeRef.current?.contentWindow) return;
+      const cw = iframeRef.current.contentWindow;
+
+      // 1. Chuẩn Player.js (Được TikTok Web & Iframe Embeds hỗ trợ để tắt/mở âm thanh)
+      cw.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', event: 'command', method: muted ? 'mute' : 'unmute' }), '*');
+      cw.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', event: 'command', method: 'setVolume', value: muted ? 0 : 100 }), '*');
+      cw.postMessage({ context: 'player.js', version: '0.0.11', event: 'command', method: muted ? 'mute' : 'unmute' }, '*');
+      cw.postMessage({ context: 'player.js', version: '0.0.11', event: 'command', method: 'setVolume', value: muted ? 0 : 100 }, '*');
+
+      // 2. Chuẩn TikTok Web Player Native Messages
+      cw.postMessage({ type: muted ? 'mute' : 'unmute' }, '*');
+      cw.postMessage({ type: 'mute', value: muted }, '*');
+      cw.postMessage({ 'tiktok-embed': true, type: muted ? 'mute' : 'unmute' }, '*');
+      cw.postMessage({ type: 'changeVolume', volume: muted ? 0 : 1 }, '*');
+      cw.postMessage({ event: 'onMuteChange', mute: muted }, '*');
+      cw.postMessage(JSON.stringify({ type: muted ? 'mute' : 'unmute' }), '*');
+      cw.postMessage(JSON.stringify({ type: 'mute', value: muted }), '*');
+      cw.postMessage(JSON.stringify({ 'tiktok-embed': true, type: muted ? 'mute' : 'unmute' }), '*');
+
+      // 3. Chuẩn Media HTML5 chung
+      cw.postMessage({ event: 'command', func: muted ? 'mute' : 'unMute' }, '*');
+      cw.postMessage(JSON.stringify({ event: 'command', func: muted ? 'mute' : 'unMute' }), '*');
+      cw.postMessage({ method: muted ? 'mute' : 'unmute' }, '*');
+      cw.postMessage(JSON.stringify({ method: muted ? 'mute' : 'unmute' }), '*');
+      cw.postMessage({ action: muted ? 'mute' : 'unmute' }, '*');
+      cw.postMessage(JSON.stringify({ action: muted ? 'mute' : 'unmute' }), '*');
+    } catch (err) {}
+  };
+
+  // Đồng bộ trạng thái âm thanh từ props khi bấm nút trên Header của Feed hoặc Build Reel
   useEffect(() => {
     setInternalMuted(isMuted);
+    sendMuteCommandToIframe(isMuted);
   }, [isMuted]);
-
-  // Điều khiển trực tiếp audio element phát/tắt tiếng tức thì không delay
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    audio.muted = internalMuted;
-    if (!internalMuted) {
-      audio.volume = 0.85;
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Trình duyệt sẽ mở khoá âm thanh ngay khi người dùng chạm vào màn hình
-        });
-      }
-    } else {
-      audio.pause();
-    }
-  }, [internalMuted]);
-
-  // Tự động mở khoá âm thanh khi có tương tác (tap màn hình, click chuột)
-  useEffect(() => {
-    const unlockAudio = () => {
-      if (!internalMuted && audioRef.current && audioRef.current.paused) {
-        audioRef.current.volume = 0.85;
-        audioRef.current.play().catch(() => {});
-      }
-    };
-    window.addEventListener('click', unlockAudio, { passive: true });
-    window.addEventListener('touchstart', unlockAudio, { passive: true });
-    return () => {
-      window.removeEventListener('click', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-    };
-  }, [internalMuted]);
 
   const handleToggleSound = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     const nextMuted = !internalMuted;
     setInternalMuted(nextMuted);
-
-    if (audioRef.current) {
-      audioRef.current.muted = nextMuted;
-      if (!nextMuted) {
-        audioRef.current.volume = 0.85;
-        audioRef.current.play().catch(() => {});
-      } else {
-        audioRef.current.pause();
-      }
-    }
-
-    // Gửi thêm tín hiệu postMessage nếu nền tảng nhúng hỗ trợ
-    try {
-      if (iframeRef.current?.contentWindow) {
-        const cw = iframeRef.current.contentWindow;
-        cw.postMessage({ type: 'mute', value: nextMuted }, '*');
-        cw.postMessage({ type: nextMuted ? 'mute' : 'unmute' }, '*');
-        cw.postMessage({ event: 'command', func: nextMuted ? 'mute' : 'unMute' }, '*');
-        cw.postMessage({ type: 'changeVolume', volume: nextMuted ? 0 : 1 }, '*');
-      }
-    } catch (err) {}
+    sendMuteCommandToIframe(nextMuted);
 
     if (onToggleMute) {
       onToggleMute();
@@ -155,18 +132,6 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
 
   return (
     <div className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none ${className}`}>
-      {/* 0. NGUỒN ÂM THANH LIVESTREAM ĐỒNG BỘ 100% (GIẢI PHÁP TRIỆT ĐỂ CHO CROSS-ORIGIN IFRAME) */}
-      <audio
-        ref={audioRef}
-        loop
-        playsInline
-        preload="auto"
-        muted={internalMuted}
-      >
-        <source src="/audio/live-stream.mp3" type="audio/mpeg" />
-        <source src="/videos/live-stream-audio.mp3" type="audio/mpeg" />
-      </audio>
-
       {/* 1. TOP LIVE HUD BAR (Ẩn khi parent modal đã có thanh điều khiển trên cùng) */}
       {!hideHud && (
         <div className="absolute top-0 inset-x-0 z-30 px-2 py-2 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between pointer-events-none gap-1">
@@ -232,8 +197,9 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           key={`tt-live-${cleanHandle}-${iframeKey}`}
           src={directLiveUrl}
           title={`TikTok Live: @${cleanHandle}`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; camera; microphone"
+          allow="autoplay *; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture *; web-share"
           allowFullScreen
+          onLoad={() => sendMuteCommandToIframe(internalMuted)}
           onError={() => setLoadError(true)}
           className="absolute border-0 bg-black pointer-events-auto"
           style={iframeStyle}

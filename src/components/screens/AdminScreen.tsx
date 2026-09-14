@@ -2400,7 +2400,8 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       <button
                         onClick={() => {
                           const ranks: ('Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương')[] = ['Đồng', 'Bạc', 'Vàng', 'Kim Cương'];
-                          const nextIdx = (ranks.indexOf(u.rankLevel) + 1) % ranks.length;
+                          const currentRank = (ranks.includes(u.rankLevel as any) ? u.rankLevel : 'Đồng') as 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương';
+                          const nextIdx = (ranks.indexOf(currentRank) + 1) % ranks.length;
                           adminChangeUserRank(u.id, ranks[nextIdx]);
                         }}
                         title="Bấm để đổi hạng VIP"

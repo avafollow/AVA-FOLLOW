@@ -24,6 +24,7 @@ import {
   LIVE_MILESTONE_REWARDS 
 } from '../../data/livePolicyData';
 import { AFFILIATE_TIER_LEVELS } from '../../data/mockData';
+import { TEN_TIERS_LIST, getRankTierConfig } from '../../data/weeklyMissions';
 import { AffiliateTierInfo } from '../../types';
 
 export const PolicyGuideScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
@@ -252,46 +253,113 @@ export const PolicyGuideScreen: React.FC<{ darkMode: boolean }> = ({ darkMode })
         </div>
       )}
 
-      {/* TAB 1: CẤP BẬC THÀNH VIÊN */}
+      {/* TAB 1: CẤP BẬC THÀNH VIÊN (10 CẤP BẬC THĂNG TIẾN) */}
       {activeTab === 'tiers' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {LIVE_VIEWER_TIERS.map((tier) => {
-              const isCurrent = user.rankLevel === tier.rank;
-              return (
-                <div 
-                  key={tier.rank}
-                  className={`p-5 rounded-3xl border transition-all space-y-3 relative ${
-                    isCurrent 
-                      ? 'bg-gradient-to-b from-rose-950/40 to-black border-rose-500 shadow-xl shadow-rose-950/30' 
-                      : 'bg-[#0D111E] border-white/10'
-                  }`}
-                >
-                  {isCurrent && (
-                    <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500 text-white">
-                      CẤP CỦA BẠN
-                    </span>
-                  )}
-                  <div className="text-2xl font-black text-white">{tier.icon} Hạng {tier.rank}</div>
-                  <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-purple-500/15 border border-amber-500/30 space-y-1">
-                    <div className="text-[11px] font-mono text-amber-300 font-bold flex items-center justify-between">
-                      <span>🎁 Thưởng Lên Cấp:</span>
-                      <span className="text-neonGold font-black">{tier.levelGiftCoinsFormatted}</span>
+        <div className="space-y-6">
+          {/* Header 10 Cấp Bậc */}
+          <div className="p-5 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+              <div>
+                <h4 className="text-sm font-black text-white font-mono uppercase flex items-center gap-2">
+                  <Award className="w-4 h-4 text-amber-400" /> HỆ THỐNG 10 CẤP BẬC NHIỆM VỤ & HỆ SỐ THÙ LAO
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Càng hoàn thành nhiều nhiệm vụ, cấp bậc càng tăng cao, mở rộng hạn mức ngày và nhân hệ số thưởng từ ×1.0 lên tới ×3.0 kèm Vòng Quay May Mắn!
+                </p>
+              </div>
+              <div className="px-3 py-1.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-mono font-bold shrink-0">
+                Hạng hiện tại: {getRankTierConfig(user.rankLevel).badge}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {TEN_TIERS_LIST.map((tier) => {
+                const userTier = getRankTierConfig(user.rankLevel);
+                const isCurrent = userTier.tierNumber === tier.tierNumber;
+                return (
+                  <div 
+                    key={tier.name}
+                    className={`p-4 rounded-2xl border text-left transition-all space-y-2 relative ${
+                      isCurrent 
+                        ? 'bg-gradient-to-b from-rose-950/50 via-[#100a18] to-[#0D111E] border-rose-500 shadow-xl ring-1 ring-rose-400' 
+                        : 'bg-black/40 border-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-white font-display">{tier.badge}</span>
+                      {isCurrent ? (
+                        <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold font-mono">BẠN</span>
+                      ) : (
+                        <span className="text-[9px] text-amber-300 font-mono font-black">×{tier.rewardMultiplier} Thưởng</span>
+                      )}
                     </div>
-                    <div className="text-[11px] font-mono text-cyan-300 font-bold flex items-center justify-between">
-                      <span>🚀 Tặng Follow Kênh:</span>
-                      <span className="text-emerald-400 font-black">{tier.levelGiftFollowersFormatted}</span>
+
+                    <div className="text-xs font-bold text-white font-mono">
+                      {tier.shortTitle}
+                    </div>
+
+                    <div className="text-[10px] text-emerald-400 font-mono space-y-0.5">
+                      <div>📅 {tier.dailyMissionsCount} Ngày • 🏆 {tier.weeklyMissionsCount} Tuần</div>
+                      <div className="text-pink-300 font-bold">🎡 +{tier.wheelSpinsBonus} Vòng Quay May Mắn</div>
+                    </div>
+
+                    <p className="text-[9px] text-slate-400 leading-tight">
+                      {tier.description}
+                    </p>
+
+                    <div className="pt-1.5 border-t border-white/5 text-[9px] font-mono text-slate-400 flex justify-between">
+                      <span>Mở khóa:</span>
+                      <strong className="text-slate-300">{tier.minCompletedTasksToUnlock === 0 ? 'Mặc định' : `${tier.minCompletedTasksToUnlock} task`}</strong>
                     </div>
                   </div>
-                  <div className="text-xs text-slate-300 space-y-1.5 pt-2 border-t border-white/5">
-                    <div>• Hạn mức: <strong className="text-white">{tier.maxSessionsPerDay} Live/ngày</strong></div>
-                    <div>• Thưởng/phút: <strong className="text-cyan-400">{tier.rewardPerMinuteVND}</strong> (chuẩn cố định)</div>
-                    <div>• Quà nhiệm vụ ngày: <strong className="text-emerald-300">{tier.dailyFullTaskBonus}</strong></div>
-                    <div>• Điều kiện: <span className="text-slate-400">{tier.requiredCondition}</span></div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quyền Lợi Xem Livestream */}
+          <div className="p-5 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
+            <h4 className="text-sm font-black text-white font-mono uppercase flex items-center gap-2">
+              <Radio className="w-4 h-4 text-red-400" /> QUYỀN LỢI MẮT XEM LIVESTREAM THEO CẤP BẬC
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {LIVE_VIEWER_TIERS.map((tier) => {
+                const isCurrent = user.rankLevel === tier.rank;
+                return (
+                  <div 
+                    key={tier.rank}
+                    className={`p-5 rounded-3xl border transition-all space-y-3 relative ${
+                      isCurrent 
+                        ? 'bg-gradient-to-b from-rose-950/40 to-black border-rose-500 shadow-xl shadow-rose-950/30' 
+                        : 'bg-black/40 border-white/10'
+                    }`}
+                  >
+                    {isCurrent && (
+                      <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500 text-white">
+                        CẤP CỦA BẠN
+                      </span>
+                    )}
+                    <div className="text-2xl font-black text-white">{tier.icon} Hạng {tier.rank}</div>
+                    <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-purple-500/15 border border-amber-500/30 space-y-1">
+                      <div className="text-[11px] font-mono text-amber-300 font-bold flex items-center justify-between">
+                        <span>🎁 Thưởng Lên Cấp:</span>
+                        <span className="text-neonGold font-black">{tier.levelGiftCoinsFormatted}</span>
+                      </div>
+                      <div className="text-[11px] font-mono text-cyan-300 font-bold flex items-center justify-between">
+                        <span>🚀 Tặng Follow Kênh:</span>
+                        <span className="text-emerald-400 font-black">{tier.levelGiftFollowersFormatted}</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-slate-300 space-y-1.5 pt-2 border-t border-white/5">
+                      <div>• Hạn mức: <strong className="text-white">{tier.maxSessionsPerDay} Live/ngày</strong></div>
+                      <div>• Thưởng/phút: <strong className="text-cyan-400">{tier.rewardPerMinuteVND}</strong> (chuẩn cố định)</div>
+                      <div>• Quà nhiệm vụ ngày: <strong className="text-emerald-300">{tier.dailyFullTaskBonus}</strong></div>
+                      <div>• Điều kiện: <span className="text-slate-400">{tier.requiredCondition}</span></div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

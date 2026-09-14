@@ -38,12 +38,13 @@ import {
   UserWeeklyMission,
   MissionType,
   MissionStreakData,
+  MissionRank,
   MarqueeTickerItem,
   MarqueeHistoryRecord
 } from '../types';
 import { CongratulationData } from '../components/modals/FireworksCongratulationModal';
 import { SepayCheckoutItem } from '../components/modals/SepayUniversalCheckoutModal';
-import { generateWeeklyMissions, STREAK_REWARDS } from '../data/weeklyMissions';
+import { generateWeeklyMissions, STREAK_REWARDS, getRankTierConfig, getRankByTaskCount, getNextRankTier } from '../data/weeklyMissions';
 import { 
   MARQUEE_BOOST_FEE_XU, 
   INITIAL_MARQUEE_ITEMS, 
@@ -223,7 +224,7 @@ interface TikTokAppContextType {
     passedCaptcha: boolean
   ) => { coinsEarned: number; milestoneBonus: number; nextUnlockedTaskTitle?: string };
   getUserLiveQuota: () => {
-    rank: 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương';
+    rank: MissionRank | string;
     maxLivePerDay: number;
     completedToday: number;
     remainingToday: number;
@@ -957,13 +958,17 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return;
     }
 
+    // Lấy thông tin tier cấp bậc hiện tại của người dùng (10 cấp bậc)
+    const tierCfg = getRankTierConfig(user.rankLevel);
+    const spinsBonus = tierCfg.wheelSpinsBonus || 1;
+
     // Tính tổng Xu thưởng của tất cả nhiệm vụ trong danh mục
     const totalReward = categoryMissions.reduce((sum, m) => sum + m.rewardXu, 0);
 
     // Cập nhật tất cả mission trong danh mục thành 'claimed'
     setUserMissions(prev => prev.map(m => m.category === category ? { ...m, status: 'claimed' as const } : m));
 
-    // Cộng Xu vào tài khoản và ghi sổ giao dịch
+    // Cộng Xu & Vòng Quay May Mắn vào tài khoản và ghi sổ giao dịch
     const newCoins = user.avaliveCoins + totalReward;
     const categoryLabels = {
       daily: 'Chuỗi Nhiệm Vụ Ngày',
@@ -975,8 +980,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newTx: TransactionRecord = {
       id: `tx_missions_all_${category}_${Date.now()}`,
       type: 'earn',
-      title: `Nhận Trọn Bộ Quỹ Thưởng ${catLabel} (100% Hoàn Tất)`,
-      amount: `+${totalReward.toLocaleString()} Xu`,
+      title: `Nhận Trọn Bộ Quỹ Thưởng ${catLabel} (${tierCfg.badge} • 100% Hoàn Tất)`,
+      amount: `+${totalReward.toLocaleString()} Xu & +${spinsBonus} Vòng Quay May Mắn`,
       isPositive: true,
       date: 'Vừa xong',
       status: 'success'
@@ -986,6 +991,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ...prev,
       avaliveCoins: newCoins,
       coinsValueVND: `${newCoins.toLocaleString()}đ`,
+      luckyWheelFreeSpins: (prev.luckyWheelFreeSpins || 0) + spinsBonus,
       transactions: [newTx, ...prev.transactions]
     }));
 
@@ -1005,13 +1011,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }));
     }
 
+    showToast(`🎁 Đã tất toán trọn bộ +${totalReward.toLocaleString()} Xu & tặng +${spinsBonus} lượt quay may mắn!`);
+
     triggerFireworks({
       type: 'mission',
-      badge: `🎁 NHẬN TRỌN BỘ QUỸ THƯỞNG ${catLabel.toUpperCase()}`,
+      badge: `🎁 NHẬN TRỌN BỘ QUỸ THƯỞNG ${catLabel.toUpperCase()} (${tierCfg.badge})`,
       title: `XUẤT SẮC HOÀN THÀNH 100% TẤT CẢ NHIỆM VỤ!`,
-      subtitle: `${categoryMissions.length}/${categoryMissions.length} Nhiệm vụ hoàn tất`,
-      rewardText: `+${totalReward.toLocaleString()} XU VÀO VÍ`,
-      message: `Tuyệt vời! Bạn đã hoàn thành trọn vẹn 100% toàn bộ nhiệm vụ ${catLabel.toLowerCase()} được giao. Quỹ thưởng Xu tổng đã được giải ngân chuyển thẳng vào ví của bạn!`
+      subtitle: `${categoryMissions.length}/${categoryMissions.length} Nhiệm vụ hoàn tất • ${tierCfg.name}`,
+      rewardText: `+${totalReward.toLocaleString()} XU & +${spinsBonus} LƯỢT QUAY MAY MẮN 🎡`,
+      message: `Tuyệt vời! Bạn đã hoàn thành trọn vẹn 100% toàn bộ nhiệm vụ ${catLabel.toLowerCase()} được giao ở ${tierCfg.shortTitle}. Quỹ thưởng Xu tổng đã được giải ngân và sàn tặng thêm cho bạn +${spinsBonus} lượt quay vòng quay may mắn!`
     });
   };
 

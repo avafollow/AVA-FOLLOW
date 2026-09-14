@@ -525,7 +525,7 @@ export interface AdminUserManagementItem {
   tiktokConnected: string;
   tiktokFollowers: number;
   isTikTokVerified: boolean;
-  rankLevel: 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương';
+  rankLevel: MissionRank | string;
   coinsBalance: number;
   tokenBalance: number;
   completedTasksCount: number;
@@ -995,7 +995,7 @@ export interface UserProfileWallet {
   dailyTasksLimit: number;
   luckyWheelFreeSpins?: number;
   createdCampaignsCount: number;
-  rankLevel: 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương';
+  rankLevel: MissionRank | string;
   kycStatus: KycStatus;
   kycData?: KycVerificationData;
   citizenId?: string;
@@ -1044,9 +1044,21 @@ export type OpenChatUserInput = CommunityFriendItem | {
   lastActive?: string;
 };
 
-// ===== HỆ THỐNG NHIỆM VỤ TUẦN (Weekly Mission System) =====
+// ===== HỆ THỐNG 10 CẤP BẬC NHIỆM VỤ (10-Tier Mission & Rank System) =====
 
-export type MissionRank = 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương';
+export type MissionRank = 
+  | 'Cấp 1 - Tập Sự'
+  | 'Cấp 2 - Khởi Nghiệp'
+  | 'Cấp 3 - Năng Động'
+  | 'Cấp 4 - Tương Tác'
+  | 'Cấp 5 - Tiên Phong'
+  | 'Cấp 6 - Chuyên Nghiệp'
+  | 'Cấp 7 - Tinh Anh'
+  | 'Cấp 8 - Thủ Lĩnh'
+  | 'Cấp 9 - Cao Thủ'
+  | 'Cấp 10 - Huyền Thoại'
+  | 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương';
+
 export type MissionType = 'follow' | 'watch' | 'like' | 'comment' | 'share' | 'live' | 'invite' | 'profile' | 'post' | 'streak';
 export type MissionCategory = 'daily' | 'weekly' | 'special';
 
@@ -1060,7 +1072,7 @@ export interface WeeklyMissionDef {
   category: MissionCategory;
   difficulty: MissionDifficulty;  // 'easy' (Dễ), 'medium' (Trung bình), 'hard' (Khó), 'expert' (Chuyên gia)
   source: 'platform';             // Chiến dịch sàn Avalive độc quyền cấp
-  minRank: MissionRank;           // Rank tối thiểu để nhận nhiệm vụ này
+  minRank: MissionRank | string;  // Rank tối thiểu để nhận nhiệm vụ này
   accountAgeLevel?: 'newbie' | 'active' | 'veteran'; // Tài khoản mới, hoạt động thường xuyên, thâm niên
   baseRewardXu: number;           // Reward cơ bản (nhân hệ số rank)
   targetCount: number;            // Số lần cần thực hiện
@@ -1085,13 +1097,23 @@ export interface UserWeeklyMission {
   tags?: string[];
 }
 
+export interface RankTierConfig {
+  tierNumber: number;             // 1 -> 10
+  name: string;                   // 'Cấp 1 - Tập Sự',...
+  shortTitle: string;             // 'Tập Sự', 'Tân Binh',...
+  badge: string;                  // '🥉 Cấp 1'
+  color: string;                  // Tailwind classes
+  dailyMissionsCount: number;     // Số lượng nhiệm vụ daily tối đa
+  weeklyMissionsCount: number;    // Số lượng nhiệm vụ weekly tối đa
+  rewardMultiplier: number;       // Hệ số nhân reward (1.0 -> 3.0)
+  wheelSpinsBonus: number;        // Thưởng lượt quay may mắn khi hoàn thành 100%
+  minCompletedTasksToUnlock: number; // Điều kiện thăng hạng
+  description: string;
+}
+
 export interface WeeklyMissionConfig {
   weekNumber: number;             // tuần hiện tại
-  rankSlots: Record<MissionRank, {
-    dailyMissionsCount: number;   // số nhiệm vụ daily tối đa
-    weeklyMissionsCount: number;  // số nhiệm vụ weekly tối đa
-    rewardMultiplier: number;     // hệ số nhân reward (1.0, 1.5, 2.0, 3.0)
-  }>;
+  rankSlots: Record<string, RankTierConfig>;
   packageBonusSlots: Record<string, number>; // gói -> thêm bao nhiêu slot
 }
 

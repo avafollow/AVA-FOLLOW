@@ -1860,18 +1860,25 @@ export const CreateCampaignScreen: React.FC<{
                         openFeedRunner(camp.id);
                       }
                     }}
-                    className="w-20 h-28 sm:w-24 sm:h-32 shrink-0 rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-black cursor-pointer group hover:border-rose-500/60 transition-colors"
+                    className="w-20 h-28 sm:w-24 sm:h-32 shrink-0 rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-black cursor-pointer group hover:border-rose-500/60 transition-colors flex items-center justify-center"
                     title={isLive ? "Bấm để mở phòng Live trực tiếp" : "Bấm để mở video chiến dịch này trong Feed"}
                   >
-                    <TikTokVideoPreviewPlayer
-                      url={camp.targetUrl}
-                      channelHandle={camp.channelHandle}
-                      isLive={Boolean(isLive)}
-                      className="w-full h-full"
-                      autoPlay={true}
-                      muted={true}
-                      showControls={false}
+                    <img
+                      src={getTikTokAvatar(camp.channelHandle)}
+                      alt={camp.channelHandle}
+                      onError={(e) => {
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(camp.channelHandle || 'Live')}&background=E11D48&color=fff&bold=true`;
+                      }}
+                      className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-300"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 flex flex-col items-center justify-center gap-1">
+                      <div className="w-8 h-8 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                        {isLive ? <Radio className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
+                      </div>
+                      <span className="px-1.5 py-0.5 rounded bg-black/80 text-[8px] font-mono font-bold text-white uppercase tracking-wider border border-white/20">
+                        {isLive ? '🔴 LIVE' : '▶️ VIDEO'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-1.5 w-full">

@@ -624,9 +624,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-in fade-in duration-200 select-none">
-      {/* Phone Simulation Container */}
+      {/* Phone Simulation Container: Vừa vặn chuẩn xác tỷ lệ điện thoại 9:16, không bị to bè ngang */}
       <div 
-        className="relative w-full max-w-md h-full sm:h-[94vh] sm:max-h-[860px] sm:rounded-3xl bg-black border-0 sm:border border-white/20 shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-[375px] sm:max-w-[390px] h-full sm:h-[92vh] sm:max-h-[820px] aspect-[9/16] sm:rounded-3xl bg-black border-0 sm:border border-white/20 shadow-2xl overflow-hidden flex flex-col mx-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Floating Controls */}

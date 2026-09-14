@@ -90,7 +90,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; x: number; y: number }[]>([]);
   const [showCommentInput, setShowCommentInput] = useState<boolean>(false);
   const [customComment, setCustomComment] = useState<string>('');
-  const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('stream'); // Mặc định Stream HD 100% full-screen vừa khít khung hình chuẩn TikTok
+  const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('embed'); // Tự động phát video TikTok thật nếu có ID video
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -316,6 +316,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   // Reset timer on item change or open
   useEffect(() => {
     if (isFeedRunnerOpen && currentItem) {
+      const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
+      if (itemMedia.isTikTok && itemMedia.videoId) {
+        setPlayerMode('embed');
+      } else {
+        setPlayerMode('stream');
+      }
       if (currentItem.kind === 'livestream') {
         setTimeLeft(currentItem.targetMinutes ? currentItem.targetMinutes * 60 : 180);
       } else if (currentItem.type === 'watch' || currentItem.requiresWatch === true) {
@@ -564,6 +570,22 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 <span className="font-bold text-white tracking-wide">TikTok Video Runner</span>
                 <span className="text-slate-400 font-bold">({currentIndex + 1}/{combinedFeed.length})</span>
               </span>
+
+              {(() => {
+                const itemMedia = parseMediaUrl(currentItem?.targetUrl || currentItem?.videoUrl || '', currentItem?.channelHandle);
+                if (itemMedia.isTikTok && itemMedia.videoId) {
+                  return (
+                    <button
+                      onClick={() => setPlayerMode(playerMode === 'embed' ? 'stream' : 'embed')}
+                      className="px-2.5 py-1 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white text-[9px] font-mono font-bold border border-rose-400/40 backdrop-blur-md transition-all flex items-center gap-1 shadow-md cursor-pointer"
+                      title={playerMode === 'embed' ? 'Đang phát TikTok Gốc (Bấm để chuyển sang Stream HD)' : 'Đang phát Stream HD (Bấm để chuyển sang TikTok Gốc)'}
+                    >
+                      {playerMode === 'embed' ? '🎬 TikTok Gốc' : '⚡ Stream HD'}
+                    </button>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* Right Buttons: Mute Toggle & Close */}
@@ -676,7 +698,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             }
 
             // 2. TikTok Official Embed Player (Tự động phát video TikTok thật từ link người dùng)
-            if (itemMedia.isTikTok && itemMedia.videoId && playerMode !== 'stream') {
+            if (itemMedia.isTikTok && itemMedia.videoId && playerMode === 'embed') {
               return (
                 <iframe
                   key={currentItem.id + '_tt_' + itemMedia.videoId}

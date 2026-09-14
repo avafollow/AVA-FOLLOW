@@ -71,11 +71,15 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const isDirectVideo = mediaInfo.isDirectVideo;
   const hasTikTokVideoId = Boolean(mediaInfo.isTikTok && mediaInfo.videoId);
 
-  // Chế độ phát video HD tức thì (<50ms), âm thanh đồng bộ
-  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>('stream');
+  // Tự động phát video TikTok thật nếu có Video ID, hoặc video Stream HD
+  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>(hasTikTokVideoId ? 'embed' : 'stream');
 
   useEffect(() => {
-    setStreamMode('stream');
+    if (hasTikTokVideoId) {
+      setStreamMode('embed');
+    } else {
+      setStreamMode('stream');
+    }
   }, [hasTikTokVideoId, url]);
 
   // Link đích chính xác của người dùng
@@ -382,6 +386,16 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             <span className="px-2 py-0.5 rounded-md bg-rose-600 text-[9px] font-mono font-bold text-white flex items-center gap-1 border border-rose-400/30 animate-pulse">
               <Radio className="w-3 h-3" /> ĐANG LIVE
             </span>
+          )}
+          {hasTikTokVideoId && (
+            <button
+              type="button"
+              onClick={() => setStreamMode(streamMode === 'embed' ? 'stream' : 'embed')}
+              className="px-2.5 py-1 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white text-[9px] font-mono font-bold border border-rose-400/40 backdrop-blur-md transition-all flex items-center gap-1 shadow-md cursor-pointer"
+              title={streamMode === 'embed' ? 'Đang phát TikTok Gốc (Bấm để chuyển sang Stream HD)' : 'Đang phát Stream HD (Bấm để chuyển sang TikTok Gốc)'}
+            >
+              {streamMode === 'embed' ? '🎬 TikTok Gốc' : '⚡ Stream HD'}
+            </button>
           )}
         </div>
 

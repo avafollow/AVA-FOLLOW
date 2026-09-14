@@ -68,14 +68,9 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     window.open(directLiveUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // URL khi tắt âm thanh
-  const activeLiveSrc = internalMuted 
-    ? `${directLiveUrl}${directLiveUrl.includes('?') ? '&' : '?'}muted=1&mute=1&volume=0`
-    : directLiveUrl;
-
   return (
     <div className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none ${className}`}>
-      {/* 1. TOP LIVE REAL-TIME HUD BAR (ĐÃ LOẠI BỎ MẮT XEM ẢO THEO YÊU CẦU) */}
+      {/* 1. TOP LIVE REAL-TIME HUD BAR (KHÔNG CHE KHUNG HÌNH, ĐIỀU KHIỂN ÂM THANH MƯỢT MÀ KHÔNG CHỚP ĐEN) */}
       <div className="absolute top-0 inset-x-0 z-30 p-2 sm:p-2.5 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-2 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-rose-500/40 shadow-lg pointer-events-auto">
           <span className="relative flex h-2.5 w-2.5">
@@ -123,23 +118,20 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         </div>
       </div>
 
-      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM (VỪA KHÍT KHUNG VIỀN ĐỎ, CĂN CHÍNH GIỮA 100%, ẨN Ô QUÀ TẶNG) */}
+      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM (CĂN CHÍNH GIỮA 100% CẢ TRÊN PREVIEW LẪN FEED, KHÔNG LỆCH PHẢI) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
         <iframe
-          key={`tt-live-${cleanHandle}-${iframeKey}-${internalMuted ? 'muted' : 'sound'}`}
-          src={activeLiveSrc}
+          key={`tt-live-${cleanHandle}-${iframeKey}`}
+          src={directLiveUrl}
           title={`TikTok Live: @${cleanHandle}`}
-          allow={internalMuted 
-            ? "accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-            : "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; camera; microphone"
-          }
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; camera; microphone"
           allowFullScreen
           onError={() => setLoadError(true)}
           className="absolute border-0 bg-black pointer-events-auto"
           style={{
-            width: '272%',
+            width: '280%',
             height: '112%',
-            left: '-60%',
+            left: '-78%',
             top: '0',
             maxWidth: 'none',
             maxHeight: 'none'

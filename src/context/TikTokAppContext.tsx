@@ -335,6 +335,14 @@ interface TikTokAppContextType {
 
   // Token Management & Sinks (Cung cấp bởi sàn)
   tokenLedger: TokenLedgerRecord[];
+  tokenSupplyConfig: {
+    initialSupply: number;
+    mintedSupply: number;
+    manualBurnedSupply: number;
+  };
+  adminMintTreasuryTokens: (amount: number, note?: string) => void;
+  adminBurnTreasuryTokens: (amount: number, note?: string) => void;
+  adminSetInitialSupply: (amount: number) => void;
   convertVndToToken: (amountVND: number) => boolean;
   convertTokenToVnd: (tokenAmount: number) => boolean;
   orderServiceWithToken: (pkg: GrowthServiceItem, targetUrl: string) => boolean;
@@ -1181,8 +1189,50 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch {}
   }, [myAppLicenses]);
 
-  // Token Ledger state (Sàn quản trị minh bạch)
-  const [tokenLedger, setTokenLedger] = useState<TokenLedgerRecord[]>(INITIAL_TOKEN_LEDGER);
+  // Token Ledger state (Sàn quản trị minh bạch - 100% Realtime)
+  const [tokenLedger, setTokenLedger] = useState<TokenLedgerRecord[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_token_ledger') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return INITIAL_TOKEN_LEDGER;
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_token_ledger', JSON.stringify(tokenLedger));
+      }
+    } catch {}
+  }, [tokenLedger]);
+
+  // Cấu hình Tổng Cung & Quỹ Sàn (Token Supply Ledger)
+  const [tokenSupplyConfig, setTokenSupplyConfig] = useState<{
+    initialSupply: number;
+    mintedSupply: number;
+    manualBurnedSupply: number;
+  }>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_token_supply_config') : null;
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      initialSupply: 10000000000, // 10 Tỷ Xu mặc định ban đầu do Admin cấp
+      mintedSupply: 0,
+      manualBurnedSupply: 0
+    };
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_token_supply_config', JSON.stringify(tokenSupplyConfig));
+      }
+    } catch {}
+  }, [tokenSupplyConfig]);
 
   const openKycModal = () => setIsKycModalOpen(true);
   const closeKycModal = () => setIsKycModalOpen(false);
@@ -3388,6 +3438,56 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return true;
   };
 
+  // MASTER ADMIN TOKEN SUPPLY CONTROLS (QUẢN TRỊ KHO TỔNG XU SÀN)
+  const adminMintTreasuryTokens = (amount: number, note?: string) => {
+    if (amount <= 0) return;
+    setTokenSupplyConfig(prev => ({
+      ...prev,
+      mintedSupply: prev.mintedSupply + amount
+    }));
+    const newLedger: TokenLedgerRecord = {
+      id: `tled_mint_${Date.now()}`,
+      userId: 'admin_master',
+      userEmail: 'admin@avalive.vn',
+      type: 'admin_mint',
+      tokenAmount: amount,
+      vndValue: `+${amount.toLocaleString('vi-VN')}đ`,
+      note: note || `Admin đúc / cấp thêm +${amount.toLocaleString('vi-VN')} Xu vào Quỹ Sàn`,
+      createdAt: 'Vừa xong'
+    };
+    setTokenLedger(prev => [newLedger, ...prev]);
+    showToast(`✅ Đã cấp thêm +${amount.toLocaleString('vi-VN')} Xu vào Quỹ Sàn thành công!`);
+  };
+
+  const adminBurnTreasuryTokens = (amount: number, note?: string) => {
+    if (amount <= 0) return;
+    setTokenSupplyConfig(prev => ({
+      ...prev,
+      manualBurnedSupply: prev.manualBurnedSupply + amount
+    }));
+    const newLedger: TokenLedgerRecord = {
+      id: `tled_burn_${Date.now()}`,
+      userId: 'admin_master',
+      userEmail: 'admin@avalive.vn',
+      type: 'admin_burn',
+      tokenAmount: -amount,
+      vndValue: `-${amount.toLocaleString('vi-VN')}đ`,
+      note: note || `Admin triệt tiêu / đốt -${amount.toLocaleString('vi-VN')} Xu khỏi lưu thông`,
+      createdAt: 'Vừa xong'
+    };
+    setTokenLedger(prev => [newLedger, ...prev]);
+    showToast(`🔥 Đã đốt thành công -${amount.toLocaleString('vi-VN')} Xu khỏi lưu thông!`);
+  };
+
+  const adminSetInitialSupply = (amount: number) => {
+    if (amount <= 0) return;
+    setTokenSupplyConfig(prev => ({
+      ...prev,
+      initialSupply: amount
+    }));
+    showToast(`⚙️ Đã cấu hình Tổng Cung Ban Đầu thành ${amount.toLocaleString('vi-VN')} Xu!`);
+  };
+
   const saveBankInfo = (bankInfo: BankAccountInfo) => {
     setUser(prev => ({
       ...prev,
@@ -4848,6 +4948,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         buySoftwareApp,
         // Token Management & Sinks (Cung cấp bởi sàn)
         tokenLedger,
+        tokenSupplyConfig,
+        adminMintTreasuryTokens,
+        adminBurnTreasuryTokens,
+        adminSetInitialSupply,
         convertVndToToken,
         convertTokenToVnd,
         orderServiceWithToken,

@@ -109,6 +109,10 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     adminRejectKyc,
     kycRequests,
     tokenLedger,
+    tokenSupplyConfig,
+    adminMintTreasuryTokens,
+    adminBurnTreasuryTokens,
+    adminSetInitialSupply,
     affiliateData,
     simulateFriendTaskAction,
     softwareApps,
@@ -133,33 +137,86 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const [userRankFilter, setUserRankFilter] = useState('all');
   const [inspectedPeriod, setInspectedPeriod] = useState<'day' | 'week' | 'month'>('day');
 
-  // Real-time System Statistics Calculations (100% Real Data)
+  // Real-time System Statistics Calculations (100% Real Data - Sạch 0 con số ảo)
   const totalEscrowLockedNum = escrowBookings
     .filter(b => b.status === 'pending_escrow' || b.status === 'escrow_locked' || b.status === 'demo_submitted')
     .reduce((sum, b) => sum + (parseInt(b.totalEscrowAmount.replace(/\D/g, ''), 10) || 0), 0);
-  const totalEscrowLockedFormatted = totalEscrowLockedNum.toLocaleString() + 'đ';
+  const totalEscrowLockedFormatted = totalEscrowLockedNum > 0 ? totalEscrowLockedNum.toLocaleString('vi-VN') + 'đ' : '0đ';
 
   const userDepositsTotal = (user.transactions || [])
     .filter(t => t.type === 'deposit')
     .reduce((sum, t) => sum + (parseInt(String(t.amount || '0').replace(/\D/g, ''), 10) || 0), 0);
 
-  const totalRevenueNum = userDepositsTotal + platformBoostRevenue + totalEscrowLockedNum;
-  const totalRevenueFormatted = totalRevenueNum > 0
-    ? totalRevenueNum.toLocaleString() + 'đ'
-    : ((user.avaliveCoins || 0) + totalEscrowLockedNum).toLocaleString() + 'đ';
+  const totalRevenueNum = userDepositsTotal + platformBoostRevenue;
+  const totalRevenueFormatted = totalRevenueNum > 0 ? totalRevenueNum.toLocaleString('vi-VN') + 'đ' : '0đ';
 
   const totalUsersCount = adminUsers.length + (user.email ? 1 : 0);
   const totalCoinsInCirculation = (user.avaliveCoins || 0) + adminUsers.reduce((s, u) => s + (u.coinsBalance || 0), 0);
   const totalCampaignsCount = campaigns.length;
   const activeCampaignsCount = campaigns.filter(c => c.status === 'running').length;
 
+  // Real-time Task Breakdown & Activity Calculations (100% Real Data)
+  const followCompleted = Object.values(userCompletedActions || {}).filter(a => a.followed).length;
+  const likeCompleted = Object.values(userCompletedActions || {}).filter(a => a.liked).length;
+  const watchCompleted = Object.values(userCompletedActions || {}).filter(a => a.viewed).length;
+  const shareCompleted = Object.values(userCompletedActions || {}).filter(a => a.shared).length;
+  const commentCompleted = Object.values(userCompletedActions || {}).filter(a => a.commented).length;
+  const liveCompleted = Object.values(userCompletedActions || {}).filter(a => a.taskId?.startsWith('live_')).length;
+
   const completedActionsCount = Object.keys(userCompletedActions || {}).length;
-  const userCompletedTasks = (user.completedTasksCount || 0) + completedActionsCount;
-  const totalReceivedTasks24h = Math.max(tasks.length + livestreamTasks.length + userCompletedTasks, 1);
-  const totalCompletedTasks24h = Math.max(userCompletedTasks, Math.floor(totalReceivedTasks24h * 0.9));
-  const totalDropTasks24h = Math.max(totalReceivedTasks24h - totalCompletedTasks24h, 0);
-  const completionPercentage = Math.min(100, Math.max(0, Math.round((totalCompletedTasks24h / totalReceivedTasks24h) * 100)));
-  const dropPercentage = 100 - completionPercentage;
+  const totalCompletedTasks24h = (user.completedTasksCount || 0) + completedActionsCount;
+  const totalReceivedTasks24h = tasks.length + livestreamTasks.length + totalCompletedTasks24h;
+  const totalDropTasks24h = 0;
+  const completionPercentage = totalReceivedTasks24h > 0 ? Math.min(100, Math.round((totalCompletedTasks24h / totalReceivedTasks24h) * 100)) : 0;
+  const dropPercentage = totalReceivedTasks24h > 0 ? Math.max(0, 100 - completionPercentage) : 0;
+
+  const watchCoins = watchCompleted * 1000;
+  const followCoins = followCompleted * 500;
+  const likeCoins = likeCompleted * 100;
+  const commentCoins = commentCompleted * 150;
+  const shareCoins = shareCompleted * 200;
+  const liveCoins = liveCompleted * 300;
+  const totalDistributedCoins = watchCoins + followCoins + likeCoins + commentCoins + shareCoins + liveCoins;
+
+  // ============================================================================
+  // SỔ CÁI PHÂN PHỐI TOKEN / XU TOÀN DIỆN (7 CHỈ SỐ MINH BẠCH 100%)
+  // ============================================================================
+  // 1. Tổng Cung do Admin cấp ban đầu & Đúc thêm
+  const initialSupplyNum = tokenSupplyConfig?.initialSupply || 10000000000;
+  const mintedSupplyNum = tokenSupplyConfig?.mintedSupply || 0;
+  const totalSupplyNum = initialSupplyNum + mintedSupplyNum;
+
+  // 3. Tổng Xu người dùng đang nắm giữ trong ví
+  const userHoldingsNum = (user.avaliveCoins || 0) + adminUsers.reduce((s, u) => s + (u.coinsBalance || 0), 0);
+
+  // 4. Tổng Xu đã chuyển đổi thành tiền mặt / rút ngân hàng
+  const totalWithdrawnNum = (user.transactions || [])
+    .filter(t => t.type === 'withdraw' && t.status === 'success')
+    .reduce((sum, t) => sum + (parseInt(String(t.amount || '0').replace(/\D/g, ''), 10) || 0), 0);
+
+  // 5. Tổng Xu đã tiêu thụ vào mua phần mềm / mua gói dịch vụ
+  const totalSpentAppsNum = (user.myAppLicenses || []).reduce((sum, lic) => sum + (lic.xuPaid || 0), 0);
+  const totalSpentOrdersNum = (user.myOrders || []).reduce((sum, ord) => sum + (parseInt(String(ord.price || '0').replace(/\D/g, ''), 10) || 0), 0);
+  const totalSpentOnServicesNum = totalSpentAppsNum + totalSpentOrdersNum;
+
+  // 6. Tổng Xu đã đốt / triệt tiêu khỏi lưu thông (Phí sàn, phí đẩy top,...)
+  const manualBurnedNum = tokenSupplyConfig?.manualBurnedSupply || 0;
+  const totalBurnedTokensNum = manualBurnedNum + platformBoostRevenue;
+
+  // 2. Tổng Xu đã phân phối ra thị trường (Circulating Supply)
+  const circulatingSupplyNum = userHoldingsNum + totalSpentOnServicesNum + totalWithdrawnNum;
+
+  // 7. Tổng Xu còn lại trong Kho Quỹ Sàn (Chưa phát hành)
+  const treasuryRemainingNum = Math.max(0, totalSupplyNum - circulatingSupplyNum);
+
+  // Token Management UI form states
+  const [mintInputAmount, setMintInputAmount] = useState<string>('1000000000');
+  const [mintInputNote, setMintInputNote] = useState<string>('Admin cấp thêm Xu vào quỹ sàn');
+  const [burnInputAmount, setBurnInputAmount] = useState<string>('500000000');
+  const [burnInputNote, setBurnInputNote] = useState<string>('Triệt tiêu Xu bảo đảm tính ổn định');
+  const [initialSupplyInput, setInitialSupplyInput] = useState<string>(String(initialSupplyNum));
+  const [tokenLedgerFilter, setTokenLedgerFilter] = useState<string>('all');
+  const [tokenLedgerSearch, setTokenLedgerSearch] = useState<string>('');
 
   // Software Apps Management states
   const [adminAppModalOpen, setAdminAppModalOpen] = useState(false);
@@ -820,7 +877,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               </div>
               <div className="p-3.5 rounded-2xl bg-black/40 border border-purple-500/30 space-y-1 text-center">
                 <div className="text-[10px] text-purple-300 font-mono uppercase">Thời Gian Trung Bình/Task</div>
-                <div className="text-xl font-black text-purple-300 font-mono">18.2s</div>
+                <div className="text-xl font-black text-purple-300 font-mono">15s - 30s</div>
                 <div className="text-[10px] text-slate-400 font-mono">Chuẩn tự nhiên FYP</div>
               </div>
             </div>
@@ -834,25 +891,23 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
               <div className="space-y-2.5">
                 {[
-                  { label: 'Kết Nối Bạn Bè (Follow Người Thật)', completed: completionPercentage, drop: dropPercentage, total: `${tasks.filter(t => t.type === 'follow').length} task`, color: 'from-emerald-500 to-teal-400' },
-                  { label: 'Xem & Đánh Giá (Thả Tim Video)', completed: completionPercentage, drop: dropPercentage, total: `${tasks.filter(t => t.type === 'like').length} task`, color: 'from-pink-500 to-rose-400' },
-                  { label: 'Tiếp Cận Người Xem (Xem FYP 15s)', completed: completionPercentage, drop: dropPercentage, total: `${tasks.filter(t => t.type === 'watch').length} task`, color: 'from-blue-500 to-cyan-400' },
-                  { label: 'Giới Thiệu Bạn Bè (Share Ngoại Sàn)', completed: completionPercentage, drop: dropPercentage, total: `${tasks.filter(t => t.type === 'share').length} task`, color: 'from-purple-500 to-indigo-400' },
-                  { label: 'Trả Lời Câu Hỏi (Comment Seeding)', completed: completionPercentage, drop: dropPercentage, total: `${tasks.filter(t => t.type === 'comment').length} task`, color: 'from-amber-500 to-yellow-400' },
-                  { label: 'Xem LIVE & Trả Lời (Giữ Mắt 3-30p)', completed: completionPercentage, drop: dropPercentage, total: `${livestreamTasks.length} task`, color: 'from-red-500 to-orange-400' },
+                  { label: 'Kết Nối Bạn Bè (Follow Người Thật)', completed: followCompleted, total: `${tasks.filter(t => t.type === 'follow').length} task sẵn sàng`, color: 'from-emerald-500 to-teal-400' },
+                  { label: 'Xem & Đánh Giá (Thả Tim Video)', completed: likeCompleted, total: `${tasks.filter(t => t.type === 'like').length} task sẵn sàng`, color: 'from-pink-500 to-rose-400' },
+                  { label: 'Tiếp Cận Người Xem (Xem FYP 15s)', completed: watchCompleted, total: `${tasks.filter(t => t.type === 'watch').length} task sẵn sàng`, color: 'from-blue-500 to-cyan-400' },
+                  { label: 'Giới Thiệu Bạn Bè (Share Ngoại Sàn)', completed: shareCompleted, total: `${tasks.filter(t => t.type === 'share').length} task sẵn sàng`, color: 'from-purple-500 to-indigo-400' },
+                  { label: 'Trả Lời Câu Hỏi (Comment Seeding)', completed: commentCompleted, total: `${tasks.filter(t => t.type === 'comment').length} task sẵn sàng`, color: 'from-amber-500 to-yellow-400' },
+                  { label: 'Xem LIVE & Trả Lời (Giữ Mắt 3-30p)', completed: liveCompleted, total: `${livestreamTasks.length} phòng live sẵn sàng`, color: 'from-red-500 to-orange-400' },
                 ].map((item, idx) => (
                   <div key={idx} className="space-y-1">
                     <div className="flex items-center justify-between text-xs font-mono">
                       <span className="text-slate-300 font-bold">{item.label}</span>
                       <div className="flex items-center gap-3 text-[11px]">
                         <span className="text-slate-400 font-normal">{item.total}</span>
-                        <span className="text-emerald-400 font-bold">✓ {item.completed}% hoàn thành</span>
-                        <span className="text-rose-400 font-bold">✗ {item.drop}% drop</span>
+                        <span className="text-emerald-400 font-bold">✓ {item.completed.toLocaleString()} hoàn thành</span>
                       </div>
                     </div>
                     <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden flex">
-                      <div className={`bg-gradient-to-r ${item.color} h-full transition-all duration-500`} style={{ width: `${item.completed}%` }} />
-                      <div className="bg-rose-500/40 h-full transition-all duration-500" style={{ width: `${item.drop}%` }} />
+                      <div className={`bg-gradient-to-r ${item.color} h-full transition-all duration-500`} style={{ width: `${item.completed > 0 ? '100%' : '0%'}` }} />
                     </div>
                   </div>
                 ))}
@@ -866,7 +921,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center gap-2">
                   <Activity className="w-4 h-4 text-purple-400" />
-                  Sơ Đồ Dòng Tiền & Ký Quỹ Escrow Ăn Chia Tự Động Toàn Sàn
+                  Sơ Đồ Dòng Tiền &amp; Ký Quỹ Escrow Ăn Chia Tự Động Toàn Sàn
                 </h3>
                 <FeatureGuideTooltip
                   title="Luồng Phân Bổ Dòng Tiền Sàn"
@@ -921,7 +976,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               <div className="p-4 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-2 relative overflow-hidden">
                 <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs font-mono">4</div>
                 <h4 className="font-bold text-emerald-300">Rút Tiền Ngân Hàng</h4>
-                <p className="text-[11px] text-slate-400">User & KOC rút tiền về Vietcombank, MB, Techcombank theo kỳ giải ngân sau khi hoàn tất KYC.</p>
+                <p className="text-[11px] text-slate-400">User &amp; KOC rút tiền về Vietcombank, MB, Techcombank theo kỳ giải ngân sau khi hoàn tất KYC.</p>
                 <div className="pt-2 text-[10px] font-mono text-emerald-400 font-bold">Bảo chứng thanh khoản</div>
               </div>
 
@@ -951,12 +1006,12 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   />
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  154,200+ người dùng hoàn thành nhiệm vụ và nhận thưởng Xu thời gian thực hôm nay
+                  {totalUsersCount.toLocaleString()} người dùng thực hiện nhiệm vụ và nhận thưởng Xu thời gian thực hôm nay
                 </p>
               </div>
 
               <span className="text-xs font-mono text-cyan-400 bg-cyan-500/10 px-3 py-1.5 rounded-xl border border-cyan-500/30">
-                Hôm Nay: +75.36M Xu Phân Phối
+                Hôm Nay: +{totalDistributedCoins.toLocaleString('vi-VN')} Xu Phân Phối
               </span>
             </div>
 
@@ -974,14 +1029,14 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       <p className="text-[10px] text-slate-400">+1,000 Xu / lượt</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold font-mono text-emerald-400">99.4%</span>
+                  <span className="text-xs font-bold font-mono text-emerald-400">{watchCompleted > 0 ? '100%' : '0%'}</span>
                 </div>
                 <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-purple-500 to-indigo-500 h-full rounded-full" style={{ width: '99.4%' }} />
+                  <div className="bg-gradient-to-r from-purple-500 to-indigo-500 h-full rounded-full transition-all duration-500" style={{ width: watchCompleted > 0 ? '100%' : '0%' }} />
                 </div>
                 <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
-                  <span>Hoàn thành: <strong>24,850</strong> lượt</span>
-                  <span className="text-purple-300">+24.85M Xu</span>
+                  <span>Hoàn thành: <strong>{watchCompleted.toLocaleString()}</strong> lượt</span>
+                  <span className="text-purple-300">+{watchCoins.toLocaleString('vi-VN')} Xu</span>
                 </div>
               </div>
 
@@ -997,14 +1052,14 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       <p className="text-[10px] text-slate-400">+500 Xu / follow</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold font-mono text-emerald-400">98.3%</span>
+                  <span className="text-xs font-bold font-mono text-emerald-400">{followCompleted > 0 ? '100%' : '0%'}</span>
                 </div>
                 <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full" style={{ width: '98.3%' }} />
+                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500" style={{ width: followCompleted > 0 ? '100%' : '0%' }} />
                 </div>
                 <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
-                  <span>Hoàn thành: <strong>18,200</strong> follow</span>
-                  <span className="text-emerald-300">+9.10M Xu</span>
+                  <span>Hoàn thành: <strong>{followCompleted.toLocaleString()}</strong> follow</span>
+                  <span className="text-emerald-300">+{followCoins.toLocaleString('vi-VN')} Xu</span>
                 </div>
               </div>
 
@@ -1020,14 +1075,14 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       <p className="text-[10px] text-slate-400">+100 Xu / tim</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold font-mono text-emerald-400">99.1%</span>
+                  <span className="text-xs font-bold font-mono text-emerald-400">{likeCompleted > 0 ? '100%' : '0%'}</span>
                 </div>
                 <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-rose-500 to-pink-500 h-full rounded-full" style={{ width: '99.1%' }} />
+                  <div className="bg-gradient-to-r from-rose-500 to-pink-500 h-full rounded-full transition-all duration-500" style={{ width: likeCompleted > 0 ? '100%' : '0%' }} />
                 </div>
                 <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
-                  <span>Hoàn thành: <strong>45,600</strong> tim</span>
-                  <span className="text-rose-300">+4.56M Xu</span>
+                  <span>Hoàn thành: <strong>{likeCompleted.toLocaleString()}</strong> tim</span>
+                  <span className="text-rose-300">+{likeCoins.toLocaleString('vi-VN')} Xu</span>
                 </div>
               </div>
 
@@ -1043,14 +1098,14 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       <p className="text-[10px] text-slate-400">+150 Xu / comment</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold font-mono text-cyan-400">94.0%</span>
+                  <span className="text-xs font-bold font-mono text-cyan-400">{commentCompleted > 0 ? '100%' : '0%'}</span>
                 </div>
                 <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full rounded-full" style={{ width: '94%' }} />
+                  <div className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full rounded-full transition-all duration-500" style={{ width: commentCompleted > 0 ? '100%' : '0%' }} />
                 </div>
                 <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
-                  <span>Hoàn thành: <strong>9,400</strong> bình luận</span>
-                  <span className="text-cyan-300">+1.41M Xu</span>
+                  <span>Hoàn thành: <strong>{commentCompleted.toLocaleString()}</strong> bình luận</span>
+                  <span className="text-cyan-300">+{commentCoins.toLocaleString('vi-VN')} Xu</span>
                 </div>
               </div>
 
@@ -1066,14 +1121,14 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       <p className="text-[10px] text-slate-400">+200 Xu / share</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold font-mono text-emerald-400">97.1%</span>
+                  <span className="text-xs font-bold font-mono text-emerald-400">{shareCompleted > 0 ? '100%' : '0%'}</span>
                 </div>
                 <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-amber-500 to-yellow-500 h-full rounded-full" style={{ width: '97.1%' }} />
+                  <div className="bg-gradient-to-r from-amber-500 to-yellow-500 h-full rounded-full transition-all duration-500" style={{ width: shareCompleted > 0 ? '100%' : '0%' }} />
                 </div>
                 <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
-                  <span>Hoàn thành: <strong>6,800</strong> chia sẻ</span>
-                  <span className="text-amber-300">+1.36M Xu</span>
+                  <span>Hoàn thành: <strong>{shareCompleted.toLocaleString()}</strong> chia sẻ</span>
+                  <span className="text-amber-300">+{shareCoins.toLocaleString('vi-VN')} Xu</span>
                 </div>
               </div>
 
@@ -1089,14 +1144,14 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       <p className="text-[10px] text-slate-400">+300 - 600 Xu / phút</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold font-mono text-emerald-400">94.6%</span>
+                  <span className="text-xs font-bold font-mono text-emerald-400">{liveCompleted > 0 ? '100%' : '0%'}</span>
                 </div>
                 <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 h-full rounded-full" style={{ width: '94.6%' }} />
+                  <div className="bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 h-full rounded-full transition-all duration-500" style={{ width: liveCompleted > 0 ? '100%' : '0%' }} />
                 </div>
                 <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
-                  <span>Tổng phút xem: <strong>85,200</strong> phút</span>
-                  <span className="text-rose-300">+34.08M Xu</span>
+                  <span>Tổng phút xem: <strong>{(liveCompleted * 3).toLocaleString()}</strong> phút</span>
+                  <span className="text-rose-300">+{liveCoins.toLocaleString('vi-VN')} Xu</span>
                 </div>
               </div>
 
@@ -2578,76 +2633,425 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB: Sổ Cái Biến Động Token Minh Bạch (Sàn Quản Trị)                     */}
+      {/* TAB: SỔ CÁI PHÂN PHỐI TOKEN & QUẢN TRỊ KHO XU TOÀN DIỆN (7 CHỈ SỐ)         */}
       {/* ========================================================================= */}
       {activeTab === 'token_ledger' && (
-        <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between">
-            <div>
+        <div className="space-y-6 animate-in fade-in duration-200">
+          
+          {/* Header Banner */}
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-950/50 via-purple-950/40 to-[#0D111E] border border-amber-500/40 shadow-2xl space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-neonGold flex items-center justify-center border border-amber-500/40 shadow-lg">
+                    <Coins className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-white uppercase font-display tracking-wider">
+                      Trung Tâm Quản Trị Sổ Cái &amp; Phân Phối Token (Master Token Supply)
+                    </h3>
+                    <p className="text-xs text-slate-300">
+                      Bảng cân đối kinh tế Xu toàn sàn • Minh bạch 100% dòng tiền, cấp phát, lưu thông, tiêu thụ và bảo chứng
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-black shadow-lg">
+                  1 Xu = 1 VNĐ (Cố Định 100%)
+                </span>
+                <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold">
+                  Bảo Chứng Thanh Khoản 24/7
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 7 THẺ CHỈ SỐ KINH TẾ XU MINH BẠCH (THE 7 PILLARS OF TOKENOMICS) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            
+            {/* 1. Tổng Cung Mặc Định / Đã Cấp Ban Đầu */}
+            <div className="p-4 rounded-3xl bg-slate-900/90 border border-amber-500/40 space-y-2 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform" />
+              <div className="flex items-center justify-between text-xs text-amber-300 font-mono">
+                <span className="uppercase text-[10px] font-black">1. Tổng Cung Admin Cấp</span>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-[9px] font-bold">Total Supply</span>
+              </div>
+              <div className="text-2xl font-black text-neonGold font-mono">
+                {totalSupplyNum.toLocaleString('vi-VN')}
+                <span className="text-xs text-slate-400 font-normal ml-1">Xu</span>
+              </div>
+              <div className="text-[11px] font-mono text-slate-400 pt-1 border-t border-white/5 flex justify-between">
+                <span>Khởi tạo: {initialSupplyNum.toLocaleString('vi-VN')}</span>
+                <span className="text-emerald-400">+{mintedSupplyNum.toLocaleString('vi-VN')} đúc thêm</span>
+              </div>
+            </div>
+
+            {/* 2. Tổng Xu Đã Phân Phối Ra Thị Trường */}
+            <div className="p-4 rounded-3xl bg-slate-900/90 border border-cyan-500/40 space-y-2 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform" />
+              <div className="flex items-center justify-between text-xs text-cyan-300 font-mono">
+                <span className="uppercase text-[10px] font-black">2. Đã Ra Thị Trường</span>
+                <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-[9px] font-bold">Circulating</span>
+              </div>
+              <div className="text-2xl font-black text-cyan-300 font-mono">
+                {circulatingSupplyNum.toLocaleString('vi-VN')}
+                <span className="text-xs text-slate-400 font-normal ml-1">Xu</span>
+              </div>
+              <div className="text-[11px] font-mono text-slate-400 pt-1 border-t border-white/5 flex justify-between">
+                <span>Tỷ lệ phân phối:</span>
+                <span className="text-cyan-400 font-bold">
+                  {totalSupplyNum > 0 ? ((circulatingSupplyNum / totalSupplyNum) * 100).toFixed(2) : 0}%
+                </span>
+              </div>
+            </div>
+
+            {/* 3. Tổng Xu Người Dùng Đang Nắm Giữ */}
+            <div className="p-4 rounded-3xl bg-slate-900/90 border border-purple-500/40 space-y-2 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform" />
+              <div className="flex items-center justify-between text-xs text-purple-300 font-mono">
+                <span className="uppercase text-[10px] font-black">3. Người Dùng Nắm Giữ</span>
+                <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-[9px] font-bold">User Holdings</span>
+              </div>
+              <div className="text-2xl font-black text-purple-300 font-mono">
+                {userHoldingsNum.toLocaleString('vi-VN')}
+                <span className="text-xs text-slate-400 font-normal ml-1">Xu</span>
+              </div>
+              <div className="text-[11px] font-mono text-slate-400 pt-1 border-t border-white/5 flex justify-between">
+                <span>Tổng số ví:</span>
+                <span className="text-purple-300 font-bold">{totalUsersCount} Tài khoản thật</span>
+              </div>
+            </div>
+
+            {/* 4. Tổng Xu Đã Chuyển Đổi Thành Tiền Mặt / Rút Ngân Hàng */}
+            <div className="p-4 rounded-3xl bg-slate-900/90 border border-emerald-500/40 space-y-2 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform" />
+              <div className="flex items-center justify-between text-xs text-emerald-300 font-mono">
+                <span className="uppercase text-[10px] font-black">4. Đã Đổi Ra Tiền Mặt</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-[9px] font-bold">Cashed Out</span>
+              </div>
+              <div className="text-2xl font-black text-emerald-400 font-mono">
+                {totalWithdrawnNum.toLocaleString('vi-VN')}
+                <span className="text-xs text-slate-400 font-normal ml-1">Xu</span>
+              </div>
+              <div className="text-[11px] font-mono text-slate-400 pt-1 border-t border-white/5 flex justify-between">
+                <span>Quy đổi VNĐ:</span>
+                <span className="text-emerald-400 font-bold">≈ {totalWithdrawnNum.toLocaleString('vi-VN')}đ</span>
+              </div>
+            </div>
+
+            {/* 5. Tổng Xu Tiêu Thụ Vào Mua Phần Mềm / Mua Gói / Dịch Vụ */}
+            <div className="p-4 rounded-3xl bg-slate-900/90 border border-indigo-500/40 space-y-2 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform" />
+              <div className="flex items-center justify-between text-xs text-indigo-300 font-mono">
+                <span className="uppercase text-[10px] font-black">5. Mua App &amp; Dịch Vụ</span>
+                <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-[9px] font-bold">Ecosystem Spend</span>
+              </div>
+              <div className="text-2xl font-black text-indigo-300 font-mono">
+                {totalSpentOnServicesNum.toLocaleString('vi-VN')}
+                <span className="text-xs text-slate-400 font-normal ml-1">Xu</span>
+              </div>
+              <div className="text-[11px] font-mono text-slate-400 pt-1 border-t border-white/5 flex justify-between">
+                <span>App + Gói tăng trưởng:</span>
+                <span className="text-indigo-300 font-bold">{softwareApps.length} Apps / {growthServices.length} Gói</span>
+              </div>
+            </div>
+
+            {/* 6. Tổng Xu Đã Đốt / Triệt Tiêu Khỏi Lưu Thông */}
+            <div className="p-4 rounded-3xl bg-slate-900/90 border border-rose-500/40 space-y-2 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform" />
+              <div className="flex items-center justify-between text-xs text-rose-300 font-mono">
+                <span className="uppercase text-[10px] font-black">6. Đã Đốt / Triệt Tiêu</span>
+                <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-[9px] font-bold">Burned / Deflated</span>
+              </div>
+              <div className="text-2xl font-black text-rose-400 font-mono">
+                {totalBurnedTokensNum.toLocaleString('vi-VN')}
+                <span className="text-xs text-slate-400 font-normal ml-1">Xu</span>
+              </div>
+              <div className="text-[11px] font-mono text-slate-400 pt-1 border-t border-white/5 flex justify-between">
+                <span>Phí sàn + Đẩy top:</span>
+                <span className="text-rose-300 font-bold">{platformBoostRevenue.toLocaleString('vi-VN')} Xu</span>
+              </div>
+            </div>
+
+            {/* 7. Tổng Xu Còn Lại Trong Kho Quỹ Sàn (Treasury Balance) */}
+            <div className="p-4 rounded-3xl bg-gradient-to-br from-emerald-950/40 via-slate-900 to-black border-2 border-emerald-500/60 space-y-2 shadow-xl sm:col-span-2 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none group-hover:scale-150 transition-transform" />
+              <div className="flex items-center justify-between text-xs text-emerald-300 font-mono">
+                <span className="uppercase text-[11px] font-black flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  7. Kho Quỹ Sàn Chưa Phát Hành (Treasury Reserve)
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">100% Sẵn Sàng</span>
+              </div>
+              <div className="text-3xl font-black text-emerald-400 font-mono">
+                {treasuryRemainingNum.toLocaleString('vi-VN')}
+                <span className="text-sm text-white font-normal ml-1.5">Xu</span>
+              </div>
+              <div className="text-[11px] font-mono text-slate-300 pt-1 border-t border-white/10 flex justify-between items-center">
+                <span>Tổng cung - Đã phân phối:</span>
+                <span className="text-neonGold font-bold">
+                  ≈ {treasuryRemainingNum.toLocaleString('vi-VN')} VNĐ thanh khoản sẵn sàng
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* BỘ CÔNG CỤ QUẢN TRỊ CẤP PHÁT & ĐỐT TOKEN (ADMIN MASTER TOKEN CONTROLS) */}
+          <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-5 shadow-xl">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-neonGold" />
+                <h4 className="text-sm font-black text-white uppercase font-display tracking-wider">
+                  Bộ Công Cụ Cấp Phát &amp; Điều Tiết Quỹ Xu (Admin Supply Mint &amp; Burn)
+                </h4>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono">
+                Mọi thao tác được lưu vĩnh viễn và ghi vào sổ cái
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              
+              {/* Tool 1: Đúc / Cấp Thêm Xu Vào Quỹ Sàn */}
+              <div className="p-4 rounded-2xl bg-slate-900 border border-amber-500/30 space-y-3 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-amber-300 uppercase font-mono flex items-center gap-1.5">
+                    <PlusCircle className="w-4 h-4 text-amber-400" />
+                    Đúc Xu Vào Quỹ Sàn (Mint)
+                  </span>
+                  <span className="text-[10px] text-amber-400 font-mono">Tăng Tổng Cung</span>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] text-slate-400 font-mono">Số Lượng Xu Cần Cấp Thêm:</label>
+                  <input
+                    type="number"
+                    value={mintInputAmount}
+                    onChange={(e) => setMintInputAmount(e.target.value)}
+                    placeholder="VD: 1000000000"
+                    className="w-full bg-black/50 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                  />
+                  <input
+                    type="text"
+                    value={mintInputNote}
+                    onChange={(e) => setMintInputNote(e.target.value)}
+                    placeholder="Ghi chú đợt cấp..."
+                    className="w-full bg-black/50 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const amt = parseInt(mintInputAmount, 10);
+                    if (amt > 0) {
+                      adminMintTreasuryTokens(amt, mintInputNote);
+                      setMintInputAmount('1000000000');
+                    } else {
+                      showToast('Vui lòng nhập số lượng hợp lệ!');
+                    }
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs font-mono transition-all shadow-md cursor-pointer"
+                >
+                  + Cấp Thêm Vào Quỹ Sàn
+                </button>
+              </div>
+
+              {/* Tool 2: Đốt / Triệt Tiêu Xu Khỏi Lưu Thông */}
+              <div className="p-4 rounded-2xl bg-slate-900 border border-rose-500/30 space-y-3 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-rose-300 uppercase font-mono flex items-center gap-1.5">
+                    <Flame className="w-4 h-4 text-rose-400" />
+                    Đốt / Triệt Tiêu Xu (Burn)
+                  </span>
+                  <span className="text-[10px] text-rose-400 font-mono">Chống Lạm Phát</span>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] text-slate-400 font-mono">Số Lượng Xu Cần Đốt:</label>
+                  <input
+                    type="number"
+                    value={burnInputAmount}
+                    onChange={(e) => setBurnInputAmount(e.target.value)}
+                    placeholder="VD: 500000000"
+                    className="w-full bg-black/50 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-rose-500"
+                  />
+                  <input
+                    type="text"
+                    value={burnInputNote}
+                    onChange={(e) => setBurnInputNote(e.target.value)}
+                    placeholder="Ghi chú lý do triệt tiêu..."
+                    className="w-full bg-black/50 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const amt = parseInt(burnInputAmount, 10);
+                    if (amt > 0) {
+                      adminBurnTreasuryTokens(amt, burnInputNote);
+                      setBurnInputAmount('500000000');
+                    } else {
+                      showToast('Vui lòng nhập số lượng hợp lệ!');
+                    }
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-black text-xs font-mono transition-all shadow-md cursor-pointer"
+                >
+                  🔥 Triệt Tiêu / Đốt Xu
+                </button>
+              </div>
+
+              {/* Tool 3: Cấu Hình Tổng Cung Khởi Tạo Ban Đầu */}
+              <div className="p-4 rounded-2xl bg-slate-900 border border-cyan-500/30 space-y-3 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-cyan-300 uppercase font-mono flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                    Cấu Hình Tổng Cung Ban Đầu
+                  </span>
+                  <span className="text-[10px] text-cyan-400 font-mono">Initial Supply</span>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] text-slate-400 font-mono">Mốc Tổng Cung Khởi Tạo Mặc Định:</label>
+                  <input
+                    type="number"
+                    value={initialSupplyInput}
+                    onChange={(e) => setInitialSupplyInput(e.target.value)}
+                    placeholder="VD: 10000000000"
+                    className="w-full bg-black/50 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+                  />
+                  <p className="text-[10px] text-slate-400">
+                    Mức cơ sở sàn cấp ban đầu trước khi phát hành hoặc đúc thêm.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const amt = parseInt(initialSupplyInput, 10);
+                    if (amt > 0) {
+                      adminSetInitialSupply(amt);
+                    } else {
+                      showToast('Vui lòng nhập số lượng hợp lệ!');
+                    }
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs font-mono transition-all shadow-md cursor-pointer"
+                >
+                  ⚙️ Lưu Mốc Tổng Cung
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          {/* BẢNG SỔ CÁI BIẾN ĐỘNG XU MINH BẠCH (REALTIME TRANSACTION LEDGER) */}
+          <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+              <div>
                 <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center gap-2">
                   <Coins className="w-4 h-4 text-neonGold" />
-                  Sổ Cái Biến Động Xu Minh Bạch ({tokenLedger.length} Giao Dịch)
+                  Sổ Cái Biến Động Xu Minh Bạch Toàn Sàn ({tokenLedger.length} Giao Dịch)
                 </h3>
-                <FeatureGuideTooltip
-                  title="Cơ Chế Kinh Tế Xu Minh Bạch 100%"
-                  description="Sàn quản trị phần Xu thưởng cho người dùng. Người dùng làm nhiệm vụ để tích lũy Xu, sau đó rút sang tiền mặt, nạp tiền lấy Xu hoặc dùng Xu tạo chiến dịch đẩy kênh. 1 Xu = 1 VNĐ tiền mặt."
-                  steps={[
-                    "Tỷ giá cố định: 1 Xu = 1 VNĐ (Bảo chứng tài chính minh bạch 100%)",
-                    "Cấp phát: Sàn tự động cấp Xu khi user làm nhiệm vụ hoặc qua quản trị Admin",
-                    "Tiêu thụ hấp thụ: Tạo chiến dịch kéo Follow, Tim, Mắt Live hoặc mua gói dịch vụ",
-                    "Quy đổi tiền mặt: Rút về ngân hàng sau khi hoàn tất KYC"
-                  ]}
-                  tips="Mọi giao dịch cộng/trừ Xu đều được ghi nhận vào sổ cái không thể chỉnh sửa."
-                  badge="Sổ Cái Bất Biến"
-                />
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Ghi nhận bất biến toàn bộ lượt cấp, đốt, thưởng nhiệm vụ, hoa hồng và rút tiền
+                </p>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Theo dõi chính xác tuyệt đối từng lượt cộng/trừ Xu cho từng tài khoản trên hệ thống
-              </p>
+
+              {/* Filters & Search */}
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Tìm theo email / ghi chú..."
+                  value={tokenLedgerSearch}
+                  onChange={(e) => setTokenLedgerSearch(e.target.value)}
+                  className="bg-black/50 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-mono"
+                />
+                <select
+                  value={tokenLedgerFilter}
+                  onChange={(e) => setTokenLedgerFilter(e.target.value)}
+                  className="bg-slate-900 border border-white/10 text-slate-300 text-xs rounded-xl px-2.5 py-1.5 font-mono focus:outline-none focus:border-amber-500"
+                >
+                  <option value="all">Tất cả giao dịch ({tokenLedger.length})</option>
+                  <option value="admin_mint">Admin Đúc Xu (+ Quỹ)</option>
+                  <option value="admin_burn">Admin Đốt Xu (- Triệt tiêu)</option>
+                  <option value="admin_grant">Admin Cấp Cho User</option>
+                  <option value="task_reward">Thưởng Nhiệm Vụ</option>
+                  <option value="affiliate_bonus">Hoa Hồng Tiếp Thị</option>
+                  <option value="buy_software_app">Mua Phần Mềm</option>
+                  <option value="buy_growth_package">Mua Gói Dịch Vụ</option>
+                  <option value="platform_boost_fee">Phí Đẩy Top Sàn</option>
+                  <option value="withdraw_cashout">Rút Tiền Mặt</option>
+                </select>
+              </div>
             </div>
 
-            <div className="text-right font-mono text-xs text-neonGold bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/30">
-              1 Xu = 1 VNĐ (Cố Định 100%)
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-white/5 text-slate-400 font-mono uppercase text-[10px]">
-                <tr>
-                  <th className="p-3">Thời Gian</th>
-                  <th className="p-3">Tài Khoản Gmail</th>
-                  <th className="p-3">Loại Giao Dịch</th>
-                  <th className="p-3">Số Lượng Token</th>
-                  <th className="p-3">Giá Trị VNĐ</th>
-                  <th className="p-3">Ghi Chú Chi Tiết</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5 text-slate-300 font-mono">
-                {tokenLedger.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="p-3 text-slate-400">{tx.createdAt}</td>
-                    <td className="p-3 text-cyan-400 font-semibold">{tx.userEmail}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        tx.tokenAmount > 0
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                      }`}>
-                        {tx.type}
-                      </span>
-                    </td>
-                    <td className={`p-3 font-black ${tx.tokenAmount > 0 ? 'text-emerald-400' : 'text-neonGold'}`}>
-                      {tx.tokenAmount > 0 ? `+${tx.tokenAmount}` : tx.tokenAmount} TOKEN
-                    </td>
-                    <td className="p-3 text-white font-bold">{tx.vndValue}</td>
-                    <td className="p-3 text-slate-300 text-xs font-sans">{tx.note}</td>
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-white/5 text-slate-400 font-mono uppercase text-[10px]">
+                  <tr>
+                    <th className="p-3">Thời Gian</th>
+                    <th className="p-3">Tài Khoản / Đối Tác</th>
+                    <th className="p-3">Loại Giao Dịch</th>
+                    <th className="p-3">Số Lượng Xu</th>
+                    <th className="p-3">Giá Trị VNĐ</th>
+                    <th className="p-3">Ghi Chú Chi Tiết</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-slate-300 font-mono">
+                  {tokenLedger
+                    .filter(tx => {
+                      if (tokenLedgerFilter !== 'all' && tx.type !== tokenLedgerFilter) return false;
+                      if (tokenLedgerSearch) {
+                        const q = tokenLedgerSearch.toLowerCase();
+                        return (tx.userEmail && tx.userEmail.toLowerCase().includes(q)) ||
+                               (tx.note && tx.note.toLowerCase().includes(q));
+                      }
+                      return true;
+                    })
+                    .map((tx) => {
+                      const typeBadgeMap: Record<string, { label: string; color: string }> = {
+                        admin_mint: { label: '👑 Admin Đúc Quỹ', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+                        admin_burn: { label: '🔥 Admin Đốt Xu', color: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
+                        admin_grant: { label: '🎁 Admin Cấp Ví', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
+                        admin_adjust: { label: '⚖️ Admin Điều Chỉnh', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
+                        task_reward: { label: '🎯 Thưởng Task', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
+                        affiliate_bonus: { label: '🤝 Hoa Hồng Ref', color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40' },
+                        buy_software_app: { label: '💻 Mua Phần Mềm', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
+                        buy_growth_package: { label: '📦 Mua Gói View', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
+                        platform_boost_fee: { label: '🚀 Phí Đẩy Top', color: 'bg-orange-500/20 text-orange-300 border-orange-500/40' },
+                        withdraw_cashout: { label: '🏦 Rút Tiền ATM', color: 'bg-teal-500/20 text-teal-300 border-teal-500/40' },
+                        convert_vnd_to_token: { label: '💳 Nạp Xu VNĐ', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
+                        convert_token_to_vnd: { label: '💸 Đổi Xu Sang VNĐ', color: 'bg-pink-500/20 text-pink-300 border-pink-500/40' },
+                      };
+                      const badge = typeBadgeMap[tx.type] || { label: tx.type, color: 'bg-white/10 text-slate-300 border-white/10' };
+
+                      return (
+                        <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="p-3 text-slate-400 whitespace-nowrap">{tx.createdAt}</td>
+                          <td className="p-3 text-cyan-400 font-semibold">{tx.userEmail}</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${badge.color}`}>
+                              {badge.label}
+                            </span>
+                          </td>
+                          <td className={`p-3 font-black whitespace-nowrap ${tx.tokenAmount > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {tx.tokenAmount > 0 ? `+${tx.tokenAmount.toLocaleString('vi-VN')}` : tx.tokenAmount.toLocaleString('vi-VN')} Xu
+                          </td>
+                          <td className="p-3 text-white font-bold whitespace-nowrap">{tx.vndValue}</td>
+                          <td className="p-3 text-slate-300 text-xs font-sans">{tx.note}</td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+
+              {tokenLedger.length === 0 && (
+                <div className="text-center py-8 text-slate-500 font-mono text-xs">
+                  Chưa có giao dịch biến động Xu nào. Hệ thống sẵn sàng ghi nhận realtime!
+                </div>
+              )}
+            </div>
           </div>
+
         </div>
       )}
 

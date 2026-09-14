@@ -937,13 +937,28 @@ export interface TokenLedgerRecord {
     | 'buy_growth_package'   // Mua gói dịch vụ (Follow, Tim, Live)
     | 'convert_vnd_to_token' // Nạp tiền VNĐ đổi lấy Token
     | 'convert_token_to_vnd' // Rút tiền: Đổi Token sang VNĐ
+    | 'withdraw_cashout'     // Rút tiền mặt về tài khoản ngân hàng
+    | 'platform_boost_fee'   // Phí dịch vụ đẩy top sàn (+50.000 Xu)
     | 'escrow_lock'          // Khóa ký quỹ hợp đồng KOC
-    | 'admin_grant'          // Admin cấp token trực tiếp
+    | 'admin_mint'           // Admin đúc / cấp thêm Xu vào quỹ sàn
+    | 'admin_burn'           // Admin triệt tiêu / đốt Xu
+    | 'admin_grant'          // Admin cấp token trực tiếp cho user
     | 'admin_adjust';        // Admin điều chỉnh
   tokenAmount: number;       // Số token (+ hoặc -)
   vndValue: string;          // Giá trị quy đổi VNĐ tương ứng
   note: string;
   createdAt: string;
+}
+
+// Bảng Sổ Cái & Phân Phối Token Toàn Diện (7 Chỉ Số Minh Bạch)
+export interface TokenSupplyLedger {
+  initialSupply: number;        // 1. Tổng Cung do Admin cấp ban đầu
+  circulatingSupply: number;    // 2. Tổng Xu đã phân phối ra thị trường
+  userHoldings: number;         // 3. Tổng Xu người dùng đang nắm giữ trong ví
+  withdrawnVND: number;         // 4. Tổng Xu đã chuyển đổi thành tiền mặt / rút ATM
+  spentOnAppsPackages: number;  // 5. Tổng Xu đã tiêu thụ vào mua phần mềm, gói & dịch vụ
+  burnedTokens: number;         // 6. Tổng Xu đã đốt / triệt tiêu khỏi lưu thông
+  treasuryRemaining: number;    // 7. Tổng Xu còn lại trong Kho Quỹ Sàn (Chưa phát hành)
 }
 
 // Hồ sơ người dùng & Ví Token

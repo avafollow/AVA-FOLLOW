@@ -344,6 +344,7 @@ interface TikTokAppContextType {
   adminMintTreasuryTokens: (amount: number, note?: string) => void;
   adminBurnTreasuryTokens: (amount: number, note?: string) => void;
   adminSetInitialSupply: (amount: number) => void;
+  adminResetTokenLedgerAndSupply: () => void;
   convertVndToToken: (amountVND: number) => boolean;
   convertTokenToVnd: (tokenAmount: number) => boolean;
   orderServiceWithToken: (pkg: GrowthServiceItem, targetUrl: string) => boolean;
@@ -430,9 +431,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const savedEmail = (typeof window !== 'undefined' ? localStorage.getItem('ava_user_email') : null) || parsed.email;
         const savedTiktok = (typeof window !== 'undefined' ? localStorage.getItem('ava_tiktok_connected') : null) || parsed.tiktokConnected;
         const isAdmin = savedEmail === 'quocthiencr90@gmail.com' || parsed.isAdmin;
+        // Khử số dư ảo hàng tỷ xu từ dữ liệu test cũ
+        const cleanCoins = (Number(parsed.avaliveCoins) >= 1000000000 || isNaN(Number(parsed.avaliveCoins))) ? 0 : (Number(parsed.avaliveCoins) || 0);
         return {
           ...USER_PROFILE_WALLET,
           ...parsed,
+          avaliveCoins: cleanCoins,
+          coinsValueVND: `${cleanCoins.toLocaleString('vi-VN')}đ`,
           email: savedEmail || parsed.email || USER_PROFILE_WALLET.email,
           tiktokConnected: savedTiktok !== null ? savedTiktok : parsed.tiktokConnected,
           isAdmin
@@ -3574,6 +3579,52 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`⚙️ Đã cấu hình Tổng Cung Ban Đầu thành ${amount.toLocaleString('vi-VN')} Xu!`);
   };
 
+  const adminResetTokenLedgerAndSupply = () => {
+    // 1. Reset user wallet to 0 clean real balance
+    setUser(prev => ({
+      ...prev,
+      avaliveCoins: 0,
+      coinsValueVND: '0đ',
+      tokenBalance: 0,
+      completedTasksCount: 0,
+      dailyTasksCompleted: 0,
+      transactions: [],
+      myOrders: [],
+      myAppLicenses: []
+    }));
+
+    // 2. Reset admin users list balances to 0
+    setAdminUsers(prev => prev.map(u => ({
+      ...u,
+      coinsBalance: 0,
+      tokenBalance: 0
+    })));
+
+    // 3. Reset token supply config to default 10 billion
+    setTokenSupplyConfig({
+      initialSupply: 10000000000,
+      mintedSupply: 0,
+      manualBurnedSupply: 0
+    });
+
+    // 4. Clear token ledger records
+    setTokenLedger([]);
+
+    // 5. Clean localStorage
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('ava_token_ledger');
+        localStorage.setItem('ava_token_supply_config', JSON.stringify({
+          initialSupply: 10000000000,
+          mintedSupply: 0,
+          manualBurnedSupply: 0
+        }));
+      }
+    } catch {}
+
+    showToast('✅ Đã reset toàn bộ số liệu ví thị trường về 0! Tổng cung 10 Tỷ Xu và Kho Quỹ Sàn 100% sẵn sàng.');
+  };
+
   const saveBankInfo = (bankInfo: BankAccountInfo) => {
     setUser(prev => ({
       ...prev,
@@ -5038,6 +5089,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         adminMintTreasuryTokens,
         adminBurnTreasuryTokens,
         adminSetInitialSupply,
+        adminResetTokenLedgerAndSupply,
         convertVndToToken,
         convertTokenToVnd,
         orderServiceWithToken,

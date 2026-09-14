@@ -113,6 +113,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     adminMintTreasuryTokens,
     adminBurnTreasuryTokens,
     adminSetInitialSupply,
+    adminResetTokenLedgerAndSupply,
     affiliateData,
     simulateFriendTaskAction,
     softwareApps,
@@ -192,12 +193,23 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   // SỔ CÁI PHÂN PHỐI TOKEN / XU TOÀN DIỆN (7 CHỈ SỐ MINH BẠCH 100%)
   // ============================================================================
   // 1. Tổng Cung do Admin cấp ban đầu & Đúc thêm
-  const initialSupplyNum = tokenSupplyConfig?.initialSupply || 10000000000;
-  const mintedSupplyNum = tokenSupplyConfig?.mintedSupply || 0;
+  const initialSupplyNum = Number(tokenSupplyConfig?.initialSupply) || 10000000000;
+  const mintedSupplyNum = Number(tokenSupplyConfig?.mintedSupply) || 0;
   const totalSupplyNum = initialSupplyNum + mintedSupplyNum;
 
-  // 3. Tổng Xu người dùng đang nắm giữ trong ví
-  const userHoldingsNum = (user.avaliveCoins || 0) + adminUsers.reduce((s, u) => s + (u.coinsBalance || 0), 0);
+  // 3. Tổng Xu người dùng đang nắm giữ trong ví (Deduplicated list of real user wallets)
+  // Tạo danh sách ví duy nhất tránh tính trùng tài khoản đang đăng nhập với adminUsers
+  const uniqueUsersWalletMap = new Map<string, number>();
+  if (user && user.email) {
+    uniqueUsersWalletMap.set(user.email.toLowerCase(), Number(user.avaliveCoins) || 0);
+  }
+  adminUsers.forEach(u => {
+    if (u && u.email) {
+      uniqueUsersWalletMap.set(u.email.toLowerCase(), Number(u.coinsBalance) || 0);
+    }
+  });
+  const userHoldingsNum = Array.from(uniqueUsersWalletMap.values()).reduce((sum, val) => sum + (Number(val) || 0), 0);
+  const totalRealWalletsCount = Math.max(1, uniqueUsersWalletMap.size);
 
   // 4. Tổng Xu đã chuyển đổi thành tiền mặt / rút ngân hàng
   const totalWithdrawnNum = (user.transactions || [])
@@ -205,18 +217,20 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     .reduce((sum, t) => sum + parseNumericAmount(t.amount), 0);
 
   // 5. Tổng Xu đã tiêu thụ vào mua phần mềm / mua gói dịch vụ
-  const totalSpentAppsNum = (user.myAppLicenses || []).reduce((sum, lic) => sum + (lic.xuPaid || 0), 0);
+  const totalSpentAppsNum = (user.myAppLicenses || []).reduce((sum, lic) => sum + (Number(lic.xuPaid) || 0), 0);
   const totalSpentOrdersNum = (user.myOrders || []).reduce((sum, ord) => sum + parseNumericAmount(ord.price), 0);
   const totalSpentOnServicesNum = totalSpentAppsNum + totalSpentOrdersNum;
 
   // 6. Tổng Xu đã đốt / triệt tiêu khỏi lưu thông (Phí sàn, phí đẩy top,...)
-  const manualBurnedNum = tokenSupplyConfig?.manualBurnedSupply || 0;
-  const totalBurnedTokensNum = manualBurnedNum + (platformBoostRevenue || 0);
+  const manualBurnedNum = Number(tokenSupplyConfig?.manualBurnedSupply) || 0;
+  const totalBurnedTokensNum = manualBurnedNum + (Number(platformBoostRevenue) || 0);
 
   // 2. Tổng Xu đã phân phối ra thị trường (Circulating Supply)
-  const circulatingSupplyNum = userHoldingsNum + totalSpentOnServicesNum + totalWithdrawnNum;
+  // Tổng Xu đã ra ngoài thị trường = Đang nằm trong ví người dùng + Đã rút tiền mặt + Đã tiêu dùng vào phần mềm/dịch vụ + Đã đốt
+  const circulatingSupplyNum = userHoldingsNum + totalSpentOnServicesNum + totalWithdrawnNum + totalBurnedTokensNum;
 
-  // 7. Tổng Xu còn lại trong Kho Quỹ Sàn (Chưa phát hành)
+  // 7. Tổng Xu còn lại trong Kho Quỹ Sàn (Chưa phát hành - Treasury Balance)
+  // Kho Quỹ Sàn = Tổng Cung - Tổng Xu Đã Phân Phối Ra Thị Trường
   const treasuryRemainingNum = Math.max(0, totalSupplyNum - circulatingSupplyNum);
 
   // Token Management UI form states
@@ -2735,7 +2749,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               </div>
               <div className="text-[11px] font-mono text-slate-400 pt-1 border-t border-white/5 flex justify-between">
                 <span>Tổng số ví:</span>
-                <span className="text-purple-300 font-bold">{totalUsersCount} Tài khoản thật</span>
+                <span className="text-purple-300 font-bold">{totalRealWalletsCount} Tài khoản thật</span>
               </div>
             </div>
 
@@ -2828,7 +2842,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               
               {/* Tool 1: Đúc / Cấp Thêm Xu Vào Quỹ Sàn */}
               <div className="p-4 rounded-2xl bg-slate-900 border border-amber-500/30 space-y-3 shadow-lg">
@@ -2921,12 +2935,12 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black text-cyan-300 uppercase font-mono flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                    Cấu Hình Tổng Cung Ban Đầu
+                    Cấu Hình Tổng Cung
                   </span>
                   <span className="text-[10px] text-cyan-400 font-mono">Initial Supply</span>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] text-slate-400 font-mono">Mốc Tổng Cung Khởi Tạo Mặc Định:</label>
+                  <label className="text-[11px] text-slate-400 font-mono">Mốc Tổng Cung Khởi Tạo:</label>
                   <input
                     type="number"
                     value={initialSupplyInput}
@@ -2951,6 +2965,43 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs font-mono transition-all shadow-md cursor-pointer"
                 >
                   ⚙️ Lưu Mốc Tổng Cung
+                </button>
+              </div>
+
+              {/* Tool 4: Đặt Lại Kho Quỹ Sàn & Xóa Số Liệu Ảo */}
+              <div className="p-4 rounded-2xl bg-slate-900 border border-emerald-500/30 space-y-3 shadow-lg flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-emerald-300 uppercase font-mono flex items-center gap-1.5">
+                      <RefreshCw className="w-4 h-4 text-emerald-400" />
+                      Đặt Lại Kho Quỹ 10 Tỷ
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-mono">100% Sẵn Sàng</span>
+                  </div>
+                  <div className="space-y-1.5 pt-2">
+                    <p className="text-[11px] text-slate-300 font-mono">
+                      Khôi phục trạng thái chuẩn:
+                    </p>
+                    <ul className="text-[10px] text-slate-400 space-y-1 font-mono">
+                      <li>• Tổng Cung: <strong className="text-neonGold">10.000.000.000 Xu</strong></li>
+                      <li>• Kho Quỹ Sàn: <strong className="text-emerald-400">10.000.000.000 Xu</strong></li>
+                      <li>• Ra Thị Trường: <strong className="text-cyan-400">0 Xu</strong></li>
+                      <li>• Ví Người Dùng: <strong className="text-purple-300">0 Xu</strong> (sạch sẽ)</li>
+                    </ul>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Anh có chắc chắn muốn đặt lại Kho Quỹ về 10 Tỷ Xu và xóa sạch mọi số liệu ví ảo để vận hành người thật?')) {
+                      adminResetTokenLedgerAndSupply();
+                      setInitialSupplyInput('10000000000');
+                    }
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-black text-xs font-mono transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>🔄 Đặt Lại Kho Quỹ 10 Tỷ</span>
                 </button>
               </div>
 

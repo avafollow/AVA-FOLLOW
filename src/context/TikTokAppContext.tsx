@@ -560,10 +560,22 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_escrow_bookings') : null;
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          // Lọc sạch 100% hợp đồng mock / demo cũ
+          const realOnly = parsed.filter((c: EscrowBookingContract) => 
+            c && c.id && 
+            !c.id.startsWith('mock_') && 
+            !c.id.startsWith('escrow_demo') &&
+            !c.id.startsWith('escrow_mock') &&
+            !c.id.startsWith('demo_') &&
+            !c.id.includes('sample') &&
+            !c.id.includes('demo')
+          );
+          return realOnly;
+        }
       }
     } catch {}
-    return ESCROW_BOOKINGS;
+    return [];
   });
 
   const [adminUsers, setAdminUsers] = useState<AdminUserManagementItem[]>(() => {

@@ -544,163 +544,263 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
         </div>
       </div>
 
-      {/* Admin Navigation Tabs */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'overview'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/30'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <LayoutDashboard className="w-4 h-4 text-cyan-400" />
-          <span>Dashboard Toàn Bộ</span>
-        </button>
+      {/* Admin Navigation Tabs - Luxury Command Center Grid */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-purple-400" />
+            <h3 className="text-xs font-black text-white font-mono uppercase tracking-wider">
+              Trung Tâm Điều Khiển & Phân Hệ Quản Trị
+            </h3>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono">
+            13 Phân Hệ Quản Trị Toàn Quyền Master
+          </span>
+        </div>
 
-        <button
-          onClick={() => setActiveTab('grant_permissions')}
-          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'grant_permissions'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/30'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Key className="w-4 h-4 text-neonGold" />
-          <span>Cấp Quyền & Gói</span>
-        </button>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2.5">
+          {[
+            {
+              id: 'overview',
+              label: 'Tổng Quan',
+              subLabel: 'Dashboard Master',
+              icon: LayoutDashboard,
+              badge: 'Realtime',
+              border: 'border-cyan-500/40',
+              activeBg: 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-cyan-900/40 ring-2 ring-cyan-400',
+              iconColor: 'text-cyan-400',
+              guide: {
+                title: 'Phân Hệ Dashboard Tổng Quan',
+                description: 'Báo cáo tổng hợp số liệu toàn sàn: Doanh thu thực tế, tổng tài khoản đăng ký, két ký quỹ Escrow và kho gói dịch vụ tăng trưởng.',
+                steps: ['Theo dõi các chỉ số quan trọng', 'Truy cập nhanh các thao tác nạp Xu và quản lý']
+              }
+            },
+            {
+              id: 'grant_permissions',
+              label: 'Cấp Quyền & Gói',
+              subLabel: '24 Siêu Phẩm VIP',
+              icon: Key,
+              badge: `${growthServices.length} Gói`,
+              border: 'border-amber-500/40',
+              activeBg: 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white shadow-lg shadow-amber-900/40 ring-2 ring-amber-400',
+              iconColor: 'text-yellow-400',
+              guide: {
+                title: 'Cấp Quyền & Gói Dịch Vụ',
+                description: 'Toàn quyền cấp miễn phí hoặc nâng cấp 24 gói tăng trưởng TikTok cho bất kỳ tài khoản người dùng nào chỉ với 1-chạm.',
+                steps: ['Chọn người dùng cần cấp', 'Chọn gói dịch vụ trong 24 siêu phẩm', 'Bấm Cấp Gói để kích hoạt ngay lập tức']
+              }
+            },
+            {
+              id: 'software_apps',
+              label: 'App Kiếm Tiền',
+              subLabel: 'Kho Tool & Software',
+              icon: Cpu,
+              badge: `${softwareApps.length} App`,
+              border: 'border-pink-500/40',
+              activeBg: 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-lg shadow-pink-900/40 ring-2 ring-pink-400',
+              iconColor: 'text-pink-400',
+              guide: {
+                title: 'Kho Ứng Dụng Kiếm Tiền',
+                description: 'Quản lý kho phần mềm, công cụ cày view, AI kịch bản, bot seeding và cấp bản quyền sử dụng cho thành viên.',
+                steps: ['Xem danh sách phần mềm', 'Tùy chỉnh giá Xu và mô tả', 'Bật / tắt hiển thị trên Chợ Ứng Dụng']
+              }
+            },
+            {
+              id: 'users',
+              label: 'Quản Lý User',
+              subLabel: 'Tra Cứu & Nâng Rank',
+              icon: Users,
+              badge: `${adminUsers.length} User`,
+              border: 'border-purple-500/40',
+              activeBg: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-900/40 ring-2 ring-purple-400',
+              iconColor: 'text-purple-400',
+              guide: {
+                title: 'Quản Lý Danh Sách Người Dùng',
+                description: 'Tra cứu thông tin tài khoản qua Gmail, điều chỉnh số dư Xu, can thiệp cấp bậc VIP (Đồng -> Kim Cương) và khóa tài khoản vi phạm.',
+                steps: ['Tìm kiếm bằng email hoặc ID', 'Bấm nút Inspector để xem chi tiết', 'Cộng/trừ Xu hoặc thăng hạng trực tiếp']
+              }
+            },
+            {
+              id: 'referrals',
+              label: 'Tiếp Thị & Ref',
+              subLabel: 'Hoa Hồng Đa Tầng',
+              icon: Gift,
+              badge: `${affiliateData.referralsList.length} Ref`,
+              border: 'border-emerald-500/40',
+              activeBg: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/40 ring-2 ring-emerald-400',
+              iconColor: 'text-emerald-400',
+              guide: {
+                title: 'Tiếp Thị Liên Kết & Giới Thiệu',
+                description: 'Quản lý cây phả hệ giới thiệu F1 -> F5, kiểm soát hoa hồng phát sinh và tỷ lệ chia sẻ doanh thu mạng lưới.',
+                steps: ['Xem danh sách người giới thiệu', 'Kiểm tra hoa hồng tích lũy', 'Duyệt thưởng mạng lưới affiliate']
+              }
+            },
+            {
+              id: 'kyc',
+              label: 'Xác Minh KYC',
+              subLabel: 'CCCD & Tích Xanh',
+              icon: ShieldCheck,
+              badge: `${kycRequests.length} Yêu Cầu`,
+              border: 'border-cyan-500/40',
+              activeBg: 'bg-gradient-to-r from-cyan-600 to-sky-600 text-white shadow-lg shadow-cyan-900/40 ring-2 ring-cyan-400',
+              iconColor: 'text-cyan-400',
+              guide: {
+                title: 'Xác Minh Danh Tính KYC',
+                description: 'Duyệt ảnh CCCD 2 mặt và ảnh chân dung selfie của người dùng để cấp huy hiệu Tích Xanh uy tín và mở khóa hạn mức rút tiền lớn.',
+                steps: ['Kiểm tra ảnh mặt trước / sau CCCD', 'Đối chiếu thông tin họ tên & ngày sinh', 'Bấm Duyệt KYC hoặc Từ chối có lý do']
+              }
+            },
+            {
+              id: 'token_ledger',
+              label: 'Sổ Cái Token',
+              subLabel: 'Tổng Cung 10 Tỷ Xu',
+              icon: Coins,
+              badge: '10 Tỷ Cố Định',
+              border: 'border-yellow-500/40',
+              activeBg: 'bg-gradient-to-r from-yellow-600 to-amber-600 text-white shadow-lg shadow-yellow-900/40 ring-2 ring-yellow-400',
+              iconColor: 'text-yellow-400',
+              guide: {
+                title: 'Sổ Cái & Tokenomics AVA COIN',
+                description: 'Bảo chứng Tổng Cung 10 Tỷ Xu, tự động trừ Kho Quỹ Sàn khi Xu ra thị trường. Hỗ trợ công cụ Đúc (Mint), Đốt (Burn) và Reset chuẩn thị trường.',
+                steps: ['Xem bảng cân đối tài sản realtime', 'Thực hiện Mint/Burn token có ghi sổ', 'Reset số liệu về mốc chuẩn khi cần']
+              }
+            },
+            {
+              id: 'settings',
+              label: 'Hoa Hồng Sàn',
+              subLabel: 'Cấu Hình Thu Phí %',
+              icon: Percent,
+              badge: `${escrowFee}% Sàn`,
+              border: 'border-indigo-500/40',
+              activeBg: 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-900/40 ring-2 ring-indigo-400',
+              iconColor: 'text-indigo-400',
+              guide: {
+                title: 'Cấu Hình Hoa Hồng & Phí Sàn',
+                description: 'Điều chỉnh tỷ lệ chiết khấu sàn (Platform Fee %), tỷ lệ phân bổ cho Creator, và các chính sách phí giao dịch nạp/rút.',
+                steps: ['Kéo thanh trượt điều chỉnh % phí sàn', 'Bấm Lưu Cấu Hình để áp dụng toàn hệ thống']
+              }
+            },
+            {
+              id: 'escrow',
+              label: 'Trọng Tài Escrow',
+              subLabel: 'Ký Quỹ & Tranh Chấp',
+              icon: Gavel,
+              badge: `${disputedBookings.length} Khiếu Nại`,
+              border: 'border-rose-500/40',
+              activeBg: 'bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-lg shadow-rose-900/40 ring-2 ring-rose-400',
+              iconColor: 'text-rose-400',
+              guide: {
+                title: 'Trọng Tài & Hợp Đồng Ký Quỹ Escrow',
+                description: 'Bảo vệ quyền lợi Brand & KOC: Duyệt giải ngân thù lao, xử lý khiếu nại, hoàn tiền cọc hoặc phán quyết đền bù minh bạch 100%.',
+                steps: ['Xem bằng chứng video & link nộp bài', 'Phân xử Giải Ngân hoặc Hoàn Tiền']
+              }
+            },
+            {
+              id: 'campaigns',
+              label: 'Chiến Dịch',
+              subLabel: 'Quảng Bá & Tương Tác',
+              icon: Flame,
+              badge: `${campaigns.length} Đang Chạy`,
+              border: 'border-orange-500/40',
+              activeBg: 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-orange-900/40 ring-2 ring-orange-400',
+              iconColor: 'text-orange-400',
+              guide: {
+                title: 'Quản Lý Chiến Dịch Quảng Bá',
+                description: 'Toàn quyền duyệt, tạm dừng, chỉnh sửa ngân sách hoặc tạo chiến dịch quảng bá Follow, Thả Tim, Bình Luận và Livestream cho đối tác.',
+                steps: ['Xem tiến độ phân bổ tương tác', 'Bật / tắt hoặc điều chỉnh tốc độ chạy']
+              }
+            },
+            {
+              id: 'missions',
+              label: 'Nhiệm Vụ Tuần',
+              subLabel: '10 Cấp Bậc & Thưởng',
+              icon: Trophy,
+              badge: '10 Cấp Bậc',
+              border: 'border-yellow-500/40',
+              activeBg: 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg shadow-yellow-900/40 ring-2 ring-yellow-400',
+              iconColor: 'text-yellow-400',
+              guide: {
+                title: 'Quản Trị Nhiệm Vụ Tuần & 10 Cấp Bậc',
+                description: 'Cấu hình kho 80+ nhiệm vụ xoay vòng, điều chỉnh hệ số nhân thưởng (x1.0 -> x3.0) và số lượt Vòng Quay May Mắn tặng kèm khi thăng cấp.',
+                steps: ['Kiểm tra cấu hình từng Rank', 'Điều chỉnh slot nhiệm vụ và cơ chế thưởng']
+              }
+            },
+            {
+              id: 'staff_roles',
+              label: 'Phân Quyền',
+              subLabel: '7 Vai Trò Nhân Sự',
+              icon: Users,
+              badge: `${staffList.length} Nhân Sự`,
+              border: 'border-indigo-500/40',
+              activeBg: 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-900/40 ring-2 ring-indigo-400',
+              iconColor: 'text-indigo-400',
+              guide: {
+                title: 'Phân Quyền Vận Hành Nhân Sự',
+                description: 'Phân công nhiệm vụ cho 7 bộ phận chuyên trách (Super Admin, Tài Chính, KYC, CSKH, KOC Mgr, Campaign, Tech) để tự chủ vận hành.',
+                steps: ['Thêm nhân sự mới theo email', 'Gán vai trò và phạm vi quyền hạn tương ứng']
+              }
+            },
+            {
+              id: 'security_7layers',
+              label: 'Bảo Mật 7 Lớp',
+              subLabel: 'Shield & Tường Lửa',
+              icon: ShieldCheck,
+              badge: 'Kích Hoạt 100%',
+              border: 'border-emerald-500/40',
+              activeBg: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/40 ring-2 ring-emerald-400',
+              iconColor: 'text-emerald-400',
+              guide: {
+                title: 'Hệ Thống Bảo Mật 7 Lớp Tối Cao',
+                description: 'Giám sát tường lửa WAF, chống click tặc bot ảo, mã hóa SHA-256 cơ sở dữ liệu và bảo mật 2 lớp 2FA tài khoản ngân hàng.',
+                steps: ['Kiểm tra trạng thái 7 lớp bảo mật', 'Kích hoạt chế độ phòng thủ cấp cao khi cần']
+              }
+            }
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <div
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`relative p-3 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between select-none ${
+                  isActive
+                    ? tab.activeBg
+                    : `bg-[#0D111E]/90 hover:bg-[#151B2E] border-white/10 hover:${tab.border} hover:scale-[1.02]`
+                }`}
+              >
+                <div className="flex items-start justify-between gap-1 mb-2">
+                  <div className={`p-2 rounded-xl shrink-0 ${isActive ? 'bg-white/20' : 'bg-white/5'}`}>
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : tab.iconColor}`} />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-md font-bold ${
+                      isActive ? 'bg-black/30 text-white' : 'bg-white/5 text-slate-400'
+                    }`}>
+                      {tab.badge}
+                    </span>
+                    <FeatureGuideTooltip
+                      title={tab.guide.title}
+                      description={tab.guide.description}
+                      steps={tab.guide.steps}
+                      badge="Quản Trị"
+                      size="xs"
+                      placement="bottom"
+                    />
+                  </div>
+                </div>
 
-        <button
-          onClick={() => setActiveTab('software_apps')}
-          className={`flex-1 min-w-[150px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'software_apps'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/30'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Cpu className="w-4 h-4 text-pink-400" />
-          <span>App Kiếm Tiền ({softwareApps.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('users')}
-          className={`flex-1 min-w-[110px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'users'
-              ? 'bg-purple-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>User ({adminUsers.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('referrals')}
-          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'referrals'
-              ? 'bg-amber-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Gift className="w-4 h-4 text-amber-400" />
-          <span>Tiếp Thị & Ref ({affiliateData.referralsList.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('kyc')}
-          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'kyc'
-              ? 'bg-purple-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Xác Minh KYC ({kycRequests.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('token_ledger')}
-          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'token_ledger'
-              ? 'bg-purple-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Coins className="w-4 h-4 text-neonGold" />
-          <span>Sổ Cái Token ({tokenLedger.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`flex-1 min-w-[110px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'settings'
-              ? 'bg-purple-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Percent className="w-4 h-4" />
-          <span>Hoa Hồng Sàn</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('escrow')}
-          className={`flex-1 min-w-[110px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'escrow'
-              ? 'bg-purple-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Gavel className="w-4 h-4" />
-          <span>Trọng Tài ({disputedBookings.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('campaigns')}
-          className={`flex-1 min-w-[110px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'campaigns'
-              ? 'bg-purple-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Flame className="w-4 h-4" />
-          <span>Chiến Dịch ({campaigns.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('missions')}
-          className={`flex-1 min-w-[110px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'missions'
-              ? 'bg-rose-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Trophy className="w-4 h-4" />
-          <span>Nhiệm Vụ Tuần</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('staff_roles')}
-          className={`flex-1 min-w-[110px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'staff_roles'
-              ? 'bg-indigo-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>Phân Quyền</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('security_7layers')}
-          className={`flex-1 min-w-[125px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'security_7layers'
-              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/30 font-extrabold'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Bảo Mật 7 Lớp</span>
-        </button>
+                <div className="space-y-0.5">
+                  <div className={`text-xs font-black leading-tight ${isActive ? 'text-white' : 'text-white'}`}>
+                    {tab.label}
+                  </div>
+                  <div className={`text-[10px] leading-tight font-mono ${isActive ? 'text-white/80' : 'text-slate-400'}`}>
+                    {tab.subLabel}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -2131,10 +2231,24 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
           <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-pink-400" />
-                  Quản Lý Kho App Kiếm Tiền & Phần Mềm AVA FOLLOW ({softwareApps.length} Ứng Dụng)
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-pink-400" />
+                    Quản Lý Kho App Kiếm Tiền & Phần Mềm AVA FOLLOW ({softwareApps.length} Ứng Dụng)
+                  </h3>
+                  <FeatureGuideTooltip
+                    title="Hướng Dẫn Quản Trị Kho Ứng Dụng & Tool Tăng Trưởng"
+                    description="Quản lý toàn diện các phần mềm bản quyền, công cụ cày view, AI kịch bản và bot seeding trên nền tảng AVA LIVE."
+                    steps={[
+                      "Thêm Ứng Dụng Mới: Nhập tên phần mềm, chọn danh mục, gắn thẻ Tag và thiết lập giá Xu",
+                      "Chỉnh Sửa Thông Tin: Bấm nút Sửa trên từng dòng để cập nhật link tải hoặc thay đổi giá Xu",
+                      "Bật / Tắt Hiển Thị: Chuyển trạng thái để hiển thị hoặc ẩn ứng dụng khỏi Chợ App"
+                    ]}
+                    tips="Giá Xu thiết lập ở đây sẽ tự động đồng bộ ngay lập tức ra màn hình App Kiếm Tiền của người dùng."
+                    badge="Phân Hệ Phần Mềm"
+                    placement="bottom"
+                  />
+                </div>
                 <p className="text-xs text-slate-400 mt-1">
                   Thêm, sửa hình ảnh thumbnail, tiêu đề, tính năng và giá Xu cho từng phần mềm. Đồng bộ tức thì ra Chợ App Kiếm Tiền.
                 </p>
@@ -4416,6 +4530,18 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 <div className="flex items-center gap-2">
                   <Trophy className="w-5 h-5 text-yellow-400" />
                   <h3 className="text-base font-black text-white font-display">Quản Lý Nhiệm Vụ Hàng Tuần</h3>
+                  <FeatureGuideTooltip
+                    title="Hướng Dẫn Quản Trị Hệ Thống Nhiệm Vụ Tuần & 10 Cấp Bậc"
+                    description="Quản lý cấu hình 10 Cấp Bậc (Rank 1 -> Rank 10), kho 80+ nhiệm vụ xoay vòng, tỷ lệ thù lao và cơ chế thưởng Vòng Quay May Mắn."
+                    steps={[
+                      "Cấu hình Cấp Bậc: Mỗi cấp bậc có số nhiệm vụ ngày/tuần và hệ số thù lao x1.0 -> x3.0",
+                      "Cơ chế Vòng Quay: Người dùng hoàn thành 100% nhiệm vụ sẽ nhận thêm lượt quay may mắn",
+                      "Xoay Vòng Ngẫu Nhiên: Mỗi tuần hệ thống tự động sinh bộ nhiệm vụ mới dựa theo ID người dùng và tuần hiện tại"
+                    ]}
+                    tips="Tiến độ nhiệm vụ được ghi nhận tự động theo thời gian thực khi người dùng thực hiện tương tác."
+                    badge="10 Cấp Bậc"
+                    placement="bottom"
+                  />
                 </div>
                 <p className="text-xs text-slate-400 max-w-2xl">
                   Cấu hình số lượng nhiệm vụ, phần thưởng và chính sách theo từng cấp bậc và gói dịch vụ. Nhiệm vụ sẽ tự động xào trộn ngẫu nhiên mỗi tuần cho từng tài khoản.
@@ -4711,6 +4837,18 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-indigo-400" />
                   <h3 className="text-base font-black text-white font-display">Phân Quyền Nhân Sự Quản Lý</h3>
+                  <FeatureGuideTooltip
+                    title="Hướng Dẫn Phân Quyền Vận Hành Nhân Sự"
+                    description="Thiết lập vai trò quản trị cho nhân sự theo từng bộ phận chuyên trách (Tài chính, KYC, CSKH, KOC, Chiến dịch, Dev)."
+                    steps={[
+                      "Thêm Nhân Sự: Nhập họ tên, email công ty, chọn bộ phận và chức danh",
+                      "Đổi Vai Trò: Dùng ô chọn dropdown trên bảng để chuyển đổi quyền hạn",
+                      "Tạm Ngưng / Kích Hoạt: Nhấn nút thao tác để khóa hoặc mở quyền truy cập của nhân viên"
+                    ]}
+                    tips="Mỗi vai trò chỉ truy cập được các tính năng thuộc phạm vi phụ trách, đảm bảo tính bảo mật và phân quyền rõ ràng."
+                    badge="Phân Quyền 7 Bộ Phận"
+                    placement="bottom"
+                  />
                 </div>
                 <p className="text-xs text-slate-400 max-w-2xl">
                   Thiết lập vai trò và quyền hạn cho từng nhân sự theo bộ phận. Khi giao việc, nhân sự tự chủ quản lý công việc trong phạm vi quyền hạn được cấp.
@@ -4957,6 +5095,18 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
                   <span>7/7 Lá Chắn Hoạt Động</span>
                 </span>
+                <FeatureGuideTooltip
+                  title="Hướng Dẫn Vận Hành Hệ Thống Phòng Thủ 7 Lớp"
+                  description="Cơ chế Zero Trust & WAF giám sát realtime mọi luồng traffic, đảm bảo hệ thống không bị tấn công DDOS, click tặc hoặc farm tài khoản clone."
+                  steps={[
+                    "Quy định IP: Tối đa 5 tài khoản liên kết trên 1 địa chỉ IP",
+                    "Chống Bot AI: Tự động khóa IP khi phát hiện nhấp chuột siêu tốc không phải người thật",
+                    "Bảo Mật Két Quỹ: Yêu cầu 2FA xác thực khi duyệt lệnh chi tiền lớn"
+                  ]}
+                  tips="Hệ thống tự động kích hoạt phòng thủ cấp cao khi lưu lượng tăng đột biến."
+                  badge="Zero Trust Security"
+                  placement="bottom"
+                />
               </div>
             </div>
 

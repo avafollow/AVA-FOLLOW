@@ -706,7 +706,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
                   <div className="pt-1 border-t border-white/5 flex items-center justify-between text-[9px] font-mono text-slate-400">
                     <span>Mở khóa:</span>
                     <span className={isUnlocked ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
-                      {tier.minCompletedTasksToUnlock === 0 ? 'Mặc định' : `${tier.minCompletedTasksToUnlock} task`}
+                      {tier.minCompletedTasksToUnlock === 0 ? 'Mặc định' : `Tích lũy ${tier.minCompletedTasksToUnlock.toLocaleString('vi-VN')} nhiệm vụ`}
                     </span>
                   </div>
                 </div>

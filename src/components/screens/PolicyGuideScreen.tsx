@@ -309,7 +309,7 @@ export const PolicyGuideScreen: React.FC<{ darkMode: boolean }> = ({ darkMode })
 
                     <div className="pt-1.5 border-t border-white/5 text-[9px] font-mono text-slate-400 flex justify-between">
                       <span>Mở khóa:</span>
-                      <strong className="text-slate-300">{tier.minCompletedTasksToUnlock === 0 ? 'Mặc định' : `${tier.minCompletedTasksToUnlock} task`}</strong>
+                      <strong className="text-slate-300">{tier.minCompletedTasksToUnlock === 0 ? 'Mặc định' : `Tích lũy ${tier.minCompletedTasksToUnlock.toLocaleString('vi-VN')} nhiệm vụ`}</strong>
                     </div>
                   </div>
                 );

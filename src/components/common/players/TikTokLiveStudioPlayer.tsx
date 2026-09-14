@@ -87,14 +87,14 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
             });
           }
         }}
-        className="absolute inset-0 w-full h-full object-cover opacity-75"
+        className="absolute inset-0 w-full h-full object-cover opacity-90"
       />
 
-      {/* 2. Visual Effects & Background Glows */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/30 to-black/90 pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(244,63,94,0.3),transparent_70%)] animate-pulse pointer-events-none" />
-      <div className="absolute top-1/4 -right-12 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/3 -left-12 w-48 h-48 bg-cyan-600/20 rounded-full blur-3xl pointer-events-none" />
+      {/* 2. Visual Effects & Subtle Vignette */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(244,63,94,0.2),transparent_70%)] animate-pulse pointer-events-none" />
+      <div className="absolute top-1/4 -right-12 w-48 h-48 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/3 -left-12 w-48 h-48 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* 3. Top Live Header & Action */}
       <div className="relative z-10 flex items-center justify-between pt-8 px-1">

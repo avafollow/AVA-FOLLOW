@@ -122,56 +122,63 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
   // 1. Toàn bộ Chiến Dịch Thật Tạo Mới & Đang Chạy (Tự động ẩn khi hoàn thành đủ số lượng đã mua)
   const activeCampaigns = (campaigns || []).filter(c => c.status !== 'completed' && (c.completedQuantity || 0) < (c.targetQuantity || 100));
-  const createdCampaignFeedItems: UnifiedFeedItem[] = activeCampaigns.map((c) => ({
-    id: c.id,
-    kind: (c.type === 'livestream' || c.type === 'livestream_viewers') ? 'livestream' : 'video',
-    title: c.title,
-    type: c.type,
-    requiresWatch: true,
-    channelName: c.channelHandle,
-    channelHandle: c.channelHandle,
-    channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-    targetUrl: c.targetUrl,
-    rewardCoins: 200,
-    videoUrl: parseMediaUrl(c.targetUrl, c.channelHandle).streamUrl,
-    sampleComments: [
-      'Chiến dịch chất lượng quá!',
-      'Ủng hộ kênh bạn nhé ❤️',
-      'Đã tương tác đầy đủ cho kênh!'
-    ],
-    guide: c.instructions || 'Tương tác thật 100% để nhận Xu thưởng vào ví.',
-    campaignCategory: 'partner',
-    partnerName: 'Chiến Dịch Đang Chạy',
-    partnerBadge: c.isBoosted ? '🔥 TOP 1 TOÀN SÀN' : 'Chiến Dịch Thật',
-    totalSlots: c.targetQuantity,
-    remainingSlots: Math.max(1, c.targetQuantity - (c.completedQuantity || 0)),
-    isUrgent: true,
-    isBoosted: c.isBoosted
-  }));
+  const createdCampaignFeedItems: UnifiedFeedItem[] = activeCampaigns.map((c) => {
+    const isLiveUrl = (c.targetUrl || '').toLowerCase().includes('/live');
+    const isLiveType = c.type === 'livestream' || c.type === 'livestream_viewers';
+    return {
+      id: c.id,
+      kind: (isLiveType || isLiveUrl) ? 'livestream' : 'video',
+      title: c.title,
+      type: c.type,
+      requiresWatch: true,
+      channelName: c.channelHandle,
+      channelHandle: c.channelHandle,
+      channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+      targetUrl: c.targetUrl,
+      rewardCoins: 200,
+      videoUrl: parseMediaUrl(c.targetUrl, c.channelHandle).streamUrl,
+      sampleComments: [
+        'Chiến dịch chất lượng quá!',
+        'Ủng hộ kênh bạn nhé ❤️',
+        'Đã tương tác đầy đủ cho kênh!'
+      ],
+      guide: c.instructions || 'Tương tác thật 100% để nhận Xu thưởng vào ví.',
+      campaignCategory: 'partner',
+      partnerName: 'Chiến Dịch Đang Chạy',
+      partnerBadge: c.isBoosted ? '🔥 TOP 1 TOÀN SÀN' : 'Chiến Dịch Thật',
+      totalSlots: c.targetQuantity,
+      remainingSlots: Math.max(1, c.targetQuantity - (c.completedQuantity || 0)),
+      isUrgent: true,
+      isBoosted: c.isBoosted
+    };
+  });
 
   // 2. Build unified feed items combining ALL active campaigns from the website (Tự động ẩn khi hết suất)
   const activeTasks = (tasks || []).filter(t => t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0));
-  const videoFeedItems: UnifiedFeedItem[] = activeTasks.map(t => ({
-    id: t.id,
-    kind: 'video',
-    title: t.title,
-    type: t.type,
-    requiresWatch: true,
-    channelName: t.channelName,
-    channelHandle: t.channelHandle,
-    channelAvatar: t.channelAvatar,
-    targetUrl: t.targetUrl,
-    rewardCoins: t.rewardCoins || 200,
-    videoUrl: t.videoPreviewUrl || parseMediaUrl(t.targetUrl, t.channelHandle).streamUrl,
-    sampleComments: t.sampleComments,
-    guide: t.guide,
-    campaignCategory: t.campaignCategory || 'community',
-    partnerName: t.partnerName,
-    partnerBadge: t.partnerBadge,
-    totalSlots: t.totalSlots,
-    remainingSlots: t.remainingSlots,
-    isUrgent: t.isUrgent
-  }));
+  const videoFeedItems: UnifiedFeedItem[] = activeTasks.map(t => {
+    const isLiveUrl = (t.targetUrl || '').toLowerCase().includes('/live');
+    return {
+      id: t.id,
+      kind: isLiveUrl ? 'livestream' : 'video',
+      title: t.title,
+      type: t.type,
+      requiresWatch: true,
+      channelName: t.channelName,
+      channelHandle: t.channelHandle,
+      channelAvatar: t.channelAvatar,
+      targetUrl: t.targetUrl,
+      rewardCoins: t.rewardCoins || 200,
+      videoUrl: t.videoPreviewUrl || parseMediaUrl(t.targetUrl, t.channelHandle).streamUrl,
+      sampleComments: t.sampleComments,
+      guide: t.guide,
+      campaignCategory: t.campaignCategory || 'community',
+      partnerName: t.partnerName,
+      partnerBadge: t.partnerBadge,
+      totalSlots: t.totalSlots,
+      remainingSlots: t.remainingSlots,
+      isUrgent: t.isUrgent
+    };
+  });
 
   // 3. Feed items từ kho Follow Chéo Cộng Đồng Creator (Không khống chế 15s)
   const crossFollowFeedItems: UnifiedFeedItem[] = INITIAL_CROSS_FOLLOW_ITEMS

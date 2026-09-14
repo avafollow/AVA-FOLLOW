@@ -220,72 +220,69 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         )}
       </div>
 
-      {/* 2. TOP HEADER BAR: LIVE BADGE, SOUND CONTROLS & SWITCHER */}
-      <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-30 pointer-events-none">
-        <div className="flex items-center gap-2 pointer-events-auto">
-          {effectiveIsLive && (
-            <span className="px-2 py-0.5 rounded-md bg-rose-600 text-[9px] font-mono font-bold text-white flex items-center gap-1 border border-rose-400/30 animate-pulse">
-              <Radio className="w-3 h-3" /> ĐANG LIVE
-            </span>
-          )}
-          {hasTikTokVideoId && (
-            <button
-              type="button"
-              onClick={() => setStreamMode(streamMode === 'embed' ? 'stream' : 'embed')}
-              className="px-2.5 py-1 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white text-[9px] font-mono font-bold border border-rose-400/40 backdrop-blur-md transition-all flex items-center gap-1 shadow-md cursor-pointer"
-              title={streamMode === 'embed' ? 'Đang phát TikTok Gốc (Bấm để chuyển sang Stream HD)' : 'Đang phát Stream HD (Bấm để chuyển sang TikTok Gốc)'}
-            >
-              {streamMode === 'embed' ? '🎬 TikTok Gốc' : '⚡ Stream HD'}
-            </button>
-          )}
-        </div>
+      {/* 2. TOP HEADER BAR: SOUND CONTROLS & SWITCHER (Chỉ hiển thị cho Video thường, ẩn khi Live để tránh trùng lặp đè 2 lớp) */}
+      {!effectiveIsLive && !mediaInfo.isLive && (
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-30 pointer-events-none">
+          <div className="flex items-center gap-2 pointer-events-auto">
+            {hasTikTokVideoId && (
+              <button
+                type="button"
+                onClick={() => setStreamMode(streamMode === 'embed' ? 'stream' : 'embed')}
+                className="px-2.5 py-1 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white text-[9px] font-mono font-bold border border-rose-400/40 backdrop-blur-md transition-all flex items-center gap-1 shadow-md cursor-pointer"
+                title={streamMode === 'embed' ? 'Đang phát TikTok Gốc (Bấm để chuyển sang Stream HD)' : 'Đang phát Stream HD (Bấm để chuyển sang TikTok Gốc)'}
+              >
+                {streamMode === 'embed' ? '🎬 TikTok Gốc' : '⚡ Stream HD'}
+              </button>
+            )}
+          </div>
 
-        <div className="flex items-center gap-1.5 pointer-events-auto">
-          {/* Play/Pause Button */}
-          {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && (
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            {/* Play/Pause Button */}
+            {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && (
+              <button
+                type="button"
+                onClick={togglePlay}
+                className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
+                title={isPlaying ? 'Tạm dừng video' : 'Phát video'}
+              >
+                {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" />}
+              </button>
+            )}
+
+            {/* Sound Mute/Unmute */}
+            {streamMode !== 'embed' && (
+              <button
+                type="button"
+                onClick={toggleMute}
+                className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
+                title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+              >
+                {isMuted ? <VolumeX className="w-4 h-4 text-slate-300" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+              </button>
+            )}
+
+            {/* Fullscreen Button */}
             <button
               type="button"
-              onClick={togglePlay}
+              onClick={toggleFullscreen}
               className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
-              title={isPlaying ? 'Tạm dừng video' : 'Phát video'}
+              title="Xem toàn màn hình"
             >
-              {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" />}
+              <Maximize2 className="w-4 h-4 text-white" />
             </button>
-          )}
 
-          {/* Sound Mute/Unmute */}
-          {streamMode !== 'embed' && (
+            {/* External Link Button */}
             <button
               type="button"
-              onClick={toggleMute}
+              onClick={openUserMedia}
               className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
-              title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+              title={`Mở trực tiếp trên ${isYouTube ? 'YouTube' : mediaInfo.isFacebook ? 'Facebook' : 'TikTok'}`}
             >
-              {isMuted ? <VolumeX className="w-4 h-4 text-slate-300" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+              <ExternalLink className="w-4 h-4 text-white" />
             </button>
-          )}
-
-          {/* Fullscreen Button */}
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
-            title="Xem toàn màn hình"
-          >
-            <Maximize2 className="w-4 h-4 text-white" />
-          </button>
-
-          {/* External Link Button */}
-          <button
-            type="button"
-            onClick={openUserMedia}
-            className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
-            title={`Mở trực tiếp trên ${isYouTube ? 'YouTube' : mediaInfo.isFacebook ? 'Facebook' : 'TikTok'}`}
-          >
-            <ExternalLink className="w-4 h-4 text-white" />
-          </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 3. RIGHT ACTION BUTTONS (Chỉ hiển thị cho Video Stream thường) */}
       {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && !effectiveIsLive && !mediaInfo.isLive && (

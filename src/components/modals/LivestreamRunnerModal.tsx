@@ -41,6 +41,11 @@ import {
   syncTikTokComment,
   syncShareToFacebook
 } from '../../services/tiktokActionSync';
+import {
+  TikTokLiveEmbedPlayer,
+  YouTubeLiveEmbedPlayer,
+  FacebookLiveEmbedPlayer
+} from '../common/players';
 
 export const LivestreamRunnerModal: React.FC = () => {
   const { 
@@ -486,103 +491,33 @@ export const LivestreamRunnerModal: React.FC = () => {
           {/* Vignette overlay for readable text while keeping live video bright */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/40 pointer-events-none z-[1]" />
 
-          {/* Real Live Video Player: YouTube Live, Facebook Live, TikTok Video Embed or Native Live Broadcast Stage */}
+          {/* 3 TRÌNH PHÁT LIVE THẬT 100% (TAB CODE RIÊNG BIỆT CHO YOUTUBE, FACEBOOK, TIKTOK) */}
           {isYouTube && mediaInfo?.youtubeId ? (
-            <iframe
-              key={activeLiveTask.id + '_yt_' + mediaInfo.youtubeId}
-              src={`https://www.youtube.com/embed/${mediaInfo.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${mediaInfo.youtubeId}&modestbranding=1&rel=0&enablejsapi=1`}
+            <YouTubeLiveEmbedPlayer
+              key={activeLiveTask.id + '_yt_live_' + mediaInfo.youtubeId}
+              youtubeId={mediaInfo.youtubeId}
               title={activeLiveTask.roomTitle}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
+              isMuted={isMuted}
+              onToggleMute={() => setIsMuted(!isMuted)}
             />
           ) : mediaInfo?.isFacebook ? (
-            <iframe
-              key={activeLiveTask.id + '_fb_' + encodeURIComponent(activeLiveTask.targetUrl)}
-              src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(activeLiveTask.targetUrl)}&show_text=0&autoplay=1&muted=${isMuted ? 1 : 0}&allowfullscreen=true`}
+            <FacebookLiveEmbedPlayer
+              key={activeLiveTask.id + '_fb_live_' + encodeURIComponent(activeLiveTask.targetUrl)}
+              url={activeLiveTask.targetUrl}
               title={activeLiveTask.roomTitle}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
-            />
-          ) : mediaInfo?.isTikTok && mediaInfo?.videoId ? (
-            <iframe
-              key={activeLiveTask.id + '_tt_vid_' + mediaInfo.videoId}
-              src={`https://www.tiktok.com/embed/v2/${mediaInfo.videoId}`}
-              title={activeLiveTask.roomTitle}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
+              isMuted={isMuted}
+              onToggleMute={() => setIsMuted(!isMuted)}
             />
           ) : (
-            /* TIKTOK LIVE BROADCAST STAGE (Đồ họa phòng live rực rỡ, video chuyển động nền, sóng âm thanh, mắt xem thật) */
-            <div className="absolute inset-0 w-full h-full bg-black flex flex-col items-center justify-center pointer-events-none select-none">
-              <video
-                ref={(el) => {
-                  videoRef.current = el;
-                  if (el) {
-                    el.defaultMuted = false;
-                    el.muted = isMuted;
-                    el.playsInline = true;
-                    const p = el.play();
-                    if (p !== undefined) {
-                      p.then(() => setIsPlaying(true)).catch(() => {
-                        el.muted = true;
-                        el.play().then(() => setIsPlaying(true)).catch(() => {});
-                      });
-                    }
-                  }
-                }}
-                src={mediaInfo?.streamUrl || '/videos/sample2.mp4'}
-                autoPlay
-                loop
-                muted={isMuted}
-                playsInline
-                className="absolute inset-0 w-full h-full object-cover opacity-75"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/30 to-black/90 pointer-events-none" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(244,63,94,0.3),transparent_70%)] animate-pulse" />
-              
-              {/* Host Avatar & Live Pulse */}
-              <div className="relative mb-3">
-                <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-rose-500 via-purple-500 to-pink-500 animate-spin opacity-80 blur-[3px]" style={{ animationDuration: '6s' }} />
-                <img 
-                  src={activeLiveTask.channelAvatar} 
-                  alt="" 
-                  className="relative w-24 h-24 rounded-full object-cover border-2 border-white shadow-2xl"
-                />
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-rose-600 text-white font-mono text-[9px] font-black uppercase tracking-wider shadow-lg border border-rose-300/40 animate-pulse">
-                  ON AIR
-                </span>
-              </div>
-
-              {/* Host Info */}
-              <div className="text-center space-y-1">
-                <div className="flex items-center justify-center gap-1.5">
-                  <span className="text-white font-black text-lg drop-shadow-lg">{activeLiveTask.channelName}</span>
-                  <CheckCircle2 className="w-4 h-4 text-[#20D5EC] fill-[#20D5EC]/20" />
-                </div>
-                <p className="text-xs text-rose-300 font-mono font-bold flex items-center justify-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                  <span>Phiên Live Đang Phát Sóng Trực Tuyến</span>
-                </p>
-              </div>
-
-              {/* Equalizer Waveform */}
-              <div className="flex items-end justify-center gap-1 h-10 mt-3">
-                {[45, 80, 60, 95, 70, 85, 50, 100, 75, 90, 65, 80, 55, 75, 40].map((h, i) => (
-                  <div
-                    key={i}
-                    className="w-1.5 bg-gradient-to-t from-rose-500 via-pink-500 to-amber-400 rounded-full animate-pulse"
-                    style={{ 
-                      height: `${isPlaying ? h : 20}%`, 
-                      animationDelay: `${i * 0.07}s`,
-                      animationDuration: '0.7s'
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+            <TikTokLiveEmbedPlayer
+              key={activeLiveTask.id + '_tt_live_' + activeLiveTask.channelHandle}
+              channelHandle={activeLiveTask.channelHandle}
+              targetUrl={activeLiveTask.targetUrl}
+              channelName={activeLiveTask.roomTitle || activeLiveTask.channelName}
+              viewersCount={activeLiveTask.currentViewers || 1420}
+              isMuted={isMuted}
+              onToggleMute={() => setIsMuted(!isMuted)}
+            />
           )}
 
           {/* Sound & Play Toggle Buttons */}

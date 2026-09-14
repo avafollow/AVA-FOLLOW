@@ -34,9 +34,12 @@ import { INITIAL_CROSS_FOLLOW_ITEMS } from '../../data/crossFollowData';
 import { parseMediaUrl } from '../../data/videoSources';
 import {
   TikTokVideoEmbedPlayer,
+  TikTokLiveEmbedPlayer,
   TikTokLiveStudioPlayer,
   YouTubeEmbedPlayer,
+  YouTubeLiveEmbedPlayer,
   FacebookEmbedPlayer,
+  FacebookLiveEmbedPlayer,
   DirectVideoPlayer
 } from '../common/players';
 import {
@@ -709,11 +712,52 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           onDoubleClick={handleDoubleTap}
           onClick={togglePlay}
         >
-          {/* TÁCH BIỆT CÁC TAB CODE PLAYER THEO YÊU CẦU */}
+          {/* TÁCH BIỆT CÁC TAB CODE PLAYER THEO YÊU CẦU: LIVE THẬT 100% & VIDEO THƯỜNG */}
           {(() => {
             const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
-            
-            // 1. YouTube Player
+            const isLiveItem = currentItem.kind === 'livestream' || itemMedia.isLive;
+
+            // 1. CÁC TRÌNH PHÁT LIVE STREAM THẬT (3 TAB RIÊNG BIỆT)
+            if (isLiveItem) {
+              if (itemMedia.isYouTube && itemMedia.youtubeId) {
+                return (
+                  <YouTubeLiveEmbedPlayer
+                    key={currentItem.id + '_yt_live_' + itemMedia.youtubeId}
+                    youtubeId={itemMedia.youtubeId}
+                    title={currentItem.title}
+                    isMuted={isMuted}
+                    onToggleMute={() => setIsMuted(!isMuted)}
+                  />
+                );
+              }
+
+              if (itemMedia.isFacebook) {
+                return (
+                  <FacebookLiveEmbedPlayer
+                    key={currentItem.id + '_fb_live_' + encodeURIComponent(currentItem.targetUrl)}
+                    url={currentItem.targetUrl}
+                    title={currentItem.title}
+                    isMuted={isMuted}
+                    onToggleMute={() => setIsMuted(!isMuted)}
+                  />
+                );
+              }
+
+              // TikTok Live Stream Thật 100%
+              return (
+                <TikTokLiveEmbedPlayer
+                  key={currentItem.id + '_tt_live_' + currentItem.channelHandle}
+                  channelHandle={currentItem.channelHandle}
+                  targetUrl={currentItem.targetUrl}
+                  channelName={currentItem.title}
+                  viewersCount={currentItem.currentViewers || 1580}
+                  isMuted={isMuted}
+                  onToggleMute={() => setIsMuted(!isMuted)}
+                />
+              );
+            }
+
+            // 2. CÁC TRÌNH PHÁT VIDEO THƯỜNG
             if (itemMedia.isYouTube && itemMedia.youtubeId) {
               return (
                 <YouTubeEmbedPlayer
@@ -725,7 +769,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // 2. Facebook Player
             if (itemMedia.isFacebook) {
               return (
                 <FacebookEmbedPlayer
@@ -737,7 +780,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // 3. TikTok Official Embed Player (Tự động phát video TikTok thật từ link người dùng)
+            // TikTok Official Video Embed (Khóa chặt)
             if (itemMedia.isTikTok && itemMedia.videoId && playerMode === 'embed') {
               return (
                 <TikTokVideoEmbedPlayer
@@ -748,30 +791,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // 4. TikTok Live Broadcast Studio (Hiển thị phòng live trực tuyến sắc nét, có video nền chuyển động và âm thanh)
-            if (currentItem.kind === 'livestream' || itemMedia.isLive) {
-              return (
-                <TikTokLiveStudioPlayer
-                  key={currentItem.id + '_live_' + currentItem.channelHandle}
-                  channelHandle={currentItem.channelHandle}
-                  channelName={currentItem.channelName}
-                  channelAvatar={currentItem.channelAvatar}
-                  streamUrl={currentItem.videoUrl || itemMedia.streamUrl}
-                  viewersCount={currentItem.currentViewers || 1580}
-                  isPlaying={isPlaying}
-                  isMuted={isMuted}
-                  onTogglePlay={togglePlay}
-                  onToggleMute={() => {
-                    const nextMuted = !isMuted;
-                    setIsMuted(nextMuted);
-                    showToast(nextMuted ? '🔇 Đã tắt âm thanh' : '🔊 Đã bật âm thanh live');
-                  }}
-                  onOpenApp={handleOpenTikTokApp}
-                />
-              );
-            }
-
-            // 5. HD Native Video Stream
+            // Direct HD Native Video Stream
             const videoSrc = currentItem.videoUrl || itemMedia.streamUrl || currentItem.targetUrl;
             return (
               <DirectVideoPlayer

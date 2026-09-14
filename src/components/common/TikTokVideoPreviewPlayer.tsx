@@ -19,9 +19,12 @@ import {
 import { parseMediaUrl, ParsedMediaInfo } from '../../data/videoSources';
 import {
   TikTokVideoEmbedPlayer,
+  TikTokLiveEmbedPlayer,
   TikTokLiveStudioPlayer,
   YouTubeEmbedPlayer,
+  YouTubeLiveEmbedPlayer,
   FacebookEmbedPlayer,
+  FacebookLiveEmbedPlayer,
   DirectVideoPlayer
 } from './players';
 
@@ -166,47 +169,63 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
     >
       {/* 1. TẬP HỢP CÁC TRÌNH PHÁT RIÊNG BIỆT (TÁCH BIỆT TAB CODE THEO YÊU CẦU) */}
       <div className="relative w-full h-full flex-1 overflow-hidden bg-black flex items-center justify-center">
-        {/* TAB 1: TIKTOK OFFICIAL EMBED */}
-        {streamMode === 'embed' && hasTikTokVideoId && mediaInfo.videoId ? (
+        {/* TAB 1: LIVE STREAM PLAYERS (3 TAB RIÊNG BIỆT CHO 3 NỀN TẢNG LIVE THẬT 100%) */}
+        {effectiveIsLive || mediaInfo.isLive ? (
+          isYouTube && mediaInfo.youtubeId ? (
+            /* TAB 1A: YOUTUBE LIVE PLAYER */
+            <YouTubeLiveEmbedPlayer
+              youtubeId={mediaInfo.youtubeId}
+              title={mediaInfo.title}
+              isMuted={isMuted}
+              onToggleMute={toggleMute}
+            />
+          ) : isFacebook && url ? (
+            /* TAB 1B: FACEBOOK LIVE PLAYER */
+            <FacebookLiveEmbedPlayer
+              url={url}
+              title={mediaInfo.title}
+              isMuted={isMuted}
+              onToggleMute={toggleMute}
+            />
+          ) : (
+            /* TAB 1C: TIKTOK LIVE PLAYER (THẬT 100%, KHÔNG PHÁT VIDEO NỀN ẢO) */
+            <TikTokLiveEmbedPlayer
+              channelHandle={cleanHandle}
+              targetUrl={directUserUrl}
+              channelName={mediaInfo.title}
+              viewersCount={1420}
+              isMuted={isMuted}
+              onToggleMute={toggleMute}
+            />
+          )
+        ) : streamMode === 'embed' && hasTikTokVideoId && mediaInfo.videoId ? (
+          /* TAB 2: TIKTOK OFFICIAL VIDEO EMBED (KHÓA CHẶT) */
           <TikTokVideoEmbedPlayer
             videoId={mediaInfo.videoId}
             title={mediaInfo.title}
           />
         ) : isYouTube && mediaInfo.youtubeId ? (
-          /* TAB 2: YOUTUBE EMBED PLAYER */
+          /* TAB 3: YOUTUBE VIDEO EMBED PLAYER */
           <YouTubeEmbedPlayer
             youtubeId={mediaInfo.youtubeId}
             title={mediaInfo.title}
             isMuted={isMuted}
           />
         ) : isFacebook && url ? (
-          /* TAB 3: FACEBOOK EMBED PLAYER */
+          /* TAB 4: FACEBOOK VIDEO EMBED PLAYER */
           <FacebookEmbedPlayer
             url={url}
             title={mediaInfo.title}
             isMuted={isMuted}
           />
         ) : isDirectVideo ? (
-          /* TAB 4: DIRECT VIDEO PLAYER */
+          /* TAB 5: DIRECT VIDEO PLAYER */
           <DirectVideoPlayer
             src={url}
             autoPlay={autoPlay}
             isMuted={isMuted}
             isPlaying={isPlaying}
             onTogglePlay={togglePlay}
-          />
-        ) : effectiveIsLive || mediaInfo.isLive ? (
-          /* TAB 5: TIKTOK LIVE STUDIO PLAYER */
-          <TikTokLiveStudioPlayer
-            channelHandle={cleanHandle}
-            channelName={mediaInfo.title}
-            streamUrl={currentStream}
-            viewersCount={1420}
-            isPlaying={isPlaying}
-            isMuted={isMuted}
-            onTogglePlay={togglePlay}
-            onToggleMute={toggleMute}
-            onOpenApp={openUserMedia}
           />
         ) : (
           /* TAB 6: DIRECT NATIVE HD STREAM PLAYER */

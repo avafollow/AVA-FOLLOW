@@ -205,9 +205,15 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             />
           )
         ) : streamMode === 'embed' && hasTikTokVideoId && mediaInfo.videoId ? (
-          /* TAB 2: TIKTOK OFFICIAL VIDEO EMBED (KHÓA CHẶT) */
+          /* TAB 2: TIKTOK OFFICIAL VIDEO EMBED (CÓ VIDEO ID CHUẨN) */
           <TikTokVideoEmbedPlayer
             videoId={mediaInfo.videoId}
+            title={mediaInfo.title}
+          />
+        ) : mediaInfo.isTikTok && url && url.startsWith('http') ? (
+          /* TAB 2B: TIKTOK IFRAME TRỰC TIẾP (KHI KHÔNG TRÍCH XUẤT ĐƯỢC VIDEO ID) — PHÁT NGAY LINK GỐC */
+          <TikTokVideoEmbedPlayer
+            directUrl={url}
             title={mediaInfo.title}
           />
         ) : isYouTube && mediaInfo.youtubeId ? (

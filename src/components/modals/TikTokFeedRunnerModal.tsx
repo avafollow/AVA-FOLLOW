@@ -818,7 +818,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // TikTok Official Video Embed (Khóa chặt)
+            // TikTok Official Video Embed (Có Video ID chuẩn)
             if (itemMedia.isTikTok && itemMedia.videoId && playerMode === 'embed') {
               return (
                 <TikTokVideoEmbedPlayer
@@ -829,7 +829,18 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // Direct HD Native Video Stream
+            // TikTok Iframe Trực Tiếp (Khi không trích xuất được Video ID) — PHÁT NGAY LINK GỐC
+            if (itemMedia.isTikTok && currentItem.targetUrl && currentItem.targetUrl.startsWith('http')) {
+              return (
+                <TikTokVideoEmbedPlayer
+                  key={currentItem.id + '_tt_direct_' + encodeURIComponent(currentItem.targetUrl)}
+                  directUrl={currentItem.targetUrl}
+                  title={currentItem.title}
+                />
+              );
+            }
+
+            // Direct HD Native Video Stream (Cho video MP4/WebM trực tiếp)
             const videoSrc = currentItem.videoUrl || itemMedia.streamUrl || currentItem.targetUrl;
             return (
               <DirectVideoPlayer

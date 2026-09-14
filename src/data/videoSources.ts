@@ -196,3 +196,11 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
     sourceType
   };
 }
+
+// Lấy Avatar TikTok thật 100% dựa trên Handle chính xác của tài khoản
+export function getTikTokAvatar(handle?: string, fallback?: string): string {
+  const clean = (handle || '').replace(/^@+/, '').trim();
+  if (!clean) return fallback || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120';
+  return `https://unavatar.io/tiktok/${clean}`;
+}
+

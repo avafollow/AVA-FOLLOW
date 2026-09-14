@@ -34,7 +34,7 @@ import {
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS, LivestreamTaskItem } from '../../types';
 import { LIVE_SEEDING_TEMPLATES, LIVE_MILESTONE_REWARDS } from '../../data/livePolicyData';
-import { parseMediaUrl } from '../../data/videoSources';
+import { parseMediaUrl, getTikTokAvatar } from '../../data/videoSources';
 import {
   syncTikTokFollow,
   syncTikTokLike,
@@ -371,6 +371,7 @@ export const LivestreamRunnerModal: React.FC = () => {
               isMuted={isMuted}
               onToggleMute={() => setIsMuted(!isMuted)}
               mode="feed"
+              hideHud={true}
             />
           )}
 
@@ -424,7 +425,11 @@ export const LivestreamRunnerModal: React.FC = () => {
                 </button>
               </div>
               <div className="flex items-center gap-3">
-                <img src={activeLiveTask.channelAvatar} alt="" className="w-12 h-12 rounded-xl object-cover ring-1 ring-amber-500/40 shrink-0" />
+                <img 
+                  src={getTikTokAvatar(activeLiveTask.channelHandle, activeLiveTask.channelAvatar)} 
+                  alt="" 
+                  className="w-12 h-12 rounded-xl object-cover ring-1 ring-amber-500/40 shrink-0" 
+                />
                 <div className="min-w-0 flex-1">
                   <h5 className="text-xs font-bold text-white line-clamp-1">{activeLiveTask.roomTitle}</h5>
                   <div className="flex items-center gap-2 mt-0.5 font-mono">
@@ -485,7 +490,11 @@ export const LivestreamRunnerModal: React.FC = () => {
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="relative shrink-0">
-                          <img src={t.channelAvatar} alt="" className="w-10 h-10 rounded-full object-cover ring-1 ring-white/20" />
+                          <img 
+                            src={getTikTokAvatar(t.channelHandle, t.channelAvatar)} 
+                            alt="" 
+                            className="w-10 h-10 rounded-full object-cover ring-1 ring-white/20" 
+                          />
                           <span className="absolute -bottom-0.5 -right-0.5 px-1 py-0.2 rounded-full bg-rose-600 text-white text-[7px] font-black font-mono">
                             LIVE
                           </span>
@@ -558,9 +567,10 @@ export const LivestreamRunnerModal: React.FC = () => {
                   <button
                     key={btn.id}
                     onClick={() => handleSolveCaptcha(btn.id)}
-                    className="p-3 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 text-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer"
+                    className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 text-xl font-bold transition-all active:scale-90 flex flex-col items-center gap-1 cursor-pointer"
                   >
-                    {btn.icon}
+                    <span>{btn.icon}</span>
+                    <span className="text-[9px] text-slate-300 font-mono">{btn.name}</span>
                   </button>
                 ))}
               </div>
@@ -678,58 +688,54 @@ export const LivestreamRunnerModal: React.FC = () => {
           )}
         </div>
 
-        {/* FLOATING TOP HEADER OVERLAY: Đè lên video mượt mà, sang xịn */}
-        <div className="absolute top-0 inset-x-0 z-30 bg-gradient-to-b from-black/90 via-black/40 to-transparent p-2.5 flex items-center justify-between gap-1.5 pointer-events-none">
-          <div className="flex items-center gap-2 min-w-0 bg-black/70 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 pointer-events-auto">
+        {/* UNIFIED SINGLE TOP HEADER OVERLAY: DUY NHẤT 1 THANH, KHÔNG TRÙNG LẶP */}
+        <div className="absolute top-0 inset-x-0 z-30 bg-gradient-to-b from-black/90 via-black/40 to-transparent p-2 flex items-center justify-between gap-1.5 pointer-events-none">
+          {/* Avatar & Channel Info */}
+          <div className="flex items-center gap-1.5 min-w-0 bg-black/75 backdrop-blur-md px-2 py-1 rounded-full border border-white/15 pointer-events-auto">
             <img
-              src={activeLiveTask.channelAvatar}
+              src={getTikTokAvatar(activeLiveTask.channelHandle, activeLiveTask.channelAvatar)}
               alt=""
-              className="h-7 w-7 rounded-full object-cover ring-1 ring-rose-500 shrink-0"
+              onError={(e) => {
+                const clean = (activeLiveTask.channelHandle || '').replace(/^@+/, '');
+                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(clean || 'Live')}&background=E11D48&color=fff&bold=true`;
+              }}
+              className="h-6 w-6 rounded-full object-cover ring-1 ring-rose-500 shrink-0"
             />
             <div className="min-w-0">
               <div className="flex items-center gap-1">
-                <span className="font-bold text-white text-[11px] truncate max-w-[100px] sm:max-w-[120px]">
-                  {activeLiveTask.channelName}
+                <span className="font-bold text-white text-[10px] truncate max-w-[90px] sm:max-w-[110px]">
+                  {activeLiveTask.channelHandle || activeLiveTask.channelName}
                 </span>
                 <span className="px-1 py-0.2 rounded bg-rose-600 text-white text-[7px] font-black font-mono animate-pulse">
-                  LIVE 🔴
+                  LIVE
                 </span>
-              </div>
-              <div className="flex items-center gap-1 text-[9px] font-mono text-neonGold">
-                <span>Hạng {quota.rank}</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-emerald-400 font-bold">+{currentEarnedCoins.toLocaleString()} Xu</span>
               </div>
             </div>
           </div>
 
+          {/* Unified Controls: Bật/Tắt Âm Thanh & Nút Đóng */}
           <div className="flex items-center gap-1 shrink-0 pointer-events-auto">
-            {/* Nút Đổi Phòng */}
+            {/* Nút Bật/Tắt Âm Thanh */}
             <button
               type="button"
-              onClick={() => setShowRoomSwitcher(!showRoomSwitcher)}
-              className="px-2 py-1 rounded-xl bg-black/70 hover:bg-white/20 backdrop-blur-md border border-white/10 text-slate-200 text-[9px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
-              title="Chuyển đổi phòng live khác"
+              onClick={() => setIsMuted(!isMuted)}
+              className={`py-1 px-2 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1 ${
+                isMuted 
+                  ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 hover:bg-rose-500/40' 
+                  : 'bg-emerald-500/25 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/35'
+              }`}
+              title={isMuted ? 'Bấm để Bật Âm Thanh Live' : 'Bấm để Tắt Tiếng'}
             >
-              <RefreshCw className="h-3 w-3 text-cyan-400" />
-              <span>Đổi Phòng</span>
-            </button>
-
-            {/* Nút Mở App TikTok */}
-            <button
-              type="button"
-              onClick={handleOpenTikTokApp}
-              className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-[9px] shadow-md flex items-center gap-0.5 transition-transform active:scale-95 cursor-pointer font-display"
-              title="Mở trên App TikTok"
-            >
-              <ArrowUpRight className="h-3 w-3" />
-              <span>Mở App</span>
+              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-300 animate-pulse" />}
+              <span className="text-[9px] font-mono font-bold whitespace-nowrap">
+                {isMuted ? 'Bật tiếng' : 'Tắt tiếng'}
+              </span>
             </button>
 
             {/* Nút Đóng */}
             <button
               onClick={closeLiveRunner}
-              className="p-1 rounded-xl bg-black/70 hover:bg-white/20 backdrop-blur-md border border-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 rounded-full bg-black/75 hover:bg-white/20 backdrop-blur-md border border-white/15 text-slate-400 hover:text-white transition-colors cursor-pointer"
               title="Đóng phiên live"
             >
               <X className="h-3.5 w-3.5" />

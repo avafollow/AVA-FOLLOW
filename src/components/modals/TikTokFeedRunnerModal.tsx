@@ -31,7 +31,7 @@ import {
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS, TikTokTaskItem, LivestreamTaskItem } from '../../types';
 import { INITIAL_CROSS_FOLLOW_ITEMS } from '../../data/crossFollowData';
-import { parseMediaUrl } from '../../data/videoSources';
+import { parseMediaUrl, getTikTokAvatar } from '../../data/videoSources';
 import {
   TikTokVideoEmbedPlayer,
   TikTokLiveEmbedPlayer,

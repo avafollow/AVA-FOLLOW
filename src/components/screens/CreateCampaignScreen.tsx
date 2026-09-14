@@ -39,6 +39,7 @@ import {
 import { CampaignItem, FLEXIBLE_LIVESTREAM_TIERS, MultiTargetConfig } from '../../types';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TikTokVideoPreviewPlayer } from '../common/TikTokVideoPreviewPlayer';
+import { getTikTokAvatar } from '../../data/videoSources';
 
 interface TargetOptionDef {
   id: 'follow' | 'watch' | 'like' | 'comment' | 'share' | 'livestream' | 'booking_review';
@@ -816,10 +817,16 @@ export const CreateCampaignScreen: React.FC<{
               {/* Thẻ Kênh TikTok */}
               <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-500 to-purple-600 p-0.5 shrink-0 shadow-lg">
-                    <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-white font-black text-base">
-                      {channelHandle.replace('@', '').charAt(0).toUpperCase() || 'T'}
-                    </div>
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-500 to-purple-600 p-0.5 shrink-0 shadow-lg overflow-hidden">
+                    <img
+                      src={getTikTokAvatar(channelHandle)}
+                      alt={channelHandle}
+                      onError={(e) => {
+                        const clean = (channelHandle || '').replace(/^@+/, '');
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(clean || 'TikTok')}&background=E11D48&color=fff&bold=true`;
+                      }}
+                      className="w-full h-full rounded-full object-cover"
+                    />
                   </div>
                   <div className="min-w-0">
                     <div className="text-white font-black text-base flex items-center gap-1.5">

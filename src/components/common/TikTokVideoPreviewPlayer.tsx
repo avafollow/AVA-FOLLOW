@@ -72,8 +72,16 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const isDirectVideo = mediaInfo.isDirectVideo;
   const hasTikTokVideoId = Boolean(mediaInfo.isTikTok && mediaInfo.videoId);
 
-  // Tự động phát video ngay lập tức với âm thanh ở chế độ Stream HD
-  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>('stream');
+  // Tự động phát video TikTok thật nếu có Video ID, hoặc video Stream HD
+  const [streamMode, setStreamMode] = useState<'stream' | 'embed'>(hasTikTokVideoId ? 'embed' : 'stream');
+
+  useEffect(() => {
+    if (hasTikTokVideoId) {
+      setStreamMode('embed');
+    } else {
+      setStreamMode('stream');
+    }
+  }, [hasTikTokVideoId, url]);
 
   // Link đích chính xác của người dùng
   const displayHandle = mediaInfo.handle || channelHandle || '@creator.vietnam';
@@ -285,11 +293,37 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         ) : effectiveIsLive || mediaInfo.isLive ? (
           /* TRƯỜNG HỢP E: TIKTOK LIVE BROADCAST STUDIO (PHÒNG PHÁT SÓNG TRỰC TIẾP SẮC NÉT) */
           <div 
-            className="relative w-full h-full bg-gradient-to-b from-slate-950 via-[#130722] to-[#080B14] flex flex-col justify-between p-4 overflow-hidden select-none cursor-pointer"
+            className="relative w-full h-full bg-black flex flex-col justify-between p-4 overflow-hidden select-none cursor-pointer"
             onClick={togglePlay}
           >
-            {/* Animated Glow Background Waves */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(244,63,94,0.25),transparent_70%)] animate-pulse" />
+            {/* Background Active Live Motion Video Stream */}
+            <video
+              ref={(el) => {
+                videoRef.current = el;
+                if (el) {
+                  el.defaultMuted = false;
+                  el.muted = isMuted;
+                  el.playsInline = true;
+                  const playPromise = el.play();
+                  if (playPromise !== undefined) {
+                    playPromise.then(() => setIsPlaying(true)).catch(() => {
+                      el.muted = true;
+                      el.play().then(() => setIsPlaying(true)).catch(() => {});
+                    });
+                  }
+                }
+              }}
+              src={currentStream}
+              autoPlay
+              loop
+              muted={isMuted}
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover opacity-75"
+            />
+
+            {/* Animated Glow Background Waves & Contrast Layers */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/30 to-black/90 pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(244,63,94,0.3),transparent_70%)] animate-pulse pointer-events-none" />
             <div className="absolute top-1/4 -right-12 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-1/3 -left-12 w-48 h-48 bg-cyan-600/20 rounded-full blur-3xl pointer-events-none" />
 

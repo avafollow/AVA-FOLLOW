@@ -704,7 +704,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             }
 
             // 3. TikTok Official Embed Player (Tự động phát video TikTok thật từ link người dùng)
-            if (itemMedia.isTikTok && itemMedia.videoId && playerMode === 'embed') {
+            if (itemMedia.isTikTok && itemMedia.videoId) {
               return (
                 <iframe
                   key={currentItem.id + '_tt_' + itemMedia.videoId}
@@ -717,15 +717,39 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // 4. TikTok Live Broadcast Studio (Hiển thị phòng live trực tuyến sắc nét, không bị lỗi iframe)
+            // 4. TikTok Live Broadcast Studio (Hiển thị phòng live trực tuyến sắc nét, có video nền chuyển động và âm thanh)
             if (currentItem.kind === 'livestream' || itemMedia.isLive) {
               const handleClean = (currentItem.channelHandle || itemMedia.handle || '@creator').replace(/^@+/, '');
               return (
                 <div 
-                  className="absolute inset-0 w-full h-full bg-gradient-to-b from-slate-950 via-[#130722] to-[#080B14] flex flex-col justify-between p-4 overflow-hidden select-none cursor-pointer"
+                  className="absolute inset-0 w-full h-full bg-black flex flex-col justify-between p-4 overflow-hidden select-none cursor-pointer"
                   onClick={togglePlay}
                 >
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(244,63,94,0.25),transparent_70%)] animate-pulse pointer-events-none" />
+                  <video
+                    ref={(el) => {
+                      videoRef.current = el;
+                      if (el) {
+                        el.defaultMuted = false;
+                        el.muted = isMuted;
+                        el.playsInline = true;
+                        const p = el.play();
+                        if (p !== undefined) {
+                          p.then(() => setIsPlaying(true)).catch(() => {
+                            el.muted = true;
+                            el.play().then(() => setIsPlaying(true)).catch(() => {});
+                          });
+                        }
+                      }
+                    }}
+                    src={currentItem.videoUrl || itemMedia.streamUrl || '/videos/sample2.mp4'}
+                    autoPlay
+                    loop
+                    muted={isMuted}
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover opacity-75"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/30 to-black/90 pointer-events-none" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(244,63,94,0.3),transparent_70%)] animate-pulse pointer-events-none" />
                   
                   {/* Top Live Status */}
                   <div className="relative z-10 flex items-center justify-between pt-10 px-1">

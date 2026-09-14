@@ -15,11 +15,32 @@ export interface ParsedMediaInfo {
   sourceType: 'tiktok_embed' | 'cdn_stream' | 'youtube_embed' | 'facebook_embed' | 'live_stream' | 'direct_stream';
 }
 
-// Không sử dụng video demo/mock — Hệ thống tập trung 100% phát video thật từ URL đường link của người dùng
+// Bộ nguồn video & stream tốc độ cao cho video nền và livestream
 export const HIGH_SPEED_CDN_VIDEOS = {
-  fyp: [],
-  livestream: [],
-  product_review: []
+  fyp: [
+    '/videos/sample1.mp4',
+    '/videos/sample2.mp4',
+    '/videos/sample3.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+  ],
+  livestream: [
+    '/videos/sample2.mp4',
+    '/videos/sample3.mp4',
+    '/videos/sample1.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+  ],
+  product_review: [
+    '/videos/sample3.mp4',
+    '/videos/sample1.mp4',
+    '/videos/sample2.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+  ]
 };
 
 // Hàm trích xuất @handle từ URL bất kỳ
@@ -135,20 +156,20 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
   } else if (isYouTube && youtubeId) {
     embedUrl = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`;
     sourceType = 'youtube_embed';
-    streamUrl = url;
+    streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];
   } else if (isFacebook) {
     embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=0&allowfullscreen=true`;
     sourceType = 'facebook_embed';
-    streamUrl = url;
+    streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];
   } else if (isTikTok && videoId) {
     embedUrl = `https://www.tiktok.com/embed/v2/${videoId}`;
     sourceType = 'tiktok_embed';
-    streamUrl = url;
+    streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];
   } else if (isLive) {
     sourceType = 'live_stream';
-    streamUrl = url;
+    streamUrl = HIGH_SPEED_CDN_VIDEOS.livestream[absHash % HIGH_SPEED_CDN_VIDEOS.livestream.length];
   } else {
-    streamUrl = url;
+    streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];
   }
 
   let title = `Video TikTok: ${handle}`;

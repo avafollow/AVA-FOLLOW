@@ -503,9 +503,33 @@ export const LivestreamRunnerModal: React.FC = () => {
               className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
             />
           ) : (
-            /* TIKTOK LIVE BROADCAST STAGE (Đồ họa phòng live rực rỡ, sóng âm thanh, mắt xem thật) */
-            <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-slate-950 via-[#160b29] to-[#070a13] flex flex-col items-center justify-center pointer-events-none select-none">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(244,63,94,0.25),transparent_70%)] animate-pulse" />
+            /* TIKTOK LIVE BROADCAST STAGE (Đồ họa phòng live rực rỡ, video chuyển động nền, sóng âm thanh, mắt xem thật) */
+            <div className="absolute inset-0 w-full h-full bg-black flex flex-col items-center justify-center pointer-events-none select-none">
+              <video
+                ref={(el) => {
+                  videoRef.current = el;
+                  if (el) {
+                    el.defaultMuted = false;
+                    el.muted = isMuted;
+                    el.playsInline = true;
+                    const p = el.play();
+                    if (p !== undefined) {
+                      p.then(() => setIsPlaying(true)).catch(() => {
+                        el.muted = true;
+                        el.play().then(() => setIsPlaying(true)).catch(() => {});
+                      });
+                    }
+                  }
+                }}
+                src={mediaInfo?.streamUrl || '/videos/sample2.mp4'}
+                autoPlay
+                loop
+                muted={isMuted}
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover opacity-75"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/30 to-black/90 pointer-events-none" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(244,63,94,0.3),transparent_70%)] animate-pulse" />
               
               {/* Host Avatar & Live Pulse */}
               <div className="relative mb-3">

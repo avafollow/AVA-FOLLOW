@@ -475,7 +475,10 @@ export const BookingEscrowScreen: React.FC = () => {
           <div className="text-xs text-slate-400 flex items-center gap-2">
             <span>Tổng tiền ký quỹ hiện tại:</span>
             <span className="font-bold font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-mono-numbers">
-              18,500,000đ
+              {escrowBookings
+                .filter(b => b.status === 'pending_escrow' || b.status === 'escrow_locked' || b.status === 'demo_submitted')
+                .reduce((sum, b) => sum + (parseInt(b.totalEscrowAmount.replace(/\D/g, ''), 10) || 0), 0)
+                .toLocaleString()}đ
             </span>
           </div>
         </div>

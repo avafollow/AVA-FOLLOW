@@ -1024,22 +1024,25 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setUserNotifications(prev => [newNotif, ...prev]);
   };
   
-  // KOC applications
-  const [kocApplications, setKocApplications] = useState<KocProfileApplication[]>([
-    {
-      id: 'koc_app_1',
-      kocName: 'Hoàng Yến (Foodie)',
-      tiktokHandle: '@hoangyen_foodie',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120',
-      followersCount: 185000,
-      category: 'Ẩm Thực / Quán Ăn',
-      pricePerVideoVND: '800,000đ',
-      sampleVideoUrl: 'https://www.tiktok.com/@hoangyen_foodie/video/7234567890123456789',
-      bioDescription: 'Chuyên review trải nghiệm ẩm thực chân thực tại Hà Nội và Sài Gòn.',
-      status: 'approved',
-      createdAt: '1 ngày trước'
-    }
-  ]);
+  // KOC applications (100% Real, persisted)
+  const [kocApplications, setKocApplications] = useState<KocProfileApplication[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_koc_applications') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_koc_applications', JSON.stringify(kocApplications));
+      }
+    } catch {}
+  }, [kocApplications]);
   const [isKocModalOpen, setIsKocModalOpen] = useState(false);
 
   // Package order modal
@@ -1116,24 +1119,26 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`✓ Đã kết nối 1-chạm tài khoản TikTok ${formatted}!`);
   };
 
-  // KYC Verification state
+  // KYC Verification state (100% Real, persisted)
   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
-  const [kycRequests, setKycRequests] = useState<KycVerificationData[]>([
-    {
-      userId: 'usr_004',
-      userEmail: 'contact@zenskin.vn',
-      fullName: 'VŨ THỊ HƯƠNG (ZENSKIN)',
-      idNumber: '034195008899',
-      dateOfBirth: '1992-06-18',
-      frontIdCardUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400',
-      backIdCardUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400',
-      bankName: 'Vietcombank',
-      bankAccountNumber: '0071001234567',
-      bankAccountHolder: 'VU THI HUONG',
-      submittedAt: '15 phút trước',
-      status: 'pending'
-    }
-  ]);
+  const [kycRequests, setKycRequests] = useState<KycVerificationData[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_kyc_requests') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_kyc_requests', JSON.stringify(kycRequests));
+      }
+    } catch {}
+  }, [kycRequests]);
 
   // App Marketplace (App Kiếm Tiền) state
   const [softwareApps, setSoftwareApps] = useState<SoftwareAppItem[]>(() => {
@@ -1157,20 +1162,24 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [softwareApps]);
 
-  const [myAppLicenses, setMyAppLicenses] = useState<AppLicensePurchase[]>([
-    {
-      id: 'lic_init_1',
-      appId: 'app_01',
-      appTitle: 'AI Viral Script Master Pro 2026',
-      licenseKey: 'TKPRO-AISCRIPT-99K2-M88X',
-      xuPaid: 500000,
-      tokenPaid: 200,
-      purchasedAt: 'Hôm qua, 16:30',
-      expiryDate: 'Trọn đời (Lifetime)',
-      status: 'active',
-      downloadUrl: 'https://tools.tiktokpro.vn/ai-script-master'
-    }
-  ]);
+  const [myAppLicenses, setMyAppLicenses] = useState<AppLicensePurchase[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_app_licenses') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_app_licenses', JSON.stringify(myAppLicenses));
+      }
+    } catch {}
+  }, [myAppLicenses]);
 
   // Token Ledger state (Sàn quản trị minh bạch)
   const [tokenLedger, setTokenLedger] = useState<TokenLedgerRecord[]>(INITIAL_TOKEN_LEDGER);
@@ -1178,27 +1187,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const openKycModal = () => setIsKycModalOpen(true);
   const closeKycModal = () => setIsKycModalOpen(false);
 
-  // Live Broadcast Notification state (Mặc định phiên Live từ gói đã mua)
-  const [activeBroadcastNotification, setActiveBroadcastNotification] = useState<LiveBroadcastNotification | null>({
-    id: 'bcast_vip_initial',
-    orderId: 'ord_live_vip_1',
-    buyerName: 'Nguyễn Văn Minh (Thiện Vua App)',
-    buyerHandle: '@thienvuaapp_official',
-    buyerAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    roomTitle: '🔥 ĐẠI TIỆC XẢ KHO 99K TIKTOK SHOP - BÃO MẮT XEM CỘNG ĐỒNG',
-    targetLiveUrl: 'https://tiktok.com/@thienvuaapp_official/live',
-    packageTitle: 'Gói 500 Mắt Xem Live 2 Tiếng Chốt Đơn',
-    targetEyes: 500,
-    deliveredEyes: 340,
-    targetHearts: 5000,
-    deliveredHearts: 4250,
-    targetComments: 200,
-    deliveredComments: 186,
-    rewardPerWatcherCoins: 1200,
-    requiredMinutes: 3,
-    startTime: 'Vừa phát sóng 5 phút trước',
-    isActive: true
-  });
+  // Live Broadcast Notification state (100% Real)
+  const [activeBroadcastNotification, setActiveBroadcastNotification] = useState<LiveBroadcastNotification | null>(null);
 
   const openBuyerPortal = () => setIsBuyerPortalOpen(true);
   const closeBuyerPortal = () => setIsBuyerPortalOpen(false);

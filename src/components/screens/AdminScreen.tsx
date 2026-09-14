@@ -99,6 +99,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     createGrowthService,
     updateGrowthService,
     deleteGrowthService,
+    deleteCampaign,
     user,
     campaigns,
     commissionSettings,
@@ -432,7 +433,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
         <div className="p-5 rounded-2xl bg-[#0D111E] border border-white/10 space-y-1 shadow-lg">
           <span className="text-[10px] text-slate-400 font-mono uppercase">Tổng Tài Khoản Đăng Ký</span>
           <div className="text-2xl font-black text-purple-400 font-mono">
-            {adminUsers.length.toLocaleString()} User
+            {totalUsersCount.toLocaleString()} User
           </div>
           <p className="text-[10px] text-emerald-400 font-mono">100% Đồng bộ Supabase Profiles</p>
         </div>
@@ -440,7 +441,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
         <div className="p-5 rounded-2xl bg-[#0D111E] border border-white/10 space-y-1 shadow-lg">
           <span className="text-[10px] text-slate-400 font-mono uppercase">Két Ký Quỹ Sàn (Escrow Vault)</span>
           <div className="text-2xl font-black text-amber-400 font-mono">
-            {adminData.totalEscrowLockedVND || '18,500,000đ'}
+            {totalEscrowLockedFormatted}
           </div>
           <p className="text-[10px] text-amber-400 font-mono">Khóa an toàn trong Smart Vault</p>
         </div>
@@ -581,7 +582,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
           }`}
         >
           <Flame className="w-4 h-4" />
-          <span>Chiến Dịch ({adminData.campaignsQueue.length})</span>
+          <span>Chiến Dịch ({campaigns.length})</span>
         </button>
 
         <button
@@ -833,12 +834,12 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
               <div className="space-y-2.5">
                 {[
-                  { label: 'Kết Nối Bạn Bè (Follow Người Thật)', completed: 92.5, drop: 7.5, total: '8,420 task', color: 'from-emerald-500 to-teal-400' },
-                  { label: 'Xem & Đánh Giá (Thả Tim Video)', completed: 94.2, drop: 5.8, total: '7,150 task', color: 'from-pink-500 to-rose-400' },
-                  { label: 'Tiếp Cận Người Xem (Xem FYP 15s)', completed: 91.0, drop: 9.0, total: '4,890 task', color: 'from-blue-500 to-cyan-400' },
-                  { label: 'Giới Thiệu Bạn Bè (Share Ngoại Sàn)', completed: 86.8, drop: 13.2, total: '1,840 task', color: 'from-purple-500 to-indigo-400' },
-                  { label: 'Trả Lời Câu Hỏi (Comment Seeding)', completed: 84.6, drop: 15.4, total: '1,450 task', color: 'from-amber-500 to-yellow-400' },
-                  { label: 'Xem LIVE & Trả Lời (Giữ Mắt 3-30p)', completed: 81.3, drop: 18.7, total: '1,100 task', color: 'from-red-500 to-orange-400' },
+                  { label: 'Kết Nối Bạn Bè (Follow Người Thật)', completed: completionPercentage, drop: dropPercentage, total: `${tasks.filter(t => t.type === 'follow').length} task`, color: 'from-emerald-500 to-teal-400' },
+                  { label: 'Xem & Đánh Giá (Thả Tim Video)', completed: completionPercentage, drop: dropPercentage, total: `${tasks.filter(t => t.type === 'like').length} task`, color: 'from-pink-500 to-rose-400' },
+                  { label: 'Tiếp Cận Người Xem (Xem FYP 15s)', completed: completionPercentage, drop: dropPercentage, total: `${tasks.filter(t => t.type === 'watch').length} task`, color: 'from-blue-500 to-cyan-400' },
+                  { label: 'Giới Thiệu Bạn Bè (Share Ngoại Sàn)', completed: completionPercentage, drop: dropPercentage, total: `${tasks.filter(t => t.type === 'share').length} task`, color: 'from-purple-500 to-indigo-400' },
+                  { label: 'Trả Lời Câu Hỏi (Comment Seeding)', completed: completionPercentage, drop: dropPercentage, total: `${tasks.filter(t => t.type === 'comment').length} task`, color: 'from-amber-500 to-yellow-400' },
+                  { label: 'Xem LIVE & Trả Lời (Giữ Mắt 3-30p)', completed: completionPercentage, drop: dropPercentage, total: `${livestreamTasks.length} task`, color: 'from-red-500 to-orange-400' },
                 ].map((item, idx) => (
                   <div key={idx} className="space-y-1">
                     <div className="flex items-center justify-between text-xs font-mono">
@@ -3320,67 +3321,74 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             <div className="flex items-center gap-2">
               <Flame className="h-5 w-5 text-rose-500" />
               <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">
-                Hàng Đợi Duyệt Chiến Dịch Khách Hàng ({adminData.campaignsQueue.length})
+                Quản Lý Chiến Dịch Khách Hàng ({campaigns.length})
               </h3>
             </div>
             <span className="text-xs text-slate-400 font-mono">Tự động đối soát TikTok API</span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-white/5 text-slate-400 font-mono uppercase text-[10px]">
-                <tr>
-                  <th className="p-3">Khách Hàng / Thương Hiệu</th>
-                  <th className="p-3">Loại Chiến Dịch</th>
-                  <th className="p-3">Số Lượng</th>
-                  <th className="p-3">Ngân Sách</th>
-                  <th className="p-3">Trạng Thái</th>
-                  <th className="p-3 text-right">Hành Động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5 text-slate-300">
-                {adminData.campaignsQueue.map((item) => (
-                  <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="p-3 font-bold text-white">{item.client}</td>
-                    <td className="p-3 text-slate-300 font-mono">{item.type}</td>
-                    <td className="p-3 font-mono font-bold text-cyan-400">{item.quantity.toLocaleString()}</td>
-                    <td className="p-3 font-mono font-bold text-amber-400">{item.amount}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                        item.status === 'Chờ duyệt'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : item.status === 'Đang chạy'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-white/10 text-slate-400'
-                      }`}>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      {item.status === 'Chờ duyệt' ? (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => approveCampaign(item.id)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px]"
-                          >
-                            Duyệt
-                          </button>
-                          <button
-                            onClick={() => rejectCampaign(item.id)}
-                            className="px-2.5 py-1 rounded-lg bg-rose-600/30 hover:bg-rose-600 text-rose-300 hover:text-white font-bold text-[11px]"
-                          >
-                            Từ chối
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] font-mono text-slate-500">Đã kích hoạt</span>
-                      )}
-                    </td>
+          {campaigns.length === 0 ? (
+            <div className="py-12 px-4 text-center space-y-3 bg-black/20 rounded-2xl border border-white/5">
+              <div className="w-12 h-12 rounded-2xl bg-white/5 mx-auto flex items-center justify-center text-slate-500">
+                <Flame className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-bold text-slate-300">Chưa có chiến dịch nào được tạo</p>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Khi khách hàng lên chiến dịch ở tab "Tạo Chiến Dịch", toàn bộ danh sách chiến dịch thật sẽ hiển thị và cập nhật thời gian thực tại đây.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-white/5 text-slate-400 font-mono uppercase text-[10px]">
+                  <tr>
+                    <th className="p-3">Khách Hàng / Kênh</th>
+                    <th className="p-3">Loại Chiến Dịch</th>
+                    <th className="p-3">Sản Lượng</th>
+                    <th className="p-3">Ngân Sách Xu</th>
+                    <th className="p-3">Trạng Thái</th>
+                    <th className="p-3 text-right">Hành Động</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-slate-300">
+                  {campaigns.map((item) => (
+                    <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="p-3">
+                        <div className="font-bold text-white">{item.title || item.channelHandle}</div>
+                        <div className="text-[11px] text-slate-400 font-mono">{item.channelHandle}</div>
+                      </td>
+                      <td className="p-3 text-purple-300 font-mono font-bold uppercase">{item.type}</td>
+                      <td className="p-3 font-mono font-bold text-cyan-400">{item.targetQuantity?.toLocaleString() || 0}</td>
+                      <td className="p-3 font-mono font-bold text-amber-400">{item.budgetTotal || '0 Xu'}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                          item.status === 'running'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : item.status === 'paused'
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : 'bg-white/10 text-slate-400'
+                        }`}>
+                          {item.status === 'running' ? 'Đang chạy' : item.status === 'paused' ? 'Tạm dừng' : 'Chờ duyệt'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => {
+                            if (confirm(`Bạn có chắc muốn xóa chiến dịch "${item.title || item.channelHandle}"?`)) {
+                              deleteCampaign(item.id);
+                            }
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-bold text-[11px] transition-colors cursor-pointer"
+                        >
+                          Xóa
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

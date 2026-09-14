@@ -16,7 +16,7 @@ import {
   Check,
   Music2
 } from 'lucide-react';
-import { parseMediaUrl, ParsedMediaInfo } from '../../data/videoSources';
+import { parseMediaUrl, ParsedMediaInfo, getTikTokAvatar, extractTikTokVideoId } from '../../data/videoSources';
 import {
   TikTokVideoEmbedPlayer,
   TikTokLiveEmbedPlayer,
@@ -207,18 +207,52 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             title={mediaInfo.title}
             isMuted={isMuted}
           />
-        ) : hasTikTokVideoId && mediaInfo.videoId ? (
-          /* TAB 4: TIKTOK OFFICIAL VIDEO EMBED (CÓ VIDEO ID CHUẨN) */
+        ) : (hasTikTokVideoId && mediaInfo.videoId) || extractTikTokVideoId(url) ? (
+          /* TAB 4: TIKTOK OFFICIAL VIDEO EMBED (CÓ VIDEO ID CHUẨN) — PHÁT NGAY */
           <TikTokVideoEmbedPlayer
-            videoId={mediaInfo.videoId}
-            title={mediaInfo.title}
-          />
-        ) : mediaInfo.isTikTok && url && url.startsWith('http') ? (
-          /* TAB 4B: TIKTOK IFRAME TRỰC TIẾP (KHI LINK TIKTOK RÚT GỌN / CHƯA CÓ VIDEO ID) — PHÁT NGAY LINK GỐC */
-          <TikTokVideoEmbedPlayer
+            videoId={mediaInfo.videoId || extractTikTokVideoId(url) || undefined}
             directUrl={url}
             title={mediaInfo.title}
           />
+        ) : mediaInfo.isTikTok && url ? (
+          /* TAB 4B: KÊNH TIKTOK HỢP LỆ (TRÁNH LỖI REFUSED TO CONNECT KHI LÀ PROFILE URL) */
+          <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 bg-gradient-to-b from-[#111827] to-black rounded-3xl w-full h-full select-none">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-full border-2 border-rose-500 overflow-hidden shadow-2xl p-0.5 bg-gradient-to-tr from-rose-500 to-pink-500">
+                <img 
+                  src={getTikTokAvatar(cleanHandle)} 
+                  alt={cleanHandle}
+                  onError={(e) => {
+                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=E11D48&color=fff&bold=true`;
+                  }}
+                  className="w-full h-full rounded-full object-cover"
+                />
+              </div>
+              <span className="absolute -bottom-1 -right-1 p-1 rounded-full bg-cyan-500 text-white shadow-md">
+                <CheckCircle2 className="w-4 h-4" />
+              </span>
+            </div>
+
+            <div className="space-y-1">
+              <h4 className="text-white font-black text-sm font-display">@{cleanHandle}</h4>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
+                ✓ Kênh TikTok Hợp Lệ
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-300 font-mono max-w-[260px] leading-relaxed">
+              👉 Hãy dán link video (hoặc link Live) của kênh vào ô bên trên để xem trước video phát ngay lập tức.
+            </p>
+
+            <button
+              type="button"
+              onClick={openUserMedia}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-xs shadow-lg flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+            >
+              <span>Mở Kênh Trên TikTok</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          </div>
         ) : isDirectVideo ? (
           /* TAB 5: DIRECT VIDEO PLAYER (MP4 / WEBM) */
           <DirectVideoPlayer

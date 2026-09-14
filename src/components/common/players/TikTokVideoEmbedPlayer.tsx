@@ -1,4 +1,5 @@
 import React from 'react';
+import { extractTikTokVideoId } from '../../../data/videoSources';
 
 export interface TikTokVideoEmbedPlayerProps {
   videoId?: string;
@@ -9,10 +10,10 @@ export interface TikTokVideoEmbedPlayerProps {
 
 /**
  * Component chuyên biệt: Trình phát Video TikTok Embed chính thức từ TikTok
- * Hỗ trợ 2 chế độ:
- * 1. videoId → Phát qua TikTok embed/v2 chính thức
- * 2. directUrl → Phát trực tiếp URL gốc qua iframe (khi không trích xuất được videoId)
- * Đảm bảo video TikTok LUÔN phát ngay lập tức khi dán link, không rơi vào video nền mẫu.
+ * Hỗ trợ:
+ * 1. videoId hoặc directUrl → Tự động trích xuất videoId chuẩn
+ * 2. Nhúng qua embed/v2 chính thức với autoplay=1 và lang=vi-VN
+ * 3. Cho phép đầy đủ quyền phát tự động, âm thanh và toàn màn hình
  */
 export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   videoId,
@@ -20,9 +21,11 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   title = 'TikTok Video',
   className = ''
 }) => {
-  // Ưu tiên videoId embed chuẩn, fallback sang directUrl iframe
-  const iframeSrc = videoId
-    ? `https://www.tiktok.com/embed/v2/${videoId}`
+  const effectiveId = videoId || (directUrl ? extractTikTokVideoId(directUrl) : null);
+
+  // Nếu có ID video TikTok chuẩn
+  const iframeSrc = effectiveId
+    ? `https://www.tiktok.com/embed/v2/${effectiveId}?lang=vi-VN&autoplay=1`
     : directUrl || null;
 
   if (!iframeSrc) return null;
@@ -30,10 +33,10 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   return (
     <div className={`relative w-full h-full bg-black flex items-center justify-center overflow-hidden rounded-3xl ${className}`}>
       <iframe
-        key={`tt-embed-${videoId || directUrl}`}
+        key={`tt-embed-${effectiveId || directUrl}`}
         src={iframeSrc}
         title={title}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share"
         allowFullScreen
         className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
       />

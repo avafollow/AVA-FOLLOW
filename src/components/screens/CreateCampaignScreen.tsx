@@ -187,9 +187,9 @@ export const CreateCampaignScreen: React.FC<{
   });
 
   const [title, setTitle] = useState('');
-  const userHandle = user.tiktokHandle || user.tiktokConnected || '@thienvuaapp';
-  const [channelHandle, setChannelHandle] = useState(userHandle);
-  const [targetUrl, setTargetUrl] = useState(`https://www.tiktok.com/@${userHandle.replace('@', '')}`);
+  const userHandle = user.tiktokHandle || user.tiktokConnected || '@vtv24news';
+  const [channelHandle, setChannelHandle] = useState('@vtv24news');
+  const [targetUrl, setTargetUrl] = useState('https://www.tiktok.com/@vtv24news/video/7178345719323135259');
   const [speed, setSpeed] = useState<'natural' | 'turbo'>('natural');
   const [instructions, setInstructions] = useState('Yêu cầu người dùng thật 100%, xem video 15s tự nhiên trước khi tương tác, bảo đảm không bị tụt.');
   
@@ -751,7 +751,7 @@ export const CreateCampaignScreen: React.FC<{
                 <span className="text-[10px] text-slate-400 font-mono font-bold">Dán nhanh:</span>
                 <button
                   type="button"
-                  onClick={() => handleTargetUrlChange('https://www.tiktok.com/@hoaa.hanassii/video/7234567890123456789')}
+                  onClick={() => handleTargetUrlChange('https://www.tiktok.com/@vtv24news/video/7178345719323135259')}
                   className="px-2.5 py-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 text-[10px] font-mono font-bold border border-rose-500/40 cursor-pointer transition-all active:scale-95"
                 >
                   🎬 Video TikTok
@@ -772,7 +772,7 @@ export const CreateCampaignScreen: React.FC<{
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleTargetUrlChange('https://www.facebook.com/reel/123456789')}
+                  onClick={() => handleTargetUrlChange('https://www.facebook.com/watch/?v=10153231379946729')}
                   className="px-2.5 py-1 rounded-xl bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 text-[10px] font-mono font-bold border border-blue-500/40 cursor-pointer transition-all active:scale-95"
                 >
                   🌐 Facebook

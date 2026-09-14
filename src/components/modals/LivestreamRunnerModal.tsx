@@ -35,6 +35,12 @@ import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS, LivestreamTaskItem } from '../../types';
 import { LIVE_SEEDING_TEMPLATES, LIVE_MILESTONE_REWARDS } from '../../data/livePolicyData';
 import { parseMediaUrl } from '../../data/videoSources';
+import {
+  syncTikTokFollow,
+  syncTikTokLike,
+  syncTikTokComment,
+  syncShareToFacebook
+} from '../../services/tiktokActionSync';
 
 export const LivestreamRunnerModal: React.FC = () => {
   const { 
@@ -232,6 +238,7 @@ export const LivestreamRunnerModal: React.FC = () => {
     if (nextTaps >= 20 && !claimedHeartReward) {
       setClaimedHeartReward(true);
       interactWithLiveBroadcast(activeLiveTask.id, 'heart');
+      syncTikTokLike(activeLiveTask.id, user.tiktokConnected || user.email || '@user');
       showToast('💖 Đã tap đủ 20 tim! Nhận ngay +200 Xu thưởng.');
     }
 
@@ -249,9 +256,11 @@ export const LivestreamRunnerModal: React.FC = () => {
   const handleSendChat = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMsg.trim()) return;
-    setChatMessages(prev => [...prev, `${user.name}: ${inputMsg}`]);
+    const msg = inputMsg.trim();
+    setChatMessages(prev => [...prev, `${user.name}: ${msg}`]);
     setInputMsg('');
     setIdleSeconds(0);
+    syncTikTokComment(activeLiveTask.id, msg, user.tiktokConnected || user.email || '@user');
 
     if (!claimedCommentReward) {
       setClaimedCommentReward(true);
@@ -266,6 +275,7 @@ export const LivestreamRunnerModal: React.FC = () => {
     setChatMessages(prev => [...prev, `${user.name}: ${commentText}`]);
     setIdleSeconds(0);
     setShowSeedingDrawer(false);
+    syncTikTokComment(activeLiveTask.id, commentText, user.tiktokConnected || user.email || '@user');
 
     if (!claimedCommentReward) {
       setClaimedCommentReward(true);
@@ -278,12 +288,14 @@ export const LivestreamRunnerModal: React.FC = () => {
 
   const handleShareLive = (e: React.MouseEvent) => {
     e.stopPropagation();
+    syncShareToFacebook(activeLiveTask.targetUrl, activeLiveTask.channelHandle);
+
     if (!claimedShareReward) {
       setClaimedShareReward(true);
       interactWithLiveBroadcast(activeLiveTask.id, 'share');
-      showToast('🚀 Đã chia sẻ phòng Live! Nhận ngay +300 Xu.');
+      showToast('🚀 Đã chia sẻ phòng Live về Facebook! Nhận ngay +300 Xu.');
     } else {
-      showToast('Đã sao chép link chia sẻ phòng Live!');
+      showToast('🚀 Đã mở chia sẻ phòng Live về Facebook!');
     }
   };
 

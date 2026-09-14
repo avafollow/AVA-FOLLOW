@@ -885,7 +885,7 @@ export const CreateCampaignScreen: React.FC<{
                       openFeedRunner(targetUrl || channelHandle);
                     }
                   }}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs font-mono font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer border border-rose-500/40 shadow-md text-center"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-600/30 to-purple-600/30 hover:from-rose-600/50 hover:to-purple-600/50 text-rose-200 text-xs font-mono font-bold flex items-center justify-center gap-2 transition-all cursor-pointer border border-rose-500/50 shadow-md text-center"
                   title="Chế độ xem thử mô phỏng hiển thị trên Feed / Live (Chưa trừ Xu, bấm kích hoạt bên dưới để chạy chính thức)"
                 >
                   <Play className="w-3.5 h-3.5 fill-rose-400" />

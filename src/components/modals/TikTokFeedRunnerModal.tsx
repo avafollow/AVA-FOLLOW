@@ -664,42 +664,30 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
             <button
               onClick={() => { 
-                if (!isDailyMissionsCompleted) {
-                  showToast('🔒 YÊU CẦU HOÀN THÀNH NHIỆM VỤ NGÀY: Hãy làm xong các nhiệm vụ ngày trong mục "🎯 Làm Nhiệm Vụ" để mở khóa phòng Live Stream!');
-                  return;
-                }
                 setFilterMode('live'); 
                 setCurrentIndex(0); 
               }}
               className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
                 filterMode === 'live' 
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md ring-1 ring-purple-400/50' 
-                  : isDailyMissionsCompleted
-                    ? 'text-slate-300 hover:text-white bg-white/5'
-                    : 'text-slate-500 bg-white/[0.02] border border-white/5 opacity-75'
+                  : 'text-slate-300 hover:text-white bg-white/5'
               }`}
             >
-              <span>{isDailyMissionsCompleted ? '🔴' : '🔒'} Live Stream ({countLive})</span>
+              <span>🔴 Live Stream ({countLive})</span>
             </button>
 
             <button
               onClick={() => { 
-                if (!isDailyMissionsCompleted) {
-                  showToast('🔒 YÊU CẦU HOÀN THÀNH NHIỆM VỤ NGÀY: Hãy làm xong các nhiệm vụ ngày trong mục "🎯 Làm Nhiệm Vụ" để mở khóa tính năng Follow Chéo!');
-                  return;
-                }
                 setFilterMode('cross_follow'); 
                 setCurrentIndex(0); 
               }}
               className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
                 filterMode === 'cross_follow' 
                   ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md ring-1 ring-emerald-400/50' 
-                  : isDailyMissionsCompleted
-                    ? 'text-slate-300 hover:text-white bg-white/5'
-                    : 'text-slate-500 bg-white/[0.02] border border-white/5 opacity-75'
+                  : 'text-slate-300 hover:text-white bg-white/5'
               }`}
             >
-              <span>{isDailyMissionsCompleted ? '🔄' : '🔒'} Follow Chéo ({countCross})</span>
+              <span>🔄 Follow Chéo ({countCross})</span>
             </button>
 
             <button

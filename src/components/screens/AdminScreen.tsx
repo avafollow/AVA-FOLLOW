@@ -62,7 +62,7 @@ import { useTikTokApp } from '../../context/TikTokAppContext';
 import { AdminUserManagementItem, GrowthServiceItem, SoftwareAppItem, ServiceOrder } from '../../types';
 import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
 import { BrandLogo } from '../common/BrandLogo';
-import { MISSION_POOL, RANK_MISSION_CONFIG } from '../../data/weeklyMissions';
+import { MISSION_POOL, RANK_MISSION_CONFIG, TEN_TIERS_LIST } from '../../data/weeklyMissions';
 import { KOC_PENALTY_TIERS } from '../../data/kocProfileData';
 
 export interface StaffMember {
@@ -149,14 +149,18 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   };
 
   // Real-time System Statistics Calculations (100% Real Data - Sạch 0 con số ảo)
-  const totalEscrowLockedNum = escrowBookings
-    .filter(b => b.status === 'pending_escrow' || b.status === 'escrow_locked' || b.status === 'demo_submitted')
+  const totalEscrowLockedNum = (escrowBookings || [])
+    .filter(b => b && b.id && !b.id.startsWith('mock_') && !b.id.startsWith('escrow_demo') && !b.id.includes('demo') && (b.status === 'pending_escrow' || b.status === 'escrow_locked' || b.status === 'demo_submitted'))
     .reduce((sum, b) => sum + parseNumericAmount(b.totalEscrowAmount), 0);
   const totalEscrowLockedFormatted = totalEscrowLockedNum > 0 ? totalEscrowLockedNum.toLocaleString('vi-VN') + 'đ' : '0đ';
 
   const userDepositsTotal = (user.transactions || [])
-    .filter(t => t.type === 'deposit' && t.status === 'success')
-    .reduce((sum, t) => sum + parseNumericAmount(t.amount), 0);
+    .filter(t => t && t.type === 'deposit' && t.status === 'success' && t.id && !t.id.startsWith('mock_') && !t.id.startsWith('test_'))
+    .reduce((sum, t) => {
+      const amt = parseNumericAmount(t.amount);
+      // Chỉ tính các khoản nạp tiền mặt VNĐ thực tế (bỏ qua số test tỷ xu ảo)
+      return sum + (amt < 500000000 ? amt : 0);
+    }, 0);
 
   const totalRevenueNum = userDepositsTotal + (platformBoostRevenue || 0);
   const totalRevenueFormatted = totalRevenueNum > 0 ? totalRevenueNum.toLocaleString('vi-VN') + 'đ' : '0đ';
@@ -201,14 +205,19 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   // Tạo danh sách ví duy nhất tránh tính trùng tài khoản đang đăng nhập với adminUsers
   const uniqueUsersWalletMap = new Map<string, number>();
   if (user && user.email) {
-    uniqueUsersWalletMap.set(user.email.toLowerCase(), Number(user.avaliveCoins) || 0);
+    const rawCoins = Number(user.avaliveCoins) || 0;
+    // Khử số dư ảo thử nghiệm quá 1 tỷ xu trong ví cá nhân
+    const normalizedCoins = rawCoins >= 1000000000 ? 0 : rawCoins;
+    uniqueUsersWalletMap.set(user.email.toLowerCase(), normalizedCoins);
   }
   adminUsers.forEach(u => {
     if (u && u.email) {
-      uniqueUsersWalletMap.set(u.email.toLowerCase(), Number(u.coinsBalance) || 0);
+      const rawCoins = Number(u.coinsBalance) || 0;
+      const normalizedCoins = rawCoins >= 1000000000 ? 0 : rawCoins;
+      uniqueUsersWalletMap.set(u.email.toLowerCase(), normalizedCoins);
     }
   });
-  const userHoldingsNum = Array.from(uniqueUsersWalletMap.values()).reduce((sum, val) => sum + (Number(val) || 0), 0);
+  const userHoldingsNum = Array.from(uniqueUsersWalletMap.values()).reduce((sum, val) => Number(sum) + Number(val || 0), 0);
   const totalRealWalletsCount = Math.max(1, uniqueUsersWalletMap.size);
 
   // 4. Tổng Xu đã chuyển đổi thành tiền mặt / rút ngân hàng
@@ -227,7 +236,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
   // 2. Tổng Xu đã phân phối ra thị trường (Circulating Supply)
   // Tổng Xu đã ra ngoài thị trường = Đang nằm trong ví người dùng + Đã rút tiền mặt + Đã tiêu dùng vào phần mềm/dịch vụ + Đã đốt
-  const circulatingSupplyNum = userHoldingsNum + totalSpentOnServicesNum + totalWithdrawnNum + totalBurnedTokensNum;
+  const circulatingSupplyNum = Number(userHoldingsNum) + Number(totalSpentOnServicesNum) + Number(totalWithdrawnNum) + Number(totalBurnedTokensNum);
 
   // 7. Tổng Xu còn lại trong Kho Quỹ Sàn (Chưa phát hành - Treasury Balance)
   // Kho Quỹ Sàn = Tổng Cung - Tổng Xu Đã Phân Phối Ra Thị Trường
@@ -325,20 +334,28 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const [isSavedSettings, setIsSavedSettings] = useState(false);
 
 
-  // Staff Roles state
+  // Staff Roles state (Khởi tạo chuẩn chỉ 1 Master Super Admin duy nhất, không dùng dữ liệu demo)
   const [staffList, setStaffList] = useState<StaffMember[]>(() => {
     try {
       const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_admin_staff_list') : null;
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: StaffMember[] = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(s => s && s.id && !s.id.startsWith('staff_00'));
+          if (cleaned.length > 0) return cleaned;
+        }
+      }
     } catch {}
     return [
-      { id: 'staff_001', name: 'Nguyễn Văn Admin', email: 'admin@avafollow.vn',   role: 'super_admin',      dept: 'Ban Lãnh Đạo',         status: 'active',   lastLogin: '2026-09-12 08:00' },
-      { id: 'staff_002', name: 'Trần Thị Kế Toán', email: 'ketoan@avafollow.vn', role: 'finance_manager',   dept: 'Tài Chính - Kế Toán',  status: 'active',   lastLogin: '2026-09-12 07:45' },
-      { id: 'staff_003', name: 'Lê Văn KYC',        email: 'kyc@avafollow.vn',   role: 'kyc_officer',       dept: 'Xác Minh KYC',         status: 'active',   lastLogin: '2026-09-11 22:30' },
-      { id: 'staff_004', name: 'Phạm Thị Support',  email: 'cs@avafollow.vn',    role: 'customer_support',  dept: 'Chăm Sóc Khách Hàng',  status: 'active',   lastLogin: '2026-09-12 08:10' },
-      { id: 'staff_005', name: 'Hoàng Văn KOC',     email: 'koc@avafollow.vn',   role: 'koc_manager',       dept: 'Quản Lý KOC',          status: 'active',   lastLogin: '2026-09-11 20:00' },
-      { id: 'staff_006', name: 'Đinh Thị Campaign', email: 'camp@avafollow.vn',  role: 'campaign_manager',  dept: 'Chiến Dịch & Quảng Cáo', status: 'inactive', lastLogin: '2026-09-10 15:00' },
-      { id: 'staff_007', name: 'Vũ Văn Tech',       email: 'tech@avafollow.vn',  role: 'tech_admin',        dept: 'Kỹ Thuật & Dev',       status: 'active',   lastLogin: '2026-09-12 07:00' },
+      { 
+        id: 'staff_master_admin', 
+        name: 'Nguyễn Quốc Thiện', 
+        email: 'quocthiencr90@gmail.com', 
+        role: 'super_admin', 
+        dept: 'Ban Quản Trị Tối Cao', 
+        status: 'active', 
+        lastLogin: 'Đang trực tuyến' 
+      }
     ];
   });
 
@@ -370,54 +387,19 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const [withdrawFeeRate, setWithdrawFeeRate] = useState(5);
   const [requireKycCccd, setRequireKycCccd] = useState(true);
 
-  // Admin Pending Withdrawal Requests Queue
-  const [adminWithdrawals, setAdminWithdrawals] = useState([
-    {
-      id: 'wd_req_101',
-      userId: 'usr_02',
-      userName: 'Trần Phương KOC',
-      userHandle: '@phuongkoc_beauty',
-      amountVND: 450000,
-      feePlatform: 22500,
-      netPayoutVND: 427500,
-      bankName: 'Vietcombank',
-      accountNumber: '1012389948',
-      accountHolder: 'TRAN PHUONG',
-      kycVerified: true,
-      requestDate: 'Hôm nay, 08:30',
-      status: 'pending' as 'pending' | 'approved' | 'rejected'
-    },
-    {
-      id: 'wd_req_102',
-      userId: 'usr_03',
-      userName: 'Hoàng Long Media',
-      userHandle: '@longmedia_agency',
-      amountVND: 1200000,
-      feePlatform: 60000,
-      netPayoutVND: 1140000,
-      bankName: 'Techcombank',
-      accountNumber: '19033882910',
-      accountHolder: 'HOANG LONG',
-      kycVerified: true,
-      requestDate: 'Hôm nay, 09:15',
-      status: 'pending' as 'pending' | 'approved' | 'rejected'
-    },
-    {
-      id: 'wd_req_103',
-      userId: 'usr_05',
-      userName: 'Duy Anh Creator',
-      userHandle: '@duyanh_vlog',
-      amountVND: 250000,
-      feePlatform: 12500,
-      netPayoutVND: 237500,
-      bankName: 'MB Bank',
-      accountNumber: '9988221199',
-      accountHolder: 'NGUYEN DUY ANH',
-      kycVerified: false,
-      requestDate: 'Hôm nay, 09:40',
-      status: 'pending' as 'pending' | 'approved' | 'rejected'
-    }
-  ]);
+  // Admin Pending Withdrawal Requests Queue (100% Realtime từ lệnh rút thật của người dùng)
+  const [adminWithdrawals, setAdminWithdrawals] = useState<any[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_admin_withdrawals') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((w: any) => w && w.id && !w.id.startsWith('wd_req_10'));
+        }
+      }
+    } catch {}
+    return [];
+  });
 
   const handleApproveWithdrawal = (id: string) => {
     setAdminWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: 'approved' } : w));
@@ -4662,42 +4644,53 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             </div>
           </div>
 
-          {/* Rank Config Table */}
+          {/* 10 CẤP BẬC THĂNG TIẾN & CẤU HÌNH NHIỆM VỤ CHI TIẾT */}
           <div className="p-5 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
-            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-              <Target className="w-4 h-4 text-rose-400" />
-              <h4 className="text-sm font-black text-white font-mono uppercase tracking-wider">Cấu Hình Slot Nhiệm Vụ Theo Cấp Bậc</h4>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-rose-400" />
+                <h4 className="text-sm font-black text-white font-mono uppercase tracking-wider">
+                  Cấu Hình 10 Cấp Bậc Thăng Tiến &amp; Slot Nhiệm Vụ Tuần
+                </h4>
+              </div>
+              <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                10 Cấp Bậc • Thưởng x1.0 → x3.0 • Vòng Quay May Mắn
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {(['Đồng', 'Bạc', 'Vàng', 'Kim Cương'] as const).map((rank) => {
-                const cfg = RANK_MISSION_CONFIG.rankSlots[rank];
-                const colors: Record<string, string> = {
-                  'Đồng': 'border-orange-500/40 bg-orange-950/20',
-                  'Bạc': 'border-slate-400/40 bg-slate-800/20',
-                  'Vàng': 'border-amber-500/40 bg-amber-950/20',
-                  'Kim Cương': 'border-cyan-400/40 bg-cyan-950/20',
-                };
-                const icons: Record<string, string> = { 'Đồng': '🥉', 'Bạc': '🥈', 'Vàng': '🥇', 'Kim Cương': '💎' };
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {TEN_TIERS_LIST.map((tier) => {
                 return (
-                  <div key={rank} className={`p-4 rounded-2xl border space-y-3 ${colors[rank]}`}>
-                    <div className="text-sm font-black text-white">{icons[rank]} {rank}</div>
-                    <div className="space-y-2 text-xs font-mono">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Daily missions:</span>
-                        <span className="font-bold text-cyan-400">{cfg.dailyMissionsCount} slot</span>
+                  <div key={tier.name} className={`p-3.5 rounded-2xl border space-y-2.5 text-left ${tier.color}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-white font-display">{tier.badge}</span>
+                      <span className="text-[9px] text-amber-300 font-mono font-black">×{tier.rewardMultiplier} Thưởng</span>
+                    </div>
+
+                    <div className="text-[11px] font-bold text-white font-mono leading-tight">
+                      {tier.shortTitle}
+                    </div>
+
+                    <div className="space-y-1 text-[10px] font-mono">
+                      <div className="flex justify-between text-cyan-300">
+                        <span>Ngày (Daily):</span>
+                        <strong>{tier.dailyMissionsCount} slot</strong>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Weekly missions:</span>
-                        <span className="font-bold text-amber-400">{cfg.weeklyMissionsCount} slot</span>
+                      <div className="flex justify-between text-amber-300">
+                        <span>Tuần (Weekly):</span>
+                        <strong>{tier.weeklyMissionsCount} slot</strong>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Reward ×:</span>
-                        <span className="font-bold text-emerald-400">×{cfg.rewardMultiplier}</span>
+                      <div className="flex justify-between text-pink-300">
+                        <span>Vòng quay:</span>
+                        <strong>+{tier.wheelSpinsBonus} lượt</strong>
                       </div>
                     </div>
-                    <div className="text-[10px] text-slate-500 border-t border-white/5 pt-2">
-                      Tổng tối đa: <strong className="text-white">{cfg.dailyMissionsCount + cfg.weeklyMissionsCount}</strong> nhiệm vụ/tuần
+
+                    <div className="text-[9px] text-slate-400 border-t border-white/5 pt-1.5 flex justify-between font-mono">
+                      <span>Mở khóa:</span>
+                      <span className="text-emerald-400 font-bold">
+                        {tier.minCompletedTasksToUnlock === 0 ? 'Mặc định' : `Tích lũy ${tier.minCompletedTasksToUnlock} nhiệm vụ`}
+                      </span>
                     </div>
                   </div>
                 );

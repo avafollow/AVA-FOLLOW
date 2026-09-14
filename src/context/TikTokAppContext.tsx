@@ -3619,8 +3619,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       manualBurnedSupply: 0
     });
 
-    // 4. Clear token ledger records
+    // 4. Clear token ledger records & reset platform boost revenue
     setTokenLedger([]);
+    setPlatformBoostRevenue(0);
 
     // 5. Clean localStorage
     try {

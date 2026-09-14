@@ -3222,6 +3222,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     audienceTargeting?: CampaignAudienceTargeting;
   }): boolean => {
     const rawBudget = parseInt(campaignData.budgetTotal.replace(/\D/g, '')) || 0;
+    if ((user.avaliveCoins || 0) < rawBudget) {
+      showToast(`❌ Số dư Xu không đủ (${(user.avaliveCoins || 0).toLocaleString()} Xu < ${rawBudget.toLocaleString()} Xu). Vui lòng nạp thêm Xu để chạy chiến dịch!`);
+      setIsDepositOpen(true);
+      return false;
+    }
     const newCoins = Math.max(0, user.avaliveCoins - rawBudget);
     let singleNewTask: TikTokTaskItem | null = null;
 

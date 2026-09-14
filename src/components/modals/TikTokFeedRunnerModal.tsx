@@ -105,7 +105,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     kind: (c.type === 'livestream' || c.type === 'livestream_viewers') ? 'livestream' : 'video',
     title: c.title,
     type: c.type,
-    requiresWatch: c.type === 'watch' || c.type === 'livestream',
+    requiresWatch: true,
     channelName: c.channelHandle,
     channelHandle: c.channelHandle,
     channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
@@ -133,7 +133,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     kind: 'video',
     title: t.title,
     type: t.type,
-    requiresWatch: t.type === 'watch' || (t as any).requiresWatch === true,
+    requiresWatch: true,
     channelName: t.channelName,
     channelHandle: t.channelHandle,
     channelAvatar: t.channelAvatar,
@@ -284,15 +284,19 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
   // Sync with specific campaign ID if opened directly from campaign card
   useEffect(() => {
-    if (isFeedRunnerOpen && feedRunnerTargetId) {
-      const idx = combinedFeed.findIndex(item => 
-        item.id === feedRunnerTargetId || 
-        item.targetUrl === feedRunnerTargetId || 
-        item.channelHandle === feedRunnerTargetId
-      );
-      if (idx !== -1) {
-        setCurrentIndex(idx);
+    if (isFeedRunnerOpen) {
+      if (feedRunnerTargetId) {
+        const idx = combinedFeed.findIndex(item => 
+          item.id === feedRunnerTargetId || 
+          item.targetUrl === feedRunnerTargetId || 
+          item.channelHandle === feedRunnerTargetId
+        );
+        if (idx !== -1) {
+          setCurrentIndex(idx);
+          return;
+        }
       }
+      setCurrentIndex(0);
     }
   }, [isFeedRunnerOpen, feedRunnerTargetId, combinedFeed.length]);
 
@@ -314,10 +318,18 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         videoRef.current.muted = isMuted;
         videoRef.current.playsInline = true;
         videoRef.current.currentTime = 0;
-        videoRef.current.play().catch(() => {});
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            if (videoRef.current) {
+              videoRef.current.muted = true;
+              videoRef.current.play().catch(() => {});
+            }
+          });
+        }
       }
     }
-  }, [isFeedRunnerOpen, currentIndex, filterMode, isMuted]);
+  }, [isFeedRunnerOpen, currentIndex, filterMode, isMuted, currentItem?.id]);
 
   // Main timer countdown (chỉ đếm ngược khi có gói xem video / livestream)
   useEffect(() => {
@@ -637,7 +649,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 />
               );
             }
-            const videoSrc = currentItem.videoUrl || itemMedia.streamUrl || '/videos/sample2.mp4';
+            const videoSrc = currentItem.videoUrl || itemMedia.streamUrl || '/videos/sample1.mp4';
             return (
               <video
                 key={currentItem.id + '_' + videoSrc}
@@ -660,10 +672,20 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 preload="auto"
                 crossOrigin="anonymous"
                 muted={isMuted}
-                onError={() => {
-                  if (videoRef.current && videoRef.current.src !== '/videos/sample1.mp4') {
-                    videoRef.current.src = '/videos/sample1.mp4';
-                    videoRef.current.play().catch(() => {});
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  const fallbacks = [
+                    '/videos/sample1.mp4',
+                    '/videos/sample2.mp4',
+                    '/videos/sample3.mp4',
+                    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+                    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+                  ];
+                  const current = target.src;
+                  const nextFb = fallbacks.find(f => !current.includes(f));
+                  if (nextFb && target.src !== nextFb) {
+                    target.src = nextFb;
+                    target.play().catch(() => {});
                   }
                 }}
                 onPlay={() => setIsPlaying(true)}

@@ -192,7 +192,8 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
       channelName: c.channelHandle,
       channelHandle: c.channelHandle,
       channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-      thumbnail: stream.streamUrl.endsWith('.jpg') || stream.streamUrl.endsWith('.png') ? stream.streamUrl : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=80',
+      thumbnail: stream.streamUrl || '/videos/sample1.mp4',
+      videoUrl: stream.streamUrl || '/videos/sample1.mp4',
       rewardXu: 200,
       durationBadge: isLive ? 'TRỰC TIẾP' : '15 GIÂY',
       remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0)),
@@ -868,12 +869,24 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
                     className="group p-3.5 rounded-2xl bg-[#090C16] border border-cyan-500/30 hover:border-cyan-400 transition-all flex flex-col justify-between space-y-3 shadow-lg cursor-pointer hover:scale-[1.01]"
                   >
                     {/* Ô VUÔNG THUMBNAIL VIDEO */}
-                    <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black/60 border border-white/10 group-hover:border-cyan-400/60 transition-all">
-                      <img
-                        src={card.thumbnail}
-                        alt=""
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
-                      />
+                    <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black/80 border border-white/10 group-hover:border-cyan-400/60 transition-all">
+                      {card.thumbnail && card.thumbnail.includes('.mp4') ? (
+                        <video
+                          src={card.thumbnail}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-85"
+                          muted
+                          playsInline
+                          loop
+                          autoPlay
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          src={card.thumbnail}
+                          alt=""
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
+                        />
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-center justify-center">
                         <div className="w-11 h-11 rounded-full bg-cyan-500/80 group-hover:bg-cyan-400 text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition-all">
                           <Play className="w-5 h-5 fill-current ml-0.5" />

@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS, LivestreamTaskItem } from '../../types';
-import { LIVE_SEEDING_TEMPLATES, LIVE_MILESTONE_REWARDS } from '../../data/livePolicyData';
+import { LIVE_MILESTONE_REWARDS } from '../../data/livePolicyData';
 import { parseMediaUrl, getTikTokAvatar } from '../../data/videoSources';
 import {
   syncTikTokFollow,
@@ -74,7 +74,6 @@ export const LivestreamRunnerModal: React.FC = () => {
   const [targetCaptchaIcon, setTargetCaptchaIcon] = useState<{ id: string; name: string; icon: string }>({ id: 'gift', name: 'Hộp Quà', icon: '🎁' });
   const [isCompletedMission, setIsCompletedMission] = useState<boolean>(false);
   const [showStatsDrawer, setShowStatsDrawer] = useState<boolean>(false);
-  const [showSeedingDrawer, setShowSeedingDrawer] = useState<boolean>(false);
   const [isOpenedOnTikTok, setIsOpenedOnTikTok] = useState<boolean>(false);
   const [showRoomSwitcher, setShowRoomSwitcher] = useState<boolean>(false);
   const [showShopProduct, setShowShopProduct] = useState<boolean>(false);
@@ -138,7 +137,6 @@ export const LivestreamRunnerModal: React.FC = () => {
       setShowCaptcha(false);
       setIsCompletedMission(false);
       setShowStatsDrawer(false);
-      setShowSeedingDrawer(false);
       setShowRoomSwitcher(false);
       setShowShopProduct(false);
       setIsOpenedOnTikTok(false);
@@ -274,22 +272,6 @@ export const LivestreamRunnerModal: React.FC = () => {
     }
   };
 
-  const handleSelectQuickComment = (commentText: string) => {
-    // Copy to clipboard for instant pasting on real TikTok Live
-    navigator.clipboard?.writeText(commentText).catch(() => {});
-    setChatMessages(prev => [...prev, `${user.name}: ${commentText}`]);
-    setIdleSeconds(0);
-    setShowSeedingDrawer(false);
-    syncTikTokComment(activeLiveTask.id, commentText, user.tiktokConnected || user.email || '@user');
-
-    if (!claimedCommentReward) {
-      setClaimedCommentReward(true);
-      interactWithLiveBroadcast(activeLiveTask.id, 'comment');
-      showToast('💬 Đã sao chép & gửi bình luận seeding giỏ hàng! (+350 Xu)');
-    } else {
-      showToast('✓ Đã sao chép & gửi bình luận vào phiên live!');
-    }
-  };
 
   const handleShareLive = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -330,8 +312,6 @@ export const LivestreamRunnerModal: React.FC = () => {
     { id: '#USR-55102', name: 'Hải Đăng', device: 'Oppo Reno 11', watchMins: '18p', status: 'Active' }
   ];
 
-  // Quick comments suggestions for this live
-  const quickComments = LIVE_SEEDING_TEMPLATES[0].comments.slice(0, 4);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-200 font-sans">
@@ -581,44 +561,7 @@ export const LivestreamRunnerModal: React.FC = () => {
             </div>
           )}
 
-          {/* QUICK SEEDING SCRIPTS DRAWER */}
-          {showSeedingDrawer && (
-            <div 
-              className="absolute inset-x-0 bottom-0 z-30 bg-[#090C16]/98 backdrop-blur-xl p-4 rounded-t-3xl border-t border-cyan-500/40 space-y-3 text-left shadow-2xl animate-in slide-in-from-bottom duration-200"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between pb-1 border-b border-white/10">
-                <div className="flex items-center gap-1.5 text-cyan-300 font-bold text-xs font-display">
-                  <Sparkles className="h-4 w-4" />
-                  <span>Chọn Câu Seeding Giỏ Hàng 1-Chạm (+350 Xu)</span>
-                </div>
-                <button
-                  onClick={() => setShowSeedingDrawer(false)}
-                  className="p-1 rounded-lg bg-white/10 text-slate-400 hover:text-white"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <p className="text-[11px] text-slate-300">
-                Chạm vào bất kỳ câu nào để gửi ngay vào live chat của shop và nhận thưởng:
-              </p>
 
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                {LIVE_SEEDING_TEMPLATES[0].comments.map((cmt, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSelectQuickComment(cmt)}
-                    className="w-full p-2.5 rounded-xl bg-black/60 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500 text-left text-xs text-slate-200 transition-all flex items-center justify-between gap-2 group"
-                  >
-                    <span>{cmt}</span>
-                    <span className="text-[10px] font-mono text-cyan-400 shrink-0 group-hover:underline">
-                      Gửi +350 Xu
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* REAL-TIME AUDIENCE ANALYTICS DRAWER */}
           {showStatsDrawer && (
@@ -789,27 +732,13 @@ export const LivestreamRunnerModal: React.FC = () => {
                 </div>
               </div>
 
-              {/* 3 Quick Seeding Pills for 1-click comment */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-                {quickComments.map((cmt, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSelectQuickComment(cmt)}
-                    className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/40 text-[10px] text-slate-300 hover:text-cyan-300 whitespace-nowrap transition-all flex items-center gap-1"
-                  >
-                    <span>{cmt}</span>
-                    <span className="text-[9px] text-neonGold">+350 Xu</span>
-                  </button>
-                ))}
-              </div>
-
               {/* Custom Input Chat Form */}
               <form onSubmit={handleSendChat} className="flex items-center gap-2">
                 <input
                   type="text"
                   value={inputMsg}
                   onChange={(e) => setInputMsg(e.target.value)}
-                  placeholder="Nhập bình luận seeding giỏ hàng..."
+                  placeholder="Nhập bình luận gửi vào phiên live..."
                   className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans"
                 />
                 <button

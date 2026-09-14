@@ -33,7 +33,8 @@ import {
   Megaphone,
   Target,
   Users,
-  Rocket
+  Rocket,
+  Trash2
 } from 'lucide-react';
 import { CampaignItem, FLEXIBLE_LIVESTREAM_TIERS, MultiTargetConfig } from '../../types';
 import { useTikTokApp } from '../../context/TikTokAppContext';
@@ -130,6 +131,7 @@ export const CreateCampaignScreen: React.FC<{
   const { 
     user, 
     createCampaign, 
+    deleteCampaign,
     unlockCampaignAnalytics,
     boostCampaignToTop,
     openDeposit, 
@@ -856,9 +858,35 @@ export const CreateCampaignScreen: React.FC<{
                 </a>
                 <button
                   type="button"
-                  onClick={() => openFeedRunner()}
+                  onClick={() => {
+                    const isLiveMode = selectedTargets.livestream || targetUrl.includes('/live') || targetUrl.toLowerCase().includes('live');
+                    if (isLiveMode) {
+                      openLiveRunner({
+                        id: `preview_live_${Date.now()}`,
+                        channelName: channelHandle,
+                        channelHandle: channelHandle,
+                        channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+                        roomTitle: title || `Phiên Live TikTok: ${channelHandle}`,
+                        currentViewers: 1420,
+                        targetMinutes: livestreamMinutes || 3,
+                        rewardPerMinute: 400,
+                        milestoneBonusCoins: 1200,
+                        totalRewardCoins: 1200,
+                        targetUrl: targetUrl,
+                        status: 'live',
+                        category: 'TikTok Live Stream',
+                        hostFollowers: '100K+ Followers',
+                        requiredRank: 'Đồng',
+                        isLocked: false,
+                        dailyTierLevel: 1,
+                        tags: ['Mắt Xem Thật', 'Xem Thử']
+                      });
+                    } else {
+                      openFeedRunner(targetUrl || channelHandle);
+                    }
+                  }}
                   className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs font-mono font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer border border-rose-500/40 shadow-md text-center"
-                  title="Chế độ xem thử mô phỏng hiển thị trên Feed (Chưa trừ Xu, bấm kích hoạt bên dưới để chạy chính thức)"
+                  title="Chế độ xem thử mô phỏng hiển thị trên Feed / Live (Chưa trừ Xu, bấm kích hoạt bên dưới để chạy chính thức)"
                 >
                   <Play className="w-3.5 h-3.5 fill-rose-400" />
                   <span>Xem Thử Hiển Thị Trên Feed (Test)</span>
@@ -1850,6 +1878,20 @@ export const CreateCampaignScreen: React.FC<{
                         >
                           <Play className="w-3 h-3 fill-rose-400" />
                           <span>{isLive ? 'Xem Phiên Live' : 'Xem trên Feed'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Bạn có chắc chắn muốn xóa chiến dịch "${camp.title}" không?`)) {
+                              deleteCampaign(camp.id);
+                            }
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-300 border border-red-500/40 text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Xóa chiến dịch này"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Xóa</span>
                         </button>
                         <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
                           {camp.status === 'running' ? 'Đang phân phối' : camp.status}

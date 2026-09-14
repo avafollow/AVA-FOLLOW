@@ -77,6 +77,16 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
         loop
         muted={isMuted}
         playsInline
+        preload="auto"
+        onCanPlay={(e) => {
+          const v = e.currentTarget;
+          if (v.paused) {
+            v.play().catch(() => {
+              v.muted = true;
+              v.play().catch(() => {});
+            });
+          }
+        }}
         className="absolute inset-0 w-full h-full object-cover opacity-75"
       />
 

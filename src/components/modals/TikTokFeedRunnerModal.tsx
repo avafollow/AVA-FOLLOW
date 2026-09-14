@@ -80,6 +80,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     isFeedRunnerOpen, 
     closeFeedRunner, 
     completeTask, 
+    deleteCampaign,
     user,
     connectTikTok,
     claimTaskAction,
@@ -101,7 +102,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; x: number; y: number }[]>([]);
   const [showCommentInput, setShowCommentInput] = useState<boolean>(false);
   const [customComment, setCustomComment] = useState<string>('');
-  const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('stream'); // Luôn tự động phát video HD kèm âm thanh tức thì
+  const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('embed'); // Tự động phát TikTok embed khi có ID, hoặc stream HD
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -354,6 +355,16 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       }
     }
   }, [isFeedRunnerOpen, currentIndex, filterMode, isMuted, currentItem?.id]);
+
+  // Tự động kích hoạt chế độ nhúng TikTok Embed cho video TikTok thật
+  useEffect(() => {
+    if (currentItem) {
+      const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
+      if (itemMedia.isTikTok && itemMedia.videoId) {
+        setPlayerMode('embed');
+      }
+    }
+  }, [currentItem?.id, currentItem?.targetUrl]);
 
   // Main timer countdown (chỉ đếm ngược khi có gói xem video / livestream)
   useEffect(() => {

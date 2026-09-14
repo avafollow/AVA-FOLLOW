@@ -81,10 +81,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(15);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const [isMuted, setIsMuted] = useState<boolean>(() => {
-    const saved = localStorage.getItem('tiktok_sound_enabled');
-    return saved === 'false'; // Default unmuted for audio playback
-  });
+  const [isMuted, setIsMuted] = useState<boolean>(false); // Luôn phát video kèm âm thanh ngay lập tức
   const [autoAdvance, setAutoAdvance] = useState<boolean>(false); // GIỮ NGUYÊN VIDEO PHÁT HẾT ĐỘ DÀI, KHÔNG TỰ Ý CHUYỂN
   const [sessionCoinsEarned, setSessionCoinsEarned] = useState<number>(0);
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; x: number; y: number }[]>([]);
@@ -711,15 +708,15 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // 3. HD Native Video Stream (Tải siêu tốc <100ms, không lỗi CORS)
-            const videoSrc = currentItem.videoUrl || itemMedia.streamUrl || '/videos/sample1.mp4';
+            // 3. HD Native Video Stream
+            const videoSrc = currentItem.videoUrl || itemMedia.streamUrl || currentItem.targetUrl;
             return (
               <video
                 key={currentItem.id + '_' + videoSrc}
                 ref={(el) => {
                   videoRef.current = el;
                   if (el) {
-                    el.defaultMuted = true;
+                    el.defaultMuted = false;
                     el.muted = isMuted;
                     el.playsInline = true;
                     el.play().then(() => setIsPlaying(true)).catch(() => {
@@ -735,22 +732,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 preload="auto"
                 crossOrigin="anonymous"
                 muted={isMuted}
-                onError={(e) => {
-                  const target = e.currentTarget;
-                  const fallbacks = [
-                    '/videos/sample1.mp4',
-                    '/videos/sample2.mp4',
-                    '/videos/sample3.mp4',
-                    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-                    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
-                  ];
-                  const current = target.src;
-                  const nextFb = fallbacks.find(f => !current.includes(f));
-                  if (nextFb && target.src !== nextFb) {
-                    target.src = nextFb;
-                    target.play().catch(() => {});
-                  }
-                }}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 className="absolute inset-0 w-full h-full object-cover"

@@ -15,36 +15,11 @@ export interface ParsedMediaInfo {
   sourceType: 'tiktok_embed' | 'cdn_stream' | 'youtube_embed' | 'facebook_embed' | 'live_stream' | 'direct_stream';
 }
 
-// Kho video CDN & Local chất lượng cao định dạng MP4/H.264 chạy siêu mượt, không lỗi CORS, tải tức thì (<100ms)
+// Không sử dụng video demo/mock — Hệ thống tập trung 100% phát video thật từ URL đường link của người dùng
 export const HIGH_SPEED_CDN_VIDEOS = {
-  // Video dạng đứng dọc chuẩn TikTok FYP — Local trước, CDN internet dự phòng
-  fyp: [
-    '/videos/sample1.mp4',
-    '/videos/sample2.mp4',
-    '/videos/sample3.mp4',
-    // CDN dự phòng internet — không cần server local
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-  ],
-  // Phiên Live Stream bán hàng / KOC Studio
-  livestream: [
-    '/videos/sample2.mp4',
-    '/videos/sample3.mp4',
-    '/videos/sample1.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-  ],
-  // Review sản phẩm & Affiliate
-  product_review: [
-    '/videos/sample3.mp4',
-    '/videos/sample1.mp4',
-    '/videos/sample2.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
-  ]
+  fyp: [],
+  livestream: [],
+  product_review: []
 };
 
 // Hàm trích xuất @handle từ URL bất kỳ
@@ -150,35 +125,33 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
   }
   const absHash = Math.abs(hash);
 
-  let streamUrl: string;
-  let sourceType: ParsedMediaInfo['sourceType'] = 'cdn_stream';
+  let streamUrl = url;
+  let sourceType: ParsedMediaInfo['sourceType'] = 'direct_stream';
   let embedUrl: string | undefined;
 
   if (isDirectVideo) {
     streamUrl = url;
     sourceType = 'direct_stream';
   } else if (isYouTube && youtubeId) {
-    streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];
-    embedUrl = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`;
+    embedUrl = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`;
     sourceType = 'youtube_embed';
+    streamUrl = url;
   } else if (isFacebook) {
-    streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[absHash % HIGH_SPEED_CDN_VIDEOS.fyp.length];
-    embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=1`;
+    embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=0`;
     sourceType = 'facebook_embed';
+    streamUrl = url;
+  } else if (isTikTok && videoId) {
+    embedUrl = `https://www.tiktok.com/embed/v2/${videoId}`;
+    sourceType = 'tiktok_embed';
+    streamUrl = url;
   } else if (isLive) {
-    const list = HIGH_SPEED_CDN_VIDEOS.livestream;
-    streamUrl = list[absHash % list.length];
     sourceType = 'live_stream';
+    streamUrl = url;
   } else {
-    const list = HIGH_SPEED_CDN_VIDEOS.fyp;
-    streamUrl = list[absHash % list.length];
-    if (videoId) {
-      embedUrl = `https://www.tiktok.com/embed/v2/${videoId}`;
-      sourceType = 'tiktok_embed';
-    }
+    streamUrl = url;
   }
 
-  let title = `Video TikTok Xu Hướng: ${handle}`;
+  let title = `Video TikTok: ${handle}`;
   if (isLive) {
     title = `🔴 LIVE STREAM: ${handle}`;
   } else if (isYouTube) {

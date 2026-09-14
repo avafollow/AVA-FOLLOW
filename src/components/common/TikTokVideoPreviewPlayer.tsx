@@ -119,23 +119,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
     }
   }, [currentStream, mediaInfo.streamUrl, url, isMuted, autoPlay, isYouTube, streamMode]);
 
-  // Danh sách dự phòng đầy đủ — local trước, internet CDN sau
-  const FALLBACK_STREAMS = [
-    '/videos/sample1.mp4',
-    '/videos/sample2.mp4',
-    '/videos/sample3.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
-  ];
-
   const handleVideoError = () => {
-    setCurrentStream((prev) => {
-      const idx = FALLBACK_STREAMS.indexOf(prev);
-      // Thử nguồn tiếp theo trong danh sách dự phòng
-      const nextIdx = (idx + 1) % FALLBACK_STREAMS.length;
-      return FALLBACK_STREAMS[nextIdx];
-    });
+    // Không chuyển sang video demo, giữ nguyên luồng video của người dùng
   };
 
   const togglePlay = (e?: React.MouseEvent) => {

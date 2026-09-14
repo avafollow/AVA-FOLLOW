@@ -336,71 +336,12 @@ export const LivestreamRunnerModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-200 font-sans">
       <div 
-        className="relative w-full max-w-[380px] h-[90vh] max-h-[800px] rounded-3xl bg-[#090C16] border-2 border-rose-500/30 shadow-2xl overflow-hidden flex flex-col select-none"
+        className="relative w-full max-w-[360px] sm:max-w-[380px] h-[90vh] max-h-[780px] aspect-[9/16] rounded-3xl bg-[#090C16] border-2 border-rose-500/40 shadow-2xl overflow-hidden select-none"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* UNIFIED LUXURY TOP HEADER: Gọn gàng, sang xịn, đẩy Mở App + Đổi Phòng lên trên */}
-        <div className="bg-[#090C16]/95 backdrop-blur-md px-3.5 py-2.5 border-b border-white/10 flex items-center justify-between z-20 gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <img
-              src={activeLiveTask.channelAvatar}
-              alt=""
-              className="h-8 w-8 rounded-full object-cover ring-2 ring-rose-500 shrink-0"
-            />
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-white text-xs truncate max-w-[120px] sm:max-w-[150px]">
-                  {activeLiveTask.channelName}
-                </span>
-                <span className="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[8px] font-black font-mono animate-pulse">
-                  LIVE 🔴
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 text-[10px] font-mono text-neonGold">
-                <span>Hạng {quota.rank}</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-emerald-400 font-bold">+{currentEarnedCoins.toLocaleString()} Xu</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Nút Đổi Phòng */}
-            <button
-              type="button"
-              onClick={() => setShowRoomSwitcher(!showRoomSwitcher)}
-              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-[10px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
-              title="Chuyển đổi phòng live khác"
-            >
-              <RefreshCw className="h-3 w-3 text-cyan-400" />
-              <span>Đổi Phòng ({livestreamTasks.length})</span>
-            </button>
-
-            {/* Nút Mở App TikTok Duy Nhất */}
-            <button
-              type="button"
-              onClick={handleOpenTikTokApp}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-[10px] shadow-md flex items-center gap-1 transition-transform active:scale-95 cursor-pointer font-display"
-              title="Mở trên App TikTok"
-            >
-              <ArrowUpRight className="h-3 w-3" />
-              <span>Mở App</span>
-            </button>
-
-            {/* Nút Đóng */}
-            <button
-              onClick={closeLiveRunner}
-              className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition-colors cursor-pointer ml-0.5"
-              title="Đóng phiên live"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* MAIN REAL LIVE VIDEO STREAM CONTAINER */}
+        {/* FULL-BLEED REAL LIVE VIDEO STREAM (CHẠY FULL TOÀN BỘ KHUNG 9:16 NHƯ ẢNH 2) */}
         <div 
-          className="flex-1 relative bg-black overflow-hidden flex flex-col justify-end"
+          className="absolute inset-0 w-full h-full bg-black overflow-hidden flex flex-col justify-end"
           onClick={handleScreenTap}
         >
           {/* 3 TRÌNH PHÁT LIVE THẬT 100% (TAB CODE RIÊNG BIỆT CHO YOUTUBE, FACEBOOK, TIKTOK) */}
@@ -433,15 +374,33 @@ export const LivestreamRunnerModal: React.FC = () => {
             />
           )}
 
+          {/* Floating Tap Hearts */}
+          {heartsBurst.map(h => (
+            <div
+              key={h.id}
+              className="absolute pointer-events-none animate-bounce"
+              style={{
+                left: `${h.x}px`,
+                bottom: '160px',
+                color: h.color,
+                transition: 'all 1.2s ease-out',
+                transform: 'translateY(-100px) scale(1.4)',
+                opacity: 0
+              }}
+            >
+              <Heart className="w-8 h-8 fill-current drop-shadow-lg" />
+            </div>
+          ))}
+
           {/* Pinned TikTok Shop Cart Bag Button */}
           <div 
             onClick={(e) => { e.stopPropagation(); setShowShopProduct(!showShopProduct); }}
-            className="absolute bottom-4 left-3 z-20 flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-black shadow-xl cursor-pointer hover:scale-105 active:scale-95 transition-all font-display"
+            className="absolute bottom-36 left-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-black shadow-xl cursor-pointer hover:scale-105 active:scale-95 transition-all font-display"
           >
             <ShoppingBag className="h-4 w-4 text-black" />
             <div className="text-left leading-tight font-bold">
-              <div className="text-[8px] uppercase tracking-wider text-black/70 font-mono">TikTok Shop</div>
-              <div className="text-[10px] font-extrabold">Deal Ghim 🔥</div>
+              <div className="text-[7px] uppercase tracking-wider text-black/70 font-mono">TikTok Shop</div>
+              <div className="text-[9px] font-extrabold">Deal Ghim 🔥</div>
             </div>
           </div>
 
@@ -719,79 +678,140 @@ export const LivestreamRunnerModal: React.FC = () => {
           )}
         </div>
 
-        {/* MISSION COMPLETE BANNER OR BOTTOM WATCH PROGRESS & CHAT BAR */}
-        {isTargetReached ? (
-          <div className="p-3.5 bg-gradient-to-r from-emerald-950/80 via-slate-900 to-purple-950/80 border-t border-emerald-500/40 flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-300">
-            <div className="text-left">
-              <div className="text-xs font-black text-emerald-400 flex items-center gap-1.5 font-display">
-                <Sparkles className="h-4 w-4 text-neonGold" />
-                <span>ĐÃ ĐẠT ĐỊNH MỨC {targetMinutes} PHÚT!</span>
+        {/* FLOATING TOP HEADER OVERLAY: Đè lên video mượt mà, sang xịn */}
+        <div className="absolute top-0 inset-x-0 z-30 bg-gradient-to-b from-black/90 via-black/40 to-transparent p-2.5 flex items-center justify-between gap-1.5 pointer-events-none">
+          <div className="flex items-center gap-2 min-w-0 bg-black/70 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 pointer-events-auto">
+            <img
+              src={activeLiveTask.channelAvatar}
+              alt=""
+              className="h-7 w-7 rounded-full object-cover ring-1 ring-rose-500 shrink-0"
+            />
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <span className="font-bold text-white text-[11px] truncate max-w-[100px] sm:max-w-[120px]">
+                  {activeLiveTask.channelName}
+                </span>
+                <span className="px-1 py-0.2 rounded bg-rose-600 text-white text-[7px] font-black font-mono animate-pulse">
+                  LIVE 🔴
+                </span>
               </div>
-              <div className="text-[10px] text-slate-300 font-mono">
-                Thưởng mốc: +{Math.round((activeLiveTask.milestoneBonusCoins || 500) * quota.multiplier)} Xu • Mở khóa Live mới
+              <div className="flex items-center gap-1 text-[9px] font-mono text-neonGold">
+                <span>Hạng {quota.rank}</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-emerald-400 font-bold">+{currentEarnedCoins.toLocaleString()} Xu</span>
               </div>
             </div>
+          </div>
 
+          <div className="flex items-center gap-1 shrink-0 pointer-events-auto">
+            {/* Nút Đổi Phòng */}
             <button
-              onClick={handleFinishMission}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-xs font-mono shadow-lg shadow-emerald-500/20 shrink-0 cursor-pointer"
+              type="button"
+              onClick={() => setShowRoomSwitcher(!showRoomSwitcher)}
+              className="px-2 py-1 rounded-xl bg-black/70 hover:bg-white/20 backdrop-blur-md border border-white/10 text-slate-200 text-[9px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+              title="Chuyển đổi phòng live khác"
             >
-              Nhận Thưởng Ngay
+              <RefreshCw className="h-3 w-3 text-cyan-400" />
+              <span>Đổi Phòng</span>
+            </button>
+
+            {/* Nút Mở App TikTok */}
+            <button
+              type="button"
+              onClick={handleOpenTikTokApp}
+              className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-[9px] shadow-md flex items-center gap-0.5 transition-transform active:scale-95 cursor-pointer font-display"
+              title="Mở trên App TikTok"
+            >
+              <ArrowUpRight className="h-3 w-3" />
+              <span>Mở App</span>
+            </button>
+
+            {/* Nút Đóng */}
+            <button
+              onClick={closeLiveRunner}
+              className="p-1 rounded-xl bg-black/70 hover:bg-white/20 backdrop-blur-md border border-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              title="Đóng phiên live"
+            >
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
-        ) : (
-          <div className="p-2.5 bg-[#0B0E17] border-t border-white/10 space-y-2">
-            {/* WATCH PROGRESS BAR AT THE BOTTOM (GỌN GÀNG, ĐẸP MẮT) */}
-            <div className="px-1 py-1 space-y-1">
-              <div className="flex items-center justify-between text-[10px] font-mono">
-                <span className="text-slate-300 flex items-center gap-1">
-                  <Clock className="h-3 w-3 text-rose-400" />
-                  <span>Tiến độ: <strong className="text-white">{totalMinutesWatched}/{targetMinutes} phút</strong></span>
-                </span>
-                <span className="text-neonGold font-bold">
-                  +{baseRewardPerMinute * quota.multiplier} Xu/phút • Còn {secondsInMinute}s
-                </span>
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-rose-500 via-purple-500 to-emerald-400 transition-all duration-300"
-                  style={{ width: `${Math.min(100, ((totalMinutesWatched * 60 + (60 - secondsInMinute)) / (targetMinutes * 60)) * 100)}%` }}
-                />
-              </div>
-            </div>
+        </div>
 
-            {/* 3 Quick Seeding Pills for 1-click comment */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-              {quickComments.map((cmt, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSelectQuickComment(cmt)}
-                  className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/40 text-[10px] text-slate-300 hover:text-cyan-300 whitespace-nowrap transition-all flex items-center gap-1"
-                >
-                  <span>{cmt}</span>
-                  <span className="text-[9px] text-neonGold">+350 Xu</span>
-                </button>
-              ))}
-            </div>
+        {/* MISSION COMPLETE BANNER OR BOTTOM WATCH PROGRESS & CHAT BAR (OVERLAY TRÊN VIDEO) */}
+        <div className="absolute bottom-0 inset-x-0 z-30 pointer-events-auto">
+          {isTargetReached ? (
+            <div className="p-3.5 bg-gradient-to-r from-emerald-950/95 via-slate-900/95 to-purple-950/95 backdrop-blur-md border-t border-emerald-500/40 flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-300">
+              <div className="text-left">
+                <div className="text-xs font-black text-emerald-400 flex items-center gap-1.5 font-display">
+                  <Sparkles className="h-4 w-4 text-neonGold" />
+                  <span>ĐÃ ĐẠT ĐỊNH MỨC {targetMinutes} PHÚT!</span>
+                </div>
+                <div className="text-[10px] text-slate-300 font-mono">
+                  Thưởng mốc: +{Math.round((activeLiveTask.milestoneBonusCoins || 500) * quota.multiplier)} Xu • Mở khóa Live mới
+                </div>
+              </div>
 
-            {/* Custom Input Chat Form */}
-            <form onSubmit={handleSendChat} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={inputMsg}
-                onChange={(e) => setInputMsg(e.target.value)}
-                placeholder="Nhập bình luận seeding giỏ hàng..."
-                className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans"
-              />
               <button
-                type="submit"
-                className="p-2 rounded-xl bg-cyan-600 text-white hover:bg-cyan-500 transition-all shrink-0 cursor-pointer"
+                onClick={handleFinishMission}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-black font-black text-xs font-mono shadow-lg shadow-emerald-500/20 shrink-0 cursor-pointer"
               >
-                <Send className="h-4 w-4" />
+                Nhận Thưởng Ngay
               </button>
-            </form>
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="p-2.5 bg-[#0B0E17]/95 backdrop-blur-md border-t border-white/10 space-y-2">
+              {/* WATCH PROGRESS BAR AT THE BOTTOM (GỌN GÀNG, ĐẸP MẮT) */}
+              <div className="px-1 py-1 space-y-1">
+                <div className="flex items-center justify-between text-[10px] font-mono">
+                  <span className="text-slate-300 flex items-center gap-1">
+                    <Clock className="h-3 w-3 text-rose-400" />
+                    <span>Tiến độ: <strong className="text-white">{totalMinutesWatched}/{targetMinutes} phút</strong></span>
+                  </span>
+                  <span className="text-neonGold font-bold">
+                    +{baseRewardPerMinute * quota.multiplier} Xu/phút • Còn {secondsInMinute}s
+                  </span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-rose-500 via-purple-500 to-emerald-400 transition-all duration-300"
+                    style={{ width: `${Math.min(100, ((totalMinutesWatched * 60 + (60 - secondsInMinute)) / (targetMinutes * 60)) * 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 3 Quick Seeding Pills for 1-click comment */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                {quickComments.map((cmt, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSelectQuickComment(cmt)}
+                    className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/40 text-[10px] text-slate-300 hover:text-cyan-300 whitespace-nowrap transition-all flex items-center gap-1"
+                  >
+                    <span>{cmt}</span>
+                    <span className="text-[9px] text-neonGold">+350 Xu</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Input Chat Form */}
+              <form onSubmit={handleSendChat} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={inputMsg}
+                  onChange={(e) => setInputMsg(e.target.value)}
+                  placeholder="Nhập bình luận seeding giỏ hàng..."
+                  className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans"
+                />
+                <button
+                  type="submit"
+                  className="p-2 rounded-xl bg-cyan-600 text-white hover:bg-cyan-500 transition-all shrink-0 cursor-pointer"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

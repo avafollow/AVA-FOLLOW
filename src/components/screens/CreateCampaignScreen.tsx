@@ -787,7 +787,7 @@ export const CreateCampaignScreen: React.FC<{
                 className="w-full h-full"
                 badgeText={selectedTargets.livestream || targetUrl.includes('/live') ? 'LIVE' : 'FYP'}
                 autoPlay={true}
-                muted={true}
+                muted={false}
                 fullSize={true}
               />
             </div>
@@ -808,25 +808,20 @@ export const CreateCampaignScreen: React.FC<{
                       <CheckCircle2 className="w-4 h-4 text-cyan-400 fill-cyan-400/20 shrink-0" />
                     </div>
                     <div className="text-[11px] text-slate-400 font-mono truncate mt-0.5 max-w-[260px] sm:max-w-md">
-                      {targetUrl}
+                      Link: {targetUrl}
                     </div>
                   </div>
                 </div>
 
-                <a
-                  href={targetUrl.startsWith('http') ? targetUrl : `https://www.tiktok.com/${channelHandle}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-3 py-2 rounded-xl bg-[#FF0050] hover:bg-[#E00045] text-white font-bold text-xs flex items-center gap-1.5 shrink-0 shadow-lg transition-transform active:scale-95"
-                  title="Nhảy về trang TikTok thật của tài khoản này"
-                >
-                  <span>Mở TikTok</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] font-mono border border-emerald-500/30">
+                    Đã Khóa Link
+                  </span>
+                </div>
               </div>
 
-              {/* Thông tin mục tiêu phân phối ngắn gọn */}
-              <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2 text-xs text-slate-300">
+              {/* Thông tin trạng thái kỹ thuật */}
+              <div className="p-4 rounded-2xl bg-black/60 border border-white/10 space-y-2 font-mono text-[11px]">
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="font-semibold text-white">Mục tiêu:</span>
                   <span className="text-amber-400 font-mono font-bold">
@@ -863,9 +858,10 @@ export const CreateCampaignScreen: React.FC<{
                   type="button"
                   onClick={() => openFeedRunner()}
                   className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs font-mono font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer border border-rose-500/40 shadow-md text-center"
+                  title="Chế độ xem thử mô phỏng hiển thị trên Feed (Chưa trừ Xu, bấm kích hoạt bên dưới để chạy chính thức)"
                 >
                   <Play className="w-3.5 h-3.5 fill-rose-400" />
-                  <span>Lướt Feed Toàn Sàn</span>
+                  <span>Xem Thử Hiển Thị Trên Feed (Test)</span>
                 </button>
               </div>
             </div>

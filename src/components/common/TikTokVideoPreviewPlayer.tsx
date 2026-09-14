@@ -542,8 +542,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         </div>
       </div>
 
-      {/* 3. RIGHT ACTION BUTTONS (Chỉ hiển thị khi đang ở chế độ Video Stream để không che Khung nhúng) */}
-      {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && (
+      {/* 3. RIGHT ACTION BUTTONS (Chỉ hiển thị cho Video thường để không bị đè 2 lớp trên Live hoặc Khung nhúng) */}
+      {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && !effectiveIsLive && !mediaInfo.isLive && (
         <div className="absolute right-3 bottom-20 z-20 flex flex-col items-center gap-3.5 pointer-events-auto">
           {/* Creator Avatar & Follow Button */}
           <div className="relative mb-1">
@@ -633,8 +633,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         </div>
       )}
 
-      {/* 4. BOTTOM INFO OVERLAY (Dành cho Native & Livestream Player) */}
-      {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && (
+      {/* 4. BOTTOM INFO OVERLAY (Dành cho Video thường, ẩn khi Live để tránh trùng lặp đè chữ) */}
+      {(!isYouTube || streamMode === 'stream') && streamMode !== 'embed' && !effectiveIsLive && !mediaInfo.isLive && (
         <div className="absolute bottom-3 left-3 right-16 z-20 pointer-events-none space-y-2">
           {/* Creator Handle */}
           <div 

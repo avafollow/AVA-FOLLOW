@@ -23,10 +23,10 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
   if (!url) return null;
 
   return (
-    <div className={`relative w-full h-full bg-black flex flex-col overflow-hidden rounded-3xl select-none ${className}`}>
+    <div className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none ${className}`}>
       {/* 1. TOP LIVE HUD BAR */}
-      <div className="absolute top-0 inset-x-0 z-30 p-3 bg-gradient-to-b from-black/90 via-black/60 to-transparent flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-2 bg-black/75 backdrop-blur-md px-3 py-1.5 rounded-full border border-blue-500/30 shadow-lg pointer-events-auto">
+      <div className="absolute top-0 inset-x-0 z-30 p-2.5 sm:p-3 bg-gradient-to-b from-black/90 via-black/50 to-transparent flex items-center justify-between pointer-events-none">
+        <div className="flex items-center gap-2 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-blue-500/30 shadow-lg pointer-events-auto">
           <div className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
@@ -46,7 +46,7 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
             <button
               type="button"
               onClick={onToggleMute}
-              className="p-2 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
+              className="p-1.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
               title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
             >
               {isMuted ? <VolumeX className="w-3.5 h-3.5 text-blue-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
@@ -57,7 +57,7 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[10px] font-mono font-bold border border-blue-400/40 shadow-lg flex items-center gap-1 cursor-pointer transition-transform active:scale-95 font-display"
+            className="px-2.5 py-1 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[10px] font-mono font-bold border border-blue-400/40 shadow-lg flex items-center gap-1 cursor-pointer transition-transform active:scale-95 font-display"
             title="Mở trên Facebook"
           >
             <span>Mở Facebook</span>
@@ -66,15 +66,15 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
         </div>
       </div>
 
-      {/* 2. REAL-TIME FACEBOOK EMBED IFRAME */}
-      <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center">
+      {/* 2. REAL-TIME FACEBOOK EMBED IFRAME (TRÀN VIỀN, CĂN CHÍNH GIỮA) */}
+      <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
         <iframe
           key={`fb-live-${encodeURIComponent(url)}`}
           src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=${isMuted ? 1 : 0}&allowfullscreen=true`}
           title={title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
-          className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
+          className="w-full h-full border-0 bg-black pointer-events-auto object-cover"
         />
       </div>
 

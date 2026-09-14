@@ -18,14 +18,14 @@ export interface TikTokLiveEmbedPlayerProps {
   isMuted?: boolean;
   onToggleMute?: () => void;
   className?: string;
+  mode?: 'preview' | 'feed';
 }
 
 /**
  * Component chuyên biệt: Trình phát LIVE TIKTOK THẬT 100% (Tab Code Riêng Biệt)
- * Nhúng trực tiếp phiên Live TikTok từ đường link chính thức của creator.
- * Căn giữa 100% khung hình chính xác, hiển thị sắc nét trọn vẹn nhân vật và giao diện live.
- * Mắt xem real-time cập nhật liên tục theo thời gian thực.
- * Tối giản hoàn toàn, loại bỏ mọi thông tin rác và các lớp phủ dư thừa.
+ * Tách biệt chuẩn xác giữa chế độ XEM TRƯỚC (Preview) và TRÊN FEED (Feed / Live Runner).
+ * Căn giữa 100% khung hình chính xác, loại bỏ hoàn toàn các ô quà tặng ở đáy.
+ * Điều khiển âm thanh mượt mà không bị chớp đen màn hình.
  */
 export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   channelHandle,
@@ -33,7 +33,8 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   channelName,
   isMuted = false,
   onToggleMute,
-  className = ''
+  className = '',
+  mode = 'feed'
 }) => {
   const cleanHandle = (channelHandle || '@creator').replace(/^@+/, '');
   const directLiveUrl = targetUrl && targetUrl.startsWith('http') 
@@ -60,6 +61,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         const cw = iframeRef.current.contentWindow;
         cw.postMessage({ type: 'mute', value: nextMuted }, '*');
         cw.postMessage({ event: 'command', func: nextMuted ? 'mute' : 'unMute' }, '*');
+        cw.postMessage({ type: 'changeVolume', volume: nextMuted ? 0 : 1 }, '*');
         cw.postMessage(JSON.stringify({ event: 'command', func: nextMuted ? 'mute' : 'unMute' }), '*');
         cw.postMessage({ 'tiktok-embed': true, type: nextMuted ? 'mute' : 'unmute' }, '*');
       }
@@ -80,6 +82,26 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     e?.stopPropagation();
     window.open(directLiveUrl, '_blank', 'noopener,noreferrer');
   };
+
+  // Căn chỉnh riêng biệt: Xem trước (preview) vs Trên Feed (feed)
+  const isPreview = mode === 'preview';
+  const iframeStyle: React.CSSProperties = isPreview
+    ? {
+        width: '270%',
+        height: '114%',
+        left: '-52%',
+        top: '0',
+        maxWidth: 'none',
+        maxHeight: 'none'
+      }
+    : {
+        width: '274%',
+        height: '118%',
+        left: '-54%',
+        top: '0',
+        maxWidth: 'none',
+        maxHeight: 'none'
+      };
 
   return (
     <div className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none ${className}`}>
@@ -132,7 +154,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         </div>
       </div>
 
-      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM (CĂN CHÍNH GIỮA 100% CẢ TRÊN PREVIEW LẪN FEED, KHÔNG LỆCH TRÁI / PHẢI) */}
+      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM (CĂN CHÍNH GIỮA 100%, ẨN HẾT QUÀ TẶNG Ở ĐÁY) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
         <iframe
           ref={iframeRef}
@@ -143,14 +165,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           allowFullScreen
           onError={() => setLoadError(true)}
           className="absolute border-0 bg-black pointer-events-auto"
-          style={{
-            width: '280%',
-            height: '112%',
-            left: '-65.5%',
-            top: '0',
-            maxWidth: 'none',
-            maxHeight: 'none'
-          }}
+          style={iframeStyle}
         />
 
         {/* Fallback Overlay if browser blocks iframe permissions */}

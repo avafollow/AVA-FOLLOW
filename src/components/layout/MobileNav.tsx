@@ -3,7 +3,7 @@ import {
   Home, 
   UserCheck, 
   Play, 
-  Video, 
+  PlusCircle, 
   Wallet
 } from 'lucide-react';
 import { ScreenId } from '../../types';
@@ -50,29 +50,34 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               </span>
             )}
           </div>
-          <span className="text-[10px] mt-0.5">Kiếm tiền ngay</span>
+          <span className="text-[10px] mt-0.5">Nhiệm vụ</span>
         </button>
 
-        {/* Center: Lướt Kiếm Tiền Button */}
+        {/* Center: Lướt Kiếm Tiền Button (Phát tất cả Video & Live) */}
         <button
-          onClick={openFeedRunner}
+          onClick={() => openFeedRunner('all')}
           className="flex flex-col items-center -mt-5 group"
         >
           <div className="p-3.5 rounded-full bg-gradient-to-tr from-[#FF0050] via-purple-600 to-[#00F2FE] text-white shadow-xl shadow-rose-600/40 group-active:scale-90 transition-transform animate-pulse">
             <Play className="h-5 w-5 fill-white" />
           </div>
-          <span className="text-[10px] font-black text-rose-400 mt-0.5">LƯỚT</span>
+          <span className="text-[10px] font-black text-rose-400 mt-0.5">LƯỚT FEED</span>
         </button>
 
-        {/* Escrow Booking */}
+        {/* Create Campaign (Tạo Chiến Dịch / Tab Video & Live) */}
         <button
-          onClick={() => onSelectScreen('booking_escrow')}
-          className={`flex flex-col items-center py-1 px-2 rounded-xl transition-all ${
-            currentScreen === 'booking_escrow' ? 'text-rose-500 font-bold' : 'text-slate-400 hover:text-white'
+          onClick={() => onSelectScreen('create_campaign')}
+          className={`relative flex flex-col items-center py-1 px-2 rounded-xl transition-all ${
+            currentScreen === 'create_campaign' ? 'text-rose-500 font-bold' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Video className="h-5 w-5" />
-          <span className="text-[10px] mt-0.5">Kết nối KOC</span>
+          <div className="relative">
+            <PlusCircle className="h-5 w-5" />
+            <span className="absolute -top-1.5 -right-2 px-1 py-0.2 rounded-full bg-amber-500 text-black text-[8px] font-mono font-bold">
+              HOT
+            </span>
+          </div>
+          <span className="text-[10px] mt-0.5">Tạo chiến dịch</span>
         </button>
 
         {/* Profile / Wallet */}

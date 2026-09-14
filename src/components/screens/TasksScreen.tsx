@@ -331,11 +331,11 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
     return true;
   });
 
-  // Giới hạn số lượng hiển thị minh họa gọn gàng (4 - 6 item tiêu biểu, loại bỏ demo rác rườm rà)
-  const displayVideoTasks = videoCampaignTasks.slice(0, 6);
-  const displayLiveTasks = filteredLiveTasks.slice(0, 6);
-  const displayEnterpriseTasks = sortedPartnerTasks.slice(0, 6);
-  const displayCrossFollow = filteredCrossFollowItems.slice(0, 6);
+  // Hiển thị đầy đủ toàn bộ video chiến dịch và phòng live đồng bộ trên mọi thiết bị (máy tính & điện thoại)
+  const displayVideoTasks = videoCampaignTasks;
+  const displayLiveTasks = filteredLiveTasks;
+  const displayEnterpriseTasks = sortedPartnerTasks;
+  const displayCrossFollow = filteredCrossFollowItems;
 
   return (
     <div className="space-y-5">

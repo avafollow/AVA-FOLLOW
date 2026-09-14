@@ -95,7 +95,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     userMissions
   } = useTikTokApp();
 
-  const [filterMode, setFilterMode] = useState<'all' | 'missions' | 'cross_follow' | 'community' | 'partner' | 'live'>('missions');
+  const [filterMode, setFilterMode] = useState<'all' | 'missions' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(15);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
@@ -353,16 +353,36 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   useEffect(() => {
     if (isFeedRunnerOpen) {
       if (feedRunnerTargetId) {
-        if (typeof feedRunnerTargetId === 'string' && (feedRunnerTargetId.includes('/live') || feedRunnerTargetId.toLowerCase().includes('live'))) {
+        const isLiveTarget = typeof feedRunnerTargetId === 'string' && (
+          feedRunnerTargetId.includes('/live') || 
+          feedRunnerTargetId.toLowerCase().includes('live') ||
+          feedRunnerTargetId.startsWith('live_')
+        );
+        if (isLiveTarget && filterMode !== 'all' && filterMode !== 'live') {
           setFilterMode('live');
         }
-        const idx = combinedFeed.findIndex(item => 
+
+        let idx = combinedFeed.findIndex(item => 
           item.id === feedRunnerTargetId || 
           item.targetUrl === feedRunnerTargetId || 
           item.channelHandle === feedRunnerTargetId ||
           item.id === `test_top1_${feedRunnerTargetId}`
         );
-        if (idx !== -1) {
+
+        // Nếu chưa tìm thấy trong tab hiện tại, tìm trong toàn bộ feed và chuyển sang tab 'all'
+        if (idx === -1) {
+          const allIdx = allFeedDeduplicated.findIndex(item => 
+            item.id === feedRunnerTargetId || 
+            item.targetUrl === feedRunnerTargetId || 
+            item.channelHandle === feedRunnerTargetId ||
+            item.id === `test_top1_${feedRunnerTargetId}`
+          );
+          if (allIdx !== -1) {
+            setFilterMode('all');
+            setCurrentIndex(allIdx);
+            return;
+          }
+        } else {
           setCurrentIndex(idx);
           return;
         }
@@ -488,6 +508,36 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   }, [isFeedRunnerOpen, currentIndex, combinedFeed.length]);
 
   if (!isFeedRunnerOpen || !currentItem) return null;
+
+  // Cảm ứng vuốt chạm (Touch Swipe) cho điện thoại di động & máy tính bảng (Tablet)
+  const touchStartY = useRef<number>(0);
+  const touchEndY = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.targetTouches && e.targetTouches.length > 0) {
+      touchStartY.current = e.targetTouches[0].clientY;
+      touchEndY.current = e.targetTouches[0].clientY;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.targetTouches && e.targetTouches.length > 0) {
+      touchEndY.current = e.targetTouches[0].clientY;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    const deltaY = touchStartY.current - touchEndY.current;
+    if (Math.abs(deltaY) > 40) {
+      if (deltaY > 0) {
+        // Vuốt ngón tay lên trên -> chuyển sang video / phiên live tiếp theo
+        handleNextItem();
+      } else {
+        // Vuốt ngón tay xuống dưới -> quay lại video / phiên live trước đó
+        handlePrevItem();
+      }
+    }
+  };
 
   const handleNextItem = () => {
     if (currentIndex < combinedFeed.length - 1) {
@@ -623,10 +673,15 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-in fade-in duration-200 select-none">
-      {/* Phone Simulation Container: Vừa vặn chuẩn xác tỷ lệ điện thoại 9:16, không bị to bè ngang */}
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-in fade-in duration-200 select-none"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Phone Simulation Container: Vừa vặn chuẩn xác tỷ lệ điện thoại di động & tablet */}
       <div 
-        className="relative w-full max-w-[375px] sm:max-w-[390px] h-full sm:h-[92vh] sm:max-h-[820px] aspect-[9/16] sm:rounded-3xl bg-black border-0 sm:border border-white/20 shadow-2xl overflow-hidden flex flex-col mx-auto"
+        className="relative w-full h-[100dvh] sm:h-[92vh] sm:max-h-[820px] sm:max-w-[390px] sm:aspect-[9/16] sm:rounded-3xl bg-black border-0 sm:border border-white/20 shadow-2xl overflow-hidden flex flex-col mx-auto pb-safe"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Floating Controls */}
@@ -688,8 +743,19 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Row 2: CATEGORY TABS (LÀM NHIỆM VỤ, LIVE STREAM [KHÓA], FOLLOW CHÉO [KHÓA], TẤT CẢ) */}
+          {/* Row 2: CATEGORY TABS (TẤT CẢ, LÀM NHIỆM VỤ, LIVE STREAM, FOLLOW CHÉO) */}
           <div className="flex items-center gap-1.5 p-1 bg-black/60 rounded-2xl border border-white/10 backdrop-blur-md text-[10px] font-mono overflow-x-auto no-scrollbar scroll-smooth">
+            <button
+              onClick={() => { setFilterMode('all'); setCurrentIndex(0); }}
+              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                filterMode === 'all' 
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md ring-1 ring-cyan-400/50' 
+                  : 'text-slate-300 hover:text-white bg-white/5'
+              }`}
+            >
+              <span>⚡ Tất Cả ({countAll})</span>
+            </button>
+
             <button
               onClick={() => { setFilterMode('missions'); setCurrentIndex(0); }}
               className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
@@ -727,17 +793,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               }`}
             >
               <span>🔄 Follow Chéo ({countCross})</span>
-            </button>
-
-            <button
-              onClick={() => { setFilterMode('all'); setCurrentIndex(0); }}
-              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                filterMode === 'all' 
-                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md ring-1 ring-cyan-400/50' 
-                  : 'text-slate-300 hover:text-white bg-white/5'
-              }`}
-            >
-              <span>⚡ Tất Cả ({countAll})</span>
             </button>
           </div>
         </div>

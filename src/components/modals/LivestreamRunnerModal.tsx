@@ -29,7 +29,9 @@ import {
   Tv,
   Check,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS, LivestreamTaskItem } from '../../types';
@@ -174,6 +176,48 @@ export const LivestreamRunnerModal: React.FC = () => {
     showToast(`🔴 Đã chuyển sang phòng live: ${task.channelName}`);
   };
 
+  const handleNextLiveRoom = () => {
+    if (!activeLiveTask) return;
+    const currentIdx = livestreamTasks.findIndex(t => t.id === activeLiveTask.id);
+    const nextIdx = currentIdx < livestreamTasks.length - 1 ? currentIdx + 1 : 0;
+    handleSwitchRoom(livestreamTasks[nextIdx]);
+  };
+
+  const handlePrevLiveRoom = () => {
+    if (!activeLiveTask) return;
+    const currentIdx = livestreamTasks.findIndex(t => t.id === activeLiveTask.id);
+    const prevIdx = currentIdx > 0 ? currentIdx - 1 : livestreamTasks.length - 1;
+    handleSwitchRoom(livestreamTasks[prevIdx]);
+  };
+
+  // Cảm ứng vuốt chạm (Touch Swipe) chuyển phòng Live trên Mobile & Tablet
+  const touchStartY = useRef<number>(0);
+  const touchEndY = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.targetTouches && e.targetTouches.length > 0) {
+      touchStartY.current = e.targetTouches[0].clientY;
+      touchEndY.current = e.targetTouches[0].clientY;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.targetTouches && e.targetTouches.length > 0) {
+      touchEndY.current = e.targetTouches[0].clientY;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    const deltaY = touchStartY.current - touchEndY.current;
+    if (Math.abs(deltaY) > 50) {
+      if (deltaY > 0) {
+        handleNextLiveRoom();
+      } else {
+        handlePrevLiveRoom();
+      }
+    }
+  };
+
   // Main tick loop
   useEffect(() => {
     if (!isLiveRunnerOpen || !activeLiveTask || isCompletedMission) return;
@@ -308,11 +352,34 @@ export const LivestreamRunnerModal: React.FC = () => {
 
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-200 font-sans">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-200 font-sans select-none"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <div 
-        className="relative w-full max-w-[360px] sm:max-w-[380px] h-[90vh] max-h-[780px] aspect-[9/16] rounded-3xl bg-[#090C16] border-2 border-rose-500/40 shadow-2xl overflow-hidden select-none"
+        className="relative w-full h-[100dvh] sm:h-[90vh] sm:max-h-[780px] sm:max-w-[380px] sm:aspect-[9/16] sm:rounded-3xl bg-[#090C16] border-0 sm:border-2 border-rose-500/40 shadow-2xl overflow-hidden select-none pb-safe"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Floating Up/Down Live Room Navigation Controls */}
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2 pointer-events-auto">
+          <button
+            onClick={(e) => { e.stopPropagation(); handlePrevLiveRoom(); }}
+            className="p-2.5 rounded-full bg-black/70 hover:bg-white/25 text-white backdrop-blur-md shadow-xl transition-all cursor-pointer hover:scale-110 active:scale-90 border border-white/10"
+            title="Phòng Live trước (Vuốt xuống)"
+          >
+            <ChevronUp className="h-5 w-5" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleNextLiveRoom(); }}
+            className="p-2.5 rounded-full bg-black/70 hover:bg-white/25 text-white backdrop-blur-md shadow-xl transition-all cursor-pointer hover:scale-110 active:scale-90 border border-white/10"
+            title="Phòng Live kế tiếp (Vuốt lên)"
+          >
+            <ChevronDown className="h-5 w-5" />
+          </button>
+        </div>
+
         {/* FULL-BLEED REAL LIVE VIDEO STREAM (CHẠY FULL TOÀN BỘ KHUNG 9:16 NHƯ ẢNH 2) */}
         <div 
           className="absolute inset-0 w-full h-full bg-black overflow-hidden flex flex-col justify-end"

@@ -61,6 +61,11 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const [isMuted, setIsMuted] = useState<boolean>(muted);
   const [currentStream, setCurrentStream] = useState<string>(mediaInfo.streamUrl);
 
+  // Đồng bộ trạng thái âm thanh khi prop muted thay đổi từ bên ngoài
+  useEffect(() => {
+    setIsMuted(muted);
+  }, [muted]);
+
   // TikTok Action States
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [likesCount, setLikesCount] = useState<number>(128400);

@@ -197,7 +197,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           key={`tt-live-${cleanHandle}-${iframeKey}`}
           src={directLiveUrl}
           title={`TikTok Live: @${cleanHandle}`}
-          allow="autoplay *; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture *; web-share"
+          allow="autoplay *; encrypted-media *; media-src *; accelerometer; clipboard-write; gyroscope; picture-in-picture *; web-share"
           allowFullScreen
           onLoad={() => sendMuteCommandToIframe(internalMuted)}
           onError={() => setLoadError(true)}

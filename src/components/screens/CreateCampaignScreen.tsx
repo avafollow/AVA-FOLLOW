@@ -193,7 +193,7 @@ export const CreateCampaignScreen: React.FC<{
   const [speed, setSpeed] = useState<'natural' | 'turbo'>('natural');
   const [instructions, setInstructions] = useState('Yêu cầu người dùng thật 100%, xem video 15s tự nhiên trước khi tương tác, bảo đảm không bị tụt.');
   
-  // Xử lý thông minh khi người dùng dán link video TikTok, live hoặc ID kênh
+  // Xử lý thông minh khi người dùng dán link video TikTok, live hoặc ID kênh: phát live tức thì
   const handleTargetUrlChange = (inputVal: string) => {
     setTargetUrl(inputVal);
     const trimmed = inputVal.trim();
@@ -207,6 +207,16 @@ export const CreateCampaignScreen: React.FC<{
       setChannelHandle(trimmed);
     } else if (!trimmed.includes('http') && !trimmed.includes('/') && trimmed.length > 2) {
       setChannelHandle(`@${trimmed}`);
+    }
+
+    // Tự động nhận diện link Live (TikTok / YouTube / Facebook Live) và phát live ngay lập tức
+    const isLiveUrl = trimmed.includes('/live') || trimmed.toLowerCase().includes('live');
+    if (isLiveUrl) {
+      setSelectedTargets(prev => ({
+        ...prev,
+        livestream: true
+      }));
+      showToast('🔴 Đã nhận diện đường link Livestream! Trình phát Live đang kết nối tức thì...');
     }
   };
 
@@ -801,6 +811,7 @@ export const CreateCampaignScreen: React.FC<{
             {/* Khung phát video to đúng kích thước chuẩn TikTok 9:16 */}
             <div className="w-full max-w-[340px] sm:w-[340px] h-[580px] sm:h-[620px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-rose-500/40 relative bg-black">
               <TikTokVideoPreviewPlayer
+                key={`preview-${targetUrl}-${channelHandle}-${selectedTargets.livestream ? 'live' : 'vod'}`}
                 url={targetUrl}
                 channelHandle={channelHandle}
                 isLive={Boolean(selectedTargets.livestream || targetUrl.includes('/live'))}
@@ -1540,6 +1551,7 @@ export const CreateCampaignScreen: React.FC<{
           <div className="p-5 sm:p-6 rounded-3xl bg-black/80 border border-amber-500/40 flex flex-col lg:flex-row items-center lg:items-start gap-6 shadow-2xl">
             <div className="w-full max-w-[340px] sm:w-[340px] h-[540px] sm:h-[580px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-500/50 bg-black">
               <TikTokVideoPreviewPlayer
+                key={`mega-preview-${targetUrl}-${channelHandle}`}
                 url={targetUrl}
                 channelHandle={channelHandle}
                 isLive={true}

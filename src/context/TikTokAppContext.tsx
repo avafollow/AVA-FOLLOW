@@ -408,6 +408,7 @@ interface TikTokAppContextType {
   missionStreak: MissionStreakData;
   recordMissionProgress: (type: MissionType, count?: number) => void;
   claimMissionReward: (defId: string) => void;
+  claimAllCategoryMissions: (category: 'daily' | 'weekly' | 'special') => void;
   claimStreakReward: (period: 'daily' | 'weekly' | 'monthly') => void;
 
   // Modal Pháo Hoa Chúc Mừng Toàn Hệ Thống (Nhiệm vụ, Chuỗi, Quyết toán hợp đồng, Thăng hạng)
@@ -934,6 +935,83 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       subtitle: `${mission.title}`,
       rewardText: `+${reward.toLocaleString()} XU VÀO VÍ`,
       message: `Chúc mừng bạn đã nỗ lực hoàn thành xuất sắc nhiệm vụ được giao. Từng lượt tương tác của bạn là một bước tiến vững chắc đưa tài khoản thăng cấp bứt phá!`
+    });
+  };
+
+  // Nhận toàn bộ thưởng Xu khi hoàn thành 100% tất cả nhiệm vụ trong danh mục (All-or-Nothing Pool)
+  const claimAllCategoryMissions = (category: 'daily' | 'weekly' | 'special') => {
+    const categoryMissions = userMissions.filter(m => m.category === category);
+    if (categoryMissions.length === 0) return;
+
+    const allCompleted = categoryMissions.every(m => m.completedCount >= m.targetCount);
+    const alreadyClaimed = categoryMissions.every(m => m.status === 'claimed');
+
+    if (alreadyClaimed) {
+      showToast('⚠️ Bạn đã nhận trọn bộ quỹ thưởng này rồi!');
+      return;
+    }
+
+    if (!allCompleted) {
+      const remaining = categoryMissions.filter(m => m.completedCount < m.targetCount).length;
+      showToast(`⚠️ Bạn chưa hoàn thành tất cả nhiệm vụ! Còn lại ${remaining} nhiệm vụ cần hoàn tất để nhận thưởng.`);
+      return;
+    }
+
+    // Tính tổng Xu thưởng của tất cả nhiệm vụ trong danh mục
+    const totalReward = categoryMissions.reduce((sum, m) => sum + m.rewardXu, 0);
+
+    // Cập nhật tất cả mission trong danh mục thành 'claimed'
+    setUserMissions(prev => prev.map(m => m.category === category ? { ...m, status: 'claimed' as const } : m));
+
+    // Cộng Xu vào tài khoản và ghi sổ giao dịch
+    const newCoins = user.avaliveCoins + totalReward;
+    const categoryLabels = {
+      daily: 'Chuỗi Nhiệm Vụ Ngày',
+      weekly: 'Chuỗi Nhiệm Vụ Tuần',
+      special: 'Chuỗi Nhiệm Vụ Đặc Biệt VIP'
+    };
+    const catLabel = categoryLabels[category] || 'Nhiệm Vụ';
+
+    const newTx: TransactionRecord = {
+      id: `tx_missions_all_${category}_${Date.now()}`,
+      type: 'earn',
+      title: `Nhận Trọn Bộ Quỹ Thưởng ${catLabel} (100% Hoàn Tất)`,
+      amount: `+${totalReward.toLocaleString()} Xu`,
+      isPositive: true,
+      date: 'Vừa xong',
+      status: 'success'
+    };
+
+    setUser(prev => ({
+      ...prev,
+      avaliveCoins: newCoins,
+      coinsValueVND: `${newCoins.toLocaleString()}đ`,
+      transactions: [newTx, ...prev.transactions]
+    }));
+
+    setAnalytics(prev => ({
+      ...prev,
+      todayEarningsCoins: prev.todayEarningsCoins + totalReward,
+      weeklyEarningsCoins: prev.weeklyEarningsCoins + totalReward
+    }));
+
+    // Tự động kích hoạt rương ngày nếu là daily
+    if (category === 'daily') {
+      setMissionStreak(prev => ({
+        ...prev,
+        isDailyAllClear: true,
+        dailyCompletedCount: categoryMissions.length,
+        dailyTotalCount: categoryMissions.length
+      }));
+    }
+
+    triggerFireworks({
+      type: 'mission',
+      badge: `🎁 NHẬN TRỌN BỘ QUỸ THƯỞNG ${catLabel.toUpperCase()}`,
+      title: `XUẤT SẮC HOÀN THÀNH 100% TẤT CẢ NHIỆM VỤ!`,
+      subtitle: `${categoryMissions.length}/${categoryMissions.length} Nhiệm vụ hoàn tất`,
+      rewardText: `+${totalReward.toLocaleString()} XU VÀO VÍ`,
+      message: `Tuyệt vời! Bạn đã hoàn thành trọn vẹn 100% toàn bộ nhiệm vụ ${catLabel.toLowerCase()} được giao. Quỹ thưởng Xu tổng đã được giải ngân chuyển thẳng vào ví của bạn!`
     });
   };
 
@@ -4996,6 +5074,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         missionStreak,
         recordMissionProgress,
         claimMissionReward,
+        claimAllCategoryMissions,
         claimStreakReward,
         // Modal Pháo Hoa Chúc Mừng Toàn Hệ Thống
         fireworksData,

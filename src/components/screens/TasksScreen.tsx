@@ -584,8 +584,8 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
           </span>
         </div>
 
-        {/* LƯỚI 5 Ô TAB CHỨC NĂNG QUAN TRỌNG NẰM THÀNH MỘT HÀNG GỌN GÀNG */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+        {/* LƯỚI 4 Ô TAB CHỨC NĂNG QUAN TRỌNG NẰM THÀNH MỘT HÀNG GỌN GÀNG */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
           {/* TAB 1: LÀM NHIỆM VỤ */}
           <button
             onClick={() => setActiveTab("missions")}
@@ -614,7 +614,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
             </div>
           </button>
 
-          {/* TAB 2: LƯỚT VIDEO FYP */}
+          {/* TAB 2: LƯỚT VIDEO CHIẾN DỊCH (GỘP FYP + DOANH NGHIỆP ESCROW) */}
           <button
             onClick={() => setActiveTab("watch_feed")}
             className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between space-y-2 cursor-pointer shadow-md ${
@@ -630,12 +630,12 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
               <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-black ${
                 activeTab === "watch_feed" ? "bg-cyan-500 text-black" : "bg-cyan-500/20 text-cyan-300"
               }`}>
-                LƯỚT TỰ ĐỘNG
+                ESCROW &amp; FYP
               </span>
             </div>
             <div>
-              <div className="text-xs font-black text-white uppercase font-display">Lướt Video FYP</div>
-              <p className="text-[10px] text-slate-400 truncate">Kiểu TikTok • +200 Xu</p>
+              <div className="text-xs font-black text-white uppercase font-display">Lướt Video Chiến Dịch</div>
+              <p className="text-[10px] text-slate-400 truncate">FYP &amp; Doanh Nghiệp • +200-400 Xu</p>
             </div>
             <div className="text-[10px] font-mono text-cyan-300 font-bold flex items-center gap-1">
               <span>{activeTab === "watch_feed" ? "● Đang mở" : "Bấm xem ➔"}</span>
@@ -670,38 +670,10 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
             </div>
           </button>
 
-          {/* TAB 4: CHIẾN DỊCH DOANH NGHIỆP */}
-          <button
-            onClick={() => setActiveTab("enterprise")}
-            className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between space-y-2 cursor-pointer shadow-md ${
-              activeTab === "enterprise"
-                ? "bg-gradient-to-b from-[#241907] via-[#181106] to-[#0D111E] border-amber-500 shadow-amber-950/40 ring-2 ring-amber-500/40 scale-[1.02]"
-                : "bg-[#0A0D18] border-white/10 hover:border-amber-500/40"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-black ${
-                activeTab === "enterprise" ? "bg-amber-500 text-black" : "bg-amber-500/20 text-amber-300"
-              }`}>
-                ESCROW 100%
-              </span>
-            </div>
-            <div>
-              <div className="text-xs font-black text-white uppercase font-display">Doanh Nghiệp</div>
-              <p className="text-[10px] text-slate-400 truncate">Ký quỹ lớn • Đẩy Top</p>
-            </div>
-            <div className="text-[10px] font-mono text-amber-300 font-bold flex items-center gap-1">
-              <span>{activeTab === "enterprise" ? "● Đang mở" : "Bấm xem ➔"}</span>
-            </div>
-          </button>
-
-          {/* TAB 5: FOLLOW CHÉO CỘNG ĐỒNG */}
+          {/* TAB 4: FOLLOW CHÉO CỘNG ĐỒNG */}
           <button
             onClick={() => setActiveTab("cross_follow")}
-            className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between space-y-2 cursor-pointer shadow-md col-span-2 sm:col-span-1 ${
+            className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between space-y-2 cursor-pointer shadow-md ${
               activeTab === "cross_follow"
                 ? "bg-gradient-to-b from-[#08201b] via-[#091714] to-[#0D111E] border-emerald-500 shadow-emerald-950/40 ring-2 ring-emerald-500/40 scale-[1.02]"
                 : "bg-[#0A0D18] border-white/10 hover:border-emerald-500/40"

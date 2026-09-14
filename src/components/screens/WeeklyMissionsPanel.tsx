@@ -66,6 +66,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
     missionStreak,
     recordMissionProgress,
     claimMissionReward,
+    claimAllCategoryMissions,
     claimStreakReward
   } = useTikTokApp();
 
@@ -83,14 +84,56 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
   const dayOfWeek = now.getDay() || 7;
   const daysLeft = 8 - dayOfWeek;
 
+  // Tính giờ còn lại tới 00:00 ngày mai
+  const hoursLeftToday = 23 - now.getHours();
+  const minutesLeftToday = 59 - now.getMinutes();
+
   const dailyMissions   = useMemo(() => userMissions.filter(m => m.category === 'daily'),   [userMissions]);
   const weeklyMissions  = useMemo(() => userMissions.filter(m => m.category === 'weekly'),  [userMissions]);
   const specialMissions = useMemo(() => userMissions.filter(m => m.category === 'special'), [userMissions]);
+
+  // Daily Pool Stats
+  const totalDailyPoolXu = useMemo(() => dailyMissions.reduce((s, m) => s + m.rewardXu, 0), [dailyMissions]);
+  const dailyDoneCount = useMemo(() => dailyMissions.filter(m => m.completedCount >= m.targetCount).length, [dailyMissions]);
+  const isDailyAllFinished = dailyMissions.length > 0 && dailyDoneCount === dailyMissions.length;
+  const isDailyAllClaimed = dailyMissions.length > 0 && dailyMissions.every(m => m.status === 'claimed');
+
+  // Weekly Pool Stats
+  const totalWeeklyPoolXu = useMemo(() => weeklyMissions.reduce((s, m) => s + m.rewardXu, 0), [weeklyMissions]);
+  const weeklyDoneCount = useMemo(() => weeklyMissions.filter(m => m.completedCount >= m.targetCount).length, [weeklyMissions]);
+  const isWeeklyAllFinished = weeklyMissions.length > 0 && weeklyDoneCount === weeklyMissions.length;
+  const isWeeklyAllClaimed = weeklyMissions.length > 0 && weeklyMissions.every(m => m.status === 'claimed');
+
+  // Special Pool Stats
+  const totalSpecialPoolXu = useMemo(() => specialMissions.reduce((s, m) => s + m.rewardXu, 0), [specialMissions]);
+  const specialDoneCount = useMemo(() => specialMissions.filter(m => m.completedCount >= m.targetCount).length, [specialMissions]);
+  const isSpecialAllFinished = specialMissions.length > 0 && specialDoneCount === specialMissions.length;
+  const isSpecialAllClaimed = specialMissions.length > 0 && specialMissions.every(m => m.status === 'claimed');
 
   const currentCategoryMissions =
     activeTab === 'daily'  ? dailyMissions  :
     activeTab === 'weekly' ? weeklyMissions :
                              specialMissions;
+
+  const currentPoolXu =
+    activeTab === 'daily'  ? totalDailyPoolXu :
+    activeTab === 'weekly' ? totalWeeklyPoolXu :
+                             totalSpecialPoolXu;
+
+  const currentDoneCount =
+    activeTab === 'daily'  ? dailyDoneCount :
+    activeTab === 'weekly' ? weeklyDoneCount :
+                             specialDoneCount;
+
+  const isCurrentAllFinished =
+    activeTab === 'daily'  ? isDailyAllFinished :
+    activeTab === 'weekly' ? isWeeklyAllFinished :
+                             isSpecialAllFinished;
+
+  const isCurrentAllClaimed =
+    activeTab === 'daily'  ? isDailyAllClaimed :
+    activeTab === 'weekly' ? isWeeklyAllClaimed :
+                             isSpecialAllClaimed;
 
   const displayMissions = useMemo(() => {
     if (filterDifficulty === 'all') return currentCategoryMissions;
@@ -110,7 +153,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
             <div className="flex items-center gap-2 flex-wrap">
               <Trophy className="w-5 h-5 text-yellow-400" />
               <span className="text-base font-black text-white uppercase font-display tracking-wider">
-                HỆ THỐNG NHIỆM VỤ SÀN CẤP
+                HỆ THỐNG PHÂN BỔ NHIỆM VỤ SÀN
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${rStyle.border} ${rStyle.text} bg-black/40`}>
                 {rStyle.badge}
@@ -120,13 +163,12 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
               </span>
             </div>
             
-            {/* Phân biệt rạch ròi nhiệm vụ sàn vs chiến dịch đối tác vs follow chéo */}
             <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs">
               <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold font-mono text-[10px]">
-                🏛️ CHIẾN DỊCH ĐỘC QUYỀN SÀN AVALIVE
+                🏛️ DỮ LIỆU REALTIME TỪ TẤT CẢ CHIẾN DỊCH SÀN
               </span>
               <p className="text-[11px] text-slate-300">
-                Chỉ tính khi xem & tương tác các kênh hệ thống sàn cấp • Thưởng Xu nhận thẳng vào ví • Còn <strong className="text-rose-400">{daysLeft} ngày</strong> reset
+                Tự động lọc & phân bổ theo cấp bậc • Chỉ nhận thưởng tổng khi hoàn tất 100%
               </p>
             </div>
           </div>
@@ -155,12 +197,12 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
         <div className="mt-3 p-3 rounded-2xl bg-black/50 border border-amber-500/30 text-xs space-y-1.5">
           <div className="flex items-center gap-2 text-amber-300 font-black font-mono uppercase text-[11px]">
             <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>QUY TẮC NHIỆM VỤ DỰ ÁN: CHỈ NHẬN THƯỞNG XU TỔNG KHI HOÀN THÀNH 100% NHIỆM VỤ</span>
+            <span>QUY TẮC PHÂN BỔ NHIỆM VỤ & QUỸ THƯỞNG TỔNG 100%</span>
           </div>
           <p className="text-slate-300 text-[11px] leading-relaxed">
-            • <strong>Nguồn nhiệm vụ từ đâu?</strong> Hệ thống lấy kênh & video từ các thành viên có nhu cầu cần follow/view/tim trên sàn đưa vào danh sách nhiệm vụ.<br />
-            • <strong>Cơ chế trả thưởng:</strong> Khi bạn thực hiện từng thao tác (follow, tim, cmt, share), <strong className="text-rose-400">KHÔNG CỘNG XU LẺ TỪNG TÁC VỤ</strong>. Toàn bộ tiền từ người cần follow được nạp sẽ <strong className="text-amber-300">đẩy về Sàn & Dự Án</strong>.<br />
-            • <strong>Sàn trả thưởng tổng:</strong> Khi bạn làm <strong>đủ 100% số lượng chỉ tiêu</strong> của nhiệm vụ, bạn bấm <strong className="text-emerald-400">[BẤM HOÀN THÀNH]</strong> để nhận trọn vẹn <strong className="text-neonGold">SỐ XU TỔNG</strong> từ quỹ Sàn cấp, đồng thời được <strong>tích điểm nâng cấp bậc tài khoản</strong> để mở khóa nhiều quyền lợi và đề xuất nhận thêm chiến dịch lớn!
+            • <strong>Nguồn dữ liệu nhiệm vụ:</strong> Toàn bộ chiến dịch (follow chéo, chiến dịch người dùng, xem video, thả tim, bình luận, chia sẻ, livestream...) được sàn tự động lọc và cấp phát theo từng cấp bậc từ thấp đến cao.<br />
+            • <strong>Phân cấp bậc & hệ số:</strong> Tài khoản mới (hạng Đồng) nhận ít nhiệm vụ cơ bản, tài khoản cấp cao (Bạc, Vàng, Kim Cương) nhận nhiều nhiệm vụ thử thách hơn nhưng được <strong>nhân thưởng x1.5 – x3.0</strong> lên tới hàng trăm nghìn Xu!<br />
+            • <strong>Nguyên tắc nhận thưởng All-or-Nothing:</strong> Người dùng cần <strong>hoàn thành đủ 100% tất cả các nhiệm vụ</strong> trong chuỗi Ngày / Tuần mới được mở khóa nút nhận trọn bộ quỹ Xu tổng vào ví. Làm dở dang giữa chừng chưa được nhận.
           </p>
         </div>
 
@@ -332,29 +374,57 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
         </div>
       </div>
 
-      {/* 4. Bộ Lọc Tabs & Độ Khó (DỄ -> TRUNG BÌNH -> KHÓ -> CỰC KHÓ) */}
-      <div className="px-4 space-y-2">
+      {/* 4. CHUYỂN ĐỔI KHUNG: NGÀY (DAILY) vs TUẦN (WEEKLY) vs ĐẶC BIỆT (SPECIAL) */}
+      <div className="px-4 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
-          {/* Category Tabs */}
-          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/10">
-            {([
-              { key: 'daily',   label: '📅 Hàng Ngày', count: dailyMissions.length  },
-              { key: 'weekly',  label: '🏆 Tuần Này',  count: weeklyMissions.length  },
-              { key: 'special', label: '💎 Đặc Biệt',  count: specialMissions.length },
-            ] as const).map(tab => (
+          {/* Category Tabs: KHUNG NGÀY VS KHUNG TUẦN */}
+          <div className="flex items-center gap-1.5 bg-black/50 p-1.5 rounded-2xl border border-white/10">
+            <button
+              onClick={() => setActiveTab('daily')}
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-black transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'daily'
+                  ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-lg shadow-rose-950/40 ring-1 ring-rose-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span>📅 NHIỆM VỤ NGÀY</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-black/40 text-[10px] font-mono">
+                {dailyDoneCount}/{dailyMissions.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('weekly')}
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-black transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'weekly'
+                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-amber-950/40 ring-1 ring-amber-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Trophy className="w-4 h-4" />
+              <span>🏆 NHIỆM VỤ TUẦN</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-black/40 text-[10px] font-mono">
+                {weeklyDoneCount}/{weeklyMissions.length}
+              </span>
+            </button>
+
+            {specialMissions.length > 0 && (
               <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeTab === tab.key
-                    ? 'bg-gradient-to-r from-rose-600 to-purple-600 text-white shadow-md'
+                onClick={() => setActiveTab('special')}
+                className={`px-4 py-2 rounded-xl text-xs font-mono font-black transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === 'special'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg ring-1 ring-purple-400'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <span>{tab.label}</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[9px]">{tab.count}</span>
+                <Crown className="w-4 h-4" />
+                <span>💎 ĐẶC BIỆT VIP</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-black/40 text-[10px] font-mono">
+                  {specialDoneCount}/{specialMissions.length}
+                </span>
               </button>
-            ))}
+            )}
           </div>
 
           {/* Difficulty Filter */}
@@ -370,7 +440,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
               <button
                 key={df.key}
                 onClick={() => setFilterDifficulty(df.key as any)}
-                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
                   filterDifficulty === df.key
                     ? 'bg-white/20 text-white border border-white/30'
                     : 'bg-black/30 text-slate-400 hover:text-slate-200 border border-transparent'
@@ -381,161 +451,253 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
             ))}
           </div>
         </div>
-      </div>
 
-      {/* 5. Mission Grid */}
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {displayMissions.length === 0 && (
-          <div className="col-span-full py-10 text-center space-y-2">
-            <Lock className="w-8 h-8 mx-auto text-slate-600" />
-            <p className="text-xs text-slate-400 font-mono">
-              {activeTab === 'special' 
-                ? 'Nâng cấp lên hạng Vàng hoặc Kim Cương để mở kho nhiệm vụ đặc biệt!' 
-                : 'Không có nhiệm vụ nào trong bộ lọc này.'}
-            </p>
-          </div>
-        )}
-
-        {displayMissions.map((mission) => {
-          const pct = mission.targetCount > 0 ? Math.round((mission.completedCount / mission.targetCount) * 100) : 0;
-          const typeStyle = TYPE_COLORS[mission.type] || 'text-rose-400 bg-rose-500/15 border-rose-500/30';
-          const diffCfg = DIFFICULTY_CONFIG[mission.difficulty] || DIFFICULTY_CONFIG.easy;
-          const isClaimed = mission.status === 'claimed';
-          const isDone    = mission.status === 'completed';
-
-          return (
-            <div 
-              key={mission.defId} 
-              className={`relative rounded-2xl p-3.5 border transition-all space-y-3 ${
-                isClaimed 
-                  ? 'bg-white/[0.02] border-white/5 opacity-55' 
-                  : isDone    
-                    ? 'bg-gradient-to-br from-emerald-950/40 via-black to-[#0C101B] border-emerald-500/60 shadow-lg shadow-emerald-950/30 ring-1 ring-emerald-500/40' 
-                    : 'bg-[#0C101B] border-white/10 hover:border-white/20'
-              }`}
-            >
-              {/* Top Badges */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-mono font-black border ${diffCfg.bg} ${diffCfg.text} ${diffCfg.border}`}>
-                    {diffCfg.label}
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded bg-white/5 text-slate-400 font-mono text-[9px]">
-                    🏛️ Sàn Cấp
-                  </span>
+        {/* 5. KHUNG NHIỆM VỤ ĐƯỢC CHỌN VỚI HERO BANNER QUYẾT TOÁN THƯỞNG TỔNG (ALL-OR-NOTHING POOL) */}
+        <div className={`p-4 sm:p-5 rounded-3xl border transition-all space-y-4 shadow-xl ${
+          activeTab === 'daily'
+            ? 'bg-gradient-to-b from-[#1b0a16] via-[#100713] to-[#0D111E] border-rose-500/40'
+            : activeTab === 'weekly'
+              ? 'bg-gradient-to-b from-[#1f1305] via-[#120b04] to-[#0D111E] border-amber-500/40'
+              : 'bg-gradient-to-b from-[#170a24] via-[#0e0717] to-[#0D111E] border-purple-500/40'
+        }`}>
+          {/* Header Thông Tin Khung */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white shadow-md ${
+                  activeTab === 'daily' ? 'bg-rose-500' : activeTab === 'weekly' ? 'bg-amber-500' : 'bg-purple-500'
+                }`}>
+                  {activeTab === 'daily' ? <Calendar className="w-4 h-4" /> : <Trophy className="w-4 h-4" />}
                 </div>
-
-                {isClaimed && (
-                  <div className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-mono font-bold flex items-center gap-1">
-                    <Check className="w-3 h-3" /> Đã Nhận Xu
-                  </div>
-                )}
-                {isDone && !isClaimed && (
-                  <div className="px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 text-[10px] font-mono font-black border border-emerald-500/60 flex items-center gap-1 animate-pulse shadow-sm">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> OK • HOÀN THÀNH
-                  </div>
-                )}
-              </div>
-
-              {/* Title & Icon */}
-              <div className="flex items-start gap-2.5">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${typeStyle}`}>
-                  {TYPE_ICONS[mission.type]}
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-white uppercase font-display tracking-wider flex items-center gap-2">
+                    {activeTab === 'daily' && 'KHUNG NHIỆM VỤ HÀNG NGÀY (DAILY POOL)'}
+                    {activeTab === 'weekly' && 'KHUNG NHIỆM VỤ TRONG TUẦN (WEEKLY POOL)'}
+                    {activeTab === 'special' && 'KHUNG NHIỆM VỤ ĐẶC BIỆT DÀNH CHO VIP'}
+                  </h3>
+                  <p className="text-[11px] text-slate-300">
+                    {activeTab === 'daily' && `Tự động reset và cấp danh sách nhiệm vụ mới sau: ${hoursLeftToday} giờ ${minutesLeftToday} phút (00:00 hàng ngày)`}
+                    {activeTab === 'weekly' && `Chu kỳ tính theo tuần. Tự động reset và làm mới sau: ${daysLeft} ngày (Thứ Hai tuần tới)`}
+                    {activeTab === 'special' && 'Dành riêng cho cấp bậc Vàng & Kim Cương với số lượng chỉ tiêu lớn và thù lao siêu khủng.'}
+                  </p>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <span className="text-xs font-bold text-white leading-tight">{mission.title}</span>
-                    {mission.category === 'special' && <span className="text-[8px] px-1 py-px rounded bg-purple-500/20 text-purple-300 font-mono">VIP</span>}
-                    {mission.category === 'weekly'  && <span className="text-[8px] px-1 py-px rounded bg-amber-500/20 text-amber-300 font-mono">TUẦN</span>}
-                  </div>
-                  <p className="text-[10px] text-slate-400 leading-snug mt-0.5 line-clamp-2">{mission.description}</p>
-                </div>
-              </div>
-
-              {/* Progress bar */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-[10px] font-mono">
-                  <span className="text-slate-300 font-bold">
-                    Tiến độ: {mission.completedCount}/{mission.targetCount} ({pct}%)
-                  </span>
-                  <span className="font-black text-emerald-400 bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-500/30">
-                    Thưởng Tổng: +{mission.rewardXu.toLocaleString()} Xu (Đủ 100%)
-                  </span>
-                </div>
-                <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden p-0.5 border border-white/5">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      pct >= 100 ? 'bg-gradient-to-r from-emerald-500 to-green-400 shadow-sm' : 'bg-gradient-to-r from-rose-500 via-amber-400 to-cyan-400'
-                    }`}
-                    style={{ width: `${Math.min(100, pct)}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Action button: Bấm hoàn thành để nhận Xu riêng từng nhiệm vụ */}
-              <div>
-                {isDone && !isClaimed ? (
-                  <button
-                    onClick={() => claimMissionReward(mission.defId)}
-                    className="w-full py-2 rounded-xl text-xs font-black font-mono bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-lg shadow-emerald-900/50 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-400/40 animate-pulse"
-                  >
-                    <Gift className="w-4 h-4" />
-                    <span>BẤM HOÀN THÀNH (+{mission.rewardXu.toLocaleString()} XU)</span>
-                  </button>
-                ) : isClaimed ? (
-                  <div className="w-full py-1.5 rounded-xl text-[11px] font-mono text-center text-slate-500 bg-white/[0.03] border border-white/5">
-                    ✓ Đã nhận +{mission.rewardXu.toLocaleString()} Xu vào ví
-                  </div>
-                ) : (
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={openFeedRunner}
-                      className="w-full py-2 px-3 rounded-xl text-xs font-mono font-bold bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:opacity-95 text-white shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-white" />
-                      <span>Thực Hiện Tương Tác Kênh Ngay</span>
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
-          );
-        })}
-      </div>
 
-      {/* 6. Cấp Bậc Tài Khoản & Lợi Ích Nhân Xu */}
-      <div className="px-4 pb-4">
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 border border-purple-500/20 space-y-2">
-          <div className="text-[11px] font-mono font-bold text-purple-300 flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-purple-400" /> PHÂN CẤP BẬC TÀI KHOẢN & HỆ SỐ THƯỞNG XU
-            </span>
-            <span className="text-[10px] text-slate-400">Cấp bậc càng cao, nhiệm vụ càng khó, tiền thưởng càng nhiều!</span>
+            {/* Quỹ Xu Tổng & Nút Nhận Thưởng 100% */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+              <div className="px-3.5 py-2 rounded-2xl bg-black/60 border border-white/10 text-center sm:text-right">
+                <div className="text-[10px] font-mono text-slate-400">TỔNG QUỸ THƯỞNG XU</div>
+                <div className="text-base sm:text-lg font-black text-neonGold font-mono">
+                  +{currentPoolXu.toLocaleString()} XU
+                </div>
+              </div>
+
+              {/* Nút Nhận Thưởng All-or-Nothing */}
+              {isCurrentAllFinished && !isCurrentAllClaimed ? (
+                <button
+                  onClick={() => claimAllCategoryMissions(activeTab)}
+                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 hover:from-emerald-400 hover:to-green-500 text-white font-black text-xs font-mono shadow-xl shadow-emerald-950/60 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer border border-emerald-400/50 animate-pulse"
+                >
+                  <Gift className="w-5 h-5" />
+                  <span>🎁 NHẬN TRỌN BỘ +{currentPoolXu.toLocaleString()} XU (100%)</span>
+                </button>
+              ) : isCurrentAllClaimed ? (
+                <div className="px-4 py-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs font-mono flex items-center justify-center gap-2">
+                  <Check className="w-4 h-4" />
+                  <span>✓ ĐÃ NHẬN TRỌN BỘ (+{currentPoolXu.toLocaleString()} XU)</span>
+                </div>
+              ) : (
+                <div className="px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-slate-400 font-mono text-xs flex items-center justify-center gap-2 text-center">
+                  <Lock className="w-4 h-4 text-slate-500" />
+                  <span>Chưa hoàn tất (Còn {currentCategoryMissions.length - currentDoneCount} nhiệm vụ)</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {/* Thanh Tiến Độ Hoàn Thành Khung */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-300 font-bold">
+                Tiến độ chuỗi {activeTab === 'daily' ? 'ngày' : 'tuần'}: {currentDoneCount}/{currentCategoryMissions.length} nhiệm vụ đạt chỉ tiêu ({currentCategoryMissions.length > 0 ? Math.round((currentDoneCount / currentCategoryMissions.length) * 100) : 0}%)
+              </span>
+              <span className={`font-bold ${isCurrentAllFinished ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {isCurrentAllFinished ? '✓ 100% ĐẠT CHỈ TIÊU' : `Cần hoàn thành thêm ${currentCategoryMissions.length - currentDoneCount} nhiệm vụ`}
+              </span>
+            </div>
+            <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden p-0.5 border border-white/10">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  isCurrentAllFinished
+                    ? 'bg-gradient-to-r from-emerald-500 via-green-400 to-emerald-300 shadow-md shadow-emerald-500/50'
+                    : 'bg-gradient-to-r from-rose-500 via-amber-400 to-cyan-400'
+                }`}
+                style={{ width: `${currentCategoryMissions.length > 0 ? Math.min(100, (currentDoneCount / currentCategoryMissions.length) * 100) : 0}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Danh Sách Nhiệm Vụ Trong Khung */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-2">
+            {displayMissions.length === 0 && (
+              <div className="col-span-full py-10 text-center space-y-2">
+                <Lock className="w-8 h-8 mx-auto text-slate-600" />
+                <p className="text-xs text-slate-400 font-mono">
+                  {activeTab === 'special' 
+                    ? 'Nâng cấp lên hạng Vàng hoặc Kim Cương để mở kho nhiệm vụ đặc biệt!' 
+                    : 'Không có nhiệm vụ nào trong bộ lọc này.'}
+                </p>
+              </div>
+            )}
+
+            {displayMissions.map((mission) => {
+              const pct = mission.targetCount > 0 ? Math.round((mission.completedCount / mission.targetCount) * 100) : 0;
+              const typeStyle = TYPE_COLORS[mission.type] || 'text-rose-400 bg-rose-500/15 border-rose-500/30';
+              const diffCfg = DIFFICULTY_CONFIG[mission.difficulty] || DIFFICULTY_CONFIG.easy;
+              const isClaimed = mission.status === 'claimed' || isCurrentAllClaimed;
+              const isDone = mission.completedCount >= mission.targetCount;
+
+              return (
+                <div 
+                  key={mission.defId} 
+                  className={`relative rounded-2xl p-3.5 border transition-all space-y-3 ${
+                    isClaimed 
+                      ? 'bg-white/[0.02] border-white/5 opacity-60' 
+                      : isDone    
+                        ? 'bg-gradient-to-br from-emerald-950/40 via-black to-[#0C101B] border-emerald-500/60 shadow-lg shadow-emerald-950/30 ring-1 ring-emerald-500/40' 
+                        : 'bg-[#0C101B] border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  {/* Top Badges */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-mono font-black border ${diffCfg.bg} ${diffCfg.text} ${diffCfg.border}`}>
+                        {diffCfg.label}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-white/5 text-slate-400 font-mono text-[9px]">
+                        🏛️ Sàn Cấp
+                      </span>
+                    </div>
+
+                    {isClaimed && (
+                      <div className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-mono font-bold flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Đã Quyết Toán Xu
+                      </div>
+                    )}
+                    {isDone && !isClaimed && (
+                      <div className="px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 text-[10px] font-mono font-black border border-emerald-500/60 flex items-center gap-1 animate-pulse shadow-sm">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> OK • ĐẠT CHỈ TIÊU
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Title & Icon */}
+                  <div className="flex items-start gap-2.5">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${typeStyle}`}>
+                      {TYPE_ICONS[mission.type]}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-xs font-bold text-white leading-tight">{mission.title}</span>
+                        {mission.category === 'special' && <span className="text-[8px] px-1 py-px rounded bg-purple-500/20 text-purple-300 font-mono">VIP</span>}
+                        {mission.category === 'weekly'  && <span className="text-[8px] px-1 py-px rounded bg-amber-500/20 text-amber-300 font-mono">TUẦN</span>}
+                      </div>
+                      <p className="text-[10px] text-slate-400 leading-snug mt-0.5 line-clamp-2">{mission.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px] font-mono">
+                      <span className="text-slate-300 font-bold">
+                        Tiến độ: {mission.completedCount}/{mission.targetCount} ({pct}%)
+                      </span>
+                      <span className="font-black text-emerald-400 bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                        Đóng Góp Quỹ: +{mission.rewardXu.toLocaleString()} Xu
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden p-0.5 border border-white/5">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          pct >= 100 ? 'bg-gradient-to-r from-emerald-500 to-green-400 shadow-sm' : 'bg-gradient-to-r from-rose-500 via-amber-400 to-cyan-400'
+                        }`}
+                        style={{ width: `${Math.min(100, pct)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action button: Mở trình xem tương tác video hoặc báo hoàn thành */}
+                  <div>
+                    {isDone && !isClaimed ? (
+                      <div className="w-full py-2 rounded-xl text-xs font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-center flex items-center justify-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>Đã Hoàn Thành (Chờ Nhận Quỹ Tổng)</span>
+                      </div>
+                    ) : isClaimed ? (
+                      <div className="w-full py-1.5 rounded-xl text-[11px] font-mono text-center text-slate-500 bg-white/[0.03] border border-white/5">
+                        ✓ Đã tất toán vào quỹ tổng
+                      </div>
+                    ) : (
+                      <button
+                        onClick={openFeedRunner}
+                        className="w-full py-2 px-3 rounded-xl text-xs font-mono font-bold bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:opacity-95 text-white shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-white" />
+                        <span>Thực Hiện Tương Tác Kênh Ngay</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* 6. Cấp Bậc Tài Khoản & Lợi Ích Nhân Xu (Đồng, Bạc, Vàng, Kim Cương) */}
+      <div className="px-4 pb-4">
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 border border-purple-500/20 space-y-3">
+          <div className="text-xs font-mono font-bold text-purple-300 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-purple-400" /> PHÂN BỔ NHIỆM VỤ THEO CẤP BẬC TÀI KHOẢN
+            </span>
+            <span className="text-[10px] text-slate-400 hidden sm:inline">Cấp bậc càng cao, nhiệm vụ càng nhiều &amp; thù lao nhân thưởng càng khủng!</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {(['Đồng', 'Bạc', 'Vàng', 'Kim Cương'] as const).map(rank => {
               const cfg = RANK_MISSION_CONFIG.rankSlots[rank];
               const isCurrent = rank === user.rankLevel;
+              const descriptions: Record<string, string> = {
+                'Đồng': 'Tài khoản mới • 3 nhiệm vụ ngày, 2 nhiệm vụ tuần • Dễ làm quen',
+                'Bạc': 'Năng động • 5 nhiệm vụ ngày, 3 nhiệm vụ tuần • Tương tác nâng cao',
+                'Vàng': 'Chuyên nghiệp • 8 nhiệm vụ ngày, 5 nhiệm vụ tuần • Seeding & KOC',
+                'Kim Cương': 'VIP Cấp Cao • 12 nhiệm vụ ngày, 7 nhiệm vụ tuần • Thưởng cực khủng'
+              };
               return (
                 <div 
                   key={rank} 
-                  className={`p-2 rounded-xl border text-center transition-all ${
+                  className={`p-3 rounded-2xl border text-left transition-all space-y-1 ${
                     isCurrent 
-                      ? 'bg-rose-500/20 border-rose-500/50 shadow-md ring-1 ring-rose-400' 
+                      ? 'bg-rose-500/20 border-rose-500/60 shadow-lg ring-1 ring-rose-400' 
                       : 'bg-black/40 border-white/10'
                   }`}
                 >
-                  <div className="flex items-center justify-center gap-1">
+                  <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-white">{rank}</span>
-                    {isCurrent && <span className="text-[8px] px-1 rounded bg-rose-500 text-white font-bold">BẠN</span>}
+                    {isCurrent ? (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold font-mono">HẠNG BẠN</span>
+                    ) : (
+                      <span className="text-[9px] text-amber-300 font-mono font-black">Hệ số ×{cfg.rewardMultiplier}</span>
+                    )}
                   </div>
-                  <div className="text-[10px] text-emerald-400 font-mono font-bold pt-0.5">
-                    {cfg.dailyMissionsCount} ngày + {cfg.weeklyMissionsCount} tuần
+                  <div className="text-[11px] text-emerald-400 font-mono font-bold">
+                    {cfg.dailyMissionsCount} Ngày + {cfg.weeklyMissionsCount} Tuần
                   </div>
-                  <div className="text-[9px] text-amber-300 font-mono font-bold">
-                    Hệ số: ×{cfg.rewardMultiplier} Thưởng
-                  </div>
+                  <p className="text-[10px] text-slate-400 leading-tight">
+                    {descriptions[rank]}
+                  </p>
                 </div>
               );
             })}

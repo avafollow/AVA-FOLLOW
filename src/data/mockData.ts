@@ -905,103 +905,8 @@ export const ESCROW_BOOKINGS: EscrowBookingContract[] = [
 // ==============================================================================
 // DANH SÁCH TOÀN BỘ NGƯỜI DÙNG QUẢN TRỊ ADMIN (SUPABASE USER DATABASE)
 // ==============================================================================
-export const ADMIN_USERS_LIST: AdminUserManagementItem[] = [
-  {
-    id: 'usr_001',
-    name: 'Nguyễn Văn Minh (Thiện Vua App)',
-    handle: '@thienvuaapp',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    email: 'thienvuaapp@gmail.com',
-    phone: '0988776655',
-    tiktokConnected: '@thienvuaapp_official',
-    tiktokFollowers: 248500,
-    isTikTokVerified: true,
-    rankLevel: 'Kim Cương',
-    coinsBalance: 258000,
-    tokenBalance: 258,
-    completedTasksCount: 428,
-    createdCampaignsCount: 16,
-    status: 'active',
-    kycStatus: 'verified',
-    purchasedPackagesCount: 3, escrowLockedAmountVND: '1,500,000đ', joinedDate: '01/08/2025'
-  },
-  {
-    id: 'usr_002',
-    name: 'Đặng Mai Phương (KOC Beauty)',
-    handle: '@phuongbeauty',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
-    email: 'phuongbeauty.koc@gmail.com',
-    phone: '0912345678',
-    tiktokConnected: '@phuongbeauty_koc',
-    tiktokFollowers: 185000,
-    isTikTokVerified: true,
-    rankLevel: 'Vàng',
-    coinsBalance: 124500,
-    tokenBalance: 124,
-    completedTasksCount: 260,
-    createdCampaignsCount: 4,
-    status: 'active',
-    kycStatus: 'pending',
-    purchasedPackagesCount: 2, escrowLockedAmountVND: '800,000đ', joinedDate: '15/08/2025'
-  },
-  {
-    id: 'usr_003',
-    name: 'Vũ Đức Thành (Creator Pro)',
-    handle: '@thanh_growth',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    email: 'thanhgrowth@tiktok.com',
-    phone: '0933445566',
-    tiktokConnected: '@thanh_tiktokgrowth',
-    tiktokFollowers: 850000,
-    isTikTokVerified: true,
-    rankLevel: 'Kim Cương',
-    coinsBalance: 580000,
-    tokenBalance: 580,
-    completedTasksCount: 1250,
-    createdCampaignsCount: 28,
-    status: 'active',
-    kycStatus: 'verified',
-    purchasedPackagesCount: 5, escrowLockedAmountVND: '2,400,000đ', joinedDate: '10/07/2025'
-  },
-  {
-    id: 'usr_004',
-    name: 'Shop Mỹ Phẩm ZenSkin (Brand)',
-    handle: '@zenskin_official',
-    avatar: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=150',
-    email: 'contact@zenskin.vn',
-    phone: '0283889988',
-    tiktokConnected: '@zenskin_vietnam',
-    tiktokFollowers: 45200,
-    isTikTokVerified: true,
-    rankLevel: 'Vàng',
-    coinsBalance: 3500000,
-    tokenBalance: 3500,
-    completedTasksCount: 12,
-    createdCampaignsCount: 35,
-    status: 'active',
-    kycStatus: 'pending',
-    purchasedPackagesCount: 8, escrowLockedAmountVND: '5,000,000đ', joinedDate: '05/08/2025'
-  },
-  {
-    id: 'usr_005',
-    name: 'Hoàng Long Media (Agency)',
-    handle: '@long_agency',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-    email: 'long@agencyvip.com',
-    phone: '0909112233',
-    tiktokConnected: '@long_agencyvip',
-    tiktokFollowers: 120000,
-    isTikTokVerified: true,
-    rankLevel: 'Kim Cương',
-    coinsBalance: 8200000,
-    tokenBalance: 8200,
-    completedTasksCount: 88,
-    createdCampaignsCount: 42,
-    status: 'active',
-    kycStatus: 'verified',
-    purchasedPackagesCount: 12, escrowLockedAmountVND: '8,800,000đ', joinedDate: '20/07/2025'
-  }
-];
+export const ADMIN_USERS_LIST: AdminUserManagementItem[] = [];
+
 
 // ==============================================================================
 // KHO ỨNG DỤNG & PHẦN MỀM XÂY KÊNH TIKTOK (CHỢ APP KIẾM TIỀN - MUA BẰNG XU)
@@ -1015,9 +920,9 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
     priceXu: 500000,
     tokenPrice: 200,
     fiatPriceVND: '500,000đ',
-    rating: 4.9,
-    reviewCount: 342,
-    downloadsCount: 1850,
+    rating: 5.0,
+    reviewCount: 0,
+    downloadsCount: 0,
     description: 'Tự động tạo kịch bản video TikTok giữ chân 3 giây đầu, phân cảnh chuyên sâu, bùng nổ hàng triệu lượt xem và tối ưu giỏ hàng.',
     highlights: [
       'Công thức Hook 3s giữ chân người xem 85%',
@@ -1045,9 +950,9 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
     priceXu: 300000,
     tokenPrice: 120,
     fiatPriceVND: '300,000đ',
-    rating: 4.8,
-    reviewCount: 520,
-    downloadsCount: 4200,
+    rating: 5.0,
+    reviewCount: 0,
+    downloadsCount: 0,
     description: 'Tải hàng loạt video TikTok chuẩn 4K siêu nét không dính logo (Watermark), tự động tải theo kênh đối thủ hoặc thẻ hashtag.',
     highlights: [
       'Tải cả kênh đối thủ 500 video chỉ trong 2 phút',
@@ -1075,9 +980,9 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
     priceXu: 600000,
     tokenPrice: 240,
     fiatPriceVND: '600,000đ',
-    rating: 4.9,
-    reviewCount: 280,
-    downloadsCount: 1420,
+    rating: 5.0,
+    reviewCount: 0,
+    downloadsCount: 0,
     description: 'Tách nhạc nền trending, lọc tạp âm và clone giọng đọc MC truyền cảm, giọng kể chuyện Drama chuẩn bản quyền không bị tắt tiếng.',
     highlights: [
       'Kho 60 giọng đọc MC AI tự nhiên như người thật',
@@ -1105,9 +1010,9 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
     priceXu: 700000,
     tokenPrice: 280,
     fiatPriceVND: '700,000đ',
-    rating: 4.7,
-    reviewCount: 195,
-    downloadsCount: 980,
+    rating: 5.0,
+    reviewCount: 0,
+    downloadsCount: 0,
     description: 'Ra-đa quét tự động kênh đối thủ: Xem khung giờ đăng video nhiều view nhất, tỷ lệ giữ chân, âm thanh họ dùng và doanh thu TikTok Shop ước tính.',
     highlights: [
       'Bắt bài chiến lược nội dung của top 10 đối thủ cùng ngách',
@@ -1135,9 +1040,9 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
     priceXu: 800000,
     tokenPrice: 320,
     fiatPriceVND: '800,000đ',
-    rating: 4.8,
-    reviewCount: 310,
-    downloadsCount: 1650,
+    rating: 5.0,
+    reviewCount: 0,
+    downloadsCount: 0,
     description: 'Tối ưu tiêu đề, thẻ mô tả sản phẩm và bộ từ khóa tìm kiếm đưa gian hàng TikTok Shop của bạn lên vị trí số 1 tab Tìm Kiếm & Đề Xuất.',
     highlights: [
       'Gấp 3 lần lượt xem tự nhiên từ thanh tìm kiếm TikTok',
@@ -1165,9 +1070,9 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
     priceXu: 900000,
     tokenPrice: 360,
     fiatPriceVND: '900,000đ',
-    rating: 4.9,
-    reviewCount: 410,
-    downloadsCount: 2100,
+    rating: 5.0,
+    reviewCount: 0,
+    downloadsCount: 0,
     description: 'Tự động ghép hàng trăm video/hình ảnh vào các mẫu CapCut thịnh hành chỉ bằng 1 nút bấm, xuất hàng loạt không dính logo kết thúc.',
     highlights: [
       'Render 100 video chuẩn trend chỉ trong 15 phút',
@@ -1195,9 +1100,9 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
     priceXu: 1000000,
     tokenPrice: 400,
     fiatPriceVND: '1,000,000đ',
-    rating: 4.8,
-    reviewCount: 225,
-    downloadsCount: 890,
+    rating: 5.0,
+    reviewCount: 0,
+    downloadsCount: 0,
     description: 'Trợ lý AI thông minh trong phiên Live: Tự động ghim sản phẩm giỏ hàng, ghim bình luận mồi, gửi tin nhắn chào mừng và trả lời câu hỏi tự động.',
     highlights: [
       'Tự động ghim Deal 1k, mã giảm giá kích thích mua hàng',
@@ -1225,9 +1130,9 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
     priceXu: 1200000,
     tokenPrice: 480,
     fiatPriceVND: '1,200,000đ',
-    rating: 4.9,
-    reviewCount: 390,
-    downloadsCount: 1750,
+    rating: 5.0,
+    reviewCount: 0,
+    downloadsCount: 0,
     description: 'Trình duyệt cô lập vân tay trình duyệt (Antidetect Browser) an toàn tuyệt đối, cho phép nuôi và quản lý 100 tài khoản TikTok không bao giờ bị bóp view hay khóa liên đới.',
     highlights: [
       'Cô lập IP, Canvas, WebGL, Cookie riêng biệt 100%',
@@ -1250,28 +1155,8 @@ export const SOFTWARE_APPS_CATALOG: SoftwareAppItem[] = [
 ];
 
 // Sổ cái biến động Token chính thức
-export const INITIAL_TOKEN_LEDGER: TokenLedgerRecord[] = [
-  {
-    id: 'tled_1',
-    userId: 'usr_001',
-    userEmail: 'thienvuaapp@gmail.com',
-    type: 'admin_grant',
-    tokenAmount: 500,
-    vndValue: '1,250,000đ',
-    note: 'Sàn cấp hạn mức khởi tạo tài khoản Chuyên gia',
-    createdAt: 'Hôm qua, 14:20'
-  },
-  {
-    id: 'tled_2',
-    userId: 'usr_001',
-    userEmail: 'thienvuaapp@gmail.com',
-    type: 'task_reward',
-    tokenAmount: 350,
-    vndValue: '875,000đ',
-    note: 'Thưởng hoàn thành chuỗi 15 nhiệm vụ & phiên Live',
-    createdAt: 'Hôm nay, 08:30'
-  }
-];
+export const INITIAL_TOKEN_LEDGER: TokenLedgerRecord[] = [];
+
 
 // Danh sách thông báo thời gian thực gửi đến tài khoản người dùng
 export const INITIAL_USER_NOTIFICATIONS: UserNotificationItem[] = [

@@ -158,7 +158,7 @@ interface TikTokAppContextType {
 
   activeLiveTask: LivestreamTaskItem | null;
   isLiveRunnerOpen: boolean;
-  openLiveRunner: (task: LivestreamTaskItem) => void;
+  openLiveRunner: (task?: LivestreamTaskItem) => void;
   closeLiveRunner: () => void;
 
   isLuckyWheelOpen: boolean;
@@ -448,7 +448,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [adminUsers, setAdminUsers] = useState<AdminUserManagementItem[]>(() => {
     try {
       const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_admin_users') : null;
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: AdminUserManagementItem[] = JSON.parse(saved);
+        // Loại bỏ các tài khoản demo cũ (usr_001 -> usr_005)
+        const filtered = parsed.filter(u => !['usr_001', 'usr_002', 'usr_003', 'usr_004', 'usr_005'].includes(u.id));
+        return filtered;
+      }
     } catch {}
     return ADMIN_USERS_LIST;
   });
@@ -1498,8 +1503,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
   const closeFeedRunner = () => setIsFeedRunnerOpen(false);
 
-  const openLiveRunner = (task: LivestreamTaskItem) => {
-    setActiveLiveTask(task);
+  const openLiveRunner = (task?: LivestreamTaskItem) => {
+    setActiveLiveTask(task || livestreamTasks[0] || null);
     setIsLiveRunnerOpen(true);
   };
   const closeLiveRunner = () => {

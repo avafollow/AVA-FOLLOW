@@ -354,9 +354,16 @@ export const CreateCampaignScreen: React.FC<{
           rewardText: isMultiTarget ? 'Combo đa mục tiêu' : `${getTargetUnitPrice(activeTargetsList[0].id).toLocaleString('vi-VN')} Xu`
         });
       }
-      showToast(`🎉 Đã kích hoạt chiến dịch thành công! Đã trừ ${totalCostXu.toLocaleString()} Xu từ tài khoản.`);
+      showToast(`🎉 Đã kích hoạt chiến dịch thành công! Chuyển ngay đến ô Lướt Video Kiếm Tiền.`);
       setTitle('');
       setIncludeMarqueeBoost(false);
+
+      // Tự động chuyển toàn bộ video/livestream hiển thị ngay tại ô Lướt Video Kiếm Tiền
+      if (selectedTargets.livestream || targetUrl.includes('/live')) {
+        openLiveRunner();
+      } else {
+        openFeedRunner(0);
+      }
     }
   };
 
@@ -415,9 +422,15 @@ export const CreateCampaignScreen: React.FC<{
           rewardText: isMegaLive ? 'Mega Live VIP' : 'Launch Viral'
         });
       }
-      showToast(`🚀 Đã khởi tạo thành công chiến dịch ${isMegaLive ? 'Mega Live' : 'Tung Sản Phẩm'} cho ${channelHandle}!`);
+      showToast(`🚀 Đã khởi tạo thành công chiến dịch ${isMegaLive ? 'Mega Live' : 'Tung Sản Phẩm'} cho ${channelHandle}! Chuyển ngay đến ô Lướt Video Kiếm Tiền.`);
       setMegaProductName('');
       setIncludeMarqueeBoost(false);
+
+      if (isMegaLive) {
+        openLiveRunner();
+      } else {
+        openFeedRunner(0);
+      }
     }
   };
 

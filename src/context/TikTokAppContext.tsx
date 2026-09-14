@@ -355,7 +355,7 @@ interface TikTokAppContextType {
   adminAdjustUserCoins: (userId: string, amount: number) => void;
   adminGrantPackage: (userId: string, packageItem: GrowthServiceItem) => void;
   adminAdjustUserFollowers: (userId: string, count: number) => void;
-  adminChangeUserRank: (userId: string, rank: 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương') => void;
+  adminChangeUserRank: (userId: string, rank: string) => void;
   adminAddUser: (user: Partial<AdminUserManagementItem>) => AdminUserManagementItem;
   adminUpdateUser: (userId: string, data: Partial<AdminUserManagementItem>) => void;
   adminDeleteUser: (userId: string) => void;
@@ -566,11 +566,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           const realOnly = parsed.filter((c: EscrowBookingContract) => 
             c && c.id && 
             !c.id.startsWith('mock_') && 
+            !c.id.startsWith('esc_') &&
             !c.id.startsWith('escrow_demo') &&
             !c.id.startsWith('escrow_mock') &&
+            !c.id.startsWith('koc_contract_') &&
             !c.id.startsWith('demo_') &&
             !c.id.includes('sample') &&
-            !c.id.includes('demo')
+            !c.id.includes('demo') &&
+            !c.id.includes('mock')
           );
           return realOnly;
         }
@@ -584,8 +587,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_admin_users') : null;
       if (saved) {
         const parsed: AdminUserManagementItem[] = JSON.parse(saved);
-        // Loại bỏ các tài khoản demo cũ (usr_001 -> usr_005)
-        const filtered = parsed.filter(u => !['usr_001', 'usr_002', 'usr_003', 'usr_004', 'usr_005'].includes(u.id));
+        // Loại bỏ hoàn toàn các tài khoản demo cũ
+        const filtered = parsed.filter(u => 
+          u && u.id && 
+          !u.id.startsWith('usr_') && 
+          !u.id.startsWith('mock_') && 
+          !u.id.startsWith('demo_') &&
+          !u.id.includes('demo') &&
+          !['phuongbeauty.koc@gmail.com', 'thanhgrowth@tiktok.com', 'contact@zenskin.vn', 'long@agencyvip.com', 'demo@avalive.vn', 'nguyenvana@gmail.com', 'tranthib@gmail.com', 'lequangc@gmail.com'].includes(u.email)
+        );
         return filtered;
       }
     } catch {}
@@ -4683,7 +4693,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`Đã cộng +${count.toLocaleString()} Follower cho kênh của người dùng!`);
   };
 
-  const adminChangeUserRank = (userId: string, rank: 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương') => {
+  const adminChangeUserRank = (userId: string, rank: string) => {
     let matched = false;
     setAdminUsers(prev => prev.map(u => {
       if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {

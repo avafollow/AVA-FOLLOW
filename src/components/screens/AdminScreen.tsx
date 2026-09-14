@@ -62,7 +62,7 @@ import { useTikTokApp } from '../../context/TikTokAppContext';
 import { AdminUserManagementItem, GrowthServiceItem, SoftwareAppItem, ServiceOrder } from '../../types';
 import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
 import { BrandLogo } from '../common/BrandLogo';
-import { MISSION_POOL, RANK_MISSION_CONFIG, TEN_TIERS_LIST } from '../../data/weeklyMissions';
+import { MISSION_POOL, RANK_MISSION_CONFIG, TEN_TIERS_LIST, getRankTierConfig } from '../../data/weeklyMissions';
 import { KOC_PENALTY_TIERS } from '../../data/kocProfileData';
 
 export interface StaffMember {
@@ -291,7 +291,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const [newUserName, setNewUserName] = useState<string>('');
   const [newUserPhone, setNewUserPhone] = useState<string>('');
   const [newUserHandle, setNewUserHandle] = useState<string>('');
-  const [newUserRank, setNewUserRank] = useState<'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương'>('Đồng');
+  const [newUserRank, setNewUserRank] = useState<string>('Cấp 1 - Tập Sự');
   const [newUserCoins, setNewUserCoins] = useState<number>(50000);
 
   // Edit Granted Order Modal
@@ -433,7 +433,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   });
 
   const filteredUsers = adminUsers.filter(u => {
-    if (userRankFilter !== 'all' && u.rankLevel !== userRankFilter) return false;
+    if (userRankFilter !== 'all' && u.rankLevel !== userRankFilter && getRankTierConfig(u.rankLevel).name !== userRankFilter) return false;
     if (userSearchQuery.trim()) {
       const q = userSearchQuery.toLowerCase();
       return u.name.toLowerCase().includes(q) || 
@@ -863,7 +863,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <ShieldCheck className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div className="text-2xl font-black text-cyan-300 font-mono">
-                  {kycRequests.length > 0 ? `${Math.round((kycRequests.filter(k => k.status === 'verified').length / kycRequests.length) * 100)}% Hợp Lệ` : '100% Hợp Lệ'}
+                  {kycRequests.length > 0 ? `${Math.round((kycRequests.filter(k => k.status === 'verified').length / kycRequests.length) * 100)}% Hợp Lệ` : '0 Hồ Sơ'}
                 </div>
                 <div className="flex items-center justify-between text-[11px] font-mono">
                   <span className="text-emerald-400">{kycRequests.filter(k => k.status === 'verified').length} Đã duyệt CCCD</span>
@@ -1755,37 +1755,46 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   </div>
                 </div>
 
-                {/* 3. VIP Rank Selector Panel */}
+                {/* 3. 10 Cấp Bậc Thăng Tiến Selector Panel */}
                 <div className="p-4 rounded-2xl bg-slate-900 border border-purple-500/30 space-y-3 shadow-lg">
-                  <h4 className="text-xs font-bold text-white uppercase font-mono flex items-center gap-2">
-                    <Award className="w-4 h-4 text-neonGold" />
-                    Cấp Bậc VIP (Hiện tại: {activeGrantUser.rankLevel})
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-white uppercase font-mono flex items-center gap-2">
+                      <Award className="w-4 h-4 text-neonGold" />
+                      10 Cấp Bậc Thăng Tiến (Hiện tại: {getRankTierConfig(activeGrantUser.rankLevel).badge} - {getRankTierConfig(activeGrantUser.rankLevel).name})
+                    </h4>
+                    <span className="text-[10px] font-mono text-neonGold font-bold px-2 py-0.5 rounded-full bg-neonGold/10 border border-neonGold/30">
+                      x{getRankTierConfig(activeGrantUser.rankLevel).rewardMultiplier} Thưởng
+                    </span>
+                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                    {(['Đồng', 'Bạc', 'Vàng', 'Kim Cương'] as const).map(rk => (
-                      <button
-                        key={rk}
-                        type="button"
-                        onClick={() => {
-                          adminChangeUserRank(activeGrantUser.id, rk);
-                          setGrantSuccessNotice(`Đã đổi hạng của ${activeGrantUser.name} sang ${rk}!`);
-                          setTimeout(() => setGrantSuccessNotice(null), 3000);
-                        }}
-                        className={`py-2 px-2.5 rounded-xl font-bold transition-all border flex items-center justify-center gap-1.5 ${
-                          activeGrantUser.rankLevel === rk
-                            ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-black border-amber-400 shadow-md scale-105'
-                            : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
-                        }`}
-                      >
-                        <Award className="w-3.5 h-3.5" />
-                        <span>{rk}</span>
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs font-mono">
+                    {TEN_TIERS_LIST.map(tier => {
+                      const isCurrent = activeGrantUser.rankLevel === tier.name || getRankTierConfig(activeGrantUser.rankLevel).tierNumber === tier.tierNumber;
+                      return (
+                        <button
+                          key={tier.name}
+                          type="button"
+                          onClick={() => {
+                            adminChangeUserRank(activeGrantUser.id, tier.name);
+                            setGrantSuccessNotice(`Đã nâng hạng cho ${activeGrantUser.name} sang ${tier.name}!`);
+                            setTimeout(() => setGrantSuccessNotice(null), 3000);
+                          }}
+                          className={`py-2 px-1.5 rounded-xl font-bold transition-all border flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+                            isCurrent
+                              ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-black border-amber-400 shadow-md scale-105 ring-1 ring-amber-300'
+                              : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <span className="text-xs">{tier.badge}</span>
+                          <span className="text-[9px] truncate max-w-full font-bold">{tier.name.split(' - ')[1] || tier.name}</span>
+                          <span className="text-[8px] opacity-80">x{tier.rewardMultiplier}</span>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <p className="text-[10px] text-slate-400 font-mono text-center pt-1 border-t border-white/5">
-                    Hạng cao hơn mở rộng hạn mức rút tiền &amp; nhân hệ số Xu thưởng nhiệm vụ
+                    10 Cấp bậc thăng tiến: Nâng từ Cấp 1 (x1.0) đến Cấp 10 (x3.0) &amp; mở rộng số lượng nhiệm vụ, quà vòng quay may mắn
                   </p>
                 </div>
 
@@ -2462,11 +2471,10 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 onChange={(e) => setUserRankFilter(e.target.value)}
                 className="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500"
               >
-                <option value="all">Hạng: Tất cả</option>
-                <option value="Kim Cương">Kim Cương</option>
-                <option value="Vàng">Vàng</option>
-                <option value="Bạc">Bạc</option>
-                <option value="Đồng">Đồng</option>
+                <option value="all">Tất cả 10 Cấp Bậc</option>
+                {TEN_TIERS_LIST.map(t => (
+                  <option key={t.name} value={t.name}>{t.badge} - {t.name}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -2509,15 +2517,15 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     <td className="p-3 font-mono">
                       <button
                         onClick={() => {
-                          const ranks: ('Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương')[] = ['Đồng', 'Bạc', 'Vàng', 'Kim Cương'];
-                          const currentRank = (ranks.includes(u.rankLevel as any) ? u.rankLevel : 'Đồng') as 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương';
-                          const nextIdx = (ranks.indexOf(currentRank) + 1) % ranks.length;
-                          adminChangeUserRank(u.id, ranks[nextIdx]);
+                          const currentCfg = getRankTierConfig(u.rankLevel);
+                          const nextTier = TEN_TIERS_LIST[currentCfg.tierNumber % 10];
+                          adminChangeUserRank(u.id, nextTier.name);
                         }}
-                        title="Bấm để đổi hạng VIP"
-                        className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+                        title="Bấm để nâng lên cấp bậc tiếp theo (10 cấp bậc thăng tiến)"
+                        className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors flex items-center gap-1"
                       >
-                        {u.rankLevel} ✎
+                        <span>{getRankTierConfig(u.rankLevel).badge}</span>
+                        <span>{getRankTierConfig(u.rankLevel).name.split(' - ')[1] || u.rankLevel} ✎</span>
                       </button>
                     </td>
                     <td className="p-3 font-mono">
@@ -5331,12 +5339,13 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <select
                     value={editingUser.rankLevel}
                     onChange={(e) => setEditingUser({ ...editingUser, rankLevel: e.target.value as any })}
-                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-indigo-500 text-xs font-mono"
                   >
-                    <option value="Đồng">🥉 Hạng Đồng</option>
-                    <option value="Bạc">🥈 Hạng Bạc</option>
-                    <option value="Vàng">🥇 Hạng Vàng</option>
-                    <option value="Kim Cương">💎 Hạng Kim Cương</option>
+                    {TEN_TIERS_LIST.map(t => (
+                      <option key={t.name} value={t.name}>
+                        {t.badge} - {t.name} (x{t.rewardMultiplier})
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -5473,13 +5482,14 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <label className="block text-[11px] font-bold text-slate-300 mb-1">Hạng VIP Ban Đầu</label>
                   <select
                     value={newUserRank}
-                    onChange={(e) => setNewUserRank(e.target.value as any)}
-                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                    onChange={(e) => setNewUserRank(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500 text-xs font-mono"
                   >
-                    <option value="Đồng">🥉 Hạng Đồng</option>
-                    <option value="Bạc">🥈 Hạng Bạc</option>
-                    <option value="Vàng">🥇 Hạng Vàng</option>
-                    <option value="Kim Cương">💎 Hạng Kim Cương</option>
+                    {TEN_TIERS_LIST.map(t => (
+                      <option key={t.name} value={t.name}>
+                        {t.badge} - {t.name} (x{t.rewardMultiplier})
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

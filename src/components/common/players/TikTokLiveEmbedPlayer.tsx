@@ -146,7 +146,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           style={{
             width: '280%',
             height: '112%',
-            left: '-53%',
+            left: '-65.5%',
             top: '0',
             maxWidth: 'none',
             maxHeight: 'none'

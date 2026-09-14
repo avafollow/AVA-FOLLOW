@@ -339,147 +339,62 @@ export const LivestreamRunnerModal: React.FC = () => {
         className="relative w-full max-w-md h-[92vh] max-h-[850px] rounded-3xl bg-[#090C16] border border-white/20 shadow-2xl overflow-hidden flex flex-col select-none"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* TOP STATUS BAR: Live Earning Ticker & Rank Multiplier */}
-        <div className="bg-[#0D111E] px-3.5 py-2 border-b border-white/10 flex items-center justify-between text-[11px] font-mono">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-neonGold font-bold">
-              <Award className="h-3.5 w-3.5" />
-              <span>Hạng {quota.rank} (x{quota.multiplier})</span>
-            </span>
-            <span className="text-slate-500">|</span>
-            <span className="text-slate-300">
-              Hôm nay: {quota.completedToday}/{quota.maxLivePerDay} Live
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1 text-emerald-400 font-black font-mono-numbers bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
-            <Coins className="h-3.5 w-3.5" />
-            <span>+{currentEarnedCoins.toLocaleString()} Xu</span>
-          </div>
-        </div>
-
-        {/* LIVE TOP HEADER: Host Info & Live Counters */}
-        <div className="bg-gradient-to-b from-black/80 to-transparent p-3 flex items-center justify-between z-20">
-          <div className="flex items-center gap-2.5">
+        {/* UNIFIED LUXURY TOP HEADER: Gọn gàng, sang xịn, đẩy Mở App + Đổi Phòng lên trên */}
+        <div className="bg-[#090C16]/95 backdrop-blur-md px-3.5 py-2.5 border-b border-white/10 flex items-center justify-between z-20 gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
             <img
               src={activeLiveTask.channelAvatar}
               alt=""
-              className="h-10 w-10 rounded-full object-cover ring-2 ring-rose-500 shrink-0"
+              className="h-8 w-8 rounded-full object-cover ring-2 ring-rose-500 shrink-0"
             />
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-white text-xs truncate max-w-[150px]">
+                <span className="font-bold text-white text-xs truncate max-w-[120px] sm:max-w-[150px]">
                   {activeLiveTask.channelName}
                 </span>
-                <span className="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[9px] font-black font-mono uppercase tracking-wider animate-pulse">
+                <span className="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[8px] font-black font-mono animate-pulse">
                   LIVE 🔴
                 </span>
               </div>
-              <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
-                <Users className="h-3 w-3 text-rose-400" />
-                <span>{(activeLiveTask.currentViewers + totalMinutesWatched * 12).toLocaleString()} mắt xem thật</span>
+              <div className="flex items-center gap-1.5 text-[10px] font-mono text-neonGold">
+                <span>Hạng {quota.rank}</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-emerald-400 font-bold">+{currentEarnedCoins.toLocaleString()} Xu</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setShowStatsDrawer(!showStatsDrawer)}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-cyan-300 transition-colors cursor-pointer"
-              title="Xem báo cáo người xem thật"
-            >
-              <BarChart3 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handleShareLive}
-              className={`p-2 rounded-xl transition-colors cursor-pointer ${
-                claimedShareReward ? 'bg-purple-500/20 text-purple-300' : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-              title="Chia sẻ phòng Live (+300 Xu)"
-            >
-              <Share2 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={closeLiveRunner}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition-colors cursor-pointer"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* LIVE CONNECTION SUB-BAR: Exact TikTok Live Link & Controls */}
-        <div className="bg-[#080B14] px-3 py-1.5 border-y border-white/10 flex items-center justify-between gap-2 text-[11px] font-mono">
-          <div className="flex items-center gap-1.5 min-w-0 text-slate-300">
-            <Radio className="h-3.5 w-3.5 text-rose-500 animate-pulse shrink-0" />
-            <span className="text-white font-bold truncate max-w-[130px] sm:max-w-[170px]">
-              {activeLiveTask.channelHandle}
-            </span>
-            <span className="text-slate-600 hidden sm:inline">•</span>
-            <span className="text-cyan-400 text-[10px] truncate hidden sm:inline max-w-[110px]">
-              {activeLiveTask.targetUrl.replace('https://', '')}
-            </span>
-          </div>
-
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Direct Open in TikTok App Button */}
-            <button
-              type="button"
-              onClick={handleOpenTikTokApp}
-              className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-[10px] shadow-sm flex items-center gap-1 transition-transform active:scale-95 cursor-pointer font-display"
-              title="Mở trực tiếp trên App TikTok để xem phòng live thật"
-            >
-              <ArrowUpRight className="h-3 w-3" />
-              <span>Mở App TikTok</span>
-            </button>
-
-            {/* Room Switcher Drawer Button */}
+            {/* Nút Đổi Phòng */}
             <button
               type="button"
               onClick={() => setShowRoomSwitcher(!showRoomSwitcher)}
-              className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white text-[10px] flex items-center gap-1 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-[10px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
               title="Chuyển đổi phòng live khác"
             >
-              <RefreshCw className="h-3 w-3" />
+              <RefreshCw className="h-3 w-3 text-cyan-400" />
               <span>Đổi Phòng ({livestreamTasks.length})</span>
             </button>
-          </div>
-        </div>
 
-        {/* WATCH PROGRESS & MILESTONES BAR */}
-        <div className="bg-[#0B0F19] px-3.5 py-2 border-b border-white/5 space-y-1.5">
-          <div className="flex items-center justify-between text-[10px] font-mono">
-            <span className="text-slate-400 flex items-center gap-1">
-              <Clock className="h-3 w-3 text-rose-400" />
-              <span>Tiến độ: <strong className="text-white">{totalMinutesWatched} / {targetMinutes} phút</strong></span>
-            </span>
-            <span className="text-neonGold font-bold">
-              +{baseRewardPerMinute * quota.multiplier} Xu/phút • Còn {secondsInMinute}s
-            </span>
-          </div>
+            {/* Nút Mở App TikTok */}
+            <button
+              type="button"
+              onClick={handleOpenTikTokApp}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-[10px] shadow-md flex items-center gap-1 transition-transform active:scale-95 cursor-pointer font-display"
+              title="Mở trên App TikTok"
+            >
+              <ArrowUpRight className="h-3 w-3" />
+              <span>Mở App</span>
+            </button>
 
-          {/* Progress bar */}
-          <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden relative">
-            <div 
-              className="h-full bg-gradient-to-r from-rose-500 via-purple-500 to-emerald-400 transition-all duration-300"
-              style={{ width: `${Math.min(100, ((totalMinutesWatched * 60 + (60 - secondsInMinute)) / (targetMinutes * 60)) * 100)}%` }}
-            />
-          </div>
-
-          {/* 4 Quick Milestone Badges */}
-          <div className="grid grid-cols-4 gap-1 pt-0.5 text-center text-[9px] font-mono">
-            <div className={`py-0.5 rounded ${totalMinutesWatched >= 3 ? 'bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30' : 'bg-white/5 text-slate-500'}`}>
-              Mốc 3p (+1.2k)
-            </div>
-            <div className={`py-0.5 rounded ${totalMinutesWatched >= 5 ? 'bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30' : 'bg-white/5 text-slate-500'}`}>
-              Mốc 5p (+2.5k)
-            </div>
-            <div className={`py-0.5 rounded ${totalMinutesWatched >= 10 ? 'bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30' : 'bg-white/5 text-slate-500'}`}>
-              Mốc 10p (+6k)
-            </div>
-            <div className={`py-0.5 rounded ${totalMinutesWatched >= 15 ? 'bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30' : 'bg-white/5 text-slate-500'}`}>
-              Mốc 15p (+10k)
-            </div>
+            {/* Nút Đóng */}
+            <button
+              onClick={closeLiveRunner}
+              className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition-colors cursor-pointer ml-0.5"
+              title="Đóng phiên live"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -803,7 +718,7 @@ export const LivestreamRunnerModal: React.FC = () => {
           )}
         </div>
 
-        {/* MISSION COMPLETE BANNER OR BOTTOM CHAT & QUICK COMMENT BAR */}
+        {/* MISSION COMPLETE BANNER OR BOTTOM WATCH PROGRESS & CHAT BAR */}
         {isTargetReached ? (
           <div className="p-3.5 bg-gradient-to-r from-emerald-950/80 via-slate-900 to-purple-950/80 border-t border-emerald-500/40 flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-300">
             <div className="text-left">
@@ -825,6 +740,25 @@ export const LivestreamRunnerModal: React.FC = () => {
           </div>
         ) : (
           <div className="p-2.5 bg-[#0B0E17] border-t border-white/10 space-y-2">
+            {/* WATCH PROGRESS BAR AT THE BOTTOM (GỌN GÀNG, ĐẸP MẮT) */}
+            <div className="px-1 py-1 space-y-1">
+              <div className="flex items-center justify-between text-[10px] font-mono">
+                <span className="text-slate-300 flex items-center gap-1">
+                  <Clock className="h-3 w-3 text-rose-400" />
+                  <span>Tiến độ: <strong className="text-white">{totalMinutesWatched}/{targetMinutes} phút</strong></span>
+                </span>
+                <span className="text-neonGold font-bold">
+                  +{baseRewardPerMinute * quota.multiplier} Xu/phút • Còn {secondsInMinute}s
+                </span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-rose-500 via-purple-500 to-emerald-400 transition-all duration-300"
+                  style={{ width: `${Math.min(100, ((totalMinutesWatched * 60 + (60 - secondsInMinute)) / (targetMinutes * 60)) * 100)}%` }}
+                />
+              </div>
+            </div>
+
             {/* 3 Quick Seeding Pills for 1-click comment */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
               {quickComments.map((cmt, idx) => (

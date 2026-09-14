@@ -43,6 +43,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const [iframeKey, setIframeKey] = useState<number>(Date.now());
   const [loadError, setLoadError] = useState<boolean>(false);
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
+  const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
 
   useEffect(() => {
     setInternalMuted(isMuted);
@@ -52,6 +53,18 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     e?.stopPropagation();
     const nextMuted = !internalMuted;
     setInternalMuted(nextMuted);
+
+    // Phát tín hiệu PostMessage điều khiển âm thanh đến các trình nhúng web
+    try {
+      if (iframeRef.current?.contentWindow) {
+        const cw = iframeRef.current.contentWindow;
+        cw.postMessage({ type: 'mute', value: nextMuted }, '*');
+        cw.postMessage({ event: 'command', func: nextMuted ? 'mute' : 'unMute' }, '*');
+        cw.postMessage(JSON.stringify({ event: 'command', func: nextMuted ? 'mute' : 'unMute' }), '*');
+        cw.postMessage({ 'tiktok-embed': true, type: nextMuted ? 'mute' : 'unmute' }, '*');
+      }
+    } catch (err) {}
+
     if (onToggleMute) {
       onToggleMute();
     }
@@ -87,14 +100,15 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           <button
             type="button"
             onClick={handleToggleSound}
-            className={`p-1.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg ${
+            className={`p-1.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1 px-2.5 ${
               internalMuted 
-                ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' 
-                : 'bg-black/80 text-emerald-400 border-emerald-500/40'
+                ? 'bg-rose-500/30 text-rose-300 border-rose-500/50' 
+                : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
             }`}
             title={internalMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
           >
             {internalMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            <span className="text-[9px] font-mono font-bold">{internalMuted ? 'Tắt tiếng' : 'Bật tiếng'}</span>
           </button>
 
           <button
@@ -118,9 +132,10 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         </div>
       </div>
 
-      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM (CĂN CHÍNH GIỮA 100% CẢ TRÊN PREVIEW LẪN FEED, KHÔNG LỆCH PHẢI) */}
+      {/* 2. REAL-TIME TIKTOK LIVE IFRAME STREAM (CĂN CHÍNH GIỮA 100% CẢ TRÊN PREVIEW LẪN FEED, KHÔNG LỆCH TRÁI / PHẢI) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
         <iframe
+          ref={iframeRef}
           key={`tt-live-${cleanHandle}-${iframeKey}`}
           src={directLiveUrl}
           title={`TikTok Live: @${cleanHandle}`}
@@ -131,7 +146,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           style={{
             width: '280%',
             height: '112%',
-            left: '-78%',
+            left: '-53%',
             top: '0',
             maxWidth: 'none',
             maxHeight: 'none'

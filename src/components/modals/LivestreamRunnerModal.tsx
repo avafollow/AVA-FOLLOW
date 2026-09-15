@@ -176,18 +176,20 @@ export const LivestreamRunnerModal: React.FC = () => {
     showToast(`🔴 Đã chuyển sang phòng live: ${task.channelName}`);
   };
 
+  const activeLiveRooms = (livestreamTasks || []).filter(t => t.status === 'live' && (t.remainingSlots === undefined || t.remainingSlots > 0));
+
   const handleNextLiveRoom = () => {
-    if (!activeLiveTask) return;
-    const currentIdx = livestreamTasks.findIndex(t => t.id === activeLiveTask.id);
-    const nextIdx = currentIdx < livestreamTasks.length - 1 ? currentIdx + 1 : 0;
-    handleSwitchRoom(livestreamTasks[nextIdx]);
+    if (!activeLiveTask || activeLiveRooms.length === 0) return;
+    const currentIdx = activeLiveRooms.findIndex(t => t.id === activeLiveTask.id);
+    const nextIdx = currentIdx < activeLiveRooms.length - 1 ? currentIdx + 1 : 0;
+    handleSwitchRoom(activeLiveRooms[nextIdx]);
   };
 
   const handlePrevLiveRoom = () => {
-    if (!activeLiveTask) return;
-    const currentIdx = livestreamTasks.findIndex(t => t.id === activeLiveTask.id);
-    const prevIdx = currentIdx > 0 ? currentIdx - 1 : livestreamTasks.length - 1;
-    handleSwitchRoom(livestreamTasks[prevIdx]);
+    if (!activeLiveTask || activeLiveRooms.length === 0) return;
+    const currentIdx = activeLiveRooms.findIndex(t => t.id === activeLiveTask.id);
+    const prevIdx = currentIdx > 0 ? currentIdx - 1 : activeLiveRooms.length - 1;
+    handleSwitchRoom(activeLiveRooms[prevIdx]);
   };
 
   // Cảm ứng vuốt chạm (Touch Swipe) chuyển phòng Live trên Mobile & Tablet
@@ -501,7 +503,7 @@ export const LivestreamRunnerModal: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <RefreshCw className="h-4 w-4 text-purple-400" />
                   <span className="font-bold text-white text-xs font-mono uppercase">
-                    CHỌN PHÒNG LIVE ĐANG PHÁT SÓNG ({livestreamTasks.length})
+                    CHỌN PHÒNG LIVE ĐANG PHÁT SÓNG ({activeLiveRooms.length})
                   </span>
                 </div>
                 <button
@@ -514,7 +516,7 @@ export const LivestreamRunnerModal: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                {livestreamTasks.map((t) => {
+                {activeLiveRooms.map((t) => {
                   const isCurrent = t.id === activeLiveTask.id;
                   const isBuyerBroadcast = t.id.startsWith('live_bcast_') || t.tags?.includes('Gói Đang Chạy');
                   return (

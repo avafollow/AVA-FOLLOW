@@ -184,19 +184,21 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
     return 0;
   });
 
-  // Filtered Livestream Rooms
-  const filteredLiveTasks = livestreamTasks.filter((live) => {
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return (
-        live.roomTitle.toLowerCase().includes(q) ||
-        live.channelName.toLowerCase().includes(q) ||
-        live.channelHandle.toLowerCase().includes(q) ||
-        (live.category && live.category.toLowerCase().includes(q))
-      );
-    }
-    return true;
-  });
+  // Filtered Livestream Rooms (Chỉ hiển thị phòng Live đang phát sóng, tự động ẩn khi kết thúc)
+  const filteredLiveTasks = livestreamTasks
+    .filter(live => live.status === 'live' && (live.remainingSlots === undefined || live.remainingSlots > 0))
+    .filter((live) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return (
+          live.roomTitle.toLowerCase().includes(q) ||
+          live.channelName.toLowerCase().includes(q) ||
+          live.channelHandle.toLowerCase().includes(q) ||
+          (live.category && live.category.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
 
   // Video Campaigns (all tasks with watch type or with videos)
   const videoCampaignTasks = tasks.filter(t => t.type === "watch" || t.videoPreviewUrl || t.campaignCategory === "partner");

@@ -23,7 +23,8 @@ import {
   ChevronDown,
   ShieldCheck,
   Wallet,
-  Share2
+  Share2,
+  Smartphone
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
@@ -78,7 +79,8 @@ export const Header: React.FC<HeaderProps> = ({
     clearAllNotifications,
     openConnect,
     connectedAccountsOnIp,
-    maxAccountsPerIp
+    maxAccountsPerIp,
+    openPwaModal
   } = useTikTokApp();
 
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
@@ -398,6 +400,16 @@ export const Header: React.FC<HeaderProps> = ({
               size="xs"
             />
           </div>
+
+          {/* Install PWA App Button */}
+          <button
+            onClick={openPwaModal}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-indigo-500/20 hover:from-cyan-500/30 hover:to-indigo-500/30 border border-cyan-400/40 text-cyan-300 text-xs font-bold transition-all shadow-sm group shrink-0"
+            title="Cài đặt AVA FOLLOW làm icon App trên màn hình điện thoại (iOS / Android)"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline font-display">Cài App</span>
+          </button>
 
           {/* Theme Toggle */}
           <button 

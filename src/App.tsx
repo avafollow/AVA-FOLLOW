@@ -46,6 +46,7 @@ import { ShareVideoModal } from './components/modals/ShareVideoModal';
 import { MarqueeBoostModal } from './components/modals/MarqueeBoostModal';
 import { MarqueeHistoryModal } from './components/modals/MarqueeHistoryModal';
 import { FireworksCongratulationModal } from './components/modals/FireworksCongratulationModal';
+import { PwaInstallGuideModal } from './components/modals/PwaInstallGuideModal';
 import { RecentUserJoinNotification } from './components/common/RecentUserJoinNotification';
 import { ZaloCommunityFloatingButton } from './components/common/ZaloCommunityFloatingButton';
 
@@ -129,7 +130,9 @@ function AppContent() {
     sepayCheckoutItem,
     closeSepayModal,
     buySoftwareApp,
-    purchaseServicePackage
+    purchaseServicePackage,
+    isPwaModalOpen,
+    closePwaModal
   } = useTikTokApp();
 
   // Sync dark theme
@@ -363,6 +366,10 @@ function AppContent() {
         data={fireworksData}
         isOpen={isFireworksOpen}
         onClose={closeFireworks}
+      />
+      <PwaInstallGuideModal
+        isOpen={isPwaModalOpen}
+        onClose={closePwaModal}
       />
 
       {/* Global Command Palette (Ctrl + K) */}

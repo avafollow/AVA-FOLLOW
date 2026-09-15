@@ -587,6 +587,7 @@ export interface LivestreamTaskItem {
   totalRewardCoins: number;      // Tổng Xu nhận được
   targetUrl: string;
   status: 'live' | 'ended';
+  remainingSlots?: number;
   tags: string[];
   category?: string;             // 'TikTok Shop Flash Sale' | 'KOC Review' | 'Thời Trang' | 'Công Nghệ'
   hostFollowers?: string;        // '250K followers'

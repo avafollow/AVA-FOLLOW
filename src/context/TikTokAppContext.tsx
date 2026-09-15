@@ -216,6 +216,11 @@ interface TikTokAppContextType {
   closeShareModal: () => void;
   updateConnectedTikTok: (handle: string) => void;
 
+  // PWA Add to Home Screen Modal & Guide
+  isPwaModalOpen: boolean;
+  openPwaModal: () => void;
+  closePwaModal: () => void;
+
   // Actions
   completeTask: (taskId: string, actions: TaskActionDetails) => { coinsEarned: number; vndEarned: number };
   watchLivestreamMinute: (taskId: string) => void;
@@ -1258,6 +1263,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }));
     showToast(`✓ Đã kết nối 1-chạm tài khoản TikTok ${formatted}!`);
   };
+
+  // PWA Add to Home Screen Modal
+  const [isPwaModalOpen, setIsPwaModalOpen] = useState(false);
+  const openPwaModal = () => setIsPwaModalOpen(true);
+  const closePwaModal = () => setIsPwaModalOpen(false);
 
   // KYC Verification state (100% Real, persisted)
   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
@@ -5143,6 +5153,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         openShareModal,
         closeShareModal,
         updateConnectedTikTok,
+        isPwaModalOpen,
+        openPwaModal,
+        closePwaModal,
         completeTask,
         watchLivestreamMinute,
         completeLivestreamSession,

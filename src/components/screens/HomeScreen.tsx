@@ -495,7 +495,7 @@ export const HomeScreen: React.FC<{
               <div className="flex items-center gap-2">
                 <Radio className="w-4 h-4 text-rose-500 animate-pulse" />
                 <h3 className="text-sm font-black text-white uppercase tracking-wide font-display">
-                  Phòng Live TikTok Đang Phát Trực Tiếp ({livestreamTasks.length} Phòng)
+                  Phòng Live TikTok Đang Phát Trực Tiếp ({livestreamTasks.filter(l => l.status === 'live' && (l.remainingSlots === undefined || l.remainingSlots > 0)).length} Phòng)
                 </h3>
               </div>
               <button 
@@ -508,7 +508,7 @@ export const HomeScreen: React.FC<{
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {livestreamTasks.slice(0, 6).map((live) => (
+              {livestreamTasks.filter(l => l.status === 'live' && (l.remainingSlots === undefined || l.remainingSlots > 0)).slice(0, 6).map((live) => (
                 <div
                   key={live.id}
                   onClick={() => openLiveRunner(live)}

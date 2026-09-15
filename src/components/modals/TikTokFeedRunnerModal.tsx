@@ -252,29 +252,32 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       remainingSlots: Math.max(10, (cf.followersCount || 10000) - (cf.completedByUsersCount || 0))
     }));
 
-  // 4. Feed items từ kho Livestream Mắt Xem Thật
-  const liveFeedItems: UnifiedFeedItem[] = livestreamTasks.map(l => ({
-    id: l.id,
-    kind: 'livestream',
-    title: l.roomTitle || `Phiên Live Bán Hàng: ${l.channelName}`,
-    type: 'livestream',
-    requiresWatch: true,
-    channelName: l.channelName,
-    channelHandle: l.channelHandle,
-    channelAvatar: l.channelAvatar,
-    targetUrl: l.targetUrl,
-    rewardCoins: l.totalRewardCoins || 400,
-    videoUrl: parseMediaUrl(l.targetUrl, l.channelHandle).streamUrl,
-    guide: `Xem trực tiếp phiên live đủ ${l.targetMinutes || 3} phút để xác thực mắt xem.`,
-    currentViewers: l.currentViewers || 580,
-    roomTitle: l.roomTitle,
-    targetMinutes: l.targetMinutes || 3,
-    campaignCategory: 'partner',
-    partnerName: l.channelName,
-    partnerBadge: 'Phòng Live Đối Tác',
-    totalSlots: 1000,
-    remainingSlots: 350
-  }));
+  // 4. Feed items từ các Chiến Dịch Livestream Hợp Lệ Đang Chạy Trên Sàn (Chỉ hiển thị phiên live có trong chiến dịch)
+  const liveFeedItems: UnifiedFeedItem[] = (livestreamTasks || [])
+    .filter(l => l.status === 'live' && l.targetUrl && l.targetUrl.trim().length > 0)
+    .map(l => ({
+      id: l.id,
+      kind: 'livestream',
+      title: l.roomTitle || `Chiến Dịch Live: ${l.channelName}`,
+      type: 'livestream',
+      requiresWatch: true,
+      channelName: l.channelName,
+      channelHandle: l.channelHandle,
+      channelAvatar: l.channelAvatar,
+      targetUrl: l.targetUrl,
+      rewardCoins: l.totalRewardCoins || 400,
+      videoUrl: parseMediaUrl(l.targetUrl, l.channelHandle).streamUrl,
+      guide: `Xem trực tiếp phiên live chiến dịch đủ ${l.targetMinutes || 3} phút để nhận Xu thưởng.`,
+      currentViewers: l.currentViewers || 580,
+      roomTitle: l.roomTitle,
+      targetMinutes: l.targetMinutes || 3,
+      campaignCategory: 'partner',
+      partnerName: l.channelName,
+      partnerBadge: 'Chiến Dịch Live Thật',
+      totalSlots: 1000,
+      remainingSlots: 350
+    }));
+
 
   // Hàm loại bỏ hoàn toàn trùng lặp và đẩy TOP 1 lên đầu (Ưu tiên gói đẩy Top 100.000 Xu)
   const deduplicateAndSortFeed = (items: UnifiedFeedItem[]): UnifiedFeedItem[] => {
@@ -1627,8 +1630,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             )}
           </div>
 
-          {/* Right Action Bar (Hiển thị mượt mà trên Direct Player & Live Stream, tránh đè lên nút native của TikTok Embed) */}
-          {playerMode !== 'embed' && (
+          {/* Right Action Bar (Chỉ hiển thị trên Video Thường, tự động ẩn khi Livestream hoặc Embed để không đè lên giao diện TikTok & xóa bỏ hoàn toàn số ảo) */}
+          {playerMode !== 'embed' && currentItem?.kind !== 'livestream' && (
             <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-3.5 pointer-events-auto animate-in fade-in duration-300">
               {/* Creator Avatar with Follow Plus Badge */}
               <div 
@@ -1664,37 +1667,39 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 </button>
               </div>
 
-              {/* Like Button */}
+              {/* Like Button (Hiển thị nhãn thưởng thật +100 Xu thay vì số ảo) */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleLikeAction();
                 }}
-                className="flex flex-col items-center gap-1 group cursor-pointer"
+                className="flex flex-col items-center gap-0.5 group cursor-pointer"
+                title="Thả tim video nhận +100 Xu"
               >
                 <div className={`p-2 rounded-full transition-transform duration-200 active:scale-125 ${
                   currentClaimed.like ? 'text-[#FE2C55]' : 'text-white/90 hover:text-white'
                 }`}>
                   <Heart className={`h-7 w-7 drop-shadow-lg ${currentClaimed.like ? 'fill-[#FE2C55]' : ''}`} />
                 </div>
-                <span className="text-[11px] font-bold text-white drop-shadow-md">
-                  {currentClaimed.like ? '128.5K' : '128.4K'}
+                <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
+                  {currentClaimed.like ? 'Đã Tim' : '+100'}
                 </span>
               </button>
 
-              {/* Comment Button */}
+              {/* Comment Button (Hiển thị nhãn thưởng thật +200 Xu thay vì số ảo) */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowCommentInput(!showCommentInput);
                 }}
-                className="flex flex-col items-center gap-1 group cursor-pointer"
+                className="flex flex-col items-center gap-0.5 group cursor-pointer"
+                title="Bình luận video nhận +200 Xu"
               >
                 <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
                   <MessageCircle className={`h-7 w-7 drop-shadow-lg ${currentClaimed.comment ? 'fill-cyan-400 text-cyan-400' : ''}`} />
                 </div>
-                <span className="text-[11px] font-bold text-white drop-shadow-md">
-                  {currentClaimed.comment ? '3.2K' : '3.1K'}
+                <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
+                  {currentClaimed.comment ? 'Đã Cmt' : '+200'}
                 </span>
               </button>
 
@@ -1704,29 +1709,31 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   e.stopPropagation();
                   handleBookmarkAction();
                 }}
-                className="flex flex-col items-center gap-1 group cursor-pointer"
+                className="flex flex-col items-center gap-0.5 group cursor-pointer"
+                title="Lưu video yêu thích"
               >
                 <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-75">
                   <Bookmark className={`h-7 w-7 drop-shadow-lg ${currentClaimed.bookmark ? 'fill-amber-400 text-amber-400' : ''}`} />
                 </div>
-                <span className="text-[11px] font-bold text-white drop-shadow-md">
-                  {currentClaimed.bookmark ? '1.2K' : '1.1K'}
+                <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
+                  {currentClaimed.bookmark ? 'Đã Lưu' : 'Lưu'}
                 </span>
               </button>
 
-              {/* Share Button */}
+              {/* Share Button (Hiển thị nhãn thưởng thật +240 Xu thay vì số ảo) */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleShareAction();
                 }}
-                className="flex flex-col items-center gap-1 group cursor-pointer"
+                className="flex flex-col items-center gap-0.5 group cursor-pointer"
+                title="Chia sẻ video nhận +240 Xu"
               >
                 <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
                   <Share2 className="h-7 w-7 drop-shadow-lg" />
                 </div>
-                <span className="text-[11px] font-bold text-white drop-shadow-md">
-                  {currentClaimed.share ? '856' : '855'}
+                <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
+                  {currentClaimed.share ? 'Đã Share' : '+240'}
                 </span>
               </button>
 
@@ -1740,6 +1747,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               </div>
             </div>
           )}
+
 
           {/* Up / Down Navigation Controls (Lướt Lướt Liên Tục) */}
           <div className="absolute left-3 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2 pointer-events-auto">
@@ -1785,8 +1793,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                       handleCommentAction(customComment.trim());
                     }
                   }}
-                  placeholder="Nhập nội dung bình luận thật của bạn..."
-                  className="flex-1 bg-black/60 border border-white/20 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 font-medium"
+                  placeholder="Tự do gõ bình luận thật tâm của bạn theo cảm nhận..."
+                  className="flex-1 bg-black/60 border border-cyan-500/40 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-400 focus:outline-none font-medium"
                 />
                 <button
                   type="button"
@@ -1794,19 +1802,25 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                     if (customComment.trim()) {
                       handleCommentAction(customComment.trim());
                     } else {
-                      handleCommentAction('Nội dung video rất hay và cuốn hút, mong bạn ra thêm clip nhé ❤️');
+                      showToast('Vui lòng gõ nội dung bình luận thật của bạn trước khi gửi!');
                     }
                   }}
                   className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all shrink-0 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Gửi</span>
+                  <span>Dán &amp; Gửi</span>
                 </button>
               </div>
 
+              {/* Notice for genuine comments */}
+              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 px-1">
+                <span>💡 Người dùng tự do bình luận thật theo ý muốn</span>
+                <span className="text-cyan-300 font-bold">Tự động gắn mã #AVALIVE đối soát</span>
+              </div>
+
               {/* Seeding Presets */}
-              <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                <span className="text-[10px] font-mono text-slate-400">Gợi ý bình luận nhanh:</span>
+              <div className="space-y-1.5 max-h-28 overflow-y-auto">
+                <span className="text-[10px] font-mono text-slate-400">Hoặc chọn nhanh câu bình luận mẫu:</span>
                 {sampleComments.map((cmt, idx) => (
                   <button
                     key={idx}
@@ -1815,6 +1829,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   >
                     "{cmt}"
                   </button>
+
                 ))}
               </div>
             </div>

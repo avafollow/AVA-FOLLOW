@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { extractTikTokVideoId } from '../../../data/videoSources';
-import { Play, Volume2 } from 'lucide-react';
+import { extractTikTokVideoId, extractTikTokHandle, getTikTokAvatar } from '../../../data/videoSources';
+import { Play, Volume2, ExternalLink, CheckCircle2 } from 'lucide-react';
 
 export interface TikTokVideoEmbedPlayerProps {
   videoId?: string;
@@ -12,10 +12,10 @@ export interface TikTokVideoEmbedPlayerProps {
 /**
  * Component chuyên biệt: Trình phát Video TikTok Embed chính thức từ TikTok
  * Hỗ trợ:
- * 1. videoId hoặc directUrl → Tự động trích xuất videoId chuẩn
+ * 1. Chỉ nhúng qua embed/v2 khi có videoId số hợp lệ (tránh lỗi refused to connect)
  * 2. Nhúng qua embed/v2 chính thức với autoplay=1&muted=0&lang=vi-VN
  * 3. Gửi lệnh Play & Unmute tức thì qua giao thức player.js và TikTok Native PostMessage
- * 4. Kích hoạt phát video và âm thanh ngay khi dán link
+ * 4. Tự động fallback giao diện sạch sẽ kèm nút mở TikTok nếu không có ID video hoặc bị chặn nhúng
  */
 export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   videoId,
@@ -26,11 +26,13 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   const effectiveId = videoId || (directUrl ? extractTikTokVideoId(directUrl) : null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [hasStarted, setHasStarted] = useState<boolean>(false);
+  const [hasError, setHasError] = useState<boolean>(false);
 
-  // Nếu có ID video TikTok chuẩn
-  const iframeSrc = effectiveId
+  // Chỉ cho phép nạp iframe nếu ID là dãy số hợp lệ từ 10-24 chữ số (chuẩn TikTok video id)
+  const isValidNumericId = Boolean(effectiveId && /^\d{10,24}$/.test(effectiveId));
+  const iframeSrc = isValidNumericId
     ? `https://www.tiktok.com/embed/v2/${effectiveId}?lang=vi-VN&autoplay=1&muted=0`
-    : directUrl || null;
+    : null;
 
   // Gửi lệnh phát video và bật tiếng qua mọi giao thức hỗ trợ của TikTok Embed
   const triggerPlayAndSound = useCallback(() => {
@@ -59,11 +61,13 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   // Tự động kích hoạt phát video và âm thanh sau khi tải
   useEffect(() => {
     setHasStarted(false);
+    setHasError(false);
+    if (!iframeSrc) return;
     const timers = [100, 300, 600, 1000, 1600, 2400].map(delay =>
       setTimeout(triggerPlayAndSound, delay)
     );
     return () => timers.forEach(t => clearTimeout(t));
-  }, [effectiveId, triggerPlayAndSound]);
+  }, [iframeSrc, triggerPlayAndSound]);
 
   // Kích hoạt phát video và âm thanh ngay khi người dùng chạm hoặc click vào màn hình
   useEffect(() => {
@@ -78,7 +82,54 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
     };
   }, [triggerPlayAndSound]);
 
-  if (!iframeSrc) return null;
+  // Nếu không có iframeSrc hợp lệ hoặc iframe bị lỗi từ chối kết nối
+  if (!iframeSrc || hasError) {
+    const handle = directUrl ? extractTikTokHandle(directUrl) : '@creator';
+    const cleanHandle = handle.replace(/^@+/, '');
+    return (
+      <div className={`relative w-full h-full bg-gradient-to-b from-slate-900 to-black flex flex-col items-center justify-center p-6 text-center space-y-4 rounded-3xl group select-none ${className}`}>
+        <div className="relative">
+          <div className="w-20 h-20 rounded-full border-2 border-rose-500 overflow-hidden shadow-2xl p-1 bg-gradient-to-tr from-rose-500 to-pink-500">
+            <img 
+              src={getTikTokAvatar(cleanHandle)} 
+              alt={cleanHandle}
+              onError={(e) => {
+                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=E11D48&color=fff&bold=true`;
+              }}
+              className="w-full h-full rounded-full object-cover"
+            />
+          </div>
+          <span className="absolute -bottom-1 -right-1 p-1 rounded-full bg-cyan-500 text-white shadow-md">
+            <CheckCircle2 className="w-4 h-4" />
+          </span>
+        </div>
+
+        <div className="space-y-1">
+          <h4 className="text-white font-black text-sm font-display">@{cleanHandle}</h4>
+          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
+            ✓ Kênh TikTok Đối Tác
+          </span>
+        </div>
+
+        <p className="text-xs text-slate-300 font-mono max-w-[260px] leading-relaxed">
+          {title}
+        </p>
+
+        {directUrl && (
+          <a
+            href={directUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-xs shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+          >
+            <span>Mở Trực Tiếp Trên TikTok</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -87,12 +138,13 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
     >
       <iframe
         ref={iframeRef}
-        key={`tt-embed-${effectiveId || directUrl}`}
+        key={`tt-embed-${effectiveId}`}
         src={iframeSrc}
         title={title}
         allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share"
         allowFullScreen
         onLoad={triggerPlayAndSound}
+        onError={() => setHasError(true)}
         className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
       />
 

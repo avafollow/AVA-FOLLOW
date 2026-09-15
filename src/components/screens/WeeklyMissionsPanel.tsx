@@ -632,7 +632,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
                       </div>
                     ) : (
                       <button
-                        onClick={openFeedRunner}
+                        onClick={() => openFeedRunner('all')}
                         className="w-full py-2 px-3 rounded-xl text-xs font-mono font-bold bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:opacity-95 text-white shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <Play className="w-3.5 h-3.5 fill-white" />

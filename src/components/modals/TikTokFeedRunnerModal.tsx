@@ -139,7 +139,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
       targetUrl: c.targetUrl,
       rewardCoins: 200,
-      videoUrl: parseMediaUrl(c.targetUrl, c.channelHandle).streamUrl,
+      videoUrl: c.videoPreviewUrl || parseMediaUrl(c.targetUrl, c.channelHandle).streamUrl,
       sampleComments: [
         'Chiến dịch chất lượng quá!',
         'Ủng hộ kênh bạn nhé ❤️',
@@ -873,8 +873,27 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // TikTok Official Video Embed (Có Video ID chuẩn)
-            if (itemMedia.isTikTok && itemMedia.videoId && playerMode === 'embed') {
+            // A. Ưu tiên phát video trực tiếp (MP4 / WebM / Stream) - Chạy mượt tức thì kèm âm thanh
+            const directVideoSource = (currentItem.videoUrl && !currentItem.videoUrl.includes('tiktok.com')) 
+              ? currentItem.videoUrl 
+              : (itemMedia.isDirectVideo ? itemMedia.streamUrl : null) || (currentItem.targetUrl?.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i) ? currentItem.targetUrl : null);
+
+            if (directVideoSource) {
+              return (
+                <DirectVideoPlayer
+                  key={currentItem.id + '_' + directVideoSource}
+                  src={directVideoSource}
+                  autoPlay
+                  isMuted={isMuted}
+                  isPlaying={isPlaying}
+                  onTogglePlay={togglePlay}
+                />
+              );
+            }
+
+            // B. TikTok Official Video Embed (Chỉ khi có Video ID chuẩn 18-21 chữ số)
+            const hasValidTikTokVideoId = Boolean(itemMedia.videoId && /^\d{18,21}$/.test(itemMedia.videoId));
+            if (itemMedia.isTikTok && hasValidTikTokVideoId) {
               return (
                 <TikTokVideoEmbedPlayer
                   key={currentItem.id + '_tt_' + itemMedia.videoId}
@@ -884,23 +903,58 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // TikTok Iframe Trực Tiếp (Khi không trích xuất được Video ID) — PHÁT NGAY LINK GỐC
-            if (itemMedia.isTikTok && currentItem.targetUrl && currentItem.targetUrl.startsWith('http')) {
+            // C. Kênh TikTok không có file video mp4 trực tiếp: Hiển thị Profile Card đẹp mắt, tránh iframe SAMEORIGIN
+            if (itemMedia.isTikTok) {
+              const cleanHandle = (currentItem.channelHandle || itemMedia.handle || '@tiktok').replace(/^@+/, '');
               return (
-                <TikTokVideoEmbedPlayer
-                  key={currentItem.id + '_tt_direct_' + encodeURIComponent(currentItem.targetUrl)}
-                  directUrl={currentItem.targetUrl}
-                  title={currentItem.title}
-                />
+                <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 bg-gradient-to-b from-[#111827] to-black rounded-3xl w-full h-full select-none">
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-full border-2 border-rose-500 overflow-hidden shadow-2xl p-1 bg-gradient-to-tr from-rose-500 to-pink-500">
+                      <img 
+                        src={currentItem.channelAvatar || getTikTokAvatar(cleanHandle)} 
+                        alt={cleanHandle}
+                        onError={(e) => {
+                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=E11D48&color=fff&bold=true`;
+                        }}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    </div>
+                    <span className="absolute -bottom-1 -right-1 p-1 rounded-full bg-cyan-500 text-white shadow-md">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h4 className="text-white font-black text-base font-display">@{cleanHandle}</h4>
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold">
+                      ✓ Kênh TikTok Đối Tác Chính Thức
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-300 font-mono max-w-sm leading-relaxed">
+                    {currentItem.guide || `Bấm Follow kênh @${cleanHandle} trên TikTok để nhận ngay ${currentItem.rewardCoins} Xu thưởng.`}
+                  </p>
+
+                  <a
+                    href={currentItem.targetUrl || `https://www.tiktok.com/@${cleanHandle}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-sm shadow-xl flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+                  >
+                    <span>Mở Kênh & Follow Trên TikTok</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </div>
               );
             }
 
-            // Direct HD Native Video Stream (Cho video MP4/WebM trực tiếp)
-            const videoSrc = currentItem.videoUrl || itemMedia.streamUrl || currentItem.targetUrl;
+            // D. Fallback cuối cùng
+            const fallbackSrc = currentItem.videoUrl || itemMedia.streamUrl || 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4';
             return (
               <DirectVideoPlayer
-                key={currentItem.id + '_' + videoSrc}
-                src={videoSrc}
+                key={currentItem.id + '_fallback'}
+                src={fallbackSrc}
                 autoPlay
                 isMuted={isMuted}
                 isPlaying={isPlaying}

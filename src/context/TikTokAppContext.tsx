@@ -1850,6 +1850,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setFeedRunnerTargetId(filterOrId);
       }
     } else {
+      setFeedRunnerFilter('all');
       setFeedRunnerTargetId(null);
     }
     setIsFeedRunnerOpen(true);

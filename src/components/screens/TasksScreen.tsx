@@ -756,7 +756,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
               </p>
             </div>
             <button
-              onClick={openFeedRunner}
+              onClick={() => openFeedRunner('all')}
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 text-white font-bold text-xs font-mono flex items-center justify-center gap-1.5 shadow-md cursor-pointer hover:opacity-95 shrink-0"
             >
               <Zap className="w-3.5 h-3.5 fill-current text-yellow-300" />
@@ -897,7 +897,7 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
 
               <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0">
                 <button
-                  onClick={openFeedRunner}
+                  onClick={() => openFeedRunner('all')}
                   className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-cyan-400 hover:opacity-95 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-rose-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer font-mono flex items-center justify-center gap-2"
                 >
                   <Play className="w-4 h-4 fill-current text-white" />

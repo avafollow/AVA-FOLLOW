@@ -48,6 +48,22 @@ import {
   syncTikTokComment,
   syncShareToFacebook
 } from '../../services/tiktokActionSync';
+import {
+  TabVisibilityTracker,
+  LiveWatchHeartbeat,
+  checkFraudProof,
+  applyFraudPenalty,
+  applySuccessReward,
+  isUserBlocked,
+  createFollowCommitment,
+  formatCountdown,
+  getTrustScoreBadge,
+  getTrustProfile,
+  MIN_CONFIRM_SECONDS,
+  MIN_TAB_TIME_MS,
+  type FraudActionType
+} from '../../services/antiFraudEngine';
+
 
 interface UnifiedFeedItem {
   id: string;
@@ -108,7 +124,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('stream'); // Mặc định stream siêu mượt kèm âm thanh
   const [syncingAction, setSyncingAction] = useState<string | null>(null);
   const [inModalAlert, setInModalAlert] = useState<{ message: string; sub?: string; icon?: string } | null>(null);
-  // Trạng thái chờ xác minh: sau khi mở TikTok, user bấm "Tôi đã làm xong" mới chính thức cộng Xu
+  // Trạng thái chờ xác minh (tích hợp Anti-Fraud Engine)
   const [pendingVerification, setPendingVerification] = useState<{
     action: 'follow' | 'like' | 'comment' | 'share';
     itemId: string;
@@ -116,12 +132,23 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     commentText?: string;
     coinsToEarn: number;
     label: string;
+    openedAt: number;               // Timestamp khi mở TikTok
+    minConfirmAt: number;           // Thời điểm sớm nhất được bấm Confirm
   } | null>(null);
+  // Countdown cho nút Confirm
+  const [confirmCountdown, setConfirmCountdown] = useState<number>(0);
+  // Tab visibility tracking - theo dõi user có rời tab không
+  const tabTrackerRef = useRef<TabVisibilityTracker>(new TabVisibilityTracker());
+  // Live watch heartbeat - chỉ tính giờ khi tab đang active
+  const liveHeartbeatRef = useRef<LiveWatchHeartbeat>(new LiveWatchHeartbeat());
+  const [liveActiveSeconds, setLiveActiveSeconds] = useState<number>(0);
+  const [liveIsTabActive, setLiveIsTabActive] = useState<boolean>(true);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   // Cảm ứng vuốt chạm (Touch Swipe) cho điện thoại di động & máy tính bảng (Tablet)
   const touchStartY = useRef<number>(0);
   const touchEndY = useRef<number>(0);
+
 
   // Kiểm tra hoàn thành nhiệm vụ ngày (Bắt buộc xong nhiệm vụ ngày mới mở Live & Follow chéo)
   const dailyMissions = userMissions?.filter(m => m.category === 'daily') || [];
@@ -481,38 +508,93 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
   }, [currentItem?.id, currentItem?.targetUrl]);
 
-  // Main timer countdown (chỉ đếm ngược khi có gói xem video / livestream)
+  // Main timer countdown (chỉ đếm ngược khi có gói xem video / livestream - Live bắt buộc Tab Active)
   useEffect(() => {
     if (!isFeedRunnerOpen || !isWatchRequired || timeLeft <= 0 || !isPlaying) return;
     const timer = setInterval(() => {
+      // Đối với livestream, nếu user ẩn tab (document.hidden), tạm dừng đếm để chống treo máy AFK
+      if (currentItem?.kind === 'livestream' && document.hidden) {
+        return;
+      }
       setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
+        if (prev <= 1) { clearInterval(timer); return 0; }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [isFeedRunnerOpen, isWatchRequired, timeLeft, isPlaying]);
+  }, [isFeedRunnerOpen, isWatchRequired, timeLeft, isPlaying, currentItem?.kind]);
+
+
+  // ────────── ANTI-FRAUD: Countdown cho nút Confirm ──────────
+  // Cập nhật mỗi giây khi đang chờ xác minh
+  useEffect(() => {
+    if (!pendingVerification) { setConfirmCountdown(0); return; }
+    const tick = () => {
+      const remaining = pendingVerification.minConfirmAt - Date.now();
+      setConfirmCountdown(Math.max(0, remaining));
+    };
+    tick();
+    const id = setInterval(tick, 500);
+    return () => clearInterval(id);
+  }, [pendingVerification]);
+
+  // ────────── ANTI-FRAUD: Live Watch Heartbeat ──────────
+  // Chỉ tính giờ khi user đang focus vào tab (tránh gian lận AFK)
+  useEffect(() => {
+    if (!isFeedRunnerOpen) return;
+    const isLiveItem = currentItem?.kind === 'livestream';
+    if (!isLiveItem) {
+      liveHeartbeatRef.current.stop();
+      return;
+    }
+
+    liveHeartbeatRef.current = new LiveWatchHeartbeat();
+    liveHeartbeatRef.current.start((activeSeconds, _total, isActive) => {
+      setLiveActiveSeconds(activeSeconds);
+      setLiveIsTabActive(isActive);
+    });
+
+    return () => {
+      liveHeartbeatRef.current.stop();
+    };
+  }, [isFeedRunnerOpen, currentItem?.id, currentItem?.kind]);
 
   // When timer reaches 0 for video watch package, claim watch reward (+200 Xu) - KHÔNG TỰ Ý CHUYỂN VIDEO
   useEffect(() => {
-    if (isWatchRequired && timeLeft === 0 && currentItem && currentItem.kind === 'video' && !currentClaimed.watch) {
-      const reward = claimTaskAction(currentItem.id, 'watch');
-      setSessionCoinsEarned(prev => prev + (reward || 200));
-      setTaskClaimedMap(prev => ({
-        ...prev,
-        [currentItem.id]: {
-          ...(prev[currentItem.id] || {}),
-          watch: true
-        }
-      }));
-
-      // Báo nhận Xu thành công nhưng GIỮ NGUYÊN VIDEO PHÁT TRỌN VẸN
-      showToast('🎉 Đã xem đủ 15s (+200 Xu vào ví)! Bạn có thể tiếp tục xem trọn vẹn video hoặc bấm nút để chuyển tiếp.');
+    if (isWatchRequired && timeLeft === 0 && currentItem && !currentClaimed.watch) {
+      if (currentItem.kind === 'video') {
+        const reward = claimTaskAction(currentItem.id, 'watch');
+        setSessionCoinsEarned(prev => prev + (reward || 200));
+        setTaskClaimedMap(prev => ({
+          ...prev,
+          [currentItem.id]: {
+            ...(prev[currentItem.id] || {}),
+            watch: true
+          }
+        }));
+        showToast('🎉 Đã xem đủ 15s (+200 Xu vào ví)! Bạn có thể tiếp tục xem trọn vẹn video hoặc bấm nút để chuyển tiếp.');
+      } else if (currentItem.kind === 'livestream') {
+        // Nhận thưởng xem live stream thật tối thiểu 3 phút (hoặc theo số phút yêu cầu)
+        const reward = claimTaskAction(currentItem.id, 'watch');
+        const liveCoins = reward || currentItem.rewardCoins || 400;
+        setSessionCoinsEarned(prev => prev + liveCoins);
+        setTaskClaimedMap(prev => ({
+          ...prev,
+          [currentItem.id]: {
+            ...(prev[currentItem.id] || {}),
+            watch: true
+          }
+        }));
+        applySuccessReward(user.tiktokConnected || user.email || '@user');
+        setInModalAlert({
+          message: `🔴 Hoàn thành phiên live! (+${liveCoins} Xu)`,
+          sub: `Đã xác thực mắt xem thật & tính thời gian thực 100%. Cảm ơn bạn!`
+        });
+        showToast(`🔴 Đã xem trọn vẹn phiên live & cộng +${liveCoins} Xu vào ví!`);
+      }
     }
-  }, [timeLeft, isWatchRequired, currentItem, currentClaimed.watch, claimTaskAction]);
+  }, [timeLeft, isWatchRequired, currentItem, currentClaimed.watch, claimTaskAction, user]);
+
 
   const togglePlay = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -613,12 +695,21 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     showToast(`🌐 Đang mở kênh TikTok chính thức: @${cleanHandle}`);
   };
 
-  // 1-CLICK FOLLOW TRỰC TIẾP TRÊN WEB APP & ĐỒNG BỘ TIKTOK THẬT CHẠY NGẦM (CHUẨN GOLIKE / TRAODOISUB)
+  // 1-CLICK FOLLOW TRỰC TIẾP TRÊN WEB APP & ĐỒNG BỘ TIKTOK THẬT (CHUẨN ANTI-FRAUD)
   const handleFollowAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (syncingAction) return;
 
     const userHandle = user.tiktokConnected || user.email || '@user';
+
+    // ── Kiểm tra tài khoản có bị khóa không? ──
+    const blockStatus = isUserBlocked(userHandle);
+    if (blockStatus.blocked) {
+      const unblockTime = blockStatus.unblockAt ? new Date(blockStatus.unblockAt).toLocaleTimeString('vi-VN') : 'sau 24h';
+      setInModalAlert({ message: `🚫 Tài khoản bị tạm khóa do gian lận. Mở lại lúc ${unblockTime}.`, sub: blockStatus.reason });
+      return;
+    }
+
     if (!user.tiktokConnected) {
       const handleToLink = currentItem.channelHandle.startsWith('@') ? currentItem.channelHandle : `@${currentItem.channelHandle}`;
       connectTikTok(handleToLink);
@@ -629,24 +720,27 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       return;
     }
 
-    // 1. Tự động mở trang kênh TikTok thật của chủ kênh trong tab mới để người dùng follow trực tiếp trên TikTok
     const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
     const realTikTokChannelUrl = currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com/@')
       ? currentItem.targetUrl
       : `https://www.tiktok.com/@${cleanHandle}`;
 
+    // ── Bắt đầu theo dõi tab (phát hiện user có rời tab không) ──
+    tabTrackerRef.current.reset();
+    tabTrackerRef.current.start();
+
     if (typeof window !== 'undefined') {
-      try {
-        window.open(realTikTokChannelUrl, '_blank');
-      } catch (err) {
-        console.warn('Could not auto-open popup:', err);
-      }
+      try { window.open(realTikTokChannelUrl, '_blank'); } catch (err) { console.warn('Could not open popup:', err); }
     }
+
+    const openedAt = Date.now();
+    const minConfirmAt = openedAt + MIN_CONFIRM_SECONDS['follow'] * 1000;
 
     setSyncingAction('follow');
     try {
       const res = await syncTikTokFollow(currentItem.channelHandle, userHandle);
       if (res.success) {
+        // Follow lập tức cộng Xu (mở TikTok, đợi xác nhận về sau)
         const reward = claimTaskAction(currentItem.id, 'follow');
         const earned = reward || res.coinsEarned || 200;
         setSessionCoinsEarned(prev => prev + earned);
@@ -654,11 +748,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           ...prev,
           [currentItem.id]: { ...(prev[currentItem.id] || {}), follow: true }
         }));
-        setInModalAlert({ 
-          message: `✅ Đã mở kênh @${cleanHandle} & ghi nhận Follow!`, 
-          sub: `Cộng +${earned} Xu vào ví • Mã GD: ${res.txHash || 'TikTok-Synced'}` 
+        // Tạo cam kết 30 ngày
+        createFollowCommitment(userHandle, cleanHandle, earned, res.txHash || 'TT_FOLLOW');
+        applySuccessReward(userHandle);
+        setInModalAlert({
+          message: `✅ Đã mở kênh @${cleanHandle} & ghi nhận Follow! (+${earned} Xu)`,
+          sub: `📌 Cam kết 30 ngày: Không unfollow trong 30 ngày để giữ Xu • Mã: ${res.txHash || 'TT-FOLLOW'}`
         });
-        showToast(`✅ Đã mở kênh TikTok @${cleanHandle} & cộng +${earned} Xu!`);
+        showToast(`✅ Mở TikTok → Follow @${cleanHandle} → nhận +${earned} Xu! (Cam kết 30 ngày)`);
       } else {
         setInModalAlert({ message: res.message, sub: 'Thông báo từ hệ thống đồng bộ' });
         showToast(res.message);
@@ -668,10 +765,18 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
   };
 
-  // 1-CLICK LIKE / THẢ TIM THẬT - MỞ TIKTOK THẬT + XÁC MINH + CỘNG XU
+
+  // 1-CLICK LIKE / THẢ TIM THẬT - MỞ TIKTOK THẬT + XÁC MINH ANTI-FRAUD + CỘNG XU
   const handleLikeAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (syncingAction) return;
+
+    const userHandle = user.tiktokConnected || user.email || '@user';
+    const blockStatus = isUserBlocked(userHandle);
+    if (blockStatus.blocked) {
+      setInModalAlert({ message: `🚫 Tài khoản bị tạm khóa do gian lận.`, sub: blockStatus.reason });
+      return;
+    }
 
     if (currentClaimed.like) {
       setInModalAlert({ message: '❤️ Bạn đã thả tim video này rồi!' });
@@ -679,7 +784,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       return;
     }
 
-    // Xây dựng URL video TikTok thật
     const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
     const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
     const videoTikTokUrl = (currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com'))
@@ -688,35 +792,80 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         ? `https://www.tiktok.com/@${cleanHandle}/video/${itemMedia.videoId}`
         : `https://www.tiktok.com/@${cleanHandle}`;
 
-    // Mở video TikTok thật trong tab mới để user thả tim trực tiếp
+    // Bắt đầu Tab Tracker trước khi mở TikTok
+    tabTrackerRef.current.reset();
+    tabTrackerRef.current.start();
+
     if (typeof window !== 'undefined') {
-      try {
-        window.open(videoTikTokUrl, '_blank');
-      } catch (err) {
-        console.warn('Could not open TikTok video tab:', err);
-      }
+      try { window.open(videoTikTokUrl, '_blank'); } catch (err) { console.warn('Could not open TikTok video tab:', err); }
     }
 
-    // Hiện banner xác minh - chờ user bấm "Tôi đã thả tim trên TikTok"
+    const openedAt = Date.now();
     setPendingVerification({
       action: 'like',
       itemId: currentItem.id,
       tiktokUrl: videoTikTokUrl,
       coinsToEarn: 100,
-      label: `Thả ❤️ tim video @${cleanHandle} trên TikTok`
+      label: `Thả ❤️ tim video @${cleanHandle} trên TikTok`,
+      openedAt,
+      minConfirmAt: openedAt + MIN_CONFIRM_SECONDS['like'] * 1000
     });
-    showToast('❤️ Đã mở video TikTok! Thả tim xong, bấm XÁC NHẬN để nhận +100 Xu.');
+    showToast('❤️ Đã mở video TikTok! Thả tim xong (đợi 30s), bấm XÁC NHẬN để nhận +100 Xu.');
   };
 
-  // Xác nhận hành động thật sau khi user quay về từ TikTok
+
+  // ═══════════════════════════════════════════════════════════════
+  // XÁC MINH ANTI-FRAUD: Kiểm tra bằng chứng trước khi cộng Xu
+  // ═══════════════════════════════════════════════════════════════
   const handleConfirmVerification = async () => {
     if (!pendingVerification) return;
+    if (confirmCountdown > 0) {
+      showToast(`⏳ Chờ thêm ${formatCountdown(confirmCountdown)} nữa mới được xác nhận!`);
+      return;
+    }
+
     const pv = pendingVerification;
+    const userHandle = user.tiktokConnected || user.email || '@user';
+
+    // ── LẤY BẰNG CHỨNG TỪ TAB TRACKER ──
+    const tabStats = tabTrackerRef.current.stop();
+    const proof = {
+      action: pv.action as FraudActionType,
+      taskId: pv.itemId,
+      userHandle,
+      tiktokUrl: pv.tiktokUrl,
+      openedAt: pv.openedAt,
+      confirmedAt: Date.now(),
+      tabTimeSpentMs: tabStats.totalHiddenMs,
+      tabLeftCount: tabStats.tabLeftCount,
+      fraudFlags: [] as string[],
+      isValid: false,
+      fraudScore: 0
+    };
+
+    // ── KIỂM TRA CHỐNG GIAN LẬN ──
+    const fraudCheck = checkFraudProof(proof);
+
+    if (!fraudCheck.allowed) {
+      // Gian lận phát hiện → từ chối, trừ điểm tin cậy
+      if (fraudCheck.flags.length > 0 && !fraudCheck.waitMoreMs) {
+        applyFraudPenalty(userHandle, fraudCheck.fraudScore, fraudCheck.flags);
+      }
+      setInModalAlert({
+        message: fraudCheck.reason,
+        sub: fraudCheck.waitMoreMs
+          ? `🔒 Nút xác nhận sẽ mở sau: ${formatCountdown(fraudCheck.waitMoreMs)}`
+          : `⚠️ Điểm tin cậy bị trừ. Hãy thực hiện thao tác thật trên TikTok.`
+      });
+      // Không đóng banner - để user có thể thử lại sau
+      return;
+    }
+
+    // ── XÁC MINH HỢP LỆ - TIẾN HÀNH CỘP XU ──
     setPendingVerification(null);
     setSyncingAction(pv.action);
     try {
       let res: { success: boolean; coinsEarned?: number; txHash?: string; message: string };
-      const userHandle = user.tiktokConnected || user.email || '@user';
       if (pv.action === 'like') {
         res = await syncTikTokLike(pv.itemId, userHandle);
       } else if (pv.action === 'comment') {
@@ -726,6 +875,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       } else {
         res = { success: true, coinsEarned: pv.coinsToEarn, message: '✅ Xác nhận thành công!', txHash: 'VERIFIED' };
       }
+
       if (res.success) {
         const actionKey = pv.action as 'like' | 'comment' | 'share';
         const alreadyClaimed = taskClaimedMap[pv.itemId]?.[actionKey];
@@ -737,12 +887,16 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             ...prev,
             [pv.itemId]: { ...(prev[pv.itemId] || {}), [actionKey]: true }
           }));
+          // Tăng điểm tin cậy sau hành động hợp lệ
+          applySuccessReward(userHandle);
+          const trustProfile = getTrustProfile(userHandle);
+          const badge = getTrustScoreBadge(trustProfile.trustScore);
           const actionEmoji = pv.action === 'like' ? '❤️' : pv.action === 'comment' ? '💬' : '🔗';
           setInModalAlert({
             message: `${actionEmoji} Xác minh thành công! Đã cộng +${earned} Xu vào ví!`,
-            sub: `${pv.label} • Mã GD: ${res.txHash || 'VERIFIED-OK'}`
+            sub: `${pv.label} • ${badge.emoji} Tin cậy: ${trustProfile.trustScore}/100 • Mã: ${res.txHash || 'VERIFIED-OK'}`
           });
-          showToast(`${actionEmoji} +${earned} Xu đã vào ví! Cảm ơn bạn đã tương tác thật trên TikTok!`);
+          showToast(`${actionEmoji} +${earned} Xu! Tin cậy: ${trustProfile.trustScore}/100 ${badge.emoji}`);
         } else {
           showToast('✅ Đã xác minh! (Bạn đã nhận thưởng trước đó rồi)');
         }
@@ -756,9 +910,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   };
 
   const handleCancelVerification = () => {
+    tabTrackerRef.current.stop();
     setPendingVerification(null);
-    showToast('❌ Đã huỷ xác minh. Bạn cần thực hiện thao tác trên TikTok trước.');
+    showToast('❌ Đã huỷ xác minh. Bạn cần thực hiện thao tác thật trên TikTok trước.');
   };
+
 
   const handleDoubleTap = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -772,11 +928,18 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }, 1200);
   };
 
-  // 1-CLICK BÌNH LUẬN THẬT - COPY VÀO CLIPBOARD + MỞ VIDEO TIKTOK + XÁC MINH
+  // 1-CLICK BÌNH LUẬN THẬT - COPY VÀO CLIPBOARD + MỞ VIDEO TIKTOK + XÁC MINH ANTI-FRAUD
   const handleCommentAction = async (commentText: string) => {
     const text = commentText.trim();
     if (!text) return;
     if (syncingAction) return;
+
+    const userHandle = user.tiktokConnected || user.email || '@user';
+    const blockStatus = isUserBlocked(userHandle);
+    if (blockStatus.blocked) {
+      setInModalAlert({ message: `🚫 Tài khoản bị tạm khóa do gian lận.`, sub: blockStatus.reason });
+      return;
+    }
 
     setCustomComment('');
     setShowCommentInput(false);
@@ -799,29 +962,37 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       showToast('📋 Hãy dán bình luận: "' + text.slice(0, 30) + '..."');
     }
 
-    // 2. Mở video TikTok thật trong tab mới để user dán và gửi bình luận
+    // 2. Bắt đầu Tab Tracker + Mở TikTok
+    tabTrackerRef.current.reset();
+    tabTrackerRef.current.start();
     if (typeof window !== 'undefined') {
-      try {
-        window.open(videoTikTokUrl, '_blank');
-      } catch (err) {
-        console.warn('Could not open TikTok tab for comment:', err);
-      }
+      try { window.open(videoTikTokUrl, '_blank'); } catch (err) { console.warn('Could not open TikTok tab:', err); }
     }
 
-    // 3. Hiện banner xác minh - chờ user bấm "Tôi đã bình luận xong"
+    const openedAt = Date.now();
     setPendingVerification({
       action: 'comment',
       itemId: currentItem.id,
       tiktokUrl: videoTikTokUrl,
       commentText: text,
       coinsToEarn: 200,
-      label: `Bình luận thật trên video @${cleanHandle}`
+      label: `Bình luận thật trên video @${cleanHandle}`,
+      openedAt,
+      minConfirmAt: openedAt + MIN_CONFIRM_SECONDS['comment'] * 1000
     });
   };
 
-  // 1-CLICK CHIA SẺ THẬT - WEB SHARE API + MỞ FACEBOOK/TIKTOK + XÁC MINH
+
+  // 1-CLICK CHIA SẺ THẬT - WEB SHARE API + MỞ FACEBOOK/TIKTOK + XÁC MINH ANTI-FRAUD
   const handleShareAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
+
+    const userHandle = user.tiktokConnected || user.email || '@user';
+    const blockStatus = isUserBlocked(userHandle);
+    if (blockStatus.blocked) {
+      setInModalAlert({ message: `🚫 Tài khoản bị tạm khóa do gian lận.`, sub: blockStatus.reason });
+      return;
+    }
 
     const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
     const targetUrl = (currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com'))
@@ -830,44 +1001,46 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     const shareTitle = currentItem.title || `Kênh TikTok @${cleanHandle}`;
     const shareText = `🔥 Xem video hot của @${cleanHandle} trên TikTok! ${targetUrl}`;
 
-    // 1. Thử dùng Web Share API thật (hỗ trợ trên mobile)
+    // 1. Bắt đầu Tab Tracker
+    tabTrackerRef.current.reset();
+    tabTrackerRef.current.start();
+
+    // 2. Thử dùng Web Share API thật (hỗ trợ trên mobile)
     let sharedNatively = false;
     if (navigator.share) {
       try {
         await navigator.share({ title: shareTitle, text: shareText, url: targetUrl });
         sharedNatively = true;
-      } catch (err) {
-        console.warn('Web Share cancelled or failed:', err);
-      }
+      } catch (err) { console.warn('Web Share cancelled or failed:', err); }
     }
 
-    // 2. Nếu không share native được, mở Facebook share URL
+    // 3. Nếu không share native được, mở Facebook share URL
     if (!sharedNatively) {
       const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${encodeURIComponent(shareText)}`;
       if (typeof window !== 'undefined') {
-        try {
-          window.open(fbShareUrl, '_blank', 'width=600,height=450');
-        } catch (err) {
-          console.warn('Could not open Facebook share:', err);
-        }
+        try { window.open(fbShareUrl, '_blank', 'width=600,height=450'); } catch (err) { console.warn('Could not open Facebook share:', err); }
       }
     }
 
     if (currentClaimed.share) {
+      tabTrackerRef.current.stop();
       showToast('🔗 Bạn đã chia sẻ video này rồi!');
       return;
     }
 
-    // 3. Hiện banner xác minh chia sẻ
+    const openedAt = Date.now();
     setPendingVerification({
       action: 'share',
       itemId: currentItem.id,
       tiktokUrl: targetUrl,
       coinsToEarn: 240,
-      label: `Chia sẻ video @${cleanHandle} lên mạng xã hội`
+      label: `Chia sẻ video @${cleanHandle} lên mạng xã hội`,
+      openedAt,
+      minConfirmAt: openedAt + MIN_CONFIRM_SECONDS['share'] * 1000
     });
-    showToast('🔗 Đã mở chia sẻ! Xác nhận sau khi chia sẻ xong để nhận +240 Xu.');
+    showToast('🔗 Đã mở chia sẻ! Đợi 20s rồi xác nhận để nhận +240 Xu.');
   };
+
 
   const handleBookmarkAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -940,9 +1113,16 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0 animate-pulse">
                   <ExternalLink className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="text-sm font-black text-amber-300 font-display">
-                    ⏳ Chờ Xác Minh Trên TikTok
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-black text-amber-300 font-display flex items-center gap-1.5">
+                      ⏳ Chờ Xác Minh Thật Trên TikTok
+                    </span>
+                    {confirmCountdown > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-[10px] font-bold">
+                        🔒 Đợi: {formatCountdown(confirmCountdown)}
+                      </span>
+                    )}
                   </div>
                   <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
                     {pendingVerification.label}
@@ -951,16 +1131,19 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               </div>
 
               {/* Instruction */}
-              <div className="text-xs text-slate-300 font-mono leading-relaxed bg-black/40 rounded-2xl p-3 border border-white/10">
+              <div className="text-xs text-slate-300 font-mono leading-relaxed bg-black/40 rounded-2xl p-3 border border-white/10 space-y-1.5">
                 {pendingVerification.action === 'like' && (
-                  <span>❤️ Thả <strong className="text-rose-400">tim</strong> vào video trên TikTok vừa mở, rồi quay lại đây bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+100 Xu</strong>.</span>
+                  <div>❤️ Thả <strong className="text-rose-400">tim</strong> vào video trên TikTok vừa mở, đợi tối thiểu <strong className="text-amber-300">30s</strong> rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+100 Xu</strong>.</div>
                 )}
                 {pendingVerification.action === 'comment' && (
-                  <span>💬 Dán bình luận đã copy (<strong className="text-cyan-400">Ctrl+V</strong>) vào ô bình luận TikTok → gửi. Xong rồi bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+200 Xu</strong>.</span>
+                  <div>💬 Dán bình luận đã copy (<strong className="text-cyan-400">Ctrl+V</strong>) vào ô bình luận TikTok → gửi. Chờ tối thiểu <strong className="text-amber-300">60s</strong> rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+200 Xu</strong>.</div>
                 )}
                 {pendingVerification.action === 'share' && (
-                  <span>🔗 Chia sẻ video lên <strong className="text-blue-400">Facebook</strong> hoặc bất kỳ nền tảng nào, rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+240 Xu</strong>.</span>
+                  <div>🔗 Chia sẻ video lên <strong className="text-blue-400">Facebook</strong> hoặc mạng xã hội. Chờ tối thiểu <strong className="text-amber-300">20s</strong> rồi bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+240 Xu</strong>.</div>
                 )}
+                <div className="text-[9px] text-slate-400 flex items-center gap-1 pt-1 border-t border-white/5">
+                  <span>🛡️ Cơ chế Anti-Fraud: Bắt buộc mở TikTok thật & ở lại đủ thời gian mới tính hợp lệ.</span>
+                </div>
               </div>
 
               {/* Buttons */}
@@ -973,13 +1156,22 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleConfirmVerification(); }}
-                  disabled={!!syncingAction}
-                  className="flex-[2] py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 disabled:opacity-60 text-white font-black text-xs flex items-center justify-center gap-2 shadow-xl transition-all cursor-pointer active:scale-[0.98]"
+                  disabled={!!syncingAction || confirmCountdown > 0}
+                  className={`flex-[2] py-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-xl transition-all cursor-pointer ${
+                    confirmCountdown > 0
+                      ? 'bg-slate-800 text-slate-400 border border-slate-700 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white active:scale-[0.98]'
+                  }`}
                 >
                   {syncingAction ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                       <span>Đang xác minh...</span>
+                    </>
+                  ) : confirmCountdown > 0 ? (
+                    <>
+                      <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                      <span>Mở khóa sau {formatCountdown(confirmCountdown)}</span>
                     </>
                   ) : (
                     <>
@@ -989,6 +1181,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   )}
                 </button>
               </div>
+
 
               {/* Re-open TikTok link */}
               <button
@@ -1659,10 +1852,22 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               <Clock className="h-3.5 w-3.5 text-rose-500" />
               {isWatchRequired ? (
                 timeLeft > 0 ? (
-                  <span>Đang xem: <strong className="text-rose-400 font-bold">{timeLeft}s</strong> còn lại</span>
+                  currentItem?.kind === 'livestream' ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                      <span>Xem Live Thật: <strong className="text-rose-400 font-bold">{Math.floor(timeLeft / 60)}p {timeLeft % 60}s</strong></span>
+                      {!liveIsTabActive && (
+                        <span className="text-[10px] text-amber-400 font-bold bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30 animate-pulse">
+                          ⚠️ Tạm dừng (Ẩn Tab)
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span>Đang xem: <strong className="text-rose-400 font-bold">{timeLeft}s</strong> còn lại</span>
+                  )
                 ) : (
                   <span className="text-emerald-400 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Đã đạt 15s (+200 Xu vào ví)!
+                    <CheckCircle2 className="h-3.5 w-3.5" /> {currentItem?.kind === 'livestream' ? 'Đã xem đủ phiên live (+Xu vào ví)!' : 'Đã đạt 15s (+200 Xu vào ví)!'}
                   </span>
                 )
               ) : (

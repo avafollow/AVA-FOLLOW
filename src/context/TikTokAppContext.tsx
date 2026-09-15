@@ -2295,7 +2295,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     setAnalytics(prev => ({
       ...prev,
-      todayVideosWatched: actionType === 'watch' ? prev.todayVideosWatched + 1 : prev.todayVideosWatched,
+      todayVideosWatched: (actionType === 'watch' || actionType === 'like' || actionType === 'comment' || actionType === 'share') 
+        ? prev.todayVideosWatched + 1 
+        : prev.todayVideosWatched,
       todayEarningsCoins: prev.todayEarningsCoins + finalReward,
       weeklyEarningsCoins: prev.weeklyEarningsCoins + finalReward,
       monthlyEarningsCoins: (prev.monthlyEarningsCoins || 25000) + finalReward,
@@ -2304,6 +2306,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // Tự động nhận diện hành động & cập nhật tiến độ vào Nhiệm Vụ Sàn (xem video, tim, follow, comment, share)
     recordMissionProgress(actionType, 1);
+    if (actionType === 'like' || actionType === 'comment' || actionType === 'share') {
+      recordMissionProgress('watch', 1); // Thả tim, comment, share cũng tính là 1 lượt xem video
+    }
 
     // Cập nhật lịch sử hành động người dùng (Anti-Fraud & Báo cáo)
     const task = tasks.find(t => t.id === taskId);
@@ -2326,7 +2331,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ...prev,
         [taskId]: {
           ...current,
-          viewed: actionType === 'watch' ? true : current.viewed,
+          viewed: (actionType === 'watch' || actionType === 'like' || actionType === 'comment' || actionType === 'share') ? true : current.viewed,
           followed: actionType === 'follow' ? true : current.followed,
           liked: actionType === 'like' ? true : current.liked,
           commented: actionType === 'comment' ? true : current.commented,

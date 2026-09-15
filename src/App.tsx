@@ -195,7 +195,7 @@ function AppContent() {
       <div className="min-h-screen bg-[#07090E] text-slate-100 font-sans">
         {/* Toast Notification */}
         {toastMessage && (
-          <div className="fixed top-20 right-4 sm:right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-black/90 border border-rose-500/50 shadow-2xl shadow-rose-500/30 text-white text-xs font-mono animate-in slide-in-from-top-4 duration-200 max-w-sm">
+          <div className="fixed top-5 sm:top-6 right-4 sm:right-6 z-[99999] flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-black/95 border border-rose-500/80 shadow-2xl shadow-rose-500/40 text-white text-xs font-mono animate-in slide-in-from-top-4 duration-200 max-w-sm pointer-events-auto">
             <CheckCircle2 className="h-4 w-4 text-rose-500 shrink-0" />
             <span className="leading-snug">{toastMessage}</span>
           </div>
@@ -232,7 +232,7 @@ function AppContent() {
     }`}>
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 right-4 sm:right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-black/90 border border-rose-500/50 shadow-2xl shadow-rose-500/30 text-white text-xs font-mono animate-in slide-in-from-top-4 duration-200 max-w-sm">
+        <div className="fixed top-5 sm:top-6 right-4 sm:right-6 z-[99999] flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-black/95 border border-rose-500/80 shadow-2xl shadow-rose-500/40 text-white text-xs font-mono animate-in slide-in-from-top-4 duration-200 max-w-sm pointer-events-auto">
           <CheckCircle2 className="h-4 w-4 text-rose-500 shrink-0" />
           <span className="leading-snug">{toastMessage}</span>
         </div>

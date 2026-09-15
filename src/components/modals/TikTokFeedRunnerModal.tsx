@@ -108,6 +108,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('embed'); // Tự động phát TikTok embed khi có ID, hoặc stream HD
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  // Cảm ứng vuốt chạm (Touch Swipe) cho điện thoại di động & máy tính bảng (Tablet)
+  const touchStartY = useRef<number>(0);
+  const touchEndY = useRef<number>(0);
 
   // Kiểm tra hoàn thành nhiệm vụ ngày (Bắt buộc xong nhiệm vụ ngày mới mở Live & Follow chéo)
   const dailyMissions = userMissions?.filter(m => m.category === 'daily') || [];
@@ -540,11 +543,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFeedRunnerOpen, currentIndex, combinedFeed.length]);
 
-  if (!isFeedRunnerOpen) return null;
-
-  // Cảm ứng vuốt chạm (Touch Swipe) cho điện thoại di động & máy tính bảng (Tablet)
-  const touchStartY = useRef<number>(0);
-  const touchEndY = useRef<number>(0);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.targetTouches && e.targetTouches.length > 0) {
@@ -704,6 +702,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     'Đã theo dõi kênh và ủng hộ, chúc bạn sớm đạt 100k follow!',
     'Sản phẩm này dùng êm ru luôn ạ, cho mình xin link bio với shop ơi!'
   ];
+
+  if (!isFeedRunnerOpen) return null;
 
   return (
     <div 

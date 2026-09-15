@@ -59,6 +59,10 @@ export const BankWithdrawModal: React.FC = () => {
       openKycModal();
       return;
     }
+    if (!user.tiktokConnected) {
+      alert('Vui lòng kết nối tài khoản TikTok chính chủ trước khi thực hiện rút tiền!');
+      return;
+    }
     if (!accountNumber.trim()) {
       alert('Vui lòng nhập số tài khoản ngân hàng hoặc số điện thoại MoMo!');
       return;
@@ -200,7 +204,32 @@ export const BankWithdrawModal: React.FC = () => {
             </ul>
           </div>
 
-
+          {/* TikTok Account Binding Info */}
+          <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-xs shrink-0">
+                ♪
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-white flex items-center gap-1.5 truncate">
+                  <span>Kênh TikTok Đối Soát:</span>
+                  <strong className="text-cyan-300 font-mono truncate">{user.tiktokConnected || 'Chưa liên kết'}</strong>
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">
+                  {(user.tiktokFollowers || 0).toLocaleString()} Followers • Khóa đối soát chống tráo tài khoản
+                </div>
+              </div>
+            </div>
+            {user.tiktokConnected ? (
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                Khóa KYC ✓
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                Chưa Nối Kênh
+              </span>
+            )}
+          </div>
 
           {/* Current Balance Bar */}
           <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-purple-950/30 to-black border border-emerald-500/30 flex items-center justify-between">

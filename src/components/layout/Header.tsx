@@ -221,7 +221,7 @@ export const Header: React.FC<HeaderProps> = ({
           <BrandLogo
             size="sm"
             showSubtitle={false}
-            onClick={onNavigateToLanding || onNavigateToProfile}
+            onClick={() => { window.location.href = '/'; }}
           />
         </div>
 

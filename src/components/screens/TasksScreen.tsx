@@ -33,7 +33,8 @@ import {
   Check,
   Building2,
   Tv,
-  Film
+  Film,
+  PlusCircle
 } from "lucide-react";
 import { TikTokTaskItem, LivestreamTaskItem, CrossFollowItem } from "../../types";
 import { useTikTokApp } from "../../context/TikTokAppContext";
@@ -43,8 +44,15 @@ import { INITIAL_CROSS_FOLLOW_ITEMS, TIER_CROSS_FOLLOW_QUOTAS } from "../../data
 import { TokenSinkStrategyModal } from "../modals/TokenSinkStrategyModal";
 import { parseMediaUrl } from "../../data/videoSources";
 
-export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task: TikTokTaskItem) => void }> = ({
-  darkMode
+export const TasksScreen: React.FC<{ 
+  darkMode: boolean; 
+  onTaskCompleted?: (task: TikTokTaskItem) => void;
+  onNavigate?: (screen: any) => void;
+  onOpenCreateCampaign?: () => void;
+}> = ({
+  darkMode,
+  onNavigate,
+  onOpenCreateCampaign
 }) => {
   const { 
     tasks, 
@@ -309,28 +317,23 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
     });
   };
 
-  // Unified all feed cards (Đã khử trùng lặp và đẩy TOP 1 lên đầu)
-  const allUnifiedCards = deduplicateAndSortCards([
-    ...createdFeedCards,
-    ...missionFeedCards,
-    ...liveFeedCards,
-    ...crossFeedCards
-  ]);
+  // Unified all feed cards: CHỈ HIỂN THỊ 100% CHIẾN DỊCH THẬT ĐÃ TẠO & ĐANG CHẠY
+  const allUnifiedCards = deduplicateAndSortCards(createdFeedCards);
 
   // Counts for watch_feed categories
   const feedCountAll = allUnifiedCards.length;
-  const feedCountMissions = missionFeedCards.filter(c => c.category === 'missions').length + createdFeedCards.filter(c => c.category !== 'live').length;
-  const feedCountLive = liveFeedCards.length + createdFeedCards.filter(c => c.category === 'live').length;
-  const feedCountPartner = createdFeedCards.length + missionFeedCards.filter(c => c.category === 'partner').length;
-  const feedCountCross = crossFeedCards.length;
+  const feedCountMissions = allUnifiedCards.filter(c => c.category === 'partner' && c.taskType !== 'livestream' && c.taskType !== 'livestream_viewers').length;
+  const feedCountLive = allUnifiedCards.filter(c => c.category === 'live' || c.taskType === 'livestream' || c.taskType === 'livestream_viewers').length;
+  const feedCountPartner = allUnifiedCards.length;
+  const feedCountCross = 0;
 
   // Filtered cards according to feedCategoryFilter
   const filteredFeedCards = allUnifiedCards.filter(card => {
     if (feedCategoryFilter === 'all') return true;
-    if (feedCategoryFilter === 'missions') return card.category === 'missions' || card.isRealCampaign;
-    if (feedCategoryFilter === 'live') return card.category === 'live';
-    if (feedCategoryFilter === 'partner') return card.category === 'partner' || card.isRealCampaign;
-    if (feedCategoryFilter === 'cross_follow') return card.category === 'cross_follow';
+    if (feedCategoryFilter === 'missions') return card.category === 'partner' && card.taskType !== 'livestream' && card.taskType !== 'livestream_viewers';
+    if (feedCategoryFilter === 'live') return card.category === 'live' || card.taskType === 'livestream' || card.taskType === 'livestream_viewers';
+    if (feedCategoryFilter === 'partner') return true;
+    if (feedCategoryFilter === 'cross_follow') return false;
     return true;
   });
 
@@ -971,112 +974,141 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
               </span>
             </div>
 
-            {/* Grid 1-2-3 cột các ô video chuẩn tỉ lệ 1/4 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {filteredFeedCards.map((card) => {
-                const completed = userCompletedActions[card.id];
-                const typeLabels: Record<string, string> = {
-                  follow: '👤 Follow Kênh',
-                  watch: '⏱️ Xem Video 15s',
-                  like: '❤️ Thả Tim',
-                  comment: '💬 Bình Luận',
-                  share: '🚀 Chia Sẻ',
-                  livestream: '🔴 Xem Live Giữ Mắt',
-                  livestream_viewers: '🔴 Mắt Live Thật'
-                };
-                const taskLabel = typeLabels[card.taskType] || '⚡ Làm Nhiệm Vụ';
-                const isHorizontal = card.targetUrl?.includes('youtube.com/watch') || (card.targetUrl?.includes('youtu.be') && !card.targetUrl?.includes('/shorts/'));
-
-                return (
-                  <div
-                    key={card.id}
-                    onClick={() => openFeedRunner(card.id)}
-                    className="group p-3 sm:p-3.5 rounded-2xl bg-[#090C16] border border-cyan-500/30 hover:border-cyan-400 hover:shadow-cyan-950/40 transition-all flex flex-row gap-3 shadow-lg cursor-pointer hover:scale-[1.01]"
+            {/* Grid 1-2-3 cột các ô video hoặc Empty State sạch sẽ */}
+            {filteredFeedCards.length === 0 ? (
+              <div className="p-8 sm:p-12 rounded-3xl bg-[#090C16] border border-cyan-500/20 text-center space-y-4 shadow-xl">
+                <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-rose-500/20 to-purple-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shadow-lg">
+                  <Film className="w-8 h-8" />
+                </div>
+                <div className="space-y-1.5">
+                  <h4 className="text-base sm:text-lg font-black text-white font-display">
+                    Chưa có chiến dịch nào đang chạy
+                  </h4>
+                  <p className="text-xs text-slate-400 font-mono max-w-md mx-auto leading-relaxed">
+                    Hệ thống chỉ hiển thị 100% chiến dịch thật đã thanh toán và đang hoạt động. Các chiến dịch demo ảo và phiên live kết thúc đều được tự động dọn sạch.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onOpenCreateCampaign) onOpenCreateCampaign();
+                      else if (onNavigate) onNavigate('create_campaign');
+                    }}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 hover:from-rose-500 hover:to-purple-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-rose-600/30 transition-all cursor-pointer hover:scale-105 active:scale-95 font-display flex items-center gap-2 mx-auto"
                   >
-                    {/* KHUNG MEDIA CHIẾM 1/4 CARD (TỰ ĐỘNG DỌC 9:16 HOẶC NGANG 16:9) */}
-                    <div className={`relative w-[30%] sm:w-[28%] max-w-[120px] ${isHorizontal ? 'aspect-video self-center' : 'aspect-[9/16]'} rounded-xl overflow-hidden bg-black/80 border border-white/10 group-hover:border-cyan-400/60 shrink-0 transition-all shadow-inner`}>
-                      {card.thumbnail && card.thumbnail.includes('.mp4') ? (
-                        <video
-                          src={card.thumbnail}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                          muted
-                          playsInline
-                          loop
-                          autoPlay
-                          preload="metadata"
-                        />
-                      ) : (
-                        <img
-                          src={card.thumbnail}
-                          alt=""
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex items-center justify-center">
-                        <div className="w-8 h-8 rounded-full bg-cyan-500/80 group-hover:bg-cyan-400 text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition-all">
-                          <Play className="w-4 h-4 fill-current ml-0.5" />
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Tạo Chiến Dịch Ngay</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {filteredFeedCards.map((card) => {
+                  const completed = userCompletedActions[card.id];
+                  const typeLabels: Record<string, string> = {
+                    follow: '👤 Follow Kênh',
+                    watch: '⏱️ Xem Video 15s',
+                    like: '❤️ Thả Tim',
+                    comment: '💬 Bình Luận',
+                    share: '🚀 Chia Sẻ',
+                    livestream: '🔴 Xem Live Giữ Mắt',
+                    livestream_viewers: '🔴 Mắt Live Thật'
+                  };
+                  const taskLabel = typeLabels[card.taskType] || '⚡ Làm Nhiệm Vụ';
+                  const isHorizontal = card.targetUrl?.includes('youtube.com/watch') || (card.targetUrl?.includes('youtu.be') && !card.targetUrl?.includes('/shorts/'));
+
+                  return (
+                    <div
+                      key={card.id}
+                      onClick={() => openFeedRunner(card.id)}
+                      className="group p-3 sm:p-3.5 rounded-2xl bg-[#090C16] border border-cyan-500/30 hover:border-cyan-400 hover:shadow-cyan-950/40 transition-all flex flex-row gap-3 shadow-lg cursor-pointer hover:scale-[1.01]"
+                    >
+                      {/* KHUNG MEDIA CHIẾM 1/4 CARD (TỰ ĐỘNG DỌC 9:16 HOẶC NGANG 16:9) */}
+                      <div className={`relative w-[30%] sm:w-[28%] max-w-[120px] ${isHorizontal ? 'aspect-video self-center' : 'aspect-[9/16]'} rounded-xl overflow-hidden bg-black/80 border border-white/10 group-hover:border-cyan-400/60 shrink-0 transition-all shadow-inner`}>
+                        {card.thumbnail && card.thumbnail.includes('.mp4') ? (
+                          <video
+                            src={card.thumbnail}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                            muted
+                            playsInline
+                            loop
+                            autoPlay
+                            preload="metadata"
+                          />
+                        ) : (
+                          <img
+                            src={card.thumbnail}
+                            alt=""
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-cyan-500/80 group-hover:bg-cyan-400 text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition-all">
+                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                          </div>
+                        </div>
+                        <div className="absolute top-1 left-1 px-1.5 py-0.2 rounded bg-black/80 text-cyan-300 font-mono text-[8px] font-bold border border-cyan-400/40">
+                          {card.durationBadge}
+                        </div>
+                        {card.isBoosted ? (
+                          <div className="absolute bottom-1 left-1 right-1 px-1 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-black text-center truncate">
+                            TOP 1
+                          </div>
+                        ) : (
+                          <div className="absolute bottom-1 left-1 right-1 px-1 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-black text-center truncate">
+                            +{card.rewardXu.toLocaleString()} XU
+                          </div>
+                        )}
+                      </div>
+
+                      {/* NỘI DUNG THÔNG TIN CHIẾN DỊCH & NÚT BẤM 1 CHẠM */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-mono font-bold text-cyan-300 truncate">
+                              {taskLabel}
+                            </span>
+                            <span className="text-[9px] font-mono text-slate-400 shrink-0">
+                              Còn {card.remainingSlots.toLocaleString()} suất
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <img src={card.channelAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-cyan-400/50 shrink-0" />
+                            <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
+                              {card.channelHandle || card.channelName}
+                            </span>
+                            <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                          </div>
+
+                          <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
+                            {card.title}
+                          </h5>
+                        </div>
+
+                        <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-mono font-black text-amber-400">
+                            +{card.rewardXu.toLocaleString()} Xu
+                          </span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openFeedRunner(card.id); }}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                              completed
+                                ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
+                                : "bg-cyan-500 hover:bg-cyan-400 text-black font-black shadow-md"
+                            }`}
+                          >
+                            {completed ? <Check className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current" />}
+                            <span>{completed ? "Đã Xem Xong" : "Xem & Nhận Xu"}</span>
+                          </button>
                         </div>
                       </div>
-                      <div className="absolute top-1 left-1 px-1.5 py-0.2 rounded bg-black/80 text-cyan-300 font-mono text-[8px] font-bold border border-cyan-400/40">
-                        {card.durationBadge}
-                      </div>
-                      {card.isBoosted ? (
-                        <div className="absolute bottom-1 left-1 right-1 px-1 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-black text-center truncate">
-                          TOP 1
-                        </div>
-                      ) : (
-                        <div className="absolute bottom-1 left-1 right-1 px-1 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-black text-center truncate">
-                          +{card.rewardXu.toLocaleString()} XU
-                        </div>
-                      )}
                     </div>
-
-                    {/* NỘI DUNG THÔNG TIN CHIẾN DỊCH & NÚT BẤM 1 CHẠM */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-mono font-bold text-cyan-300 truncate">
-                            {taskLabel}
-                          </span>
-                          <span className="text-[9px] font-mono text-slate-400 shrink-0">
-                            Còn {card.remainingSlots.toLocaleString()} suất
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <img src={card.channelAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-cyan-400/50 shrink-0" />
-                          <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
-                            {card.channelHandle || card.channelName}
-                          </span>
-                          <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
-                        </div>
-
-                        <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
-                          {card.title}
-                        </h5>
-                      </div>
-
-                      <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono font-black text-amber-400">
-                          +{card.rewardXu.toLocaleString()} Xu
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openFeedRunner(card.id); }}
-                          className={`px-3 py-1.5 rounded-xl text-[10px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                            completed
-                              ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
-                              : "bg-cyan-500 hover:bg-cyan-400 text-black font-black shadow-md"
-                          }`}
-                        >
-                          {completed ? <Check className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current" />}
-                          <span>{completed ? "Đã Xem Xong" : "Xem & Nhận Xu"}</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

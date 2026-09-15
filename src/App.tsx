@@ -316,7 +316,11 @@ function AppContent() {
           )}
 
           {currentScreen === 'tasks' && (
-            <TasksScreen darkMode={darkMode} />
+            <TasksScreen 
+              darkMode={darkMode} 
+              onNavigate={(scr) => setCurrentScreen(scr)}
+              onOpenCreateCampaign={() => setCurrentScreen('create_campaign')}
+            />
           )}
 
           {currentScreen === 'create_campaign' && (

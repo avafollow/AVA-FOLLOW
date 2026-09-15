@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -11,19 +11,9 @@ import {
   Youtube,
   Lock, 
   Info, 
-  Trash2,
-  Activity,
-  Zap,
-  Clock,
-  History
+  Trash2
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
-import { 
-  testTikTokConnection, 
-  getTikTokSyncLogs, 
-  clearTikTokSyncLogs, 
-  TikTokSyncLog 
-} from '../../services/tiktokActionSync';
 
 export const TikTokConnectModal: React.FC = () => {
   const { 
@@ -42,7 +32,7 @@ export const TikTokConnectModal: React.FC = () => {
     removeAccountFromIp
   } = useTikTokApp();
 
-  const [activeTab, setActiveTab] = useState<'tiktok' | 'facebook' | 'youtube' | 'sync_engine'>('tiktok');
+  const [activeTab, setActiveTab] = useState<'tiktok' | 'facebook' | 'youtube'>('tiktok');
   
   // TikTok state
   const [handle, setHandle] = useState<string>(user.tiktokConnected || '');
@@ -59,17 +49,6 @@ export const TikTokConnectModal: React.FC = () => {
   const [ytUrl, setYtUrl] = useState<string>(user.youtubeConnected || '');
   const [isYtVerifying, setIsYtVerifying] = useState<boolean>(false);
   const [ytSuccess, setYtSuccess] = useState<boolean>(false);
-
-  // TikTok Sync Engine state
-  const [syncLogs, setSyncLogs] = useState<TikTokSyncLog[]>([]);
-  const [pingStatus, setPingStatus] = useState<{ connected: boolean; latencyMs: number; statusText: string } | null>(null);
-  const [isPinging, setIsPinging] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (activeTab === 'sync_engine') {
-      setSyncLogs(getTikTokSyncLogs());
-    }
-  }, [activeTab]);
 
   if (!isConnectOpen) return null;
 
@@ -269,19 +248,6 @@ export const TikTokConnectModal: React.FC = () => {
           >
             <Youtube className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">YouTube {user.isYoutubeVerified && '✓'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('sync_engine')}
-            className={`flex-1 py-2 px-1 sm:px-2 rounded-xl text-[11px] sm:text-xs font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer ${
-              activeTab === 'sync_engine'
-                ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg shadow-cyan-600/25'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5 shrink-0 text-cyan-300" />
-            <span className="truncate">Đồng Bộ ⚡</span>
           </button>
         </div>
 
@@ -711,138 +677,6 @@ export const TikTokConnectModal: React.FC = () => {
         )}
 
         {/* TAB 4: TIKTOK SAFE AUTO-SYNC ENGINE */}
-        {activeTab === 'sync_engine' && (
-          <div className="space-y-4 overflow-y-auto pr-1">
-            {/* Status Card */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900/95 via-cyan-950/30 to-slate-900/95 border border-cyan-500/40 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
-                    <Activity className="w-5 h-5 animate-pulse" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>Đồng Bộ Tương Tác TikTok</span>
-                      <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-mono border border-emerald-500/30">
-                        Chống Quét 100%
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono">
-                      Kênh liên kết: <span className="text-cyan-300 font-bold">{user.tiktokConnected || 'Chưa liên kết'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setIsPinging(true);
-                    const res = await testTikTokConnection(user.tiktokConnected || '@user');
-                    setPingStatus(res);
-                    setIsPinging(false);
-                  }}
-                  disabled={isPinging}
-                  className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 active:scale-95 disabled:opacity-50 text-white text-[11px] font-bold font-mono transition-all flex items-center gap-1 shadow-md shadow-cyan-600/20 cursor-pointer"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isPinging ? 'animate-spin' : ''}`} />
-                  <span>{isPinging ? 'Đang test...' : 'Test Ping'}</span>
-                </button>
-              </div>
-
-              {/* Ping Result Notification */}
-              {pingStatus && (
-                <div className={`p-2.5 rounded-xl border text-xs font-mono flex items-center gap-2 animate-in fade-in ${
-                  pingStatus.connected 
-                    ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300' 
-                    : 'bg-amber-950/40 border-amber-500/30 text-amber-300'
-                }`}>
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>{pingStatus.statusText}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Anti-Ban & Security Matrix */}
-            <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-2.5">
-              <div className="text-[11px] font-bold text-white font-mono uppercase tracking-wider flex items-center gap-1.5 text-cyan-400">
-                <ShieldCheck className="w-4 h-4" /> Tiêu Chuẩn Bảo Vệ Chống Spam & Chống Hack
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                <div className="p-2 rounded-xl bg-white/5 border border-white/5 space-y-1">
-                  <div className="text-slate-400">⚡ Độ trễ người thật</div>
-                  <div className="text-emerald-400 font-bold">1.2s - 2.6s (Ngẫu nhiên)</div>
-                </div>
-                <div className="p-2 rounded-xl bg-white/5 border border-white/5 space-y-1">
-                  <div className="text-slate-400">🛡️ Khóa Idempotency</div>
-                  <div className="text-cyan-400 font-bold">Chống nhận trùng Xu</div>
-                </div>
-                <div className="p-2 rounded-xl bg-white/5 border border-white/5 space-y-1">
-                  <div className="text-slate-400">⏱️ Cooldown hành động</div>
-                  <div className="text-amber-400 font-bold">Giãn cách &gt;= 1.5s/task</div>
-                </div>
-                <div className="p-2 rounded-xl bg-white/5 border border-white/5 space-y-1">
-                  <div className="text-slate-400">📜 Sổ cái đối soát</div>
-                  <div className="text-purple-400 font-bold">Lưu vết Token Ledger</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent TikTok Sync Audit Logs */}
-            <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="text-[11px] font-bold text-white font-mono uppercase tracking-wider flex items-center gap-1.5 text-slate-300">
-                  <History className="w-4 h-4 text-cyan-400" /> Nhật Ký Đồng Bộ Gần Đây ({syncLogs.length})
-                </div>
-                {syncLogs.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      clearTikTokSyncLogs();
-                      setSyncLogs([]);
-                    }}
-                    className="text-[10px] text-slate-500 hover:text-rose-400 font-mono transition-colors cursor-pointer"
-                  >
-                    Xóa nhật ký
-                  </button>
-                )}
-              </div>
-
-              {syncLogs.length === 0 ? (
-                <div className="text-center py-5 text-slate-500 text-xs font-mono">
-                  Chưa có tương tác nào được đồng bộ. Hãy bấm Follow, Like hoặc Comment trên trình xem video!
-                </div>
-              ) : (
-                <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1">
-                  {syncLogs.slice(0, 15).map((log) => (
-                    <div 
-                      key={log.id}
-                      className="p-2 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between text-[11px] font-mono"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                          log.actionType === 'follow' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-                          log.actionType === 'like' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30' :
-                          log.actionType === 'comment' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                          'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                        }`}>
-                          {log.actionType.toUpperCase()}
-                        </span>
-                        <span className="text-slate-300 truncate max-w-[140px]">{log.targetHandle}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-right">
-                        <span className="text-emerald-400 font-bold">+{log.coinsEarned} Xu</span>
-                        <span className="text-[9px] text-slate-500">
-                          {new Date(log.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Footer */}
         <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-slate-400 font-mono">
           <span className="flex items-center gap-1 text-[11px]">

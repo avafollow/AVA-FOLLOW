@@ -131,27 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* PWA Install Button Card (Mobile/Desktop App) */}
-      <div className="pt-3">
-        <button
-          onClick={openPwaModal}
-          className="w-full p-2.5 rounded-2xl bg-gradient-to-r from-cyan-950/60 to-purple-950/60 hover:from-cyan-900/60 hover:to-purple-900/60 border border-cyan-500/30 hover:border-cyan-400 text-left transition-all flex items-center justify-between gap-2 group shadow-lg"
-          title="Cài đặt AVA FOLLOW làm icon App trên màn hình điện thoại (iOS / Android)"
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 group-hover:scale-110 transition-transform">
-              <Smartphone className="w-4 h-4" />
-            </div>
-            <div className="hidden lg:block min-w-0">
-              <div className="text-[11px] font-bold text-white font-display truncate">Cài App Vào Máy</div>
-              <div className="text-[9px] text-cyan-300 font-mono">1 Chạm Mở App</div>
-            </div>
-          </div>
-          <span className="hidden lg:inline text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono font-bold">
-            PWA
-          </span>
-        </button>
-      </div>
+
 
       {/* Bottom User Quick Info Card */}
       <div className="pt-3 border-t border-white/10 text-[11px] font-mono text-slate-500 flex items-center justify-center lg:justify-between">

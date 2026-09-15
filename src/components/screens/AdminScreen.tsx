@@ -58,7 +58,8 @@ import {
   Mail,
   User,
   Scale,
-  FileText
+  FileText,
+  History
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { AdminUserManagementItem, GrowthServiceItem, SoftwareAppItem, ServiceOrder } from '../../types';
@@ -66,6 +67,12 @@ import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
 import { BrandLogo } from '../common/BrandLogo';
 import { MISSION_POOL, RANK_MISSION_CONFIG, TEN_TIERS_LIST, getRankTierConfig } from '../../data/weeklyMissions';
 import { KOC_PENALTY_TIERS } from '../../data/kocProfileData';
+import { 
+  testTikTokConnection, 
+  getTikTokSyncLogs, 
+  clearTikTokSyncLogs, 
+  TikTokSyncLog 
+} from '../../services/tiktokActionSync';
 
 export interface StaffMember {
   id: string;
@@ -278,6 +285,16 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   
   // Selected user for detailed inspector modal
   const [inspectedUser, setInspectedUser] = useState<AdminUserManagementItem | null>(null);
+  const [adminUserPingStatus, setAdminUserPingStatus] = useState<{ connected: boolean; latencyMs: number; statusText: string } | null>(null);
+  const [isAdminPingingUser, setIsAdminPingingUser] = useState<boolean>(false);
+  const [adminSyncLogs, setAdminSyncLogs] = useState<TikTokSyncLog[]>([]);
+
+  useEffect(() => {
+    if (inspectedUser) {
+      setAdminSyncLogs(getTikTokSyncLogs());
+      setAdminUserPingStatus(null);
+    }
+  }, [inspectedUser]);
 
   // States for Dedicated Grant Permissions Tab
   const [selectedGrantUserId, setSelectedGrantUserId] = useState<string>(adminUsers[0]?.id || '');
@@ -4242,6 +4259,132 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </div>
                   );
                 })()}
+              </div>
+
+              {/* Action 4: Nhật Ký Đồng Bộ TikTok & Giám Sát Chống Bot (TikTok Sync Engine Inspector) */}
+              <div className="p-4 bg-slate-800/40 rounded-2xl border border-cyan-500/40 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white uppercase font-mono flex items-center gap-1.5">
+                        <span>Nhật Ký Đồng Bộ TikTok &amp; Test Kết Nối:</span>
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          Chống Quét 100%
+                        </span>
+                      </h4>
+                      <p className="text-[10px] text-slate-400 font-mono">
+                        Kênh TikTok: <strong className="text-cyan-300">{inspectedUser.tiktokConnected || `@${inspectedUser.handle}`}</strong> • Gmail: {inspectedUser.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isAdminPingingUser}
+                    onClick={async () => {
+                      setIsAdminPingingUser(true);
+                      const res = await testTikTokConnection(inspectedUser.tiktokConnected || `@${inspectedUser.handle}`);
+                      setAdminUserPingStatus(res);
+                      setIsAdminPingingUser(false);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 active:scale-95 disabled:opacity-50 text-white text-[11px] font-bold font-mono transition-all flex items-center gap-1.5 shadow-md shadow-cyan-600/20 shrink-0 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isAdminPingingUser ? 'animate-spin' : ''}`} />
+                    <span>{isAdminPingingUser ? 'Đang test...' : 'Test Ping TikTok'}</span>
+                  </button>
+                </div>
+
+                {/* Ping Result */}
+                {adminUserPingStatus && (
+                  <div className={`p-2.5 rounded-xl border text-xs font-mono flex items-center gap-2 animate-in fade-in ${
+                    adminUserPingStatus.connected 
+                      ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300' 
+                      : 'bg-amber-950/40 border-amber-500/30 text-amber-300'
+                  }`}>
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{adminUserPingStatus.statusText}</span>
+                  </div>
+                )}
+
+                {/* Anti-Spam Security Standard Matrix */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono">
+                  <div className="p-2 rounded-xl bg-black/40 border border-white/5 space-y-0.5">
+                    <div className="text-slate-400">⚡ Độ trễ tự nhiên</div>
+                    <div className="text-emerald-400 font-bold">1.2s - 2.6s (AI mô phỏng)</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-black/40 border border-white/5 space-y-0.5">
+                    <div className="text-slate-400">🛡️ Khóa Idempotency</div>
+                    <div className="text-cyan-400 font-bold">Chống trùng thưởng 100%</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-black/40 border border-white/5 space-y-0.5">
+                    <div className="text-slate-400">⏱️ Cooldown hành động</div>
+                    <div className="text-amber-400 font-bold">Giãn cách &ge; 1.5s</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-black/40 border border-white/5 space-y-0.5">
+                    <div className="text-slate-400">📜 Sổ cái đối soát</div>
+                    <div className="text-purple-400 font-bold">Token Ledger Đồng Bộ</div>
+                  </div>
+                </div>
+
+                {/* Sync logs table */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-mono">
+                    <span className="text-slate-300 font-bold flex items-center gap-1">
+                      <History className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Lịch Sử Thao Tác &amp; Đồng Bộ ({adminSyncLogs.length} sự kiện):</span>
+                    </span>
+                    {adminSyncLogs.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearTikTokSyncLogs();
+                          setAdminSyncLogs([]);
+                        }}
+                        className="text-[10px] text-slate-500 hover:text-rose-400 font-mono cursor-pointer"
+                      >
+                        Xóa nhật ký
+                      </button>
+                    )}
+                  </div>
+
+                  {adminSyncLogs.length === 0 ? (
+                    <div className="p-4 rounded-xl bg-black/30 text-center text-slate-500 text-xs font-mono">
+                      Chưa có nhật ký đồng bộ nào được ghi nhận cho tài khoản này.
+                    </div>
+                  ) : (
+                    <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 font-mono text-[11px]">
+                      {adminSyncLogs.map((log) => (
+                        <div
+                          key={log.id}
+                          className="p-2 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                              log.actionType === 'follow' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                              log.actionType === 'like' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30' :
+                              log.actionType === 'comment' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                              log.actionType === 'share' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                              'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            }`}>
+                              {log.actionType.toUpperCase()}
+                            </span>
+                            <span className="text-slate-300 truncate max-w-[160px]">{log.targetHandle}</span>
+                            <span className="text-slate-500 text-[9px] hidden sm:inline">{log.txHash}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-emerald-400 font-bold">+{log.coinsEarned} Xu</span>
+                            <span className="text-[9px] text-slate-500">
+                              {new Date(log.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
             </div>

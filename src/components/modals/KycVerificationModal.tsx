@@ -171,6 +171,27 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
 
           <form onSubmit={handleSubmit} className="space-y-4">
             
+            {/* Bound TikTok Account KYC Lock */}
+            <div className="p-3.5 rounded-2xl bg-black/50 border border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-xs shrink-0">
+                  ♪
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5 truncate">
+                    <span>Kênh TikTok Khóa KYC:</span>
+                    <strong className="text-cyan-300 font-mono truncate">{user.tiktokConnected || 'Chưa liên kết'}</strong>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    {(user.tiktokFollowers || 0).toLocaleString()} Followers • Khóa chống tráo tài khoản khi rút tiền
+                  </div>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold border border-emerald-500/30 shrink-0">
+                🔒 Khóa Định Danh
+              </span>
+            </div>
+
             {/* Form Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Full Name */}

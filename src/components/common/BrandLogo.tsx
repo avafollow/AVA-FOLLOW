@@ -17,7 +17,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   subtitleText = "KẾT NỐI • TĂNG TRƯỞNG • BỨT PHÁ",
   className = "",
   textClassName = "",
-  onClick
+  onClick = () => { window.location.href = '/'; }
 }) => {
   // Size config
   const sizeMap = {
@@ -70,7 +70,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`inline-flex items-center gap-2.5 sm:gap-3 select-none ${onClick ? "cursor-pointer hover:opacity-95 transition-opacity" : ""} ${className}`}
+      className={`inline-flex items-center gap-2.5 sm:gap-3 select-none cursor-pointer hover:opacity-95 transition-opacity ${className}`}
     >
       {/* 3D Circular Emblem with Multi-Layer Neon Glowing Aura */}
       <div className="relative shrink-0 flex items-center justify-center group">

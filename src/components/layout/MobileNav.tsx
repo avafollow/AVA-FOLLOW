@@ -50,7 +50,9 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     { id: 'community', label: 'Cộng Đồng Creator', icon: Users, desc: 'Giao lưu học hỏi cùng 154K+ nhà sáng tạo', color: 'from-teal-500/20 to-emerald-500/20 text-teal-300 border-teal-500/30' },
     { id: 'profile_wallet', label: 'Hồ Sơ & Ví Xu', icon: Wallet, desc: 'Rút tiền ngân hàng & cài đặt tài khoản', color: 'from-rose-500/20 to-orange-500/20 text-rose-300 border-rose-500/30' },
     { id: 'policy_guide', label: 'Chính Sách Cấp Bậc', icon: BookOpen, desc: 'Bảng quyền lợi Đồng, Bạc, Vàng, Kim Cương', color: 'from-slate-500/20 to-slate-400/20 text-slate-300 border-slate-500/30' },
-    { id: 'admin', label: 'Quản Trị Hệ Thống', icon: ShieldCheck, badge: 'ADMIN', desc: 'Toàn quyền điều hành & xét duyệt sàn', color: 'from-rose-600/20 to-red-600/20 text-rose-300 border-rose-600/40' },
+    ...(user.email === 'quocthiencr90@gmail.com' ? [
+      { id: 'admin' as const, label: 'Quản Trị Hệ Thống', icon: ShieldCheck, badge: 'ADMIN', desc: 'Toàn quyền điều hành & xét duyệt sàn', color: 'from-rose-600/20 to-red-600/20 text-rose-300 border-rose-600/40' }
+    ] : [])
   ];
 
   const handleSelect = (scr: ScreenId) => {

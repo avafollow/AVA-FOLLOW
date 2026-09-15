@@ -32,6 +32,12 @@
     /* Prevent unwanted elastic bounce horizontal overflow on mobile Safari */
     overscroll-behavior-x: none;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Safe Area Helper Utilities for Mobile Devices */

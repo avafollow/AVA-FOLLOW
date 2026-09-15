@@ -11,26 +11,25 @@ export interface DirectVideoPlayerProps {
   className?: string;
 }
 
-const LOCAL_SAMPLE_VIDEOS = [
-  '/videos/sample1.mp4',
-  '/videos/sample2.mp4',
-  '/videos/sample3.mp4'
+const FAST_CDN_VIDEOS = [
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
 ];
 
 /**
  * Tự động chuẩn hóa URL video:
- * Nếu là URL test bên ngoài bị chậm (UK / CDN bên ngoài) hoặc rỗng, 
- * ưu tiên dùng ngay video sample chất lượng cao sẵn có trong hệ thống
+ * Ưu tiên phát nguồn video trực tiếp mượt mà, hỗ trợ fallback CDN tốc độ cao
  */
 function sanitizeVideoSrc(rawSrc?: string): string {
-  if (!rawSrc) return LOCAL_SAMPLE_VIDEOS[0];
+  if (!rawSrc) return FAST_CDN_VIDEOS[0];
   if (
     rawSrc.includes('test-videos.co.uk') || 
     rawSrc.includes('interactive-examples.mdn') || 
-    rawSrc.includes('vjs.zencdn.net') ||
-    rawSrc.includes('commondatastorage.googleapis.com')
+    rawSrc.includes('vjs.zencdn.net')
   ) {
-    return LOCAL_SAMPLE_VIDEOS[0];
+    return FAST_CDN_VIDEOS[0];
   }
   return rawSrc;
 }
@@ -101,14 +100,14 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
     }
   }, [currentSrc, isPlaying, autoPlay]);
 
-  // Tự động chuyển sang video local tiếp theo nếu video hiện tại bị lỗi
+  // Tự động chuyển sang video CDN tiếp theo nếu video hiện tại bị lỗi
   const handleVideoError = () => {
     const nextIdx = fallbackIndex + 1;
-    if (nextIdx < LOCAL_SAMPLE_VIDEOS.length) {
+    if (nextIdx < FAST_CDN_VIDEOS.length) {
       setFallbackIndex(nextIdx);
-      setCurrentSrc(LOCAL_SAMPLE_VIDEOS[nextIdx]);
+      setCurrentSrc(FAST_CDN_VIDEOS[nextIdx]);
     } else {
-      setCurrentSrc(LOCAL_SAMPLE_VIDEOS[0]);
+      setCurrentSrc(FAST_CDN_VIDEOS[0]);
     }
   };
 

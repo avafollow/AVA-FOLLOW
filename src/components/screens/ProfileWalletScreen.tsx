@@ -39,7 +39,9 @@ import {
   AlertTriangle,
   RotateCcw,
   UploadCloud,
-  Camera
+  Camera,
+  Scale,
+  RefreshCw
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
@@ -81,14 +83,16 @@ export const ProfileWalletScreen: React.FC<{
     freezeEscrowContract,
     requestVideoRevision,
     requestRefundEscrow,
-    acceptEscrowBooking
+    acceptEscrowBooking,
+    openFraudAppealModal,
+    fraudAppeals
   } = useTikTokApp();
 
   const [bankName, setBankName] = useState(user.bankInfo?.bankName || 'MB Bank (Ngân Hàng Quân Đội)');
   const [accountNumber, setAccountNumber] = useState(user.bankInfo?.accountNumber || '');
   const [accountHolder, setAccountHolder] = useState(user.bankInfo?.accountHolder || user.name.toUpperCase());
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [activeProfileTab, setActiveProfileTab] = useState<'kyc_profile' | 'packages' | 'software' | 'escrow' | 'affiliate' | 'transactions' | 'bank' | 'activity'>('kyc_profile');
+  const [activeProfileTab, setActiveProfileTab] = useState<'kyc_profile' | 'packages' | 'software' | 'escrow' | 'affiliate' | 'transactions' | 'bank' | 'activity' | 'fraud_appeals'>('kyc_profile');
   const [txFilterTab, setTxFilterTab] = useState<'balance' | 'tiktok_sync'>('balance');
   const [activityPeriod, setActivityPeriod] = useState<'day' | 'week' | 'month'>('day');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -434,7 +438,7 @@ export const ProfileWalletScreen: React.FC<{
         {/* 7 */}
         <button
           onClick={() => setActiveProfileTab('activity')}
-          className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl font-bold transition-all aspect-square sm:aspect-auto sm:py-3 ${
+          className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl font-bold transition-all aspect-square sm:aspect-auto sm:py-3 active:scale-95 ${
             activeProfileTab === 'activity'
               ? 'bg-gradient-to-br from-rose-600 to-pink-600 text-white shadow-md'
               : 'text-slate-400 hover:text-white bg-slate-900/60 border border-white/5'
@@ -443,6 +447,22 @@ export const ProfileWalletScreen: React.FC<{
           <Award className="w-5 h-5 shrink-0 text-yellow-300" />
           <span className="text-center leading-tight text-[10px]">Báo Cáo Hoạt Động</span>
           <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[9px] font-mono">NEW</span>
+        </button>
+
+        {/* 8: Kháng Cáo & Khiếu Nại (Chỉ nằm trong Hồ Sơ Cá Nhân) */}
+        <button
+          onClick={() => setActiveProfileTab('fraud_appeals')}
+          className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl font-bold transition-all aspect-square sm:aspect-auto sm:py-3 active:scale-95 ${
+            activeProfileTab === 'fraud_appeals'
+              ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white shadow-md ring-1 ring-cyan-400'
+              : 'text-slate-400 hover:text-white bg-slate-900/60 border border-white/5'
+          }`}
+        >
+          <Scale className="w-5 h-5 shrink-0 text-cyan-400" />
+          <span className="text-center leading-tight text-[10px]">Kháng Cáo & Khiếu Nại</span>
+          <span className="px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[9px] font-mono">
+            {(fraudAppeals || []).filter(a => a.userId === user.id || a.userEmail === user.email || a.userHandle === user.tiktokHandle).length} Đơn
+          </span>
         </button>
       </div>
 
@@ -2211,6 +2231,183 @@ export const ProfileWalletScreen: React.FC<{
           </div>
         </div>
       </div>
+
+      {/* TAB 8: TRUNG TÂM KHIẾU NẠI & KHÁNG CÁO GIAN LẬN */}
+      {activeProfileTab === 'fraud_appeals' && (() => {
+        const userAppeals = (fraudAppeals || []).filter(
+          a => a.userId === user.id || a.userEmail === user.email || a.userHandle === user.tiktokHandle
+        );
+
+        return (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Header Card */}
+            <div className="p-6 rounded-3xl bg-gradient-to-r from-cyan-950/40 via-blue-950/40 to-[#0D111E] border border-cyan-500/30 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2.5 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-lg">
+                      <Scale className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-white font-display">
+                        Trung Tâm Khiếu Nại & Kháng Cáo Gian Lận
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Bảo vệ quyền lợi công bằng 100%: Kháng cáo khi bị trừ Xu nhầm, lỗi mạng TikTok API hoặc gắn cờ sai
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => openFraudAppealModal()}
+                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-xs shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer shrink-0"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>+ GỬI ĐƠN KHIẾU NẠI MỚI</span>
+                </button>
+              </div>
+
+              {/* 3 Core Guarantees */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-4 border-t border-white/10 text-xs">
+                <div className="p-3.5 rounded-2xl bg-white/2 border border-white/5 space-y-1">
+                  <span className="text-amber-400 font-bold flex items-center gap-1.5 text-xs">
+                    <Clock className="w-3.5 h-3.5" /> SLA Xử Lý 2 - 4 Giờ
+                  </span>
+                  <p className="text-[11px] text-slate-400">
+                    Ban Quản Trị và đội ngũ kỹ thuật đối soát trực tiếp log API máy chủ.
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-white/2 border border-white/5 space-y-1">
+                  <span className="text-emerald-400 font-bold flex items-center gap-1.5 text-xs">
+                    <Sparkles className="w-3.5 h-3.5" /> Hoàn Xu 100% Tự Động
+                  </span>
+                  <p className="text-[11px] text-slate-400">
+                    Khi được chấp thuận, Xu thưởng và 100% điểm Uy Tín sẽ được khôi phục ngay.
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-white/2 border border-white/5 space-y-1">
+                  <span className="text-cyan-400 font-bold flex items-center gap-1.5 text-xs">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Đối Soát Delta 2 Chiều
+                  </span>
+                  <p className="text-[11px] text-slate-400">
+                    Hệ thống lưu vết số liệu Following/Followers minh bạch bảo vệ cả 2 phía.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Appeals History List */}
+            <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <h4 className="text-sm font-black text-white flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-cyan-400" />
+                  Lịch Sử Đơn Kháng Cáo ({userAppeals.length})
+                </h4>
+                <span className="text-xs text-slate-400 font-mono">
+                  Tài khoản: <strong className="text-slate-200">{user.tiktokHandle || user.handle}</strong>
+                </span>
+              </div>
+
+              {userAppeals.length === 0 ? (
+                <div className="text-center py-12 space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-slate-500">
+                    <ShieldCheck className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-white">Bạn chưa có đơn khiếu nại nào</p>
+                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                      Tài khoản của bạn hiện đang có điểm uy tín tuyệt đối. Nếu gặp bất kỳ sự cố nào khi làm nhiệm vụ, bạn có thể tạo đơn kháng cáo tại đây.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => openFraudAppealModal()}
+                    className="px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Tạo Đơn Khiếu Nại Mới
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {userAppeals.map((appeal) => {
+                    const statusConfig = {
+                      pending: { label: 'Đang Tiếp Nhận', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30', icon: Clock },
+                      under_review: { label: 'Đang Đối Soát', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30', icon: RefreshCw },
+                      approved: { label: 'Đã Chấp Thuận & Hoàn Xu', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30', icon: CheckCircle2 },
+                      rejected: { label: 'Từ Chối Khiếu Nại', color: 'bg-rose-500/20 text-rose-300 border-rose-500/30', icon: AlertTriangle }
+                    }[appeal.status] || { label: appeal.status, color: 'bg-white/10 text-slate-300 border-white/10', icon: AlertTriangle };
+
+                    const StatusIcon = statusConfig.icon;
+
+                    return (
+                      <div
+                        key={appeal.id}
+                        className="p-4 rounded-2xl bg-white/2 border border-white/10 space-y-3 hover:border-white/20 transition-all"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-white">
+                                {appeal.taskTitle || 'Nhiệm vụ tương tác'}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                #{appeal.id.slice(-6)}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-cyan-300 font-medium">
+                              Lý do: {appeal.reasonLabel}
+                            </p>
+                          </div>
+
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1.5 shrink-0 ${statusConfig.color}`}>
+                            <StatusIcon className="w-3 h-3" />
+                            <span>{statusConfig.label}</span>
+                          </span>
+                        </div>
+
+                        {appeal.customNote && (
+                          <p className="text-xs text-slate-300 bg-black/30 p-2.5 rounded-xl border border-white/5">
+                            "{appeal.customNote}"
+                          </p>
+                        )}
+
+                        {appeal.proofImageUrls && appeal.proofImageUrls.length > 0 && (
+                          <div className="flex items-center gap-2 overflow-x-auto py-1">
+                            {appeal.proofImageUrls.map((img, i) => (
+                              <img
+                                key={i}
+                                src={img}
+                                alt="proof"
+                                className="w-14 h-14 rounded-lg object-cover border border-white/10 shrink-0"
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-white/5 font-mono">
+                          <span>Gửi lúc: {new Date(appeal.submittedAt).toLocaleString('vi-VN')}</span>
+                          {appeal.compensationXu && appeal.compensationXu > 0 && (
+                            <span className="text-emerald-400 font-bold">
+                              + {appeal.compensationXu.toLocaleString()} Xu bồi hoàn
+                            </span>
+                          )}
+                        </div>
+
+                        {appeal.reviewerNote && (
+                          <div className="p-2.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-xs text-indigo-300 space-y-0.5">
+                            <span className="font-bold block text-[11px]">Phản hồi từ Ban Quản Trị:</span>
+                            <p className="text-[11px]">{appeal.reviewerNote}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* MODAL XEM CHI TIẾT HỢP ĐỒNG ĐIỆN TỬ ĐÃ KÝ */}
       <EscrowContractModal

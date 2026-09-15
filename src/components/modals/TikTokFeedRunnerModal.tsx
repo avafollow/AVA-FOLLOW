@@ -1128,26 +1128,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 {inModalAlert.sub && <div className="text-[10px] text-slate-400 font-mono mt-0.5">{inModalAlert.sub}</div>}
               </div>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                onClick={() => {
-                  openFraudAppealModal({
-                    id: currentItem.id,
-                    title: currentItem.title,
-                    type: currentItem.type
-                  });
-                }}
-                className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold text-[10px] border border-cyan-500/40"
-              >
-                Kháng Cáo
-              </button>
-              <button
-                onClick={() => setInModalAlert(null)}
-                className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <button
+              onClick={() => setInModalAlert(null)}
+              className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white shrink-0 active:scale-90 transition-transform"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
@@ -1301,8 +1287,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={() => {
                   const nextMuted = !isMuted;
                   setIsMuted(nextMuted);
                   if (videoRef.current) {
@@ -1310,18 +1295,18 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   }
                   showToast(nextMuted ? '🔇 Đã tắt âm thanh' : '🔊 Đã bật âm thanh video sống động');
                 }}
-                className="p-1.5 rounded-full bg-black/70 hover:bg-white/20 text-white backdrop-blur-md transition-all cursor-pointer border border-white/10 active:scale-95"
+                className="w-10 h-10 rounded-full bg-black/80 hover:bg-white/20 text-white backdrop-blur-md transition-all cursor-pointer border border-white/20 active:scale-90 flex items-center justify-center shadow-lg shrink-0"
                 title={isMuted ? 'Bấm để bật âm thanh' : 'Bấm để tắt tiếng'}
               >
-                {isMuted ? <VolumeX className="h-3.5 w-3.5 text-rose-400" /> : <Volume2 className="h-3.5 w-3.5 text-emerald-400" />}
+                {isMuted ? <VolumeX className="h-4.5 w-4.5 text-rose-400" /> : <Volume2 className="h-4.5 w-4.5 text-emerald-400" />}
               </button>
               <button
                 type="button"
                 onClick={closeFeedRunner}
-                className="p-1.5 rounded-full bg-black/70 hover:bg-white/20 text-slate-300 hover:text-white backdrop-blur-md transition-all cursor-pointer border border-white/10 active:scale-95"
-                title="Đóng trình lướt video"
+                className="w-10 h-10 rounded-full bg-black/80 hover:bg-rose-600 text-white backdrop-blur-md transition-all cursor-pointer border border-white/20 active:scale-90 flex items-center justify-center shadow-lg shrink-0"
+                title="Thoát khỏi trình lướt video"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5 stroke-[2.5]" />
               </button>
             </div>
           </div>

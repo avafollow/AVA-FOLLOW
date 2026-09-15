@@ -271,22 +271,24 @@ function AppContent() {
 
         {/* Screen Router */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 space-y-4 sm:space-y-6">
-          {/* Mobile Quick Exit / Back to Home Bar */}
+          {/* Quick Exit / Back to Home Bar (Hiển thị trên tất cả thiết bị khi đi sâu vào trang con) */}
           {currentScreen !== 'home' && (
-            <div className="md:hidden flex items-center justify-between p-2.5 px-3 rounded-2xl bg-[#0D111E] border border-rose-500/30 shadow-lg backdrop-blur-md">
+            <div className="flex items-center justify-between p-3 px-4 rounded-2xl bg-[#0D111E]/95 border border-rose-500/30 shadow-lg backdrop-blur-md">
               <button
                 onClick={() => setCurrentScreen('home')}
-                className="flex items-center gap-1.5 text-xs font-bold text-slate-200 hover:text-white"
+                className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-200 hover:text-white transition-all active:scale-95 cursor-pointer py-1.5 px-3 rounded-xl bg-white/5 hover:bg-white/10"
               >
                 <ArrowLeft className="w-4 h-4 text-rose-500 shrink-0" />
-                <span>← Về Trang Chủ</span>
+                <span>← Quay Lại Trang Chủ</span>
               </button>
-              <button
-                onClick={() => setCurrentScreen('marketplace')}
-                className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-black font-black text-[10px] font-mono shadow-sm flex items-center gap-1"
-              >
-                <span>🔥 MUA GÓI 1+1</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('marketplace')}
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-black font-black text-xs font-mono shadow-sm flex items-center gap-1 active:scale-95 transition-transform cursor-pointer"
+                >
+                  <span>🔥 MUA GÓI 1+1</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -353,7 +355,17 @@ function AppContent() {
           )}
 
           {currentScreen === 'admin' && (
-            <AdminScreen darkMode={darkMode} />
+            user.email === 'quocthiencr90@gmail.com' ? (
+              <AdminScreen darkMode={darkMode} />
+            ) : (
+              <HomeScreen
+                darkMode={darkMode}
+                onNavigate={(scr) => setCurrentScreen(scr)}
+                onOpenDeposit={openDeposit}
+                onOpenWithdraw={openWithdraw}
+                onOpenCreateCampaign={() => setCurrentScreen('create_campaign')}
+              />
+            )
           )}
 
           {currentScreen === 'policy_guide' && (

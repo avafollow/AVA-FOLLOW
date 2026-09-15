@@ -407,9 +407,11 @@ export const TASK_ACTION_REWARDS = {
   COMMENT: 200,           // 40% của 500 Xu (Bên mua trả 500 Xu)
   SHARE: 240,             // 40% của 600 Xu (Bên mua trả 600 Xu)
   BOOKMARK: 0,            // 0 Xu (Lưu yêu thích không tính xu theo chính sách)
-  WATCH_15S: 200,         // Nâng lên 200 Xu theo chỉ đạo (40% của ngân sách 500 Xu)
+  WATCH_40S: 200,         // Xem video 40s trung bình (+200 Xu = 40% của ngân sách 500 Xu)
+  WATCH_15S: 200,         // Tương thích ngược
   TOTAL_COMBO: 940,       // Trọn bộ video đầy đủ các hành động có thưởng Xu
   // Phần thưởng phòng Live (40%):
+  LIVE_EYE_30S: 80,       // Gói xem Live 30s: 80 Xu (40% của 200 Xu)
   LIVE_EYE_SESSION: 400,  // 40% của 1,000 Xu (Mốc 3 phút)
   LIVE_HEART_TAP: 100,    // 40% của 250 Xu
   LIVE_COMMENT: 200,      // 40% của 500 Xu
@@ -426,6 +428,13 @@ export interface LivestreamFlexibleDurationTier {
 }
 
 export const FLEXIBLE_LIVESTREAM_TIERS: LivestreamFlexibleDurationTier[] = [
+  {
+    minutes: 0.5,
+    label: '30 Giây',
+    description: 'Hook 30s siêu tốc, kích hoạt chỉ số giữ chân tức thì',
+    buyerPricePerEye: 200,
+    workerRewardPerEye: 80    // 200 * 0.4 = 80 Xu
+  },
   {
     minutes: 1,
     label: '1 Phút',

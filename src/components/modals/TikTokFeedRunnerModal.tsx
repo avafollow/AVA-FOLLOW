@@ -472,13 +472,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
   }, [isFeedRunnerOpen, feedRunnerTargetId, combinedFeed.length]);
 
-  // Reset timer on item change or open
+  // Reset timer on item change or open (Mặc định video có gói view là 40 giây trung bình, live theo số phút chiến dịch)
   useEffect(() => {
     if (isFeedRunnerOpen && currentItem) {
       if (currentItem.kind === 'livestream') {
-        setTimeLeft(currentItem.targetMinutes ? currentItem.targetMinutes * 60 : 180);
+        const liveSecs = currentItem.targetMinutes ? Math.round(currentItem.targetMinutes * 60) : 180;
+        setTimeLeft(liveSecs);
       } else if (currentItem.type === 'watch' || currentItem.requiresWatch === true) {
-        setTimeLeft(15);
+        setTimeLeft(40); // Bắt buộc xem trung bình 40 giây
       } else {
         setTimeLeft(0);
       }
@@ -579,9 +580,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             watch: true
           }
         }));
-        showToast('🎉 Đã xem đủ 15s (+200 Xu vào ví)! Bạn có thể tiếp tục xem trọn vẹn video hoặc bấm nút để chuyển tiếp.');
+        showToast('🎉 Đã xem đủ 40s (+200 Xu vào ví)! Bạn có thể tiếp tục xem trọn vẹn video hoặc bấm nút để chuyển tiếp.');
       } else if (currentItem.kind === 'livestream') {
-        // Nhận thưởng xem live stream thật tối thiểu 3 phút (hoặc theo số phút yêu cầu)
+        // Nhận thưởng xem live stream thật (30s, 1p, 3p...)
         const reward = claimTaskAction(currentItem.id, 'watch');
         const liveCoins = reward || currentItem.rewardCoins || 400;
         setSessionCoinsEarned(prev => prev + liveCoins);
@@ -1919,7 +1920,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   )
                 ) : (
                   <span className="text-emerald-400 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> {isLiveItem ? 'Đã xem đủ phiên live (+Xu vào ví)!' : 'Đã đạt 15s (+200 Xu vào ví)!'}
+                    <CheckCircle2 className="h-3.5 w-3.5" /> {isLiveItem ? 'Đã xem đủ phiên live (+Xu vào ví)!' : 'Đã đạt 40s (+200 Xu vào ví)!'}
                   </span>
                 )
               ) : (
@@ -1952,7 +1953,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-rose-500 via-purple-500 to-emerald-400 transition-all duration-1000"
-              style={{ width: isWatchRequired ? `${((15 - timeLeft) / 15) * 100}%` : '100%' }}
+              style={{ 
+                width: isWatchRequired 
+                  ? `${((Math.max(0, (isLiveItem ? (currentItem?.targetMinutes ? Math.round(currentItem.targetMinutes * 60) : 180) : 40) - timeLeft)) / Math.max(1, (isLiveItem ? (currentItem?.targetMinutes ? Math.round(currentItem.targetMinutes * 60) : 180) : 40))) * 100}%` 
+                  : '100%' 
+              }}
             />
           </div>
 

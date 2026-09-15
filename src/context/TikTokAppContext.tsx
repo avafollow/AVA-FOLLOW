@@ -1725,14 +1725,16 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         startTime: 'Vừa kích hoạt',
         isActive: true
       });
-    } else {
-      // Tạo nhiệm vụ video / follow thông thường
+      // Tạo nhiệm vụ chính (Follow / Like / Comment / Share / Combo)
       let taskActionType: TikTokTaskItem['type'] = 'follow';
-      let rewardPerTask = 500;
+      let rewardPerTask = 200;
       if (pkg.category === 'engagement') { taskActionType = 'like'; rewardPerTask = 100; }
-      else if (pkg.category === 'comment') { taskActionType = 'comment'; rewardPerTask = 150; }
-      else if (pkg.category === 'share') { taskActionType = 'like'; rewardPerTask = 200; }
+      else if (pkg.category === 'comment') { taskActionType = 'comment'; rewardPerTask = 200; }
+      else if (pkg.category === 'share') { taskActionType = 'share'; rewardPerTask = 240; }
+      else if (pkg.category === 'watch') { taskActionType = 'watch'; rewardPerTask = 200; }
       else if (pkg.category === 'combo') { taskActionType = 'follow'; rewardPerTask = 600; }
+
+      const cleanChan = targetUrl.startsWith('@') ? targetUrl : (user.tiktokConnected || '@tiktok_channel');
 
       const newTask: TikTokTaskItem = {
         id: `task_pkg_${Date.now()}`,
@@ -1740,20 +1742,43 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         type: taskActionType,
         rewardCoins: rewardPerTask,
         rewardVND: `${rewardPerTask}đ`,
-        channelName: targetUrl.startsWith('@') ? targetUrl : user.tiktokConnected || '@tiktok_channel',
-        channelHandle: targetUrl.startsWith('@') ? targetUrl : user.tiktokConnected || '@tiktok_channel',
+        channelName: cleanChan,
+        channelHandle: cleanChan,
         channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
         targetUrl,
         totalSlots: pkg.targetQuantity,
         completedSlots: 0,
         remainingSlots: pkg.targetQuantity,
-        guide: instructions || `Thực hiện ${pkg.unit} cho kênh/video ${targetUrl} để nhận Xu thưởng.`,
-        requirements: ['Tài khoản TikTok thật', 'Giữ tương tác tối thiểu 30 ngày'],
+        requiresWatch: true, // Bắt buộc ở lại xem video 40s
+        guide: instructions || `Vào kênh thực hiện ${pkg.unit} và ở lại xem video tối thiểu 40s để nhận Xu thưởng.`,
+        requirements: ['Tài khoản TikTok thật', 'Ở lại xem video tối thiểu 40s', 'Giữ tương tác tối thiểu 30 ngày'],
         status: 'open',
         createdAt: 'Vừa xong'
       };
 
-      setTasks(prev => [newTask, ...prev]);
+      // 🎁 CHÍNH SÁCH MUA 1 TẶNG 1: Tặng thêm 100% lượt LƯỢT XEM VIDEO (VIEW 40S) cho 100 người mua đầu tiên!
+      const bonusViewTask: TikTokTaskItem = {
+        id: `task_bonus_view_${Date.now()}`,
+        title: `🎁 [MUA 1 TẶNG 1] Tặng ${pkg.targetQuantity.toLocaleString()} Lượt Xem 40s cho ${cleanChan}`,
+        type: 'watch',
+        rewardCoins: 200,
+        rewardVND: `200đ`,
+        channelName: cleanChan,
+        channelHandle: cleanChan,
+        channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+        targetUrl,
+        totalSlots: pkg.targetQuantity,
+        completedSlots: 0,
+        remainingSlots: pkg.targetQuantity,
+        requiresWatch: true,
+        guide: `Xem trọn vẹn video tối thiểu 40 giây trên FYP. Thưởng +200 Xu vào ví tài khoản của bạn.`,
+        requirements: ['Xem đủ 40 giây', 'Không tắt màn hình'],
+        status: 'open',
+        createdAt: 'Vừa xong',
+        isBoosted: true
+      };
+
+      setTasks(prev => [bonusViewTask, newTask, ...prev]);
     }
 
     const newTx: TransactionRecord = {

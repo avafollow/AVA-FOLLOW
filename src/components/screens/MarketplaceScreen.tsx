@@ -96,31 +96,33 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
       <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-purple-950/60 via-slate-900 to-indigo-950/60 border border-purple-500/30 shadow-2xl">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-3 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold animate-pulse">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>BỘ SIÊU PHẨM 24 GÓI TĂNG TRƯỞNG & XÂY KÊNH CHUẨN THUẬT TOÁN TIKTOK</span>
+                <span>🔥 SIÊU ƯU ĐÃI: MUA 1 TẶNG 1 VIEW (CHO 100 NGƯỜI ĐẦU TIÊN)</span>
               </div>
+              <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[10px] font-mono font-bold">
+                ✓ Mua bao nhiêu tặng bấy nhiêu View 40s
+              </span>
               <FeatureGuideTooltip
-                title="Cơ Chế Trả Gói Tự Động 24 Siêu Phẩm"
-                description="Hệ thống phân phối gói đặt mua trực tiếp thành các nhiệm vụ vi mô cho hơn 154,200+ user thật thực hiện, bảo đảm kênh an toàn tuyệt đối và lên xu hướng tự nhiên."
+                title="Chương Trình Mua 1 Tặng 1 Lượt Xem (View 40s)"
+                description="Dành riêng cho 100 khách hàng đầu tiên: Mua bất kỳ gói dịch vụ nào (Follow, Tim, Comment, Share) đều được TẶNG MIỄN PHÍ 100% số lượng Lượt Xem Video 40s tương ứng. Người dùng làm nhiệm vụ bắt buộc phải vào kênh lướt video 40s để tạo tín hiệu thuật toán đẩy xu hướng."
                 steps={[
-                  "Bước 1: Chọn gói tăng trưởng phù hợp (Follower ngách, Tim FYP, Comment seeding, Mắt xem live, Combo)",
-                  "Bước 2: Dán link TikTok kênh hoặc video cần đẩy tương tác",
-                  "Bước 3: Xác nhận số lượng và trừ số dư Xu trong ví",
-                  "Bước 4: Hệ thống tự động chia nhỏ và đẩy nhiệm vụ lên bảng tin Tasks cho người dùng thật click tương tác",
-                  "Bước 5: Kiểm tra tiến độ hoàn thành theo thời gian thực và nhận bảo hành chống tụt 30 ngày"
+                  "Ví dụ: Mua 1,000 Follower → TẶNG THÊM 1,000 Lượt Xem Video 40s miễn phí",
+                  "Ví dụ: Mua 5,000 Tim → TẶNG THÊM 5,000 Lượt Xem Video 40s miễn phí",
+                  "View 40s: Người làm nhiệm vụ vào kênh lướt ở lại tối thiểu 40 giây",
+                  "Tự động kích hoạt song song 2 chiến dịch giúp kênh bùng nổ đề xuất FYP"
                 ]}
-                tips="Nên đặt gói Combo kèm Mắt xem live vào khung giờ vàng (11h-13h hoặc 19h-22h) để thuật toán TikTok phân phối mạnh nhất vào trang FYP Dành Cho Bạn."
-                badge="Thuật Toán TikTok 2026"
+                tips="100 suất đầu tiên sẽ được áp dụng tự động ngay khi bạn kích hoạt gói trên hệ thống."
+                badge="MUA 1 TẶNG 1"
                 placement="bottom"
               />
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight">
-              Kho Dịch Vụ Tăng Tương Tác Người Thật & Trả Gói Tự Động
+              Kho Dịch Vụ Tăng Tương Tác &amp; Tặng Kèm 100% View Thật 40s
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Mọi gói bạn đặt mua sẽ được hệ thống tự động đẩy sang hàng đợi cho hơn <strong>154,200+ người dùng</strong> đang lướt video trên ứng dụng thực hiện. Minh bạch, an toàn tuyệt đối cho kênh và có bảo hành chống tụt.
+              Mọi gói bạn đặt mua sẽ được phân phối cho hơn <strong>154,200+ người dùng thật</strong>. Đặt mua bất kỳ gói nào đều được <strong>Tặng 100% Lượt Xem 40s</strong> tương ứng giúp kênh tăng điểm đề xuất thuật toán.
             </p>
           </div>
 
@@ -133,19 +135,6 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
                 <Award className="w-4 h-4" />
                 <span>Đăng Ký Làm KOC Nhận Booking</span>
               </button>
-              <FeatureGuideTooltip
-                title="Chương Trình KOC Affiliate & Booking"
-                description="Dành cho các nhà sáng tạo nội dung có từ 1,000 follower trở lên muốn nhận các hợp đồng review sản phẩm, gắn giỏ hàng TikTok Shop và nhận tiền hoa hồng cao."
-                steps={[
-                  "Bước 1: Bấm 'Đăng Ký Làm KOC Nhận Booking' và điền thông tin kênh TikTok",
-                  "Bước 2: Hệ thống xét duyệt hồ sơ và gắn huy hiệu KOC Verified",
-                  "Bước 3: Nhận các job booking từ Brand với hợp đồng ký quỹ Escrow bảo đảm tiền",
-                  "Bước 4: Nộp video demo, nhận đánh giá trong vòng 3 ngày bảo hành và rút tiền về tài khoản ngân hàng"
-                ]}
-                tips="KOC có tỉ lệ hoàn thành nhiệm vụ và rating trên 4.8 sao sẽ được ưu tiên nhận các hợp đồng booking VIP giá từ 2,000,000đ - 10,000,000đ."
-                badge="Thu Nhập KOC"
-                placement="left"
-              />
             </div>
             <div className="text-[11px] text-slate-400 text-center font-mono">
               Số dư ví: <strong className="text-amber-400">{(user?.avaliveCoins || 0).toLocaleString()} Xu</strong>

@@ -983,6 +983,7 @@ export interface UserProfileWallet {
   tiktokHandle?: string;
   tiktokProfileUrl?: string; // Link trực tiếp trang TikTok
   tiktokFollowers: number;
+  tiktokFollowingCount?: number; // Số lượng Đang theo dõi (Phục vụ đối soát delta 2 chiều)
   isTikTokVerified: boolean;
   facebookConnected?: string;
   facebookProfileUrl?: string;
@@ -1227,5 +1228,44 @@ export interface TokenSinkStrategyDef {
   benefitForUser: string;
   benefitForPlatform: string;
   icon: string;
+}
+
+// ===== HỆ THỐNG KHÁNG CÁO GIAN LẬN & MINH BẠCH 2 CHIỀU (Fraud Appeal & 2-Way Audit) =====
+export type FraudAppealStatus = 'pending' | 'under_review' | 'approved' | 'rejected';
+
+export interface FraudAppealRecord {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userHandle: string;
+  taskId?: string;
+  taskTitle?: string;
+  taskType?: string;
+  reasonCategory: 'network_lag' | 'private_account' | 'false_unfollow' | 'browser_restriction' | 'other' | string;
+  reasonLabel: string;
+  customNote: string;
+  proofImageUrls: string[];
+  status: FraudAppealStatus;
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewerNote?: string;
+  compensationXu?: number;
+  restoredTrustScore?: number;
+}
+
+export interface CampaignAuditTrailItem {
+  id: string;
+  timestamp: string;
+  taskId: string;
+  campaignTitle: string;
+  creatorHandle: string;
+  workerHandle: string;
+  actionType: 'follow' | 'like' | 'comment' | 'share' | 'watch' | 'live';
+  rewardXu: number;
+  workerFollowingDelta: { before: number; after: number; delta: number; verified: boolean };
+  creatorFollowersDelta: { before: number; after: number; delta: number; verified: boolean };
+  status: 'verified_success' | 'escrow_hold' | 'disputed' | 'refunded';
+  proofUrl?: string;
+  notes?: string;
 }
 

@@ -108,7 +108,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     interactWithLiveBroadcast,
     feedRunnerFilter,
     feedRunnerTargetId,
-    userMissions
+    userMissions,
+    openFraudAppealModal
   } = useTikTokApp();
 
   const [filterMode, setFilterMode] = useState<'all' | 'missions' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
@@ -1127,12 +1128,26 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 {inModalAlert.sub && <div className="text-[10px] text-slate-400 font-mono mt-0.5">{inModalAlert.sub}</div>}
               </div>
             </div>
-            <button
-              onClick={() => setInModalAlert(null)}
-              className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white shrink-0"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => {
+                  openFraudAppealModal({
+                    id: currentItem.id,
+                    title: currentItem.title,
+                    type: currentItem.type
+                  });
+                }}
+                className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold text-[10px] border border-cyan-500/40"
+              >
+                Kháng Cáo
+              </button>
+              <button
+                onClick={() => setInModalAlert(null)}
+                className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         )}
 

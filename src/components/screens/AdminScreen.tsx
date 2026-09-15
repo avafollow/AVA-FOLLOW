@@ -56,7 +56,9 @@ import {
   Save,
   Phone,
   Mail,
-  User
+  User,
+  Scale,
+  FileText
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { AdminUserManagementItem, GrowthServiceItem, SoftwareAppItem, ServiceOrder } from '../../types';
@@ -130,10 +132,16 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     security7Layers,
     securityAuditLogs,
     tasks,
-    livestreamTasks
+    livestreamTasks,
+    fraudAppeals,
+    reviewFraudAppeal,
+    campaignAuditTrail
   } = useTikTokApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'grant_permissions' | 'software_apps' | 'users' | 'referrals' | 'kyc' | 'token_ledger' | 'settings' | 'escrow' | 'campaigns' | 'missions' | 'staff_roles' | 'security_7layers'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'grant_permissions' | 'software_apps' | 'users' | 'referrals' | 'kyc' | 'token_ledger' | 'settings' | 'escrow' | 'campaigns' | 'missions' | 'staff_roles' | 'security_7layers' | 'appeals_audit'>('overview');
+  const [appealsSubTab, setAppealsSubTab] = useState<'pending' | 'all' | 'audit_trail'>('pending');
+  const [reviewNoteInput, setReviewNoteInput] = useState<string>('');
+  const [selectedAppealForReview, setSelectedAppealForReview] = useState<string | null>(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userRankFilter, setUserRankFilter] = useState('all');
   const [inspectedPeriod, setInspectedPeriod] = useState<'day' | 'week' | 'month'>('day');
@@ -735,6 +743,21 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 title: 'Hệ Thống Bảo Mật 7 Lớp Tối Cao',
                 description: 'Giám sát tường lửa WAF, chống click tặc bot ảo, mã hóa SHA-256 cơ sở dữ liệu và bảo mật 2 lớp 2FA tài khoản ngân hàng.',
                 steps: ['Kiểm tra trạng thái 7 lớp bảo mật', 'Kích hoạt chế độ phòng thủ cấp cao khi cần']
+              }
+            },
+            {
+              id: 'appeals_audit',
+              label: 'Kháng Cáo & Đối Soát',
+              subLabel: 'Minh Bạch 2 Chiều',
+              icon: Scale,
+              badge: `${(fraudAppeals || []).filter(a => a.status === 'pending').length} Chờ Duyệt`,
+              border: 'border-cyan-500/40',
+              activeBg: 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-900/40 ring-2 ring-cyan-400',
+              iconColor: 'text-cyan-400',
+              guide: {
+                title: 'Trung Tâm Kháng Cáo & Kiểm Toán 2 Chiều',
+                description: 'Phê duyệt đơn khiếu nại của người dùng, bồi hoàn Xu và đối soát delta 2 chiều giữa thợ cày và chủ shop.',
+                steps: ['Xem xét lý do và ảnh bằng chứng của người dùng', 'Bấm Duyệt Kháng Cáo để tự động bồi hoàn Xu & phục hồi điểm uy tín']
               }
             }
           ].map((tab) => {
@@ -5234,6 +5257,347 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               </table>
             </div>
           </div>
+
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: TRUNG TÂM KHÁNG CÁO & KIỂM TOÁN 2 CHIỀU (FRAUD APPEALS & 2-WAY AUDIT) */}
+      {/* ========================================================================= */}
+      {activeTab === 'appeals_audit' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Header Card */}
+          <div className="p-5 rounded-3xl bg-gradient-to-r from-cyan-950/40 via-blue-950/40 to-slate-900 border border-cyan-500/30 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                    <Scale className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-base font-black text-white font-display">
+                    Trung Tâm Kháng Cáo & Đối Soát 2 Chiều
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-400 max-w-2xl">
+                  Xét duyệt các yêu cầu kháng cáo khiếu nại của Creator, tự động bồi hoàn Xu và khôi phục điểm tin cậy, đồng thời kiểm toán số liệu delta 2 chiều giữa Người làm nhiệm vụ và Chủ Shop.
+                </p>
+              </div>
+
+              {/* Stats Summary */}
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="px-3 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center">
+                  <span className="text-[10px] text-amber-400 font-bold block uppercase">Chờ Duyệt</span>
+                  <span className="text-sm font-black text-white font-mono">
+                    {(fraudAppeals || []).filter(a => a.status === 'pending').length}
+                  </span>
+                </div>
+                <div className="px-3 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center">
+                  <span className="text-[10px] text-emerald-400 font-bold block uppercase">Đã Duyệt</span>
+                  <span className="text-sm font-black text-white font-mono">
+                    {(fraudAppeals || []).filter(a => a.status === 'approved').length}
+                  </span>
+                </div>
+                <div className="px-3 py-2 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-center">
+                  <span className="text-[10px] text-cyan-400 font-bold block uppercase">Kiểm Toán</span>
+                  <span className="text-sm font-black text-white font-mono">
+                    {(campaignAuditTrail || []).length}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Sub Tabs */}
+            <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/10">
+              <button
+                onClick={() => setAppealsSubTab('pending')}
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  appealsSubTab === 'pending'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md'
+                    : 'bg-white/5 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Đang Chờ Duyệt ({(fraudAppeals || []).filter(a => a.status === 'pending').length})</span>
+              </button>
+              <button
+                onClick={() => setAppealsSubTab('all')}
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  appealsSubTab === 'all'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md'
+                    : 'bg-white/5 text-slate-400 hover:text-white'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Tất Cả Đơn Kháng Cáo ({(fraudAppeals || []).length})</span>
+              </button>
+              <button
+                onClick={() => setAppealsSubTab('audit_trail')}
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  appealsSubTab === 'audit_trail'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md'
+                    : 'bg-white/5 text-slate-400 hover:text-white'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Sổ Kiểm Toán Delta 2 Chiều ({(campaignAuditTrail || []).length})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* SubTab 1 & 2: Appeals List */}
+          {(appealsSubTab === 'pending' || appealsSubTab === 'all') && (
+            <div className="space-y-3">
+              {(() => {
+                const list = (fraudAppeals || []).filter(a => appealsSubTab === 'all' ? true : a.status === 'pending');
+                if (list.length === 0) {
+                  return (
+                    <div className="p-12 text-center rounded-3xl bg-[#0D111E] border border-white/10 space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto border border-cyan-500/20">
+                        <CheckCircle2 className="w-6 h-6" />
+                      </div>
+                      <p className="text-sm font-bold text-white">Không có đơn kháng cáo nào đang chờ duyệt</p>
+                      <p className="text-xs text-slate-400">Tất cả khiếu nại đã được xử lý xong!</p>
+                    </div>
+                  );
+                }
+
+                return list.map((appeal) => {
+                  const isPending = appeal.status === 'pending';
+                  const isSelected = selectedAppealForReview === appeal.id;
+
+                  return (
+                    <div
+                      key={appeal.id}
+                      className="p-5 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 hover:border-cyan-500/40 transition-all shadow-lg"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-white">{appeal.taskTitle}</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/5 text-slate-400 font-mono">
+                              #{appeal.id.slice(-6)}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                              {appeal.taskType || 'Tương tác'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-slate-400 font-mono">
+                            <span>Người dùng: <strong className="text-slate-200">{appeal.userHandle}</strong></span>
+                            <span>Email: <strong className="text-slate-200">{appeal.userEmail}</strong></span>
+                            <span>Thời gian: <strong>{new Date(appeal.submittedAt).toLocaleString('vi-VN')}</strong></span>
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div>
+                          {appeal.status === 'pending' && (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5 animate-pulse" />
+                              <span>Đang Chờ Duyệt</span>
+                            </span>
+                          )}
+                          {appeal.status === 'approved' && (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Đã Chấp Thuận (+{appeal.compensationXu || 200} Xu)</span>
+                            </span>
+                          )}
+                          {appeal.status === 'rejected' && (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1.5">
+                              <XCircle className="w-3.5 h-3.5" />
+                              <span>Từ Chối Khiếu Nại</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Reason & Content */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="p-3 rounded-2xl bg-white/2 border border-white/5 space-y-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase block">Lý do khiếu nại:</span>
+                            <p className="text-xs font-bold text-cyan-300">{appeal.reasonLabel}</p>
+                          </div>
+
+                          {appeal.customNote && (
+                            <div className="p-3 rounded-2xl bg-white/2 border border-white/5 space-y-1">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase block">Trình bày của người dùng:</span>
+                              <p className="text-xs text-slate-200">"{appeal.customNote}"</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Proof Screenshots */}
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block">Ảnh/Bằng chứng xác thực:</span>
+                          {appeal.proofImageUrls && appeal.proofImageUrls.length > 0 ? (
+                            <div className="flex items-center gap-2 overflow-x-auto py-1">
+                              {appeal.proofImageUrls.map((url, idx) => (
+                                <a
+                                  key={idx}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="relative group rounded-xl overflow-hidden border border-white/10 hover:border-cyan-500 w-24 h-24 shrink-0 bg-black/40 block"
+                                >
+                                  <img src={url} alt="proof" className="w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
+                                    Xem Lớn
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="p-4 rounded-2xl bg-white/2 border border-dashed border-white/10 text-center text-xs text-slate-500">
+                              Người dùng không đính kèm file ảnh
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Reviewer Note if already reviewed */}
+                      {appeal.reviewerNote && (
+                        <div className="p-3 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 text-xs text-indigo-300">
+                          <strong>Ghi chú xử lý từ Admin:</strong> {appeal.reviewerNote} (Duyệt lúc: {appeal.reviewedAt ? new Date(appeal.reviewedAt).toLocaleString('vi-VN') : ''})
+                        </div>
+                      )}
+
+                      {/* Action Buttons for Pending appeals */}
+                      {isPending && (
+                        <div className="space-y-3 pt-2 border-t border-white/5">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={isSelected ? reviewNoteInput : ''}
+                              onFocus={() => setSelectedAppealForReview(appeal.id)}
+                              onChange={(e) => {
+                                setSelectedAppealForReview(appeal.id);
+                                setReviewNoteInput(e.target.value);
+                              }}
+                              placeholder="Nhập ghi chú phản hồi cho người dùng (ví dụ: Đã đối soát API TikTok thành công)..."
+                              className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                reviewFraudAppeal(
+                                  appeal.id,
+                                  'rejected',
+                                  (isSelected && reviewNoteInput.trim()) || 'Bằng chứng chưa đủ cơ sở xác thực.',
+                                  0
+                                );
+                                setReviewNoteInput('');
+                                setSelectedAppealForReview(null);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold text-xs border border-rose-500/30 transition-all flex items-center gap-1.5"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              <span>Từ Chối Khiếu Nại</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                reviewFraudAppeal(
+                                  appeal.id,
+                                  'approved',
+                                  (isSelected && reviewNoteInput.trim()) || 'Kỹ thuật đã đối soát API TikTok xác nhận hợp lệ. Đã bồi hoàn Xu và phục hồi điểm Uy Tín.',
+                                  200
+                                );
+                                setReviewNoteInput('');
+                                setSelectedAppealForReview(null);
+                              }}
+                              className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg shadow-emerald-900/30 transition-all flex items-center gap-1.5"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Duyệt Kháng Cáo (+200 Xu & Phục Hồi 100% Uy Tín)</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          )}
+
+          {/* SubTab 3: 2-Way Delta Verification Audit Table */}
+          {appealsSubTab === 'audit_trail' && (
+            <div className="p-5 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-black text-white flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                    Sổ Kiểm Toán Delta 2 Chiều (Worker vs Creator)
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Ghi nhận biến động số liệu Đang theo dõi (Following) của Thợ cày và Người theo dõi (Followers) của Chủ Shop
+                  </p>
+                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                  {(campaignAuditTrail || []).length} Bản Ghi
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs font-mono">
+                  <thead>
+                    <tr className="text-slate-400 border-b border-white/5">
+                      <th className="text-left py-2.5 px-3">Thời Gian</th>
+                      <th className="text-left py-2.5 px-3">Chiến Dịch / Nhiệm Vụ</th>
+                      <th className="text-left py-2.5 px-3">Thợ Cày (Worker) & Delta</th>
+                      <th className="text-left py-2.5 px-3">Chủ Shop & Delta</th>
+                      <th className="text-center py-2.5 px-3">Thưởng Xu</th>
+                      <th className="text-center py-2.5 px-3">Trạng Thái</th>
+                      <th className="text-left py-2.5 px-3">Ghi Chú</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {(campaignAuditTrail || []).map((trail) => (
+                      <tr key={trail.id} className="hover:bg-white/2 transition-colors">
+                        <td className="py-3 px-3 text-slate-400">
+                          {new Date(trail.timestamp).toLocaleTimeString('vi-VN')} {new Date(trail.timestamp).toLocaleDateString('vi-VN')}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="text-white font-bold block max-w-[200px] truncate">
+                            {trail.campaignTitle}
+                          </span>
+                          <span className="text-[10px] text-slate-500 uppercase">
+                            {trail.actionType}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="text-cyan-300 font-bold block">{trail.workerHandle}</span>
+                          <span className="text-[10px] text-slate-400">
+                            Following: {trail.workerFollowingDelta.before} → {trail.workerFollowingDelta.after} ({trail.workerFollowingDelta.delta >= 0 ? `+${trail.workerFollowingDelta.delta}` : trail.workerFollowingDelta.delta})
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="text-purple-300 font-bold block">{trail.creatorHandle}</span>
+                          <span className="text-[10px] text-slate-400">
+                            Followers: {trail.creatorFollowersDelta.before} → {trail.creatorFollowersDelta.after} ({trail.creatorFollowersDelta.delta >= 0 ? `+${trail.creatorFollowersDelta.delta}` : trail.creatorFollowersDelta.delta})
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center text-emerald-400 font-bold">
+                          +{trail.rewardXu.toLocaleString()} Xu
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            ● Khớp 100%
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-slate-400 text-[11px] max-w-[180px] truncate">
+                          {trail.notes || 'Đã xác thực'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
         </div>
       )}

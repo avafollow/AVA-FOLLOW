@@ -47,6 +47,7 @@ import { MarqueeBoostModal } from './components/modals/MarqueeBoostModal';
 import { MarqueeHistoryModal } from './components/modals/MarqueeHistoryModal';
 import { FireworksCongratulationModal } from './components/modals/FireworksCongratulationModal';
 import { PwaInstallGuideModal } from './components/modals/PwaInstallGuideModal';
+import { FraudAppealModal } from './components/modals/FraudAppealModal';
 import { RecentUserJoinNotification } from './components/common/RecentUserJoinNotification';
 import { ZaloCommunityFloatingButton } from './components/common/ZaloCommunityFloatingButton';
 
@@ -132,7 +133,10 @@ function AppContent() {
     buySoftwareApp,
     purchaseServicePackage,
     isPwaModalOpen,
-    closePwaModal
+    closePwaModal,
+    isFraudAppealModalOpen,
+    closeFraudAppealModal,
+    fraudAppealTargetTask
   } = useTikTokApp();
 
   // Sync dark theme
@@ -389,6 +393,11 @@ function AppContent() {
       <PwaInstallGuideModal
         isOpen={isPwaModalOpen}
         onClose={closePwaModal}
+      />
+      <FraudAppealModal
+        isOpen={isFraudAppealModalOpen}
+        onClose={closeFraudAppealModal}
+        targetTask={fraudAppealTargetTask}
       />
 
       {/* Global Command Palette (Ctrl + K) */}

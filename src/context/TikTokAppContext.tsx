@@ -510,10 +510,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_livestream_tasks') : null;
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Lọc sạch 100% các phiên live đã kết thúc, chỉ nạp phiên đang phát sóng
+          const activeOnly = parsed.filter((l: LivestreamTaskItem) => l.status === 'live');
+          if (activeOnly.length > 0) return activeOnly;
+        }
       }
     } catch {}
-    return LIVESTREAM_TASKS;
+    return LIVESTREAM_TASKS.filter(l => l.status === 'live');
   });
 
   const [campaigns, setCampaigns] = useState<CampaignItem[]>(() => {
@@ -1190,17 +1194,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
-  // Auth state: check localStorage or default to false to show Landing Page first
+  // Auth state: Vĩnh viễn duy trì phiên 1 chạm, chống bị bắt đăng nhập lại nhiều lần
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
-      if (typeof window === 'undefined') return false;
-      return (
-        localStorage.getItem('tiktok_pro_auth') === 'true' ||
-        !!localStorage.getItem('ava_user_email') ||
-        !!localStorage.getItem('ava_user_profile')
-      );
+      if (typeof window === 'undefined') return true;
+      if (localStorage.getItem('ava_logged_out') === 'true') return false;
+      return true;
     } catch {
-      return false;
+      return true;
     }
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -1629,6 +1630,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const logout = () => {
     setIsAuthenticated(false);
     try {
+      localStorage.setItem('ava_logged_out', 'true');
       localStorage.removeItem('tiktok_pro_auth');
       localStorage.removeItem('ava_user_email');
     } catch {}

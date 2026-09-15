@@ -50,7 +50,7 @@ import { PwaInstallGuideModal } from './components/modals/PwaInstallGuideModal';
 import { RecentUserJoinNotification } from './components/common/RecentUserJoinNotification';
 import { ZaloCommunityFloatingButton } from './components/common/ZaloCommunityFloatingButton';
 
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ArrowLeft } from 'lucide-react';
 
 class ScreenErrorBoundary extends React.Component<
   { children: React.ReactNode; onReset: () => void },
@@ -266,7 +266,26 @@ function AppContent() {
         />
 
         {/* Screen Router */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 space-y-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 space-y-4 sm:space-y-6">
+          {/* Mobile Quick Exit / Back to Home Bar */}
+          {currentScreen !== 'home' && (
+            <div className="md:hidden flex items-center justify-between p-2.5 px-3 rounded-2xl bg-[#0D111E] border border-rose-500/30 shadow-lg backdrop-blur-md">
+              <button
+                onClick={() => setCurrentScreen('home')}
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-200 hover:text-white"
+              >
+                <ArrowLeft className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>← Về Trang Chủ</span>
+              </button>
+              <button
+                onClick={() => setCurrentScreen('marketplace')}
+                className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-black font-black text-[10px] font-mono shadow-sm flex items-center gap-1"
+              >
+                <span>🔥 MUA GÓI 1+1</span>
+              </button>
+            </div>
+          )}
+
           <ScreenErrorBoundary onReset={() => setCurrentScreen('home')}>
           {currentScreen === 'home' && (
             <HomeScreen

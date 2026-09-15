@@ -3,7 +3,7 @@ import { Sparkles, MessageCircle, X, Check, Copy, ExternalLink, Users, Coins, Fl
 import { useTikTokApp } from '../../context/TikTokAppContext';
 
 export const ZaloCommunityFloatingButton: React.FC = () => {
-  const { openAuthModal, showToast } = useTikTokApp();
+  const { openAuthModal, showToast, isAuthenticated, openLuckyWheel } = useTikTokApp();
   const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
 
@@ -167,12 +167,16 @@ export const ZaloCommunityFloatingButton: React.FC = () => {
                 <button
                   onClick={() => {
                     setIsOpenModal(false);
-                    if (openAuthModal) openAuthModal();
+                    if (!isAuthenticated && openAuthModal) {
+                      openAuthModal();
+                    } else if (openLuckyWheel) {
+                      openLuckyWheel();
+                    }
                   }}
                   className="flex-1 py-2.5 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-mono font-bold flex items-center justify-center gap-1.5 border border-amber-500/30 transition-colors"
                 >
                   <Coins className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Đăng ký nhận 5K Xu</span>
+                  <span>{isAuthenticated ? '🎁 Quay Vòng May Mắn' : 'Đăng ký nhận 5K Xu'}</span>
                 </button>
               </div>
             </div>

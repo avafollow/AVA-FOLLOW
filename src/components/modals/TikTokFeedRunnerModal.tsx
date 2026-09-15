@@ -952,15 +952,21 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         ? `https://www.tiktok.com/@${cleanHandle}/video/${itemMedia.videoId}`
         : `https://www.tiktok.com/@${cleanHandle}`;
 
-    // 1. Copy bình luận vào clipboard để user dán thẳng trên TikTok
+    // 1. Tự động đính kèm Hashtag Sàn #AVALIVE + Hashtag Chiến Dịch để xác thực nguồn tương tác thật
+    const cleanHandleTag = cleanHandle.replace(/[^a-zA-Z0-9_]/g, '');
+    const requiredHashtags = `#AVALIVE #${cleanHandleTag}`;
+    const fullCommentText = text.includes('#AVALIVE') ? text : `${text} ${requiredHashtags}`;
+
+    // 2. Copy bình luận hoàn chỉnh kèm hashtag vào clipboard để user dán thẳng trên TikTok
     try {
       if (navigator.clipboard) {
-        await navigator.clipboard.writeText(text);
-        showToast('📋 Đã copy bình luận! Đang mở TikTok để dán...');
+        await navigator.clipboard.writeText(fullCommentText);
+        showToast('📋 Đã sao chép bình luận & Hashtag xác thực! Đang mở TikTok để dán...');
       }
     } catch {
-      showToast('📋 Hãy dán bình luận: "' + text.slice(0, 30) + '..."');
+      showToast('📋 Hãy dán bình luận: "' + fullCommentText.slice(0, 30) + '..."');
     }
+
 
     // 2. Bắt đầu Tab Tracker + Mở TikTok
     tabTrackerRef.current.reset();
@@ -1136,15 +1142,17 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   <div>❤️ Thả <strong className="text-rose-400">tim</strong> vào video trên TikTok vừa mở, đợi tối thiểu <strong className="text-amber-300">30s</strong> rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+100 Xu</strong>.</div>
                 )}
                 {pendingVerification.action === 'comment' && (
-                  <div>💬 Dán bình luận đã copy (<strong className="text-cyan-400">Ctrl+V</strong>) vào ô bình luận TikTok → gửi. Chờ tối thiểu <strong className="text-amber-300">60s</strong> rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+200 Xu</strong>.</div>
+                  <div>💬 Dán bình luận đã copy kèm hashtag <strong className="text-cyan-400">#AVALIVE</strong> (<strong className="text-cyan-300">Ctrl+V</strong>) vào ô bình luận TikTok → gửi. Chờ tối thiểu <strong className="text-amber-300">60s</strong> rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> (+200 Xu).</div>
                 )}
                 {pendingVerification.action === 'share' && (
-                  <div>🔗 Chia sẻ video lên <strong className="text-blue-400">Facebook</strong> hoặc mạng xã hội. Chờ tối thiểu <strong className="text-amber-300">20s</strong> rồi bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+240 Xu</strong>.</div>
+                  <div>🔗 Chia sẻ video lên <strong className="text-blue-400">Facebook</strong> hoặc mạng xã hội. Chờ tối thiểu <strong className="text-amber-300">20s</strong> rồi bấm <strong className="text-emerald-400">Xác Nhận</strong> (+240 Xu).</div>
                 )}
-                <div className="text-[9px] text-slate-400 flex items-center gap-1 pt-1 border-t border-white/5">
-                  <span>🛡️ Cơ chế Anti-Fraud: Bắt buộc mở TikTok thật & ở lại đủ thời gian mới tính hợp lệ.</span>
+                <div className="text-[9px] text-slate-400 flex flex-col gap-0.5 pt-1 border-t border-white/5">
+                  <span className="text-emerald-300 font-bold">🛡️ Cơ chế Bảo Chứng 7 Ngày (7-Day Escrow):</span>
+                  <span>Xu nhiệm vụ được bảo lưu trong ví bảo chứng 7 ngày để đảm bảo tính minh bạch & tự động thanh toán.</span>
                 </div>
               </div>
+
 
               {/* Buttons */}
               <div className="flex gap-2">

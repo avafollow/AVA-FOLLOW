@@ -194,10 +194,12 @@ export const BankWithdrawModal: React.FC = () => {
             <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-0.5 font-mono">
               <li>Lần rút đầu tiên: <strong className="text-emerald-400">MIỄN PHÍ 0% PHÍ SÀN</strong>.</li>
               <li>Từ lần thứ 2 trở đi: <strong className="text-amber-400">Phí xử lý 5%</strong> và <strong className="text-rose-400">Bắt buộc cập nhật KYC đầy đủ</strong>.</li>
+              <li>Cơ chế bảo chứng: <strong className="text-emerald-300">Xu nhiệm vụ được bảo lưu 7 ngày</strong> chống gian lận &amp; hủy tương tác. Sau 7 ngày tự động mở khóa rút tiền mặt.</li>
               <li>Lịch giải ngân: <strong className="text-white">10:00 Sáng Thứ Hai hàng tuần</strong> (xử lý giao dịch trong 24 giờ).</li>
               <li>Số tiền rút tối thiểu: <strong className="text-white">200,000 VNĐ</strong> (200,000 Xu).</li>
             </ul>
           </div>
+
 
 
           {/* Current Balance Bar */}

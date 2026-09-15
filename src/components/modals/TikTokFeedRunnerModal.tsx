@@ -329,8 +329,41 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const countLive = liveFeedDeduplicated.length;
   const countPartner = partnerFeedDeduplicated.length;
   const countCross = crossFeedDeduplicated.length;
+  // Kho video dự phòng an toàn tuyệt đối 100% (Đảm bảo luôn luôn có video để phát ngay lập tức trên mọi thiết bị)
+  const fallbackTaskItem: UnifiedFeedItem = {
+    id: 'task_1',
+    kind: 'video',
+    title: 'Follow Kênh TikTok Mỹ Phẩm Dưỡng Da ZenSkin',
+    type: 'follow',
+    requiresWatch: true,
+    channelName: 'ZenSkin Official Store',
+    channelHandle: '@zenskin_vietnam',
+    channelAvatar: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=120&auto=format&fit=crop&q=80',
+    targetUrl: 'https://tiktok.com/@zenskin_vietnam',
+    rewardCoins: 200,
+    videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4',
+    sampleComments: [
+      'Da mình nhạy cảm dùng dòng này êm ru luôn ạ!',
+      'Shop tư vấn nhiệt tình, giao hàng nhanh đỉnh chóp ❤️',
+      'Đã mua lần 2, dưỡng ẩm cực kỳ căng bóng!'
+    ],
+    guide: 'Bấm Follow kênh, xem video tối thiểu 15 giây. Hệ thống tự động xác minh và cộng Xu ngay lập tức.',
+    campaignCategory: 'partner',
+    partnerName: 'ZenSkin Vietnam (Official Brand)',
+    partnerBadge: 'Thương Hiệu Kim Cương',
+    totalSlots: 2000,
+    remainingSlots: 580,
+    isUrgent: true,
+    isBoosted: true
+  };
 
-  const currentItem = combinedFeed[currentIndex] || combinedFeed[0];
+  const safeFeed = (combinedFeed && combinedFeed.length > 0)
+    ? combinedFeed
+    : (allFeedDeduplicated && allFeedDeduplicated.length > 0)
+      ? allFeedDeduplicated
+      : [fallbackTaskItem];
+
+  const currentItem = safeFeed[currentIndex] || safeFeed[0] || fallbackTaskItem;
   const currentClaimed = currentItem ? (taskClaimedMap[currentItem.id] || {}) : {};
 
   // Kiểm tra xem chiến dịch hiện tại có bắt buộc xem video / live không
@@ -507,7 +540,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFeedRunnerOpen, currentIndex, combinedFeed.length]);
 
-  if (!isFeedRunnerOpen || !currentItem) return null;
+  if (!isFeedRunnerOpen) return null;
 
   // Cảm ứng vuốt chạm (Touch Swipe) cho điện thoại di động & máy tính bảng (Tablet)
   const touchStartY = useRef<number>(0);

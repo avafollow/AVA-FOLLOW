@@ -128,7 +128,7 @@ export function extractYouTubeVideoId(url: string): string | null {
 export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedMediaInfo {
   const url = (inputUrl || '').trim();
   const handle = extractTikTokHandle(url) || defaultHandle || '@creator_tiktok';
-  const isLive = url.includes('/live') || url.toLowerCase().includes('live');
+  const isLive = /\/(live|livestream)($|\/|\?)/i.test(url) || /tiktok\.com\/@[\w\.-]+\/live/i.test(url) || /youtube\.com\/.*\/live/i.test(url);
   const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
   const isFacebook = url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com');
   const isDirectVideo = /\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i.test(url);

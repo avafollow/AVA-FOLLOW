@@ -55,8 +55,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({
 
         {/* Center: Lướt Kiếm Tiền Button (Phát tất cả Video & Live) */}
         <button
-          onClick={() => openFeedRunner('all')}
-          className="flex flex-col items-center -mt-5 group"
+          onClick={() => {
+            onSelectScreen('tasks');
+            openFeedRunner('all');
+          }}
+          className="flex flex-col items-center -mt-5 group cursor-pointer"
         >
           <div className="p-3.5 rounded-full bg-gradient-to-tr from-[#FF0050] via-purple-600 to-[#00F2FE] text-white shadow-xl shadow-rose-600/40 group-active:scale-90 transition-transform animate-pulse">
             <Play className="h-5 w-5 fill-white" />

@@ -66,8 +66,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="space-y-4">
         {/* Quick Launch Swipe Video Feed */}
         <button
-          onClick={() => openFeedRunner('all')}
-          className="w-full py-2.5 lg:py-3 px-2 lg:px-4 rounded-2xl bg-gradient-to-r from-[#FF0050] via-purple-600 to-[#00F2FE] text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-rose-600/30 hover:scale-[1.02] active:scale-95 transition-all"
+          onClick={() => {
+            onSelectScreen('tasks');
+            openFeedRunner('all');
+          }}
+          className="w-full py-2.5 lg:py-3 px-2 lg:px-4 rounded-2xl bg-gradient-to-r from-[#FF0050] via-purple-600 to-[#00F2FE] text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-rose-600/30 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
           title="Lướt Video Kiếm Tiền"
         >
           <Play className="h-4 w-4 fill-white shrink-0" />

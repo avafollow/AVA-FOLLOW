@@ -157,6 +157,8 @@ interface TikTokAppContextType {
   isFeedRunnerOpen: boolean;
   feedRunnerFilter: 'all' | 'cross_follow' | 'community' | 'partner' | 'live';
   feedRunnerTargetId: string | null;
+  tasksActiveTab: "missions" | "watch_feed" | "livestreams" | "enterprise" | "cross_follow";
+  setTasksActiveTab: (tab: "missions" | "watch_feed" | "livestreams" | "enterprise" | "cross_follow") => void;
   setFeedRunnerTargetId: (id: string | null) => void;
   setFeedRunnerFilter: (filter: 'all' | 'cross_follow' | 'community' | 'partner' | 'live') => void;
   openFeedRunner: (filterOrId?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | string | any) => void;
@@ -1189,6 +1191,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isFeedRunnerOpen, setIsFeedRunnerOpen] = useState(false);
   const [feedRunnerFilter, setFeedRunnerFilter] = useState<'all' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
   const [feedRunnerTargetId, setFeedRunnerTargetId] = useState<string | null>(null);
+  const [tasksActiveTab, setTasksActiveTab] = useState<"missions" | "watch_feed" | "livestreams" | "enterprise" | "cross_follow">("missions");
   const [activeLiveTask, setActiveLiveTask] = useState<LivestreamTaskItem | null>(null);
   const [isLiveRunnerOpen, setIsLiveRunnerOpen] = useState(false);
   const [isLuckyWheelOpen, setIsLuckyWheelOpen] = useState(false);
@@ -1842,6 +1845,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const openFeedRunner = (filterOrId?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | string | any) => {
+    setTasksActiveTab('watch_feed');
     if (typeof filterOrId === 'string') {
       if (['all', 'cross_follow', 'community', 'partner', 'live'].includes(filterOrId)) {
         setFeedRunnerFilter(filterOrId as any);
@@ -4998,6 +5002,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isFeedRunnerOpen,
         feedRunnerFilter,
         feedRunnerTargetId,
+        tasksActiveTab,
+        setTasksActiveTab,
         setFeedRunnerTargetId,
         setFeedRunnerFilter,
         openFeedRunner,

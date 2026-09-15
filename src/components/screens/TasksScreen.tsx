@@ -71,7 +71,9 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
     claimTaskAction,
     openDeposit,
     openShareModal,
-    campaigns
+    campaigns,
+    tasksActiveTab,
+    setTasksActiveTab
   } = useTikTokApp();
 
   // 5 TAB CHỨC NĂNG DẠNG LƯỚI HÀNG TRÊN CÙNG
@@ -80,7 +82,8 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
   // 3. "livestreams": Xem livestream TikTok mắt thật
   // 4. "enterprise": Chiến dịch Doanh nghiệp ký quỹ Escrow
   // 5. "cross_follow": Follow chéo cộng đồng theo hạn mức cấp bậc
-  const [activeTab, setActiveTab] = useState<"missions" | "watch_feed" | "livestreams" | "enterprise" | "cross_follow">("missions");
+  const activeTab = tasksActiveTab;
+  const setActiveTab = setTasksActiveTab;
 
   const [isTokenSinkModalOpen, setIsTokenSinkModalOpen] = useState<boolean>(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);

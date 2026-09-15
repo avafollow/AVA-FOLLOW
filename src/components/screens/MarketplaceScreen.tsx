@@ -102,15 +102,15 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
                 <span>🔥 SIÊU ƯU ĐÃI: MUA 1 TẶNG 1 VIEW (CHO 100 NGƯỜI ĐẦU TIÊN)</span>
               </div>
               <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[10px] font-mono font-bold">
-                ✓ Mua bao nhiêu tặng bấy nhiêu View 40s
+                ✓ Mua bao nhiêu tặng bấy nhiêu Lượt Xem Video
               </span>
               <FeatureGuideTooltip
-                title="Chương Trình Mua 1 Tặng 1 Lượt Xem (View 40s)"
-                description="Dành riêng cho 100 khách hàng đầu tiên: Mua bất kỳ gói dịch vụ nào (Follow, Tim, Comment, Share) đều được TẶNG MIỄN PHÍ 100% số lượng Lượt Xem Video 40s tương ứng. Người dùng làm nhiệm vụ bắt buộc phải vào kênh lướt video 40s để tạo tín hiệu thuật toán đẩy xu hướng."
+                title="Chương Trình Mua 1 Tặng 1 Lượt Xem Video"
+                description="Dành riêng cho 100 khách hàng đầu tiên: Mua bất kỳ gói dịch vụ nào (Follow, Tim, Comment, Share) đều được TẶNG MIỄN PHÍ 100% số lượng Lượt Xem Video tương ứng. Người dùng làm nhiệm vụ bắt buộc phải vào kênh lướt xem video để tạo tín hiệu thuật toán đẩy xu hướng."
                 steps={[
-                  "Ví dụ: Mua 1,000 Follower → TẶNG THÊM 1,000 Lượt Xem Video 40s miễn phí",
-                  "Ví dụ: Mua 5,000 Tim → TẶNG THÊM 5,000 Lượt Xem Video 40s miễn phí",
-                  "View 40s: Người làm nhiệm vụ vào kênh lướt ở lại tối thiểu 40 giây",
+                  "Ví dụ: Mua 1,000 Follower → TẶNG THÊM 1,000 Lượt Xem Video miễn phí",
+                  "Ví dụ: Mua 5,000 Tim → TẶNG THÊM 5,000 Lượt Xem Video miễn phí",
+                  "Tặng Lượt Xem Video: Người làm nhiệm vụ vào kênh lướt xem video chất lượng",
                   "Tự động kích hoạt song song 2 chiến dịch giúp kênh bùng nổ đề xuất FYP"
                 ]}
                 tips="100 suất đầu tiên sẽ được áp dụng tự động ngay khi bạn kích hoạt gói trên hệ thống."
@@ -119,10 +119,10 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
               />
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight">
-              Kho Dịch Vụ Tăng Tương Tác &amp; Tặng Kèm 100% View Thật 40s
+              Kho Dịch Vụ Tăng Tương Tác &amp; Tặng Kèm 100% View Thật
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Mọi gói bạn đặt mua sẽ được phân phối cho hơn <strong>154,200+ người dùng thật</strong>. Đặt mua bất kỳ gói nào đều được <strong>Tặng 100% Lượt Xem 40s</strong> tương ứng giúp kênh tăng điểm đề xuất thuật toán.
+              Mọi gói bạn đặt mua sẽ được phân phối cho hơn <strong>154,200+ người dùng thật</strong>. Đặt mua bất kỳ gói nào đều được <strong>Tặng 100% Lượt Xem Video</strong> tương ứng giúp kênh tăng điểm đề xuất thuật toán.
             </p>
           </div>
 

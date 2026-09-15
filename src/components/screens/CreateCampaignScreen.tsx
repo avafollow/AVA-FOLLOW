@@ -65,13 +65,13 @@ const TARGET_OPTIONS: TargetOptionDef[] = [
   },
   { 
     id: 'watch', 
-    label: 'Kết Nối Lượt Xem Video 40s FYP', 
+    label: 'Kết Nối Lượt Xem Video FYP', 
     icon: Play, 
-    desc: '500 Xu / view 40s (Tặng kèm Mua 1 Tặng 1)', 
+    desc: '500 Xu / lượt xem (Tặng kèm Mua 1 Tặng 1)', 
     unitPrice: 500, 
     minQuantity: 1, 
     defaultQty: 10, 
-    unitLabel: 'Lượt Xem 40s' 
+    unitLabel: 'Lượt Xem Video' 
   },
   { 
     id: 'like', 

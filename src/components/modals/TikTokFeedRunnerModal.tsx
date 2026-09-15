@@ -279,7 +279,18 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }));
 
 
-  // Hàm loại bỏ hoàn toàn trùng lặp và đẩy TOP 1 lên đầu (Ưu tiên gói đẩy Top 100.000 Xu)
+  // Thứ tự ưu tiên sắp xếp nhiệm vụ theo chuỗi tuần tự chuẩn: follow -> like -> comment -> share -> watch -> livestream
+  const TASK_TYPE_ORDER: Record<string, number> = {
+    follow: 1,
+    like: 2,
+    comment: 3,
+    share: 4,
+    watch: 5,
+    livestream: 6,
+    livestream_viewers: 6
+  };
+
+  // Hàm loại bỏ hoàn toàn trùng lặp và phân nhóm tuần tự nghiêm ngặt theo loại nhiệm vụ
   const deduplicateAndSortFeed = (items: UnifiedFeedItem[]): UnifiedFeedItem[] => {
     const seen = new Set<string>();
     const unique: UnifiedFeedItem[] = [];
@@ -296,8 +307,15 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
 
     return unique.sort((a, b) => {
+      // 1. Ưu tiên hàng đầu cho các chiến dịch được đẩy TOP (isBoosted)
       if (a.isBoosted && !b.isBoosted) return -1;
       if (!a.isBoosted && b.isBoosted) return 1;
+
+      // 2. Sắp xếp tuần tự nghiêm ngặt theo nhóm chuỗi nhiệm vụ: Follow -> Like -> Comment -> Share -> Watch -> Live
+      const orderA = TASK_TYPE_ORDER[a.type || (a.kind === 'livestream' ? 'livestream' : 'watch')] || 99;
+      const orderB = TASK_TYPE_ORDER[b.type || (b.kind === 'livestream' ? 'livestream' : 'watch')] || 99;
+      if (orderA !== orderB) return orderA - orderB;
+
       return 0;
     });
   };

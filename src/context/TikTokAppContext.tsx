@@ -1188,7 +1188,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Auth state: check localStorage or default to false to show Landing Page first
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('tiktok_pro_auth') === 'true';
+      if (typeof window === 'undefined') return false;
+      return (
+        localStorage.getItem('tiktok_pro_auth') === 'true' ||
+        !!localStorage.getItem('ava_user_email') ||
+        !!localStorage.getItem('ava_user_profile')
+      );
     } catch {
       return false;
     }

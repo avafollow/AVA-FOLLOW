@@ -212,7 +212,7 @@
 .animate-led-marquee {
   display: flex;
   width: max-content;
-  animation: ledMarquee 48s linear infinite;
+  animation: ledMarquee 80s linear infinite;
   will-change: transform;
 }
 

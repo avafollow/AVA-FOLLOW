@@ -161,9 +161,22 @@ export const TasksScreen: React.FC<{ darkMode: boolean; onTaskCompleted?: (task:
       return true;
     });
 
+  const TASK_TYPE_ORDER: Record<string, number> = {
+    follow: 1,
+    like: 2,
+    comment: 3,
+    share: 4,
+    watch: 5,
+    livestream: 6,
+    livestream_viewers: 6
+  };
+
   const sortedPartnerTasks = [...filteredPartnerTasks].sort((a, b) => {
     if (a.isBoosted && !b.isBoosted) return -1;
     if (!a.isBoosted && b.isBoosted) return 1;
+    const orderA = TASK_TYPE_ORDER[a.type] || 99;
+    const orderB = TASK_TYPE_ORDER[b.type] || 99;
+    if (orderA !== orderB) return orderA - orderB;
     if (a.isHot && !b.isHot) return -1;
     if (!a.isHot && b.isHot) return 1;
     if (a.isUrgent && !b.isUrgent) return -1;

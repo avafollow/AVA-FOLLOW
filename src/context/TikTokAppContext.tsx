@@ -153,6 +153,8 @@ interface TikTokAppContextType {
   openOrderModal: (pkg: GrowthServiceItem) => void;
   closeOrderModal: () => void;
   purchaseServicePackage: (pkg: GrowthServiceItem, targetUrl: string, instructions?: string, paymentMethod?: 'coins' | 'sepay') => boolean;
+  refundLivestreamOrder: (orderId: string, reason?: string) => boolean;
+  updateOrderTargetUrl: (orderId: string, newTargetUrl: string) => boolean;
 
   // Modals state
   runnerTask: TikTokTaskItem | null;
@@ -2909,6 +2911,67 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return true;
   };
 
+  // Hoàn tiền 100% gói Livestream nếu không đạt target cam kết
+  const refundLivestreamOrder = (orderId: string, reason?: string): boolean => {
+    const order = user.myOrders?.find(o => o.id === orderId);
+    if (!order) {
+      showToast('Không tìm thấy đơn hàng cần hoàn tiền!');
+      return false;
+    }
+
+    const priceNumeric = parseInt((order.price || '0').replace(/[^0-9]/g, ''), 10) || 500000;
+
+    setUser(prev => {
+      const updatedOrders = (prev.myOrders || []).map(o => {
+        if (o.id === orderId) {
+          return {
+            ...o,
+            status: 'refunded' as const,
+            liveBroadcastActive: false
+          };
+        }
+        return o;
+      });
+
+      const newTx: TransactionRecord = {
+        id: `tx_ref_${Date.now()}`,
+        type: 'deposit',
+        title: `Hoàn Tiền 100% Gói Live #${orderId}`,
+        amount: `+${priceNumeric.toLocaleString()} Xu`,
+        isPositive: true,
+        date: 'Vừa xong',
+        method: 'Hoàn Tiền Livestream',
+        status: 'success'
+      };
+
+      return {
+        ...prev,
+        avaliveCoins: (prev.avaliveCoins || 0) + priceNumeric,
+        myOrders: updatedOrders,
+        transactions: [newTx, ...(prev.transactions || [])]
+      };
+    });
+
+    setLivestreamTasks(prev => prev.filter(l => l.id !== `live_bcast_${orderId}`));
+    if (activeBroadcastNotification?.orderId === orderId) {
+      setActiveBroadcastNotification(null);
+    }
+
+    showToast(`💰 ĐÃ HOÀN TIỀN 100% (${order.price}) VÀO VÍ CỦA BẠN DO PHIÊN LIVE CHƯA ĐẠT TARGET!`);
+    return true;
+  };
+
+  // Cập nhật link TikTok đích cho đơn hàng
+  const updateOrderTargetUrl = (orderId: string, newTargetUrl: string): boolean => {
+    if (!newTargetUrl.trim()) return false;
+    setUser(prev => ({
+      ...prev,
+      myOrders: (prev.myOrders || []).map(o => o.id === orderId ? { ...o, targetUrl: newTargetUrl.trim() } : o)
+    }));
+    showToast('✅ Đã cập nhật đường link TikTok đích thành công! Hệ thống đang phân bổ lượt tương tác mới.');
+    return true;
+  };
+
   // 3. Tương tác với phòng Live cộng đồng & Cập nhật tiến độ gói của Người Mua
   const interactWithLiveBroadcast = (broadcastId: string, action: 'eye' | 'heart' | 'comment' | 'share') => {
     let reward = 200;
@@ -5263,6 +5326,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         openOrderModal,
         closeOrderModal,
         purchaseServicePackage,
+        refundLivestreamOrder,
+        updateOrderTargetUrl,
         runnerTask,
         isRunnerOpen,
         openRunner,

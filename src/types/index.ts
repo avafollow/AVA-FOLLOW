@@ -508,7 +508,7 @@ export interface ServiceOrder {
   targetUrl: string;          // Link kênh TikTok hoặc link video/live
   targetQuantity: number;
   completedQuantity: number;
-  status: 'processing' | 'running' | 'completed';
+  status: 'processing' | 'running' | 'completed' | 'refunded';
   createdAt: string;
   // Live Broadcast Delivery Tracking (Dành cho người mua gói mắt xem live)
   isLivePackage?: boolean;

@@ -198,88 +198,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     };
   });
 
-  // 2. Build unified feed items combining ALL active campaigns from the website (Tự động ẩn khi hết suất)
-  const activeTasks = (tasks || []).filter(t => t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0));
-  const videoFeedItems: UnifiedFeedItem[] = activeTasks.map(t => {
-    const isLiveUrl = (t.targetUrl || '').toLowerCase().includes('/live');
-    return {
-      id: t.id,
-      kind: isLiveUrl ? 'livestream' : 'video',
-      title: t.title,
-      type: t.type,
-      requiresWatch: true,
-      channelName: t.channelName,
-      channelHandle: t.channelHandle,
-      channelAvatar: t.channelAvatar,
-      targetUrl: t.targetUrl,
-      rewardCoins: t.rewardCoins || 200,
-      videoUrl: t.videoPreviewUrl || parseMediaUrl(t.targetUrl, t.channelHandle).streamUrl,
-      sampleComments: t.sampleComments,
-      guide: t.guide,
-      campaignCategory: t.campaignCategory || 'community',
-      partnerName: t.partnerName,
-      partnerBadge: t.partnerBadge,
-      totalSlots: t.totalSlots,
-      remainingSlots: t.remainingSlots,
-      isUrgent: t.isUrgent
-    };
-  });
-
-  // 3. Feed items từ kho Follow Chéo Cộng Đồng Creator (Không khống chế 15s)
-  const crossFollowFeedItems: UnifiedFeedItem[] = INITIAL_CROSS_FOLLOW_ITEMS
-    .filter(cf => (cf.followersCount || 1000) > (cf.completedByUsersCount || 0))
-    .map((cf) => ({
-      id: cf.id,
-      kind: 'video',
-      title: cf.title,
-      type: cf.type,
-      requiresWatch: false,
-      channelName: cf.channelName,
-      channelHandle: cf.channelHandle,
-      channelAvatar: cf.channelAvatar,
-      targetUrl: cf.targetUrl,
-      rewardCoins: cf.rewardXu || 200,
-      videoUrl: parseMediaUrl(cf.targetUrl, cf.channelHandle).streamUrl,
-      sampleComments: [
-        'Đã follow chéo ủng hộ kênh bạn nhé!',
-        'Nội dung hay quá, chúc kênh sớm triệu follow!',
-        'Tương tác chéo uy tín nha bạn ơi!'
-      ],
-      guide: `Follow kênh & tương tác chéo với ${cf.channelHandle} để cùng nhận Xu thưởng.`,
-      campaignCategory: 'community',
-      partnerName: 'Follow Chéo Tự Do',
-      partnerBadge: 'Cộng Đồng Chéo',
-      totalSlots: cf.followersCount || 10000,
-      remainingSlots: Math.max(10, (cf.followersCount || 10000) - (cf.completedByUsersCount || 0))
-    }));
-
-  // 4. Feed items từ các Chiến Dịch Livestream Hợp Lệ Đang Chạy Trên Sàn (Chỉ hiển thị phiên live có trong chiến dịch)
-  const liveFeedItems: UnifiedFeedItem[] = (livestreamTasks || [])
-    .filter(l => l.status === 'live' && l.targetUrl && l.targetUrl.trim().length > 0)
-    .map(l => ({
-      id: l.id,
-      kind: 'livestream',
-      title: l.roomTitle || `Chiến Dịch Live: ${l.channelName}`,
-      type: 'livestream',
-      requiresWatch: true,
-      channelName: l.channelName,
-      channelHandle: l.channelHandle,
-      channelAvatar: l.channelAvatar,
-      targetUrl: l.targetUrl,
-      rewardCoins: l.totalRewardCoins || 400,
-      videoUrl: parseMediaUrl(l.targetUrl, l.channelHandle).streamUrl,
-      guide: `Xem trực tiếp phiên live chiến dịch đủ ${l.targetMinutes || 3} phút để nhận Xu thưởng.`,
-      currentViewers: l.currentViewers || 580,
-      roomTitle: l.roomTitle,
-      targetMinutes: l.targetMinutes || 3,
-      campaignCategory: 'partner',
-      partnerName: l.channelName,
-      partnerBadge: 'Chiến Dịch Live Thật',
-      totalSlots: 1000,
-      remainingSlots: 350
-    }));
-
-
   // Thứ tự ưu tiên sắp xếp nhiệm vụ theo chuỗi tuần tự chuẩn: follow -> like -> comment -> share -> watch -> livestream
   const TASK_TYPE_ORDER: Record<string, number> = {
     follow: 1,
@@ -349,84 +267,63 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     isBoosted: true
   } : null;
 
+  // CHỈ HIỂN THỊ 100% CHIẾN DỊCH THẬT ĐANG CHẠY (ĐÃ XÓA TOÀN BỘ VIDEO & LIVE DEMO ẢO)
   const allFeedDeduplicated = deduplicateAndSortFeed([
     ...(customTestItem ? [customTestItem] : []),
-    ...createdCampaignFeedItems,
-    ...videoFeedItems,
-    ...crossFollowFeedItems,
-    ...liveFeedItems
+    ...createdCampaignFeedItems
   ]);
 
   const missionsFeedDeduplicated = deduplicateAndSortFeed([
     ...(customTestItem && customTestItem.kind === 'video' ? [customTestItem] : []),
-    ...createdCampaignFeedItems.filter(i => i.kind === 'video'),
-    ...videoFeedItems
+    ...createdCampaignFeedItems.filter(i => i.kind === 'video')
   ]);
 
   const liveFeedDeduplicated = deduplicateAndSortFeed([
     ...(customTestItem && customTestItem.kind === 'livestream' ? [customTestItem] : []),
-    ...createdCampaignFeedItems.filter(i => i.kind === 'livestream'),
-    ...liveFeedItems
+    ...createdCampaignFeedItems.filter(i => i.kind === 'livestream')
   ]);
 
-  const partnerFeedDeduplicated = deduplicateAndSortFeed([
-    ...(customTestItem ? [customTestItem] : []),
-    ...createdCampaignFeedItems,
-    ...videoFeedItems.filter(i => i.campaignCategory === 'partner')
-  ]);
+  const partnerFeedDeduplicated = allFeedDeduplicated;
+  const crossFeedDeduplicated = allFeedDeduplicated.filter(i => i.type === 'follow');
 
-  const crossFeedDeduplicated = deduplicateAndSortFeed(crossFollowFeedItems);
-
-  // CHUỖI TOÀN BỘ VIDEO & CHIẾN DỊCH HỆ THỐNG LIÊN KẾT ĐỒNG BỘ (ĐÃ LỌC SẠCH TRÙNG LẶP & ƯU TIÊN TOP 1)
+  // CHUỖI TOÀN BỘ VIDEO & CHIẾN DỊCH HỆ THỐNG LIÊN KẾT ĐỒNG BỘ
   const combinedFeed: UnifiedFeedItem[] = 
     filterMode === 'missions' ? missionsFeedDeduplicated :
     filterMode === 'live' ? liveFeedDeduplicated :
     filterMode === 'partner' ? partnerFeedDeduplicated :
     filterMode === 'cross_follow' ? crossFeedDeduplicated :
-    filterMode === 'community' ? deduplicateAndSortFeed(videoFeedItems.filter(i => i.campaignCategory === 'community')) :
     allFeedDeduplicated;
 
-  // Counts for each category (chuẩn sau khử trùng lặp)
+  // Counts for each category
   const countAll = allFeedDeduplicated.length;
   const countMissions = missionsFeedDeduplicated.length;
   const countLive = liveFeedDeduplicated.length;
   const countPartner = partnerFeedDeduplicated.length;
   const countCross = crossFeedDeduplicated.length;
-  // Kho video dự phòng an toàn tuyệt đối 100% (Đảm bảo luôn luôn có video để phát ngay lập tức trên mọi thiết bị)
-  const fallbackTaskItem: UnifiedFeedItem = {
-    id: 'task_1',
+
+  const emptyPlaceholderItem: UnifiedFeedItem = {
+    id: 'empty_campaign_placeholder',
     kind: 'video',
-    title: 'Follow Kênh TikTok Mỹ Phẩm Dưỡng Da ZenSkin',
+    title: 'Hệ thống đã dọn sạch các phiên live & video demo',
     type: 'follow',
-    requiresWatch: true,
-    channelName: 'ZenSkin Official Store',
-    channelHandle: '@zenskin_vietnam',
-    channelAvatar: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=120&auto=format&fit=crop&q=80',
-    targetUrl: 'https://tiktok.com/@zenskin_vietnam',
-    rewardCoins: 200,
-    videoUrl: '/videos/sample1.mp4',
-    sampleComments: [
-      'Da mình nhạy cảm dùng dòng này êm ru luôn ạ!',
-      'Shop tư vấn nhiệt tình, giao hàng nhanh đỉnh chóp ❤️',
-      'Đã mua lần 2, dưỡng ẩm cực kỳ căng bóng!'
-    ],
-    guide: 'Bấm Follow kênh, xem video tối thiểu 15 giây. Hệ thống tự động xác minh và cộng Xu ngay lập tức.',
+    requiresWatch: false,
+    channelName: 'Hệ Thống AVA FOLLOW',
+    channelHandle: '@avalive_official',
+    channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+    targetUrl: 'https://tiktok.com/@avalive_official',
+    rewardCoins: 0,
+    videoUrl: '',
+    sampleComments: [],
+    guide: 'Tạo chiến dịch mới để xuất hiện trên Feed người dùng.',
     campaignCategory: 'partner',
-    partnerName: 'ZenSkin Vietnam (Official Brand)',
-    partnerBadge: 'Thương Hiệu Kim Cương',
-    totalSlots: 2000,
-    remainingSlots: 580,
-    isUrgent: true,
-    isBoosted: true
+    partnerName: 'AVA FOLLOW System',
+    partnerBadge: 'Hệ Thống Thật 100%',
+    totalSlots: 0,
+    remainingSlots: 0
   };
 
-  const safeFeed = (combinedFeed && combinedFeed.length > 0)
-    ? combinedFeed
-    : (allFeedDeduplicated && allFeedDeduplicated.length > 0)
-      ? allFeedDeduplicated
-      : [fallbackTaskItem];
-
-  const currentItem = safeFeed[currentIndex] || safeFeed[0] || fallbackTaskItem;
+  const safeFeed = combinedFeed.length > 0 ? combinedFeed : allFeedDeduplicated;
+  const currentItem = safeFeed[currentIndex] || safeFeed[0] || emptyPlaceholderItem;
   const currentClaimed = currentItem ? (taskClaimedMap[currentItem.id] || {}) : {};
 
   const currentMediaInfo = parseMediaUrl(currentItem?.targetUrl || currentItem?.videoUrl || '', currentItem?.channelHandle);
@@ -1373,6 +1270,22 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         >
           {/* TÁCH BIỆT CÁC TAB CODE PLAYER THEO YÊU CẦU: LIVE THẬT 100% & VIDEO THƯỜNG */}
           {(() => {
+            if (safeFeed.length === 0) {
+              return (
+                <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm select-none">
+                  <div className="w-16 h-16 rounded-3xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 shadow-xl">
+                    <Sparkles className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-black text-white font-display">Chưa Có Chiến Dịch Nào Đang Chạy</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                      Toàn bộ video &amp; phiên live demo đã được làm sạch. Bạn có thể tạo chiến dịch mới để phát trên Feed hoặc quay lại sau!
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+
             const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
             const isLiveItem = currentItem.kind === 'livestream' || itemMedia.isLive;
 
@@ -1727,32 +1640,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   </span>
                 </button>
               )}
-
-              {/* Bookmark / Favorite Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleBookmarkAction();
-                }}
-                className="flex flex-col items-center gap-0.5 group cursor-pointer"
-                title="Lưu video yêu thích"
-              >
-                <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-75">
-                  <Bookmark className={`h-6 w-6 drop-shadow-lg ${currentClaimed.bookmark ? 'fill-amber-400 text-amber-400' : ''}`} />
-                </div>
-                <span className="text-[9px] font-mono font-bold text-white/90 drop-shadow-md">
-                  {currentClaimed.bookmark ? 'Đã Lưu' : 'Lưu'}
-                </span>
-              </button>
-
-              {/* Spinning Music Vinyl Disc */}
-              <div className="mt-1 w-8 h-8 rounded-full bg-slate-900/90 border-2 border-slate-700/80 p-1 flex items-center justify-center shadow-2xl animate-spin-slow">
-                <img 
-                  src={currentItem.channelAvatar} 
-                  alt="" 
-                  className="w-4 h-4 rounded-full object-cover"
-                />
-              </div>
             </div>
           )}
 

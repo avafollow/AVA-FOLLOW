@@ -410,9 +410,13 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const currentItem = safeFeed[currentIndex] || safeFeed[0] || fallbackTaskItem;
   const currentClaimed = currentItem ? (taskClaimedMap[currentItem.id] || {}) : {};
 
+  const currentMediaInfo = parseMediaUrl(currentItem?.targetUrl || currentItem?.videoUrl || '', currentItem?.channelHandle);
+  const isLiveItem = currentItem?.kind === 'livestream' || currentItem?.type === 'livestream' || currentMediaInfo.isLive;
+  const targetCampaignAction = currentItem?.type || 'follow';
+
   // Kiểm tra xem chiến dịch hiện tại có bắt buộc xem video / live không
   const isWatchRequired = currentItem 
-    ? (currentItem.kind === 'livestream' || currentItem.type === 'watch' || currentItem.requiresWatch === true)
+    ? (isLiveItem || currentItem.type === 'watch' || currentItem.requiresWatch === true)
     : false;
 
   // Sync filterMode when feed runner opens with a specific filter
@@ -1630,78 +1634,103 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             )}
           </div>
 
-          {/* Right Action Bar (Chỉ hiển thị trên Video Thường, tự động ẩn khi Livestream hoặc Embed để không đè lên giao diện TikTok & xóa bỏ hoàn toàn số ảo) */}
-          {playerMode !== 'embed' && currentItem?.kind !== 'livestream' && (
+          {/* Right Action Bar (Chỉ hiển thị trên Video Thường, ẩn khi Livestream hoặc Embed để không đè màn hình, chỉ hiện DUY NHẤT 1 nút tương ứng với loại chiến dịch) */}
+          {playerMode !== 'embed' && !isLiveItem && (
             <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-3.5 pointer-events-auto animate-in fade-in duration-300">
-              {/* Creator Avatar with Follow Plus Badge */}
-              <div 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleFollowAction();
-                }}
-                className="relative mb-2 cursor-pointer group"
-                title="Bấm avatar để Follow kênh & nhận +200 Xu"
-              >
-                <img 
-                  src={currentItem.channelAvatar} 
-                  alt="" 
-                  className="w-12 h-12 rounded-full object-cover border-2 border-white group-hover:border-rose-500 transition-all shadow-xl"
-                />
-                <button
+              {/* Creator Avatar with Follow Plus Badge (Chỉ hiện khi chiến dịch là Follow) */}
+              {targetCampaignAction === 'follow' && (
+                <div 
                   onClick={(e) => {
                     e.stopPropagation();
                     handleFollowAction();
                   }}
-                  className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-[22px] h-[22px] rounded-full flex items-center justify-center text-white transition-all shadow-lg cursor-pointer ${
-                    currentClaimed.follow 
-                      ? 'bg-emerald-500 ring-2 ring-emerald-400/60 scale-100' 
-                      : 'bg-[#FE2C55] hover:scale-110 active:scale-95 shadow-red-500/50'
-                  }`}
-                  title={currentClaimed.follow ? 'Đã Follow trên hệ thống' : 'Bấm Follow & nhận +200 Xu'}
+                  className="relative mb-2 cursor-pointer group"
+                  title="Bấm avatar để Follow kênh & nhận +200 Xu"
                 >
-                  {currentClaimed.follow ? (
-                    <Check className="w-3.5 h-3.5 stroke-[3.5] text-white" />
-                  ) : (
-                    <Plus className="w-4 h-4 stroke-[3] text-white" />
-                  )}
+                  <img 
+                    src={currentItem.channelAvatar} 
+                    alt="" 
+                    className="w-12 h-12 rounded-full object-cover border-2 border-white group-hover:border-rose-500 transition-all shadow-xl"
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFollowAction();
+                    }}
+                    className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-[22px] h-[22px] rounded-full flex items-center justify-center text-white transition-all shadow-lg cursor-pointer ${
+                      currentClaimed.follow 
+                        ? 'bg-emerald-500 ring-2 ring-emerald-400/60 scale-100' 
+                        : 'bg-[#FE2C55] hover:scale-110 active:scale-95 shadow-red-500/50'
+                    }`}
+                    title={currentClaimed.follow ? 'Đã Follow trên hệ thống' : 'Bấm Follow & nhận +200 Xu'}
+                  >
+                    {currentClaimed.follow ? (
+                      <Check className="w-3.5 h-3.5 stroke-[3.5] text-white" />
+                    ) : (
+                      <Plus className="w-4 h-4 stroke-[3] text-white" />
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Like Button (Chỉ hiện khi chiến dịch là Like / Thả tim) */}
+              {targetCampaignAction === 'like' && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLikeAction();
+                  }}
+                  className="flex flex-col items-center gap-0.5 group cursor-pointer"
+                  title="Thả tim video nhận +100 Xu"
+                >
+                  <div className={`p-2 rounded-full transition-transform duration-200 active:scale-125 ${
+                    currentClaimed.like ? 'text-[#FE2C55]' : 'text-white/90 hover:text-white'
+                  }`}>
+                    <Heart className={`h-7 w-7 drop-shadow-lg ${currentClaimed.like ? 'fill-[#FE2C55]' : ''}`} />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
+                    {currentClaimed.like ? 'Đã Tim' : '+100'}
+                  </span>
                 </button>
-              </div>
+              )}
 
-              {/* Like Button (Hiển thị nhãn thưởng thật +100 Xu thay vì số ảo) */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleLikeAction();
-                }}
-                className="flex flex-col items-center gap-0.5 group cursor-pointer"
-                title="Thả tim video nhận +100 Xu"
-              >
-                <div className={`p-2 rounded-full transition-transform duration-200 active:scale-125 ${
-                  currentClaimed.like ? 'text-[#FE2C55]' : 'text-white/90 hover:text-white'
-                }`}>
-                  <Heart className={`h-7 w-7 drop-shadow-lg ${currentClaimed.like ? 'fill-[#FE2C55]' : ''}`} />
-                </div>
-                <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
-                  {currentClaimed.like ? 'Đã Tim' : '+100'}
-                </span>
-              </button>
+              {/* Comment Button (Chỉ hiện khi chiến dịch là Comment / Bình luận) */}
+              {targetCampaignAction === 'comment' && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCommentInput(!showCommentInput);
+                  }}
+                  className="flex flex-col items-center gap-0.5 group cursor-pointer"
+                  title="Bình luận video nhận +200 Xu"
+                >
+                  <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
+                    <MessageCircle className={`h-7 w-7 drop-shadow-lg ${currentClaimed.comment ? 'fill-cyan-400 text-cyan-400' : ''}`} />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
+                    {currentClaimed.comment ? 'Đã Cmt' : '+200'}
+                  </span>
+                </button>
+              )}
 
-              {/* Comment Button (Hiển thị nhãn thưởng thật +200 Xu thay vì số ảo) */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowCommentInput(!showCommentInput);
-                }}
-                className="flex flex-col items-center gap-0.5 group cursor-pointer"
-                title="Bình luận video nhận +200 Xu"
-              >
-                <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
-                  <MessageCircle className={`h-7 w-7 drop-shadow-lg ${currentClaimed.comment ? 'fill-cyan-400 text-cyan-400' : ''}`} />
-                </div>
-                <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
-                  {currentClaimed.comment ? 'Đã Cmt' : '+200'}
-                </span>
-              </button>
+              {/* Share Button (Chỉ hiện khi chiến dịch là Share / Chia sẻ) */}
+              {targetCampaignAction === 'share' && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleShareAction();
+                  }}
+                  className="flex flex-col items-center gap-0.5 group cursor-pointer"
+                  title="Chia sẻ video nhận +240 Xu"
+                >
+                  <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
+                    <Share2 className="h-7 w-7 drop-shadow-lg" />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
+                    {currentClaimed.share ? 'Đã Share' : '+240'}
+                  </span>
+                </button>
+              )}
 
               {/* Bookmark / Favorite Button */}
               <button
@@ -1713,193 +1742,169 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 title="Lưu video yêu thích"
               >
                 <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-75">
-                  <Bookmark className={`h-7 w-7 drop-shadow-lg ${currentClaimed.bookmark ? 'fill-amber-400 text-amber-400' : ''}`} />
+                  <Bookmark className={`h-6 w-6 drop-shadow-lg ${currentClaimed.bookmark ? 'fill-amber-400 text-amber-400' : ''}`} />
                 </div>
-                <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
+                <span className="text-[9px] font-mono font-bold text-white/90 drop-shadow-md">
                   {currentClaimed.bookmark ? 'Đã Lưu' : 'Lưu'}
                 </span>
               </button>
 
-              {/* Share Button (Hiển thị nhãn thưởng thật +240 Xu thay vì số ảo) */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleShareAction();
-                }}
-                className="flex flex-col items-center gap-0.5 group cursor-pointer"
-                title="Chia sẻ video nhận +240 Xu"
-              >
-                <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
-                  <Share2 className="h-7 w-7 drop-shadow-lg" />
-                </div>
-                <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
-                  {currentClaimed.share ? 'Đã Share' : '+240'}
-                </span>
-              </button>
-
               {/* Spinning Music Vinyl Disc */}
-              <div className="mt-1 w-9 h-9 rounded-full bg-slate-900/90 border-2 border-slate-700/80 p-1 flex items-center justify-center shadow-2xl animate-spin-slow">
+              <div className="mt-1 w-8 h-8 rounded-full bg-slate-900/90 border-2 border-slate-700/80 p-1 flex items-center justify-center shadow-2xl animate-spin-slow">
                 <img 
                   src={currentItem.channelAvatar} 
                   alt="" 
-                  className="w-5 h-5 rounded-full object-cover"
+                  className="w-4 h-4 rounded-full object-cover"
                 />
               </div>
             </div>
           )}
 
-
-          {/* Up / Down Navigation Controls (Lướt Lướt Liên Tục) */}
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2 pointer-events-auto">
-            <button
-              onClick={(e) => { e.stopPropagation(); handlePrevItem(); }}
-              className="p-2.5 rounded-full bg-black/70 hover:bg-white/25 text-white backdrop-blur-md shadow-xl transition-all cursor-pointer hover:scale-110 active:scale-90"
-              title="Chiến dịch trước (Mũi tên lên)"
-            >
-              <ChevronUp className="h-5 w-5" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleNextItem(); }}
-              className="p-2.5 rounded-full bg-black/70 hover:bg-white/25 text-white backdrop-blur-md shadow-xl transition-all cursor-pointer hover:scale-110 active:scale-90"
-              title="Chiến dịch kế tiếp (Mũi tên xuống)"
-            >
-              <ChevronDown className="h-5 w-5" />
-            </button>
-          </div>
-
-          {/* Interactive In-App Comment Drawer */}
+          {/* Quick Comment Input Drawer */}
           {showCommentInput && (
             <div 
-              className="absolute inset-x-0 bottom-0 z-40 p-4 rounded-t-3xl bg-[#0E1322] border-t border-white/20 space-y-3 animate-in slide-in-from-bottom duration-200 pointer-events-auto shadow-2xl"
+              className="absolute inset-x-0 bottom-0 z-40 p-4 bg-black/95 border-t border-cyan-500/40 backdrop-blur-2xl space-y-3 animate-in slide-in-from-bottom-5 duration-200"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between text-xs font-bold text-white font-display">
-                <span className="flex items-center gap-1.5 text-cyan-400">
-                  <MessageCircle className="w-4 h-4" /> Bình luận &amp; Đồng bộ TikTok (+200 Xu)
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-cyan-400 flex items-center gap-1.5">
+                  <MessageCircle className="w-3.5 h-3.5" /> Gửi Bình Luận TikTok Thật (+200 Xu)
                 </span>
-                <button onClick={() => setShowCommentInput(false)} className="text-slate-400 hover:text-white cursor-pointer">
-                  <X className="h-4 w-4" />
+                <button 
+                  type="button" 
+                  onClick={() => setShowCommentInput(false)}
+                  className="p-1 rounded-full text-slate-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Custom Comment Input Field */}
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={customComment}
                   onChange={(e) => setCustomComment(e.target.value)}
+                  placeholder="Nhập nội dung bình luận..."
+                  className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && customComment.trim()) {
-                      handleCommentAction(customComment.trim());
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCommentAction(customComment);
                     }
                   }}
-                  placeholder="Tự do gõ bình luận thật tâm của bạn theo cảm nhận..."
-                  className="flex-1 bg-black/60 border border-cyan-500/40 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-400 focus:outline-none font-medium"
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    if (customComment.trim()) {
-                      handleCommentAction(customComment.trim());
-                    } else {
-                      showToast('Vui lòng gõ nội dung bình luận thật của bạn trước khi gửi!');
-                    }
-                  }}
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all shrink-0 cursor-pointer"
+                  onClick={() => handleCommentAction(customComment)}
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-mono font-bold rounded-xl flex items-center gap-1 shadow-lg active:scale-95 transition-all"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Dán &amp; Gửi</span>
+                  <span>Gửi</span>
                 </button>
               </div>
 
-              {/* Notice for genuine comments */}
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 px-1">
-                <span>💡 Người dùng tự do bình luận thật theo ý muốn</span>
-                <span className="text-cyan-300 font-bold">Tự động gắn mã #AVALIVE đối soát</span>
-              </div>
-
-              {/* Seeding Presets */}
-              <div className="space-y-1.5 max-h-28 overflow-y-auto">
-                <span className="text-[10px] font-mono text-slate-400">Hoặc chọn nhanh câu bình luận mẫu:</span>
+              {/* Gợi ý bình luận nhanh */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
                 {sampleComments.map((cmt, idx) => (
                   <button
                     key={idx}
-                    onClick={() => handleCommentAction(cmt)}
-                    className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-slate-300 transition-colors cursor-pointer block truncate"
+                    type="button"
+                    onClick={() => {
+                      setCustomComment(cmt);
+                      handleCommentAction(cmt);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/10 hover:border-cyan-400/40 text-[10px] font-mono whitespace-nowrap transition-all"
                   >
                     "{cmt}"
                   </button>
-
                 ))}
               </div>
             </div>
           )}
         </div>
 
-        {/* QUICK IN-APP TASK INTERACTION DECK (4 Nút tương tác nhận Xu trực tiếp 1-chạm) */}
-        <div className="flex items-center justify-between gap-1.5 p-2 bg-[#080B14] border-t border-white/10 text-[11px] font-mono shrink-0">
-          <button 
-            type="button"
-            onClick={handleFollowAction} 
-            className={`flex-1 py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 font-bold transition-all cursor-pointer select-none ${
-              currentClaimed.follow 
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm' 
-                : 'bg-rose-600/30 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 active:scale-95 shadow-sm'
-            }`}
-          >
-            {currentClaimed.follow ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Plus className="w-3.5 h-3.5 stroke-[3]" />}
-            <span className="truncate">{currentClaimed.follow ? 'Đã Follow' : 'Follow (+200)'}</span>
-          </button>
-          
-          <button 
-            type="button"
-            onClick={handleLikeAction} 
-            className={`flex-1 py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 font-bold transition-all cursor-pointer select-none ${
-              currentClaimed.like 
-                ? 'bg-pink-500/20 text-pink-400 border border-pink-500/40 shadow-sm' 
-                : 'bg-pink-600/30 hover:bg-pink-600 text-pink-300 hover:text-white border border-pink-500/40 active:scale-95 shadow-sm'
-            }`}
-          >
-            <Heart className={`w-3.5 h-3.5 ${currentClaimed.like ? 'fill-pink-400 text-pink-400' : ''}`} />
-            <span className="truncate">{currentClaimed.like ? 'Đã Tim' : 'Thả Tim (+100)'}</span>
-          </button>
+        {/* QUICK IN-APP TASK INTERACTION DECK (TẬP TRUNG 1 HÀNH ĐỘNG DUY NHẤT THEO LOẠI CHIẾN DỊCH) */}
+        <div className="p-2.5 bg-[#080B14] border-t border-white/10 text-xs font-mono shrink-0">
+          {targetCampaignAction === 'follow' && (
+            <button 
+              type="button"
+              onClick={handleFollowAction} 
+              className={`w-full py-2.5 px-3 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all cursor-pointer select-none text-xs shadow-lg ${
+                currentClaimed.follow 
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' 
+                  : 'bg-gradient-to-r from-rose-600 via-pink-600 to-rose-500 hover:opacity-95 text-white active:scale-98'
+              }`}
+            >
+              {currentClaimed.follow ? <Check className="w-4 h-4 stroke-[3]" /> : <Plus className="w-4 h-4 stroke-[3]" />}
+              <span>{currentClaimed.follow ? '✓ ĐÃ FOLLOW KÊNH (+200 XU VÀO VÍ)' : 'THEO DÕI / FOLLOW KÊNH NÀY (+200 XU)'}</span>
+            </button>
+          )}
 
-          <button 
-            type="button"
-            onClick={() => setShowCommentInput(!showCommentInput)} 
-            className={`flex-1 py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 font-bold transition-all cursor-pointer select-none ${
-              currentClaimed.comment 
-                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm' 
-                : 'bg-cyan-600/30 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-500/40 active:scale-95 shadow-sm'
-            }`}
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            <span className="truncate">{currentClaimed.comment ? 'Đã Cmt' : 'Bình Luận (+200)'}</span>
-          </button>
+          {targetCampaignAction === 'like' && (
+            <button 
+              type="button"
+              onClick={handleLikeAction} 
+              className={`w-full py-2.5 px-3 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all cursor-pointer select-none text-xs shadow-lg ${
+                currentClaimed.like 
+                  ? 'bg-pink-500/20 text-pink-400 border border-pink-500/40' 
+                  : 'bg-gradient-to-r from-pink-600 to-rose-600 hover:opacity-95 text-white active:scale-98'
+              }`}
+            >
+              <Heart className={`w-4 h-4 ${currentClaimed.like ? 'fill-pink-400 text-pink-400' : ''}`} />
+              <span>{currentClaimed.like ? '✓ ĐÃ THẢ TIM VIDEO (+100 XU VÀO VÍ)' : 'THẢ TIM VIDEO NÀY (+100 XU)'}</span>
+            </button>
+          )}
 
-          <button 
-            type="button"
-            onClick={handleShareAction} 
-            className={`flex-1 py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 font-bold transition-all cursor-pointer select-none ${
-              currentClaimed.share 
-                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-sm' 
-                : 'bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/40 active:scale-95 shadow-sm'
-            }`}
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span className="truncate">{currentClaimed.share ? 'Đã Share' : 'Chia Sẻ (+240)'}</span>
-          </button>
+          {targetCampaignAction === 'comment' && (
+            <button 
+              type="button"
+              onClick={() => setShowCommentInput(!showCommentInput)} 
+              className={`w-full py-2.5 px-3 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all cursor-pointer select-none text-xs shadow-lg ${
+                currentClaimed.comment 
+                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' 
+                  : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:opacity-95 text-white active:scale-98'
+              }`}
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>{currentClaimed.comment ? '✓ ĐÃ GỬI BÌNH LUẬN (+200 XU VÀO VÍ)' : 'BÌNH LUẬN VIDEO NÀY (+200 XU)'}</span>
+            </button>
+          )}
+
+          {targetCampaignAction === 'share' && (
+            <button 
+              type="button"
+              onClick={handleShareAction} 
+              className={`w-full py-2.5 px-3 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all cursor-pointer select-none text-xs shadow-lg ${
+                currentClaimed.share 
+                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' 
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white active:scale-98'
+              }`}
+            >
+              <Share2 className="w-4 h-4" />
+              <span>{currentClaimed.share ? '✓ ĐÃ CHIA SẺ VIDEO (+240 XU VÀO VÍ)' : 'CHIA SẺ VIDEO NÀY (+240 XU)'}</span>
+            </button>
+          )}
+
+          {(targetCampaignAction === 'watch' || isLiveItem) && (
+            <div className="flex items-center justify-between px-2 py-1.5 rounded-xl bg-purple-950/30 border border-purple-500/30 text-purple-300 text-xs">
+              <span className="flex items-center gap-1.5 font-bold">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                {isLiveItem ? 'Phiên Livestream Trực Tiếp' : 'Xem Video Kiếm Xu'}
+              </span>
+              <span className="text-neonGold font-bold">+{currentItem.rewardCoins || 200} Xu khi xem đủ</span>
+            </div>
+          )}
         </div>
 
-        {/* Bottom Progress Bar & Claim Button */}
-        <div className="p-3 bg-[#0B0E17] border-t border-white/10 space-y-2">
+        {/* Bottom Progress Bar & Compact Next Button */}
+        <div className="p-2.5 bg-[#0B0E17] border-t border-white/10 space-y-2">
           {/* Progress Timer Row */}
           <div className="flex items-center justify-between text-xs font-mono">
             <div className="flex items-center gap-1.5 text-slate-300">
               <Clock className="h-3.5 w-3.5 text-rose-500" />
               {isWatchRequired ? (
                 timeLeft > 0 ? (
-                  currentItem?.kind === 'livestream' ? (
+                  isLiveItem ? (
                     <span className="flex items-center gap-1.5">
                       <span className="inline-block w-2 h-2 rounded-full bg-rose-500 animate-ping" />
                       <span>Xem Live Thật: <strong className="text-rose-400 font-bold">{Math.floor(timeLeft / 60)}p {timeLeft % 60}s</strong></span>
@@ -1914,12 +1919,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   )
                 ) : (
                   <span className="text-emerald-400 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> {currentItem?.kind === 'livestream' ? 'Đã xem đủ phiên live (+Xu vào ví)!' : 'Đã đạt 15s (+200 Xu vào ví)!'}
+                    <CheckCircle2 className="h-3.5 w-3.5" /> {isLiveItem ? 'Đã xem đủ phiên live (+Xu vào ví)!' : 'Đã đạt 15s (+200 Xu vào ví)!'}
                   </span>
                 )
               ) : (
                 <span className="text-emerald-400 font-bold flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5 text-neonGold" /> Không khống chế 15s • Tự do follow &amp; lướt tiếp ngay!
+                  <Sparkles className="h-3.5 w-3.5 text-neonGold" /> Tự do làm nhiệm vụ &amp; lướt tiếp ngay!
                 </span>
               )}
             </div>
@@ -1933,12 +1938,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                     onChange={(e) => setAutoAdvance(e.target.checked)}
                     className="rounded accent-rose-500 w-3 h-3"
                   />
-                  <span>Tự lướt tiếp</span>
+                  <span>Tự lướt</span>
                 </label>
               )}
 
               <span className="text-neonGold font-bold text-[11px]">
-                Phiên này: +{sessionCoinsEarned.toLocaleString()} Xu
+                +{sessionCoinsEarned.toLocaleString()} Xu
               </span>
             </div>
           </div>
@@ -1951,17 +1956,18 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             />
           </div>
 
-          {/* Big Next Button */}
+          {/* Sleek Compact Next Button */}
           <button
             onClick={handleNextItem}
-            className="w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-xl bg-gradient-to-r from-rose-600 via-purple-600 to-emerald-500 hover:opacity-95 text-white cursor-pointer active:scale-98 font-display"
+            className="w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md bg-gradient-to-r from-slate-800 hover:from-slate-700 to-slate-900 border border-white/15 text-white cursor-pointer active:scale-98 font-mono"
           >
-            <Sparkles className="h-4 w-4 text-neonGold" />
-            <span>LƯỚT SANG CHIẾN DỊCH TIẾP THEO (HOẶC BẤM PHÍM MŨI TÊN XUỐNG)</span>
+            <span>Chiến dịch tiếp theo</span>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
         </div>
       </div>
     </div>
   );
 };
+
 

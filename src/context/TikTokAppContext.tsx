@@ -292,6 +292,8 @@ interface TikTokAppContextType {
   approveCampaign: (campaignId: string) => void;
   rejectCampaign: (campaignId: string) => void;
   deleteCampaign: (campaignId: string) => void;
+  endAndRefundLivestreamCampaign: (campaignId: string, reason?: string) => { refundedCoins: number; message: string };
+  cancelCampaignWithRefund: (campaignId: string) => { refundedCoins: number; message: string };
   deleteAdminUser: (userId: string) => void;
   createGrowthService: (pkg: GrowthServiceItem) => void;
   updateGrowthService: (pkg: GrowthServiceItem) => void;
@@ -4108,6 +4110,56 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`🗑️ Đã xóa vĩnh viễn chiến dịch ${campaignId} theo lệnh Admin!`);
   };
 
+  // Hệ Thống Tự Động Hoàn Xu Cho Chiến Dịch Livestream Kết Thúc Sớm Hoặc Hủy
+  const endAndRefundLivestreamCampaign = (campaignId: string, reason: string = 'Phiên live đã kết thúc'): { refundedCoins: number; message: string } => {
+    const camp = campaigns.find(c => c.id === campaignId);
+    if (!camp) return { refundedCoins: 0, message: 'Không tìm thấy chiến dịch' };
+
+    const totalTarget = camp.targetQuantity || 1;
+    const completed = camp.completedQuantity || 0;
+    const remaining = Math.max(0, totalTarget - completed);
+
+    // Tính đơn giá Xu mỗi lượt
+    const totalBudgetXu = parseInt(camp.budgetTotal?.replace(/\D/g, '') || '0') || 0;
+    const unitPriceXu = totalTarget > 0 ? Math.round(totalBudgetXu / totalTarget) : 0;
+    const refundCoins = remaining * unitPriceXu;
+
+    if (refundCoins > 0) {
+      const newCoins = user.avaliveCoins + refundCoins;
+      const newTx: TransactionRecord = {
+        id: `tx_refund_live_${Date.now()}`,
+        type: 'earn',
+        title: `Hoàn Xu phiên Live kết thúc (${completed}/${totalTarget} mắt): +${refundCoins.toLocaleString()} Xu`,
+        amount: `+${refundCoins.toLocaleString()} Xu`,
+        isPositive: true,
+        date: 'Vừa xong',
+        status: 'success'
+      };
+
+      setUser(prev => ({
+        ...prev,
+        avaliveCoins: newCoins,
+        coinsValueVND: `${newCoins.toLocaleString()}đ`,
+        transactions: [newTx, ...prev.transactions]
+      }));
+    }
+
+    // Đánh dấu chiến dịch kết thúc
+    setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: 'completed' } : c));
+    setLivestreamTasks(prev => prev.map(l => l.id.includes(campaignId) ? { ...l, status: 'ended' } : l));
+
+    const msg = refundCoins > 0 
+      ? `✅ Đã kết thúc chiến dịch & tự động hoàn +${refundCoins.toLocaleString()} Xu còn dư (${remaining} mắt chưa nhận) về ví của bạn!`
+      : `✅ Chiến dịch Livestream đã kết thúc toàn bộ mục tiêu!`;
+
+    showToast(msg);
+    return { refundedCoins: refundCoins, message: msg };
+  };
+
+  const cancelCampaignWithRefund = (campaignId: string): { refundedCoins: number; message: string } => {
+    return endAndRefundLivestreamCampaign(campaignId, 'Người dùng hủy chiến dịch');
+  };
+
   const deleteAdminUser = (userId: string) => {
     setAdminUsers(prev => prev.filter(u => u.id !== userId));
     showToast(`🗑️ Đã xóa vĩnh viễn tài khoản người dùng ${userId} theo lệnh Admin!`);
@@ -5101,6 +5153,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         approveCampaign,
         rejectCampaign,
         deleteCampaign,
+        endAndRefundLivestreamCampaign,
+        cancelCampaignWithRefund,
         deleteAdminUser,
         createGrowthService,
         updateGrowthService,

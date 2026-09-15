@@ -1208,6 +1208,29 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               </span>
 
               {(() => {
+                const userHandle = user.tiktokConnected || user.email || '@user';
+                const trust = getTrustProfile(userHandle);
+                const badge = getTrustScoreBadge(trust.trustScore);
+                return (
+                  <div 
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/70 border border-white/10 text-[10px] font-mono backdrop-blur-md cursor-pointer hover:border-white/30 transition-all"
+                    title={`Điểm uy tín: ${trust.trustScore}/100 - Đã hoàn thành ${trust.totalActions} nhiệm vụ hợp lệ`}
+                  >
+                    <span>{badge.emoji}</span>
+                    <span className="font-bold text-white font-mono">{trust.trustScore}</span>
+                    <span className={`text-[9px] font-bold ${
+                      badge.colorClass === 'emerald' ? 'text-emerald-400' :
+                      badge.colorClass === 'cyan' ? 'text-cyan-400' :
+                      badge.colorClass === 'yellow' ? 'text-yellow-400' :
+                      badge.colorClass === 'orange' ? 'text-orange-400' : 'text-rose-400'
+                    }`}>
+                      {badge.label}
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {(() => {
                 const itemMedia = parseMediaUrl(currentItem?.targetUrl || currentItem?.videoUrl || '', currentItem?.channelHandle);
                 if (itemMedia.isTikTok && itemMedia.videoId) {
                   return (
@@ -1223,6 +1246,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 return null;
               })()}
             </div>
+
 
             {/* Right Buttons: Mute Toggle & Close */}
             <div className="flex items-center gap-1.5 shrink-0">

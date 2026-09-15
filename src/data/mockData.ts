@@ -78,7 +78,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Tài khoản TikTok thật > 30 ngày tuổi', 'Không bỏ follow trong 30 ngày'],
     status: 'open',
     createdAt: '15 phút trước',
-    videoPreviewUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4',
+    videoPreviewUrl: '/videos/sample1.mp4',
     sampleComments: [
       'Da mình nhạy cảm dùng dòng này êm ru luôn ạ!',
       'Shop tư vấn nhiệt tình, giao hàng nhanh đỉnh chóp ❤️',
@@ -121,7 +121,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Xem trọn vẹn 15s để thuật toán TikTok ghi nhận tương tác hợp lệ'],
     status: 'open',
     createdAt: '30 phút trước',
-    videoPreviewUrl: 'https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_1MB.mp4',
+    videoPreviewUrl: '/videos/sample2.mp4',
     sampleComments: [
       'Set đồ này phối nhìn sang chảnh quá chị ơi!',
       'Mẫu áo trắng còn size M không shop?',
@@ -160,7 +160,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Bình luận có tâm, không dùng icon spam, không sao chép'],
     status: 'open',
     createdAt: '1 giờ trước',
-    videoPreviewUrl: 'https://test-videos.co.uk/vids/sintel/mp4/h264/1080/Sintel_1080_10s_1MB.mp4',
+    videoPreviewUrl: '/videos/sample3.mp4',
     sampleComments: [
       'Hoàng hôn ở đây ngắm đỉnh thực sự, chụp ảnh góc nào cũng đẹp!',
       'Nước uống ngon giá hợp lý, cuối tuần dẫn người yêu đi chill là chuẩn bài!',
@@ -189,7 +189,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Tài khoản TikTok hoạt động thường xuyên'],
     status: 'open',
     createdAt: '1 giờ trước',
-    videoPreviewUrl: 'https://vjs.zencdn.net/v/oceans.mp4',
+    videoPreviewUrl: '/videos/sample1.mp4',
     sampleComments: [
       'Nhìn thèm xỉu luôn á shop ơi!',
       'Bánh tráng trộn ở đây vị đậm đà ngon xuất sắc ❤️',
@@ -216,7 +216,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Chia sẻ hợp lệ tài khoản thật'],
     status: 'open',
     createdAt: '2 giờ trước',
-    videoPreviewUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    videoPreviewUrl: '/videos/sample2.mp4',
     sampleComments: [
       'Thiết kế đẹp mà giá hạt dẻ quá!',
       'Pin sạc dự phòng dùng được bao nhiêu lần vậy shop?',
@@ -243,7 +243,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Xem đủ 15 giây video'],
     status: 'open',
     createdAt: '2 giờ trước',
-    videoPreviewUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4',
+    videoPreviewUrl: '/videos/sample3.mp4',
     sampleComments: [
       'Động tác này tập vào cơ bụng đã lắm!',
       'Hóng thêm video hướng dẫn lịch tập cho người mới ạ!',
@@ -270,7 +270,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Xem tối thiểu 15 giây'],
     status: 'open',
     createdAt: '1 giờ trước',
-    videoPreviewUrl: 'https://test-videos.co.uk/vids/jellyfish/mp4/h264/1080/Jellyfish_1080_10s_1MB.mp4',
+    videoPreviewUrl: '/videos/sample1.mp4',
     sampleComments: [
       'Mẹo này áp dụng ngay trong bếp quá tiện luôn!',
       'Nhờ clip này mà mình tiết kiệm được cả đống thời gian.',
@@ -297,7 +297,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Xem đủ 15 giây'],
     status: 'open',
     createdAt: '45 phút trước',
-    videoPreviewUrl: 'https://test-videos.co.uk/vids/sintel/mp4/h264/1080/Sintel_1080_10s_1MB.mp4',
+    videoPreviewUrl: '/videos/sample2.mp4',
     sampleComments: [
       'Thầy dạy phát âm đuôi ed cực kỳ dễ nhớ!',
       'Follow kênh ngay để học mỗi ngày 1 câu.',
@@ -324,6 +324,7 @@ export const TIKTOK_TASKS: TikTokTaskItem[] = [
     requirements: ['Kênh TikTok có tối thiểu 10,000 followers', 'Chủ đề ẩm thực, đời sống, gia đình'],
     status: 'open',
     createdAt: '3 giờ trước',
+    videoPreviewUrl: '/videos/sample3.mp4',
     tags: ['Gia dụng', 'KOC Review', 'TikTok Shop'],
     campaignCategory: 'partner',
     partnerName: 'Tập Đoàn Gia Dụng Homie',

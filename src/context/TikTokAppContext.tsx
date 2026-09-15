@@ -484,7 +484,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_tasks') : null;
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const localSamples = ['/videos/sample1.mp4', '/videos/sample2.mp4', '/videos/sample3.mp4'];
+          return parsed.map((t: TikTokTaskItem, i: number) => {
+            if (!t.videoPreviewUrl || t.videoPreviewUrl.includes('test-videos.co.uk') || t.videoPreviewUrl.includes('interactive-examples') || t.videoPreviewUrl.includes('vjs.zencdn.net')) {
+              return { ...t, videoPreviewUrl: localSamples[i % localSamples.length] };
+            }
+            return t;
+          });
+        }
       }
     } catch {}
     return TIKTOK_TASKS;

@@ -341,7 +341,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     channelAvatar: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=120&auto=format&fit=crop&q=80',
     targetUrl: 'https://tiktok.com/@zenskin_vietnam',
     rewardCoins: 200,
-    videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4',
+    videoUrl: '/videos/sample1.mp4',
     sampleComments: [
       'Da mình nhạy cảm dùng dòng này êm ru luôn ạ!',
       'Shop tư vấn nhiệt tình, giao hàng nhanh đỉnh chóp ❤️',
@@ -916,6 +916,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 <DirectVideoPlayer
                   key={currentItem.id + '_' + directVideoSource}
                   src={directVideoSource}
+                  poster={currentItem.channelAvatar}
                   autoPlay
                   isMuted={isMuted}
                   isPlaying={isPlaying}
@@ -983,11 +984,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             }
 
             // D. Fallback cuối cùng
-            const fallbackSrc = currentItem.videoUrl || itemMedia.streamUrl || 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4';
+            const fallbackSrc = currentItem.videoUrl || itemMedia.streamUrl || '/videos/sample1.mp4';
             return (
               <DirectVideoPlayer
                 key={currentItem.id + '_fallback'}
                 src={fallbackSrc}
+                poster={currentItem.channelAvatar}
                 autoPlay
                 isMuted={isMuted}
                 isPlaying={isPlaying}

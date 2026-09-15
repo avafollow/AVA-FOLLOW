@@ -50,6 +50,7 @@ import { EscrowReviewModal } from '../modals/EscrowReviewModal';
 import { EscrowIncidentModal } from '../modals/EscrowIncidentModal';
 import { EscrowChatModal } from '../modals/EscrowChatModal';
 import { EscrowBookingContract } from '../../types';
+import { getTikTokSyncLogs, TikTokSyncLog } from '../../services/tiktokActionSync';
 
 export const ProfileWalletScreen: React.FC<{
   darkMode: boolean;
@@ -88,6 +89,7 @@ export const ProfileWalletScreen: React.FC<{
   const [accountHolder, setAccountHolder] = useState(user.bankInfo?.accountHolder || user.name.toUpperCase());
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState<'kyc_profile' | 'packages' | 'software' | 'escrow' | 'affiliate' | 'transactions' | 'bank' | 'activity'>('kyc_profile');
+  const [txFilterTab, setTxFilterTab] = useState<'balance' | 'tiktok_sync'>('balance');
   const [activityPeriod, setActivityPeriod] = useState<'day' | 'week' | 'month'>('day');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copiedRef, setCopiedRef] = useState(false);
@@ -1714,47 +1716,127 @@ export const ProfileWalletScreen: React.FC<{
         </div>
       )}
 
-      {/* TAB 5: Lịch sử biến động số dư */}
-      {activeProfileTab === 'transactions' && (
-        <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-rose-500" />
-              <span>Biến Động Số Dư & Lịch Sử Giao Dịch</span>
-            </h3>
-            <span className="text-[10px] text-slate-500 font-mono">Tự động cập nhật</span>
-          </div>
+      {/* TAB 5: Lịch sử biến động số dư & Đồng bộ TikTok */}
+      {activeProfileTab === 'transactions' && (() => {
+        const syncLogs = getTikTokSyncLogs();
+        return (
+          <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-rose-500" />
+                <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">
+                  Lịch Sử Giao Dịch & Đồng Bộ
+                </h3>
+              </div>
 
-          <div className="space-y-2.5 max-h-[380px] overflow-y-auto">
-            {user.transactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between gap-3 text-xs"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl ${
-                    tx.isPositive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
-                  }`}>
-                    {tx.isPositive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownLeft className="h-4 w-4" />}
-                  </div>
-                  <div>
-                    <div className="font-bold text-white leading-snug">{tx.title}</div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                      {tx.date} {tx.method ? `• ${tx.method}` : ''}
+              {/* Sub-tabs: Biến động số dư vs Nhật ký đồng bộ TikTok */}
+              <div className="flex rounded-xl bg-black/60 p-1 border border-white/10 gap-1 text-xs font-mono">
+                <button
+                  type="button"
+                  onClick={() => setTxFilterTab('balance')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    txFilterTab === 'balance'
+                      ? 'bg-rose-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Biến Động Số Dư
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTxFilterTab('tiktok_sync')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    txFilterTab === 'tiktok_sync'
+                      ? 'bg-cyan-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Đồng Bộ TikTok</span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-cyan-400/30 text-white text-[10px]">
+                    {syncLogs.length}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {txFilterTab === 'balance' ? (
+              <div className="space-y-2.5 max-h-[380px] overflow-y-auto">
+                {user.transactions.map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-xl ${
+                        tx.isPositive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
+                      }`}>
+                        {tx.isPositive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownLeft className="h-4 w-4" />}
+                      </div>
+                      <div>
+                        <div className="font-bold text-white leading-snug">{tx.title}</div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          {tx.date} {tx.method ? `• ${tx.method}` : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={`font-mono font-black text-sm shrink-0 ${
+                      tx.isPositive ? 'text-emerald-400' : 'text-rose-400'
+                    }`}>
+                      {tx.amount}
                     </div>
                   </div>
-                </div>
-
-                <div className={`font-mono font-black text-sm shrink-0 ${
-                  tx.isPositive ? 'text-emerald-400' : 'text-rose-400'
-                }`}>
-                  {tx.amount}
-                </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="space-y-2.5 max-h-[380px] overflow-y-auto">
+                {syncLogs.length === 0 ? (
+                  <div className="text-center py-10 text-slate-500 text-xs font-mono">
+                    Chưa có nhật ký đồng bộ tương tác TikTok nào. Hãy lướt video và làm nhiệm vụ để kiếm Xu!
+                  </div>
+                ) : (
+                  syncLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between gap-3 text-xs font-mono"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                          log.actionType === 'follow' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                          log.actionType === 'like' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30' :
+                          log.actionType === 'comment' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                          log.actionType === 'share' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                          'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        }`}>
+                          {log.actionType.toUpperCase()}
+                        </span>
+                        <div>
+                          <div className="font-bold text-white flex items-center gap-1.5">
+                            <span>Mục tiêu: {log.targetHandle}</span>
+                            <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              Đã xác thực ✓
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
+                            <span>Hash: {log.txHash}</span>
+                            <span>•</span>
+                            <span>{new Date(log.createdAt).toLocaleString('vi-VN')}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-emerald-400 font-black text-sm">+{log.coinsEarned} Xu</div>
+                        <div className="text-[9px] text-slate-500 font-mono">Đã cộng vào ví</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* TAB 6: Tài Khoản Rút Tiền */}
       {activeProfileTab === 'bank' && (

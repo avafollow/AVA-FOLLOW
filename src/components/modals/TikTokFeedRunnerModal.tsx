@@ -106,6 +106,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [showCommentInput, setShowCommentInput] = useState<boolean>(false);
   const [customComment, setCustomComment] = useState<string>('');
   const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('embed'); // Tự động phát TikTok embed khi có ID, hoặc stream HD
+  const [syncingAction, setSyncingAction] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   // Cảm ứng vuốt chạm (Touch Swipe) cho điện thoại di động & máy tính bảng (Tablet)
@@ -596,39 +597,67 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   // 1-CLICK FOLLOW TRỰC TIẾP TRÊN WEB APP & ĐỒNG BỘ TIKTOK THẬT CHẠY NGẦM
   const handleFollowAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (syncingAction) return;
+
     const userHandle = user.tiktokConnected || user.email || '@user';
     if (!user.tiktokConnected) {
       const handleToLink = currentItem.channelHandle.startsWith('@') ? currentItem.channelHandle : `@${currentItem.channelHandle}`;
       connectTikTok(handleToLink);
     }
 
-    if (!currentClaimed.follow) {
-      const reward = claimTaskAction(currentItem.id, 'follow');
-      setSessionCoinsEarned(prev => prev + (reward || 200));
-      setTaskClaimedMap(prev => ({
-        ...prev,
-        [currentItem.id]: { ...(prev[currentItem.id] || {}), follow: true }
-      }));
-      await syncTikTokFollow(currentItem.channelHandle, userHandle);
-      showToast(`✨ +${reward || 200} Xu! Đã Follow kênh ${currentItem.channelHandle} từ tài khoản @${userHandle.replace(/^@+/, '')}!`);
-    } else {
-      showToast(`✅ Tài khoản @${userHandle.replace(/^@+/, '')} đã Follow kênh ${currentItem.channelHandle}!`);
+    if (currentClaimed.follow) {
+      showToast(`✅ Bạn đã Follow kênh ${currentItem.channelHandle} rồi!`);
+      return;
+    }
+
+    setSyncingAction('follow');
+    try {
+      const res = await syncTikTokFollow(currentItem.channelHandle, userHandle);
+      if (res.success) {
+        const reward = claimTaskAction(currentItem.id, 'follow');
+        const earned = reward || res.coinsEarned || 200;
+        setSessionCoinsEarned(prev => prev + earned);
+        setTaskClaimedMap(prev => ({
+          ...prev,
+          [currentItem.id]: { ...(prev[currentItem.id] || {}), follow: true }
+        }));
+        showToast(res.message);
+      } else {
+        showToast(res.message);
+      }
+    } finally {
+      setSyncingAction(null);
     }
   };
 
   // 1-CLICK LIKE / THẢ TIM TRỰC TIẾP TRÊN WEB APP & ĐỒNG BỘ CHẠY NGẦM
   const handleLikeAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (syncingAction) return;
+
     const userHandle = user.tiktokConnected || user.email || '@user';
-    if (!currentClaimed.like) {
-      const reward = claimTaskAction(currentItem.id, 'like');
-      setSessionCoinsEarned(prev => prev + (reward || 100));
-      setTaskClaimedMap(prev => ({
-        ...prev,
-        [currentItem.id]: { ...(prev[currentItem.id] || {}), like: true }
-      }));
-      await syncTikTokLike(currentItem.id, userHandle);
-      showToast(`❤️ +${reward || 100} Xu! Đã thả tim từ tài khoản @${userHandle.replace(/^@+/, '')}!`);
+    if (currentClaimed.like) {
+      showToast('❤️ Bạn đã thả tim video này rồi!');
+      return;
+    }
+
+    setSyncingAction('like');
+    try {
+      const res = await syncTikTokLike(currentItem.id, userHandle);
+      if (res.success) {
+        const reward = claimTaskAction(currentItem.id, 'like');
+        const earned = reward || res.coinsEarned || 100;
+        setSessionCoinsEarned(prev => prev + earned);
+        setTaskClaimedMap(prev => ({
+          ...prev,
+          [currentItem.id]: { ...(prev[currentItem.id] || {}), like: true }
+        }));
+        showToast(res.message);
+      } else {
+        showToast(res.message);
+      }
+    } finally {
+      setSyncingAction(null);
     }
   };
 
@@ -648,40 +677,52 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const handleCommentAction = async (commentText: string) => {
     const text = commentText.trim();
     if (!text) return;
+    if (syncingAction) return;
+
     setCustomComment('');
-    const userHandle = user.tiktokConnected || user.email || '@user';
-    if (!currentClaimed.comment) {
-      const reward = claimTaskAction(currentItem.id, 'comment');
-      setSessionCoinsEarned(prev => prev + (reward || 200));
-      setTaskClaimedMap(prev => ({
-        ...prev,
-        [currentItem.id]: { ...(prev[currentItem.id] || {}), comment: true }
-      }));
-      await syncTikTokComment(currentItem.id, text, userHandle);
-      showToast(`💬 +${reward || 200} Xu! Đã gửi bình luận từ tài khoản @${userHandle.replace(/^@+/, '')}!`);
-    } else {
-      await syncTikTokComment(currentItem.id, text, userHandle);
-      showToast(`💬 Đã gửi bình luận: "${text}"`);
-    }
     setShowCommentInput(false);
+    const userHandle = user.tiktokConnected || user.email || '@user';
+
+    setSyncingAction('comment');
+    try {
+      const res = await syncTikTokComment(currentItem.id, text, userHandle);
+      if (res.success) {
+        if (!currentClaimed.comment) {
+          const reward = claimTaskAction(currentItem.id, 'comment');
+          const earned = reward || res.coinsEarned || 200;
+          setSessionCoinsEarned(prev => prev + earned);
+          setTaskClaimedMap(prev => ({
+            ...prev,
+            [currentItem.id]: { ...(prev[currentItem.id] || {}), comment: true }
+          }));
+        }
+        showToast(res.message);
+      } else {
+        showToast(res.message);
+      }
+    } finally {
+      setSyncingAction(null);
+    }
   };
 
   // 1-CLICK CHIA SẺ VIDEO ĐẨY VỀ FACEBOOK
   const handleShareAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     const targetUrl = currentItem.targetUrl || `https://www.tiktok.com/@${currentItem.channelHandle.replace('@', '')}`;
-    syncShareToFacebook(targetUrl, currentItem.channelHandle);
+    const userHandle = user.tiktokConnected || user.email || '@user';
+    const res = syncShareToFacebook(targetUrl, currentItem.channelHandle, userHandle);
 
-    if (!currentClaimed.share) {
+    if (res.success && !currentClaimed.share) {
       const reward = claimTaskAction(currentItem.id, 'share');
-      setSessionCoinsEarned(prev => prev + (reward || 240));
+      const earned = reward || res.coinsEarned || 240;
+      setSessionCoinsEarned(prev => prev + earned);
       setTaskClaimedMap(prev => ({
         ...prev,
         [currentItem.id]: { ...(prev[currentItem.id] || {}), share: true }
       }));
-      showToast(`🚀 +${reward || 240} Xu! Đã chia sẻ video về Facebook!`);
+      showToast(res.message);
     } else {
-      showToast(`🚀 Đã mở chia sẻ về Facebook!`);
+      showToast(res.message);
     }
   };
 
@@ -717,6 +758,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         className="relative w-full h-[100dvh] sm:h-[92vh] sm:max-h-[820px] sm:max-w-[390px] sm:aspect-[9/16] sm:rounded-3xl bg-black border-0 sm:border border-white/20 shadow-2xl overflow-hidden flex flex-col mx-auto pb-safe"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Realtime TikTok Safe Sync Floating Badge */}
+        {syncingAction && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 rounded-full bg-black/90 border border-cyan-400 text-cyan-300 text-[11px] font-mono font-bold flex items-center gap-2 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in duration-150">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400 shrink-0" />
+            <span>Đang đồng bộ {syncingAction === 'follow' ? 'Follow kênh' : syncingAction === 'like' ? 'Thả tim' : syncingAction === 'comment' ? 'Bình luận' : 'Chia sẻ'} TikTok...</span>
+          </div>
+        )}
+
         {/* Top Header Floating Controls */}
         <div className="absolute top-0 inset-x-0 z-30 p-2.5 sm:p-3 bg-gradient-to-b from-black/95 via-black/80 to-transparent space-y-2">
           {/* Top Row: Clean Minimal Header (Mute Toggle & Close) */}

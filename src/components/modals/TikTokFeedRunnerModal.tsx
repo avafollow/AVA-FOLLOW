@@ -108,6 +108,15 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('stream'); // Mặc định stream siêu mượt kèm âm thanh
   const [syncingAction, setSyncingAction] = useState<string | null>(null);
   const [inModalAlert, setInModalAlert] = useState<{ message: string; sub?: string; icon?: string } | null>(null);
+  // Trạng thái chờ xác minh: sau khi mở TikTok, user bấm "Tôi đã làm xong" mới chính thức cộng Xu
+  const [pendingVerification, setPendingVerification] = useState<{
+    action: 'follow' | 'like' | 'comment' | 'share';
+    itemId: string;
+    tiktokUrl: string;
+    commentText?: string;
+    coinsToEarn: number;
+    label: string;
+  } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   // Cảm ứng vuốt chạm (Touch Swipe) cho điện thoại di động & máy tính bảng (Tablet)
@@ -659,34 +668,84 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
   };
 
-  // 1-CLICK LIKE / THẢ TIM TRỰC TIẾP TRÊN WEB APP & ĐỒNG BỘ CHẠY NGẦM
+  // 1-CLICK LIKE / THẢ TIM THẬT - MỞ TIKTOK THẬT + XÁC MINH + CỘNG XU
   const handleLikeAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (syncingAction) return;
 
-    const userHandle = user.tiktokConnected || user.email || '@user';
     if (currentClaimed.like) {
       setInModalAlert({ message: '❤️ Bạn đã thả tim video này rồi!' });
       showToast('❤️ Bạn đã thả tim video này rồi!');
       return;
     }
 
-    setSyncingAction('like');
+    // Xây dựng URL video TikTok thật
+    const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
+    const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
+    const videoTikTokUrl = (currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com'))
+      ? currentItem.targetUrl
+      : (itemMedia.videoId && /^\d{18,21}$/.test(itemMedia.videoId))
+        ? `https://www.tiktok.com/@${cleanHandle}/video/${itemMedia.videoId}`
+        : `https://www.tiktok.com/@${cleanHandle}`;
+
+    // Mở video TikTok thật trong tab mới để user thả tim trực tiếp
+    if (typeof window !== 'undefined') {
+      try {
+        window.open(videoTikTokUrl, '_blank');
+      } catch (err) {
+        console.warn('Could not open TikTok video tab:', err);
+      }
+    }
+
+    // Hiện banner xác minh - chờ user bấm "Tôi đã thả tim trên TikTok"
+    setPendingVerification({
+      action: 'like',
+      itemId: currentItem.id,
+      tiktokUrl: videoTikTokUrl,
+      coinsToEarn: 100,
+      label: `Thả ❤️ tim video @${cleanHandle} trên TikTok`
+    });
+    showToast('❤️ Đã mở video TikTok! Thả tim xong, bấm XÁC NHẬN để nhận +100 Xu.');
+  };
+
+  // Xác nhận hành động thật sau khi user quay về từ TikTok
+  const handleConfirmVerification = async () => {
+    if (!pendingVerification) return;
+    const pv = pendingVerification;
+    setPendingVerification(null);
+    setSyncingAction(pv.action);
     try {
-      const res = await syncTikTokLike(currentItem.id, userHandle);
+      let res: { success: boolean; coinsEarned?: number; txHash?: string; message: string };
+      const userHandle = user.tiktokConnected || user.email || '@user';
+      if (pv.action === 'like') {
+        res = await syncTikTokLike(pv.itemId, userHandle);
+      } else if (pv.action === 'comment') {
+        res = await syncTikTokComment(pv.itemId, pv.commentText || '', userHandle);
+      } else if (pv.action === 'share') {
+        res = syncShareToFacebook(pv.tiktokUrl, currentItem.channelHandle, userHandle);
+      } else {
+        res = { success: true, coinsEarned: pv.coinsToEarn, message: '✅ Xác nhận thành công!', txHash: 'VERIFIED' };
+      }
       if (res.success) {
-        const reward = claimTaskAction(currentItem.id, 'like');
-        const earned = reward || res.coinsEarned || 100;
-        setSessionCoinsEarned(prev => prev + earned);
-        setTaskClaimedMap(prev => ({
-          ...prev,
-          [currentItem.id]: { ...(prev[currentItem.id] || {}), like: true }
-        }));
-        setInModalAlert({ 
-          message: '❤️ Đã thả tim & tính 1 lượt xem video!', 
-          sub: `Cộng +${earned} Xu vào ví • Mã GD: ${res.txHash || 'TikTok-Like-OK'}` 
-        });
-        showToast(`❤️ Đã thả tim thành công & cộng +${earned} Xu!`);
+        const actionKey = pv.action as 'like' | 'comment' | 'share';
+        const alreadyClaimed = taskClaimedMap[pv.itemId]?.[actionKey];
+        if (!alreadyClaimed) {
+          const reward = claimTaskAction(pv.itemId, actionKey);
+          const earned = reward || res.coinsEarned || pv.coinsToEarn;
+          setSessionCoinsEarned(prev => prev + earned);
+          setTaskClaimedMap(prev => ({
+            ...prev,
+            [pv.itemId]: { ...(prev[pv.itemId] || {}), [actionKey]: true }
+          }));
+          const actionEmoji = pv.action === 'like' ? '❤️' : pv.action === 'comment' ? '💬' : '🔗';
+          setInModalAlert({
+            message: `${actionEmoji} Xác minh thành công! Đã cộng +${earned} Xu vào ví!`,
+            sub: `${pv.label} • Mã GD: ${res.txHash || 'VERIFIED-OK'}`
+          });
+          showToast(`${actionEmoji} +${earned} Xu đã vào ví! Cảm ơn bạn đã tương tác thật trên TikTok!`);
+        } else {
+          showToast('✅ Đã xác minh! (Bạn đã nhận thưởng trước đó rồi)');
+        }
       } else {
         setInModalAlert({ message: res.message });
         showToast(res.message);
@@ -694,6 +753,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     } finally {
       setSyncingAction(null);
     }
+  };
+
+  const handleCancelVerification = () => {
+    setPendingVerification(null);
+    showToast('❌ Đã huỷ xác minh. Bạn cần thực hiện thao tác trên TikTok trước.');
   };
 
   const handleDoubleTap = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -708,7 +772,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }, 1200);
   };
 
-  // 1-CLICK BÌNH LUẬN SEEDING TRỰC TIẾP TRÊN WEB APP & ĐỒNG BỘ CHẠY NGẦM
+  // 1-CLICK BÌNH LUẬN THẬT - COPY VÀO CLIPBOARD + MỞ VIDEO TIKTOK + XÁC MINH
   const handleCommentAction = async (commentText: string) => {
     const text = commentText.trim();
     if (!text) return;
@@ -716,55 +780,93 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
     setCustomComment('');
     setShowCommentInput(false);
-    const userHandle = user.tiktokConnected || user.email || '@user';
 
-    setSyncingAction('comment');
+    const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
+    const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
+    const videoTikTokUrl = (currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com'))
+      ? currentItem.targetUrl
+      : (itemMedia.videoId && /^\d{18,21}$/.test(itemMedia.videoId))
+        ? `https://www.tiktok.com/@${cleanHandle}/video/${itemMedia.videoId}`
+        : `https://www.tiktok.com/@${cleanHandle}`;
+
+    // 1. Copy bình luận vào clipboard để user dán thẳng trên TikTok
     try {
-      const res = await syncTikTokComment(currentItem.id, text, userHandle);
-      if (res.success) {
-        if (!currentClaimed.comment) {
-          const reward = claimTaskAction(currentItem.id, 'comment');
-          const earned = reward || res.coinsEarned || 200;
-          setSessionCoinsEarned(prev => prev + earned);
-          setTaskClaimedMap(prev => ({
-            ...prev,
-            [currentItem.id]: { ...(prev[currentItem.id] || {}), comment: true }
-          }));
-          setInModalAlert({ message: res.message, sub: `Đã cộng +${earned} Xu • Bình luận: "${text.slice(0, 25)}..."` });
-        } else {
-          setInModalAlert({ message: res.message });
-        }
-        showToast(res.message);
-      } else {
-        setInModalAlert({ message: res.message });
-        showToast(res.message);
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        showToast('📋 Đã copy bình luận! Đang mở TikTok để dán...');
       }
-    } finally {
-      setSyncingAction(null);
+    } catch {
+      showToast('📋 Hãy dán bình luận: "' + text.slice(0, 30) + '..."');
     }
+
+    // 2. Mở video TikTok thật trong tab mới để user dán và gửi bình luận
+    if (typeof window !== 'undefined') {
+      try {
+        window.open(videoTikTokUrl, '_blank');
+      } catch (err) {
+        console.warn('Could not open TikTok tab for comment:', err);
+      }
+    }
+
+    // 3. Hiện banner xác minh - chờ user bấm "Tôi đã bình luận xong"
+    setPendingVerification({
+      action: 'comment',
+      itemId: currentItem.id,
+      tiktokUrl: videoTikTokUrl,
+      commentText: text,
+      coinsToEarn: 200,
+      label: `Bình luận thật trên video @${cleanHandle}`
+    });
   };
 
-  // 1-CLICK CHIA SẺ VIDEO ĐẨY VỀ FACEBOOK
-  const handleShareAction = (e?: React.MouseEvent) => {
+  // 1-CLICK CHIA SẺ THẬT - WEB SHARE API + MỞ FACEBOOK/TIKTOK + XÁC MINH
+  const handleShareAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    const targetUrl = currentItem.targetUrl || `https://www.tiktok.com/@${currentItem.channelHandle.replace('@', '')}`;
-    const userHandle = user.tiktokConnected || user.email || '@user';
-    const res = syncShareToFacebook(targetUrl, currentItem.channelHandle, userHandle);
 
-    if (res.success && !currentClaimed.share) {
-      const reward = claimTaskAction(currentItem.id, 'share');
-      const earned = reward || res.coinsEarned || 240;
-      setSessionCoinsEarned(prev => prev + earned);
-      setTaskClaimedMap(prev => ({
-        ...prev,
-        [currentItem.id]: { ...(prev[currentItem.id] || {}), share: true }
-      }));
-      setInModalAlert({ message: res.message, sub: `Đã cộng +${earned} Xu` });
-      showToast(res.message);
-    } else {
-      setInModalAlert({ message: res.message });
-      showToast(res.message);
+    const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
+    const targetUrl = (currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com'))
+      ? currentItem.targetUrl
+      : `https://www.tiktok.com/@${cleanHandle}`;
+    const shareTitle = currentItem.title || `Kênh TikTok @${cleanHandle}`;
+    const shareText = `🔥 Xem video hot của @${cleanHandle} trên TikTok! ${targetUrl}`;
+
+    // 1. Thử dùng Web Share API thật (hỗ trợ trên mobile)
+    let sharedNatively = false;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shareTitle, text: shareText, url: targetUrl });
+        sharedNatively = true;
+      } catch (err) {
+        console.warn('Web Share cancelled or failed:', err);
+      }
     }
+
+    // 2. Nếu không share native được, mở Facebook share URL
+    if (!sharedNatively) {
+      const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${encodeURIComponent(shareText)}`;
+      if (typeof window !== 'undefined') {
+        try {
+          window.open(fbShareUrl, '_blank', 'width=600,height=450');
+        } catch (err) {
+          console.warn('Could not open Facebook share:', err);
+        }
+      }
+    }
+
+    if (currentClaimed.share) {
+      showToast('🔗 Bạn đã chia sẻ video này rồi!');
+      return;
+    }
+
+    // 3. Hiện banner xác minh chia sẻ
+    setPendingVerification({
+      action: 'share',
+      itemId: currentItem.id,
+      tiktokUrl: targetUrl,
+      coinsToEarn: 240,
+      label: `Chia sẻ video @${cleanHandle} lên mạng xã hội`
+    });
+    showToast('🔗 Đã mở chia sẻ! Xác nhận sau khi chia sẻ xong để nhận +240 Xu.');
   };
 
   const handleBookmarkAction = (e?: React.MouseEvent) => {
@@ -778,6 +880,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       showToast(`⭐ Đã lưu video vào danh sách yêu thích!`);
     }
   };
+
 
   const sampleComments = currentItem.sampleComments || [
     'Nội dung chia sẻ cuốn thực sự, mong bạn ra thêm nhiều clip nữa nhé ❤️',
@@ -825,6 +928,76 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             >
               <X className="w-3.5 h-3.5" />
             </button>
+          </div>
+        )}
+
+        {/* ===== PENDING VERIFICATION BANNER - Xác Minh Tương Tác Thật TikTok ===== */}
+        {pendingVerification && (
+          <div className="absolute inset-x-0 bottom-0 z-[60] animate-in slide-in-from-bottom duration-300 pointer-events-auto">
+            <div className="mx-2 mb-2 p-4 rounded-3xl bg-gradient-to-b from-[#0E1322] to-[#06080F] border border-amber-400/60 shadow-2xl backdrop-blur-xl space-y-3">
+              {/* Header */}
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0 animate-pulse">
+                  <ExternalLink className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-amber-300 font-display">
+                    ⏳ Chờ Xác Minh Trên TikTok
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
+                    {pendingVerification.label}
+                  </div>
+                </div>
+              </div>
+
+              {/* Instruction */}
+              <div className="text-xs text-slate-300 font-mono leading-relaxed bg-black/40 rounded-2xl p-3 border border-white/10">
+                {pendingVerification.action === 'like' && (
+                  <span>❤️ Thả <strong className="text-rose-400">tim</strong> vào video trên TikTok vừa mở, rồi quay lại đây bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+100 Xu</strong>.</span>
+                )}
+                {pendingVerification.action === 'comment' && (
+                  <span>💬 Dán bình luận đã copy (<strong className="text-cyan-400">Ctrl+V</strong>) vào ô bình luận TikTok → gửi. Xong rồi bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+200 Xu</strong>.</span>
+                )}
+                {pendingVerification.action === 'share' && (
+                  <span>🔗 Chia sẻ video lên <strong className="text-blue-400">Facebook</strong> hoặc bất kỳ nền tảng nào, rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+240 Xu</strong>.</span>
+                )}
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleCancelVerification(); }}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white font-bold text-xs border border-white/10 transition-all cursor-pointer"
+                >
+                  ✕ Huỷ
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleConfirmVerification(); }}
+                  disabled={!!syncingAction}
+                  className="flex-[2] py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 disabled:opacity-60 text-white font-black text-xs flex items-center justify-center gap-2 shadow-xl transition-all cursor-pointer active:scale-[0.98]"
+                >
+                  {syncingAction ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Đang xác minh...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>✅ Tôi đã làm xong → Nhận +{pendingVerification.coinsToEarn} Xu</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Re-open TikTok link */}
+              <button
+                onClick={(e) => { e.stopPropagation(); window.open(pendingVerification.tiktokUrl, '_blank'); }}
+                className="w-full text-center text-[10px] text-slate-500 hover:text-amber-400 font-mono transition-colors cursor-pointer"
+              >
+                🔗 Mở lại TikTok: {pendingVerification.tiktokUrl.replace('https://', '')}
+              </button>
+            </div>
           </div>
         )}
 

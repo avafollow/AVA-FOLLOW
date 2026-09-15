@@ -460,12 +460,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
   }, [isFeedRunnerOpen, currentIndex, filterMode, isMuted, currentItem?.id]);
 
-  // Tự động kích hoạt chế độ nhúng TikTok Embed cho video TikTok thật
+  // Tự động chuyển đổi chế độ phát video phù hợp từng loại chiến dịch
   useEffect(() => {
     if (currentItem) {
       const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
-      if (itemMedia.isTikTok && itemMedia.videoId) {
+      if (itemMedia.isTikTok && itemMedia.videoId && /^\d{18,21}$/.test(itemMedia.videoId)) {
         setPlayerMode('embed');
+      } else {
+        setPlayerMode('stream');
       }
     }
   }, [currentItem?.id, currentItem?.targetUrl]);
@@ -602,7 +604,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     showToast(`🌐 Đang mở kênh TikTok chính thức: @${cleanHandle}`);
   };
 
-  // 1-CLICK FOLLOW TRỰC TIẾP TRÊN WEB APP & ĐỒNG BỘ TIKTOK THẬT CHẠY NGẦM
+  // 1-CLICK FOLLOW TRỰC TIẾP TRÊN WEB APP & ĐỒNG BỘ TIKTOK THẬT CHẠY NGẦM (CHUẨN GOLIKE / TRAODOISUB)
   const handleFollowAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (syncingAction) return;
@@ -618,6 +620,20 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       return;
     }
 
+    // 1. Tự động mở trang kênh TikTok thật của chủ kênh trong tab mới để người dùng follow trực tiếp trên TikTok
+    const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
+    const realTikTokChannelUrl = currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com/@')
+      ? currentItem.targetUrl
+      : `https://www.tiktok.com/@${cleanHandle}`;
+
+    if (typeof window !== 'undefined') {
+      try {
+        window.open(realTikTokChannelUrl, '_blank');
+      } catch (err) {
+        console.warn('Could not auto-open popup:', err);
+      }
+    }
+
     setSyncingAction('follow');
     try {
       const res = await syncTikTokFollow(currentItem.channelHandle, userHandle);
@@ -629,8 +645,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           ...prev,
           [currentItem.id]: { ...(prev[currentItem.id] || {}), follow: true }
         }));
-        setInModalAlert({ message: res.message, sub: `Đã cộng +${earned} Xu • Mã TT: ${res.txHash || 'Verified'}` });
-        showToast(res.message);
+        setInModalAlert({ 
+          message: `✅ Đã mở kênh @${cleanHandle} & ghi nhận Follow!`, 
+          sub: `Cộng +${earned} Xu vào ví • Mã GD: ${res.txHash || 'TikTok-Synced'}` 
+        });
+        showToast(`✅ Đã mở kênh TikTok @${cleanHandle} & cộng +${earned} Xu!`);
       } else {
         setInModalAlert({ message: res.message, sub: 'Thông báo từ hệ thống đồng bộ' });
         showToast(res.message);
@@ -663,8 +682,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           ...prev,
           [currentItem.id]: { ...(prev[currentItem.id] || {}), like: true }
         }));
-        setInModalAlert({ message: res.message, sub: `Đã cộng +${earned} Xu • Mã TT: ${res.txHash || 'Verified'}` });
-        showToast(res.message);
+        setInModalAlert({ 
+          message: '❤️ Đã thả tim & tính 1 lượt xem video!', 
+          sub: `Cộng +${earned} Xu vào ví • Mã GD: ${res.txHash || 'TikTok-Like-OK'}` 
+        });
+        showToast(`❤️ Đã thả tim thành công & cộng +${earned} Xu!`);
       } else {
         setInModalAlert({ message: res.message });
         showToast(res.message);
@@ -1058,16 +1080,16 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                     {currentItem.guide || `Bấm Follow kênh @${cleanHandle} trên TikTok để nhận ngay ${currentItem.rewardCoins} Xu thưởng.`}
                   </p>
 
-                  <a
-                    href={currentItem.targetUrl || `https://www.tiktok.com/@${cleanHandle}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFollowAction();
+                    }}
                     className="px-6 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-sm shadow-xl flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
                   >
-                    <span>Mở Kênh & Follow Trên TikTok</span>
+                    <span>{currentClaimed.follow ? '✓ Đã Follow Kênh (+200 Xu)' : 'Mở Kênh & Follow Trên TikTok (+200 Xu)'}</span>
                     <ExternalLink className="w-4 h-4" />
-                  </a>
+                  </button>
                 </div>
               );
             }
@@ -1207,8 +1229,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             )}
           </div>
 
-          {/* Right Action Bar (Luôn hiển thị đầy đủ Follow, Thả Tim, Comment, Chia sẻ) */}
-          <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-3.5 pointer-events-auto">
+          {/* Right Action Bar (Hiển thị mượt mà trên Direct Player & Live Stream, tránh đè lên nút native của TikTok Embed) */}
+          {playerMode !== 'embed' && (
+            <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-3.5 pointer-events-auto animate-in fade-in duration-300">
               {/* Creator Avatar with Follow Plus Badge */}
               <div 
                 onClick={(e) => {
@@ -1318,6 +1341,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 />
               </div>
             </div>
+          )}
 
           {/* Up / Down Navigation Controls (Lướt Lướt Liên Tục) */}
           <div className="absolute left-3 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2 pointer-events-auto">

@@ -41,7 +41,9 @@ import {
   UploadCloud,
   Camera,
   Scale,
-  RefreshCw
+  RefreshCw,
+  ShieldAlert,
+  Gavel
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
@@ -53,6 +55,7 @@ import { EscrowIncidentModal } from '../modals/EscrowIncidentModal';
 import { EscrowChatModal } from '../modals/EscrowChatModal';
 import { EscrowBookingContract } from '../../types';
 import { getTikTokSyncLogs, TikTokSyncLog } from '../../services/tiktokActionSync';
+import { LegalSecurityComplianceView } from '../profile/LegalSecurityComplianceView';
 
 export const ProfileWalletScreen: React.FC<{
   darkMode: boolean;
@@ -92,7 +95,7 @@ export const ProfileWalletScreen: React.FC<{
   const [accountNumber, setAccountNumber] = useState(user.bankInfo?.accountNumber || '');
   const [accountHolder, setAccountHolder] = useState(user.bankInfo?.accountHolder || user.name.toUpperCase());
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [activeProfileTab, setActiveProfileTab] = useState<'kyc_profile' | 'packages' | 'software' | 'escrow' | 'affiliate' | 'transactions' | 'bank' | 'activity' | 'fraud_appeals'>('kyc_profile');
+  const [activeProfileTab, setActiveProfileTab] = useState<'kyc_profile' | 'packages' | 'software' | 'escrow' | 'affiliate' | 'transactions' | 'bank' | 'activity' | 'fraud_appeals' | 'legal_compliance'>('kyc_profile');
   const [txFilterTab, setTxFilterTab] = useState<'balance' | 'tiktok_sync'>('balance');
   const [activityPeriod, setActivityPeriod] = useState<'day' | 'week' | 'month'>('day');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -335,8 +338,38 @@ export const ProfileWalletScreen: React.FC<{
         </div>
       </div>
 
-      {/* Navigation Sub-Tabs — lưới ô vuông 2 cột */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+      {/* BANNER CẢNH BÁO BẢO MẬT, CHỐNG LỪA ĐẢO & TUÂN THỦ PHÁP LUẬT (NỔI BẬT ĐẦU TRANG HỒ SƠ) */}
+      <div className="p-4 rounded-3xl bg-gradient-to-r from-red-950/50 via-[#0F1424] to-slate-950 border-2 border-red-500/50 shadow-xl shadow-red-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-10 h-10 rounded-2xl bg-red-600/30 border border-red-500/60 flex items-center justify-center text-red-400 shrink-0 shadow-lg animate-pulse">
+            <ShieldAlert className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-black text-white uppercase font-display flex items-center gap-1.5">
+                <span>Tuân Thủ An Ninh Mạng &amp; Phòng Chống Lừa Đảo</span>
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-red-600/30 text-red-300 border border-red-500/40 text-[9px] font-mono font-black">
+                NGHIÊM CẤM VI PHẠM
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300 font-mono line-clamp-1 mt-0.5">
+              Nền tảng cấm tuyệt đối mọi hành vi lừa đảo, cờ bạc, rửa tiền hoặc lợi dụng phần mềm sai luật. Vi phạm sẽ bị chuyển hồ sơ sang Cục A05 - Bộ Công An.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setActiveProfileTab('legal_compliance')}
+          className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-mono font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer shrink-0 active:scale-95"
+        >
+          <Scale className="w-3.5 h-3.5" />
+          <span>Xem Chính Sách Pháp Lý ➔</span>
+        </button>
+      </div>
+
+      {/* Navigation Sub-Tabs — lưới ô vuông 2-5 cột */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
         {/* 0 — KYC & Hồ Sơ */}
         <button
           onClick={() => setActiveProfileTab('kyc_profile')}
@@ -462,6 +495,22 @@ export const ProfileWalletScreen: React.FC<{
           <span className="text-center leading-tight text-[10px]">Kháng Cáo & Khiếu Nại</span>
           <span className="px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[9px] font-mono">
             {(fraudAppeals || []).filter(a => a.userId === user.id || a.userEmail === user.email || a.userHandle === user.tiktokHandle).length} Đơn
+          </span>
+        </button>
+
+        {/* 9: Điều Khoản & Bảo Mật Pháp Lý (Bắt buộc tuân thủ pháp luật) */}
+        <button
+          onClick={() => setActiveProfileTab('legal_compliance')}
+          className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl font-bold transition-all aspect-square sm:aspect-auto sm:py-3 active:scale-95 ${
+            activeProfileTab === 'legal_compliance'
+              ? 'bg-gradient-to-br from-red-600 to-rose-700 text-white shadow-md ring-2 ring-red-500'
+              : 'text-slate-400 hover:text-white bg-slate-900/60 border border-red-500/20 hover:border-red-500/40'
+          }`}
+        >
+          <ShieldAlert className="w-5 h-5 shrink-0 text-red-400" />
+          <span className="text-center leading-tight text-[10px]">Điều Khoản & Bảo Mật</span>
+          <span className="px-1.5 py-0.5 rounded-full bg-red-600/30 text-red-300 text-[9px] font-mono font-bold">
+            PHÁP LÝ
           </span>
         </button>
       </div>
@@ -2408,6 +2457,16 @@ export const ProfileWalletScreen: React.FC<{
           </div>
         );
       })()}
+
+      {/* TAB 9: ĐIỀU KHOẢN & BẢO MẬT PHÁP LÝ (BẮT BUỘC TUÂN THỦ PHÁP LUẬT) */}
+      {activeProfileTab === 'legal_compliance' && (
+        <LegalSecurityComplianceView
+          userName={user.name}
+          userEmail={user.email}
+          onOpenAppealModal={openFraudAppealModal}
+          showToast={showToast}
+        />
+      )}
 
       {/* MODAL XEM CHI TIẾT HỢP ĐỒNG ĐIỆN TỬ ĐÃ KÝ */}
       <EscrowContractModal

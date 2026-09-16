@@ -539,10 +539,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_livestream_tasks') : null;
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           // Lọc sạch 100% các phiên live đã kết thúc, chỉ nạp phiên đang phát sóng
           const activeOnly = parsed.filter((l: LivestreamTaskItem) => l.status === 'live');
-          if (activeOnly.length > 0) return activeOnly;
+          return activeOnly;
         }
       }
     } catch {}

@@ -67,7 +67,8 @@ export const HomeScreen: React.FC<{
     openLiveRunner, 
     openLuckyWheel, 
     openPolicy,
-    openShareModal
+    openShareModal,
+    userCompletedActions
   } = useTikTokApp();
 
   const [isKocModalOpen, setIsKocModalOpen] = useState(false);
@@ -277,154 +278,211 @@ export const HomeScreen: React.FC<{
             </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-            {/* SVG DONUT CHART */}
-            <div className="lg:col-span-5 flex flex-col items-center justify-center relative p-4 bg-black/40 rounded-3xl border border-white/5">
-              <div className="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center">
-                <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
-                  {/* Segment 1: Follow Kênh (40%) - Rose */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="38"
-                    fill="transparent"
-                    stroke="#FF0050"
-                    strokeWidth="11"
-                    strokeDasharray="100.5 138.2"
-                    strokeDashoffset="0"
-                    className="transition-all duration-700"
-                  />
-                  {/* Segment 2: Xem Video FYP (25%) - Amber */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="38"
-                    fill="transparent"
-                    stroke="#F59E0B"
-                    strokeWidth="11"
-                    strokeDasharray="59.7 179"
-                    strokeDashoffset="-100.5"
-                    className="transition-all duration-700"
-                  />
-                  {/* Segment 3: KOC Review & Escrow (20%) - Purple */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="38"
-                    fill="transparent"
-                    stroke="#8B5CF6"
-                    strokeWidth="11"
-                    strokeDasharray="47.7 191"
-                    strokeDashoffset="-160.2"
-                    className="transition-all duration-700"
-                  />
-                  {/* Segment 4: Xem Livestream (15%) - Cyan */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="38"
-                    fill="transparent"
-                    stroke="#00F2FE"
-                    strokeWidth="11"
-                    strokeDasharray="35.8 202.9"
-                    strokeDashoffset="-207.9"
-                    className="transition-all duration-700"
-                  />
-                </svg>
+          {(() => {
+            // TÍNH TOÁN 100% CON SỐ THẬT TỪ HÀNH ĐỘNG CỦA NGƯỜI DÙNG
+            const completedFollowTasks = tasks.filter(t => t.type === 'follow' && userCompletedActions?.[t.id]);
+            const completedWatchTasks = tasks.filter(t => (t.type === 'watch' || t.videoPreviewUrl) && userCompletedActions?.[t.id]);
+            const completedKocTasks = tasks.filter(t => (t.type === 'review' || t.campaignCategory === 'partner') && userCompletedActions?.[t.id]);
+            const completedLiveTasks = livestreamTasks.filter(l => userCompletedActions?.[l.id]);
 
-                {/* Inner Center Stats */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase">Tổng Thu Nhập</span>
-                  <span className="text-lg sm:text-xl font-black text-neonGold font-mono">
-                    {(user.avaliveCoins || 0).toLocaleString()}
-                  </span>
-                  <span className="text-[9px] font-mono text-emerald-400 font-bold">≈ {user.coinsValueVND}</span>
+            const followEarned = completedFollowTasks.reduce((sum, t) => sum + (t.rewardCoins || 200), 0);
+            const watchEarned = completedWatchTasks.reduce((sum, t) => sum + (t.rewardCoins || 200), 0);
+            const kocEarned = completedKocTasks.reduce((sum, t) => sum + (t.rewardCoins || 50000), 0);
+            const liveEarned = completedLiveTasks.reduce((sum, l) => sum + (l.totalRewardCoins || 400), 0);
+            
+            const totalEarnedFromTasks = followEarned + watchEarned + kocEarned + liveEarned;
+
+            const followPct = totalEarnedFromTasks > 0 ? Math.round((followEarned / totalEarnedFromTasks) * 100) : 0;
+            const watchPct = totalEarnedFromTasks > 0 ? Math.round((watchEarned / totalEarnedFromTasks) * 100) : 0;
+            const kocPct = totalEarnedFromTasks > 0 ? Math.round((kocEarned / totalEarnedFromTasks) * 100) : 0;
+            const livePct = totalEarnedFromTasks > 0 ? Math.max(0, 100 - followPct - watchPct - kocPct) : 0;
+
+            const circ = 238.76;
+            const dashFollow = (followPct / 100) * circ;
+            const dashWatch = (watchPct / 100) * circ;
+            const dashKoc = (kocPct / 100) * circ;
+            const dashLive = (livePct / 100) * circ;
+
+            const offsetFollow = 0;
+            const offsetWatch = -dashFollow;
+            const offsetKoc = -(dashFollow + dashWatch);
+            const offsetLive = -(dashFollow + dashWatch + dashKoc);
+
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                {/* SVG DONUT CHART */}
+                <div className="lg:col-span-5 flex flex-col items-center justify-center relative p-4 bg-black/40 rounded-3xl border border-white/5">
+                  <div className="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center">
+                    <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+                      {totalEarnedFromTasks === 0 ? (
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="38"
+                          fill="transparent"
+                          stroke="#1E293B"
+                          strokeWidth="11"
+                          strokeDasharray="238.76 238.76"
+                        />
+                      ) : (
+                        <>
+                          {/* Segment 1: Follow Kênh (Rose) */}
+                          {followPct > 0 && (
+                            <circle
+                              cx="50"
+                              cy="50"
+                              r="38"
+                              fill="transparent"
+                              stroke="#FF0050"
+                              strokeWidth="11"
+                              strokeDasharray={`${dashFollow} ${circ}`}
+                              strokeDashoffset={offsetFollow}
+                              className="transition-all duration-700"
+                            />
+                          )}
+                          {/* Segment 2: Xem Video FYP (Amber) */}
+                          {watchPct > 0 && (
+                            <circle
+                              cx="50"
+                              cy="50"
+                              r="38"
+                              fill="transparent"
+                              stroke="#F59E0B"
+                              strokeWidth="11"
+                              strokeDasharray={`${dashWatch} ${circ}`}
+                              strokeDashoffset={offsetWatch}
+                              className="transition-all duration-700"
+                            />
+                          )}
+                          {/* Segment 3: KOC Review & Escrow (Purple) */}
+                          {kocPct > 0 && (
+                            <circle
+                              cx="50"
+                              cy="50"
+                              r="38"
+                              fill="transparent"
+                              stroke="#8B5CF6"
+                              strokeWidth="11"
+                              strokeDasharray={`${dashKoc} ${circ}`}
+                              strokeDashoffset={offsetKoc}
+                              className="transition-all duration-700"
+                            />
+                          )}
+                          {/* Segment 4: Xem Livestream (Cyan) */}
+                          {livePct > 0 && (
+                            <circle
+                              cx="50"
+                              cy="50"
+                              r="38"
+                              fill="transparent"
+                              stroke="#00F2FE"
+                              strokeWidth="11"
+                              strokeDasharray={`${dashLive} ${circ}`}
+                              strokeDashoffset={offsetLive}
+                              className="transition-all duration-700"
+                            />
+                          )}
+                        </>
+                      )}
+                    </svg>
+
+                    {/* Inner Center Stats */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase">Tổng Thu Nhập Thật</span>
+                      <span className="text-lg sm:text-xl font-black text-neonGold font-mono">
+                        {totalEarnedFromTasks.toLocaleString()} Xu
+                      </span>
+                      <span className="text-[9px] font-mono text-emerald-400 font-bold">
+                        ≈ {totalEarnedFromTasks.toLocaleString('vi-VN')}đ
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-[10px] text-slate-500 font-mono mt-2">
+                    * Tỷ giá trực tiếp 1 Xu = 1 VNĐ rút tiền về ATM
+                  </div>
+                </div>
+
+                {/* BREAKDOWN METRICS & PROGRESS BARS */}
+                <div className="lg:col-span-7 space-y-3.5">
+                  <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                    <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 text-[10px]">Follow Kênh ({followPct}%)</span>
+                        <span className="w-2 h-2 rounded-full bg-[#FF0050]" />
+                      </div>
+                      <div className="text-sm font-black text-rose-300 mt-1">
+                        {followEarned.toLocaleString()} Xu
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{completedFollowTasks.length} nhiệm vụ đã xong</div>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 text-[10px]">Xem Video FYP ({watchPct}%)</span>
+                        <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      </div>
+                      <div className="text-sm font-black text-amber-300 mt-1">
+                        {watchEarned.toLocaleString()} Xu
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{completedWatchTasks.length} video đã xem</div>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 text-[10px]">Booking KOC ({kocPct}%)</span>
+                        <span className="w-2 h-2 rounded-full bg-purple-400" />
+                      </div>
+                      <div className="text-sm font-black text-purple-300 mt-1">
+                        {kocEarned.toLocaleString()} Xu
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{completedKocTasks.length} đơn hoàn thành</div>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 text-[10px]">Mắt Live &amp; NV ({livePct}%)</span>
+                        <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                      </div>
+                      <div className="text-sm font-black text-cyan-300 mt-1">
+                        {liveEarned.toLocaleString()} Xu
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{completedLiveTasks.length} phiên đã xem</div>
+                    </div>
+                  </div>
+
+                  {/* Progress Tracker Strip */}
+                  <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-2 text-xs">
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-300 font-bold">Tiến Độ Nhiệm Vụ Hôm Nay:</span>
+                      <span className="text-emerald-400 font-bold font-mono">
+                        {completedTasksCount}/{totalDailyTarget} Hoàn Thành ({progressPercent}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-rose-500 rounded-full transition-all duration-500" 
+                        style={{ width: `${progressPercent}%` }} 
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-0.5">
+                      <span>
+                        {remainingForBonus > 0 
+                          ? `Còn ${remainingForBonus} nhiệm vụ để nhận thêm lượt Quay May Mắn` 
+                          : 'Đã hoàn thành xuất sắc chỉ tiêu!'}
+                      </span>
+                      <button
+                        onClick={() => onNavigate('tasks')}
+                        className="text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer"
+                      >
+                        Làm ngay →
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <div className="text-[10px] text-slate-500 font-mono mt-2">
-                * Tỷ giá trực tiếp 1 Xu = 1 VNĐ rút tiền về ATM
-              </div>
-            </div>
-
-            {/* BREAKDOWN METRICS & PROGRESS BARS */}
-            <div className="lg:col-span-7 space-y-3.5">
-              <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-[10px]">Follow Kênh (40%)</span>
-                    <span className="w-2 h-2 rounded-full bg-[#FF0050]" />
-                  </div>
-                  <div className="text-sm font-black text-rose-300 mt-1">
-                    {Math.round((user.avaliveCoins || 0) * 0.4).toLocaleString()} Xu
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{completedTasksCount} nhiệm vụ đã xong</div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-[10px]">Xem Video FYP (25%)</span>
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  </div>
-                  <div className="text-sm font-black text-amber-300 mt-1">
-                    {Math.round((user.avaliveCoins || 0) * 0.25).toLocaleString()} Xu
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">Xem đếm ngược tự động</div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-[10px]">Booking KOC (20%)</span>
-                    <span className="w-2 h-2 rounded-full bg-purple-400" />
-                  </div>
-                  <div className="text-sm font-black text-purple-300 mt-1">
-                    {Math.round((user.avaliveCoins || 0) * 0.2).toLocaleString()} Xu
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">Ký quỹ Escrow bảo đảm</div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-[10px]">Mắt Live &amp; NV (15%)</span>
-                    <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                  </div>
-                  <div className="text-sm font-black text-cyan-300 mt-1">
-                    {Math.round((user.avaliveCoins || 0) * 0.15).toLocaleString()} Xu
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">Giữ mắt live &amp; tương tác</div>
-                </div>
-              </div>
-
-              {/* Progress Tracker Strip */}
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-2 text-xs">
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-300 font-bold">Tiến Độ Nhiệm Vụ Hôm Nay:</span>
-                  <span className="text-emerald-400 font-bold font-mono">
-                    {completedTasksCount}/{totalDailyTarget} Hoàn Thành ({progressPercent}%)
-                  </span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-rose-500 rounded-full transition-all duration-500" 
-                    style={{ width: `${progressPercent}%` }} 
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-0.5">
-                  <span>
-                    {remainingForBonus > 0 
-                      ? `Còn ${remainingForBonus} nhiệm vụ để nhận thêm lượt Quay May Mắn` 
-                      : 'Đã hoàn thành xuất sắc chỉ tiêu!'}
-                  </span>
-                  <button
-                    onClick={() => onNavigate('tasks')}
-                    className="text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer"
-                  >
-                    Làm ngay →
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
 
         {/* ========================================================================= */}
@@ -579,41 +637,56 @@ export const HomeScreen: React.FC<{
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {deduplicatedLiveRooms.slice(0, 6).map((live) => (
-                    <div
-                      key={live.id}
-                      onClick={() => openLiveRunner(live as any)}
-                      className="cursor-pointer p-3 rounded-2xl bg-[#0D111E] border border-rose-500/30 hover:border-rose-400 transition-all flex items-center justify-between gap-3 shadow-lg group hover:scale-[1.01]"
+                {deduplicatedLiveRooms.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-black/30 border border-white/5 text-center space-y-2">
+                    <Radio className="w-8 h-8 text-slate-600 mx-auto" />
+                    <div className="text-xs font-bold text-slate-300">Hiện Không Có Phiên Live Nào Đang Phát</div>
+                    <p className="text-[10px] text-slate-500 font-mono">Tất cả phiên livestream trước đã kết thúc và được lưu trữ vào lịch sử hệ thống.</p>
+                    <button
+                      onClick={() => onNavigate('create_campaign')}
+                      className="mt-2 px-3.5 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 text-xs font-mono font-bold inline-flex items-center gap-1.5 transition-all cursor-pointer"
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="relative w-14 h-16 sm:w-16 sm:h-18 rounded-xl overflow-hidden shrink-0 border border-rose-500/40 group-hover:border-rose-400 transition-colors shadow-md">
-                          <SmartMediaThumbnail
-                            targetUrl={live.targetUrl}
-                            channelAvatar={live.channelAvatar}
-                            channelHandle={live.channelHandle}
-                            isLive={true}
-                            viewersCount={live.currentViewers || 580}
-                            className="w-full h-full"
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-bold text-white text-xs truncate group-hover:text-rose-300 transition-colors">
-                            {live.channelName}
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      <span>Tạo Chiến Dịch Mắt Live Mới</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {deduplicatedLiveRooms.slice(0, 6).map((live) => (
+                      <div
+                        key={live.id}
+                        onClick={() => openLiveRunner(live as any)}
+                        className="cursor-pointer p-3 rounded-2xl bg-[#0D111E] border border-rose-500/30 hover:border-rose-400 transition-all flex items-center justify-between gap-3 shadow-lg group hover:scale-[1.01]"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="relative w-14 h-16 sm:w-16 sm:h-18 rounded-xl overflow-hidden shrink-0 border border-rose-500/40 group-hover:border-rose-400 transition-colors shadow-md">
+                            <SmartMediaThumbnail
+                              targetUrl={live.targetUrl}
+                              channelAvatar={live.channelAvatar}
+                              channelHandle={live.channelHandle}
+                              isLive={true}
+                              viewersCount={live.currentViewers || 580}
+                              className="w-full h-full"
+                            />
                           </div>
-                          <div className="text-[10px] text-rose-400 font-mono truncate">{live.channelHandle}</div>
-                          <div className="text-[9px] text-slate-400 truncate max-w-[130px]">{live.roomTitle}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-white text-xs truncate group-hover:text-rose-300 transition-colors">
+                              {live.channelName}
+                            </div>
+                            <div className="text-[10px] text-rose-400 font-mono truncate">{live.channelHandle}</div>
+                            <div className="text-[9px] text-slate-400 truncate max-w-[130px]">{live.roomTitle}</div>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 flex flex-col justify-between items-end h-16 sm:h-18 py-0.5">
+                          <div className="text-xs font-black text-amber-400 font-mono">+{live.rewardPerMinute} Xu/p</div>
+                          <span className="mt-1 px-2 py-1 rounded-lg bg-rose-600/20 text-rose-300 border border-rose-500/30 text-[9px] font-mono font-bold group-hover:bg-rose-600 group-hover:text-white transition-all">
+                            Vào Xem Live
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right shrink-0 flex flex-col justify-between items-end h-16 sm:h-18 py-0.5">
-                        <div className="text-xs font-black text-amber-400 font-mono">+{live.rewardPerMinute} Xu/p</div>
-                        <span className="mt-1 px-2 py-1 rounded-lg bg-rose-600/20 text-rose-300 border border-rose-500/30 text-[9px] font-mono font-bold group-hover:bg-rose-600 group-hover:text-white transition-all">
-                          Vào Xem Live
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           );

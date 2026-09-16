@@ -67,6 +67,7 @@ export const TasksScreen: React.FC<{
     dismissPartnerAnnouncement,
     connectTikTok,
     connectFacebook,
+    connectYoutube,
     user,
     boostCampaign,
     userCompletedActions,
@@ -106,11 +107,13 @@ export const TasksScreen: React.FC<{
   const [feedCategoryFilter, setFeedCategoryFilter] = useState<'all' | 'missions' | 'live' | 'partner' | 'cross_follow'>('all');
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Inline Quick Edit & Switch Account State (Thu gọn thanh trạng thái kết nối)
+  // Inline Quick Edit & Switch Account State (Thu gọn thanh trạng thái kết nối TikTok, Facebook, YouTube)
   const [editingTikTok, setEditingTikTok] = useState<boolean>(false);
   const [tempTikTokHandle, setTempTikTokHandle] = useState<string>(user.tiktokConnected || "@thienvuaapp_official");
   const [editingFacebook, setEditingFacebook] = useState<boolean>(false);
   const [tempFacebookUrl, setTempFacebookUrl] = useState<string>(user.facebookConnected || "fb.com/thienvuaapp");
+  const [editingYoutube, setEditingYoutube] = useState<boolean>(false);
+  const [tempYoutubeUrl, setTempYoutubeUrl] = useState<string>(user.youtubeConnected || "@thienvuaapp_yt");
 
   // Kiểm tra hoàn thành toàn bộ Nhiệm Vụ Ngày để mở khóa Live Stream & Follow Chéo
   const dailyMissions = userMissions?.filter(m => m.category === 'daily') || [];
@@ -398,9 +401,9 @@ export const TasksScreen: React.FC<{
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. THANH KẾT NỐI TÀI KHOẢN (TIKTOK & FACEBOOK) SIÊU GỌN GÀNG, DỄ NHÌN */}
+      {/* 2. THANH KẾT NỐI TÀI KHOẢN (TIKTOK, FACEBOOK & YOUTUBE) SIÊU GỌN GÀNG, DỄ NHÌN */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
         {/* TIKTOK COMPACT CARD */}
         <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-[#090C16] border border-rose-500/40 hover:border-rose-400/80 transition-all shadow-md">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -415,7 +418,7 @@ export const TasksScreen: React.FC<{
                 {user.kycStatus === 'verified' ? (
                   <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
                     <Lock className="w-3 h-3 text-emerald-400" />
-                    ĐÃ DUYỆT KYC (KHÓA KÊNH)
+                    ĐÃ DUYỆT KYC
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
@@ -451,7 +454,7 @@ export const TasksScreen: React.FC<{
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs font-black text-white truncate max-w-[130px] sm:max-w-[180px]">
+                  <span className="text-xs font-black text-white truncate max-w-[110px] sm:max-w-[150px]">
                     {user.tiktokConnected || "@thienvuaapp_official"}
                   </span>
                   <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
@@ -511,7 +514,7 @@ export const TasksScreen: React.FC<{
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono font-bold text-blue-300 uppercase">FACEBOOK SHARE:</span>
+                <span className="text-[10px] font-mono font-bold text-blue-300 uppercase">FACEBOOK:</span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                   SẴN SÀNG
@@ -544,7 +547,7 @@ export const TasksScreen: React.FC<{
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs font-black text-white truncate max-w-[130px] sm:max-w-[180px]">
+                  <span className="text-xs font-black text-white truncate max-w-[110px] sm:max-w-[150px]">
                     {user.facebookConnected || "fb.com/thienvuaapp"}
                   </span>
                   <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
@@ -590,6 +593,101 @@ export const TasksScreen: React.FC<{
               rel="noreferrer"
               className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
               title="Mở Facebook"
+            >
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        </div>
+
+        {/* YOUTUBE / GOOGLE COMPACT CARD */}
+        <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-[#090C16] border border-red-500/40 hover:border-red-400/80 transition-all shadow-md">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-xl bg-black border border-red-500/60 flex items-center justify-center text-red-500 shrink-0 p-1.5 shadow">
+              <svg className="w-full h-full fill-current" viewBox="0 0 24 24">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono font-bold text-red-300 uppercase">YOUTUBE / GOOGLE:</span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  SẴN SÀNG
+                </span>
+              </div>
+              {editingYoutube && user.kycStatus !== 'verified' ? (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <input
+                    type="text"
+                    value={tempYoutubeUrl}
+                    onChange={(e) => setTempYoutubeUrl(e.target.value)}
+                    placeholder="@ten_kenh_youtube"
+                    className="px-2 py-0.5 rounded bg-black border border-red-500/60 text-xs font-mono text-white focus:outline-none w-28 sm:w-36"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => {
+                      if (tempYoutubeUrl.trim()) {
+                        connectYoutube(tempYoutubeUrl.trim());
+                        setEditingYoutube(false);
+                      }
+                    }}
+                    className="px-2 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white font-bold text-[10px] cursor-pointer"
+                  >
+                    Lưu
+                  </button>
+                  <button onClick={() => setEditingYoutube(false)} className="p-0.5 text-slate-400 hover:text-white cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-xs font-black text-white truncate max-w-[110px] sm:max-w-[150px]">
+                    {user.youtubeConnected || "@thienvuaapp_yt"}
+                  </span>
+                  <CheckCircle2 className="w-3 h-3 text-red-400 shrink-0" />
+                  <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
+                    ({(user.youtubeSubscribers || 12500).toLocaleString()} subs)
+                  </span>
+                  {user.kycStatus !== 'verified' && (
+                    <button
+                      onClick={() => {
+                        setTempYoutubeUrl(user.youtubeConnected || "@thienvuaapp_yt");
+                        setEditingYoutube(true);
+                      }}
+                      className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-red-300 transition-colors cursor-pointer"
+                      title="Đổi kênh YouTube"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {user.kycStatus !== 'verified' ? (
+              <button
+                onClick={() => {
+                  setTempYoutubeUrl(user.youtubeConnected || "@thienvuaapp_yt");
+                  setEditingYoutube(true);
+                }}
+                className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10"
+              >
+                Đổi Nick
+              </button>
+            ) : (
+              <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1">
+                <Lock className="w-3 h-3 text-emerald-400" />
+                Cố Định
+              </span>
+            )}
+            <a
+              href={user.youtubeProfileUrl || `https://www.youtube.com/${(user.youtubeConnected || "@thienvuaapp_yt").startsWith('@') ? user.youtubeConnected : '@' + (user.youtubeConnected || "thienvuaapp_yt")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              title="Mở kênh YouTube"
             >
               <ExternalLink className="w-3 h-3" />
             </a>

@@ -515,6 +515,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   });
 
+  // Tự động dọn sạch 100% dữ liệu demo cũ từ localStorage
+  if (typeof window !== 'undefined') {
+    try {
+      const hasPurged = localStorage.getItem('ava_purged_demo_v4');
+      if (!hasPurged) {
+        localStorage.removeItem('ava_tasks');
+        localStorage.removeItem('ava_livestream_tasks');
+        localStorage.removeItem('ava_campaigns');
+        localStorage.removeItem('ava_marquee_items');
+        localStorage.removeItem('ava_marquee_history');
+        localStorage.setItem('ava_purged_demo_v4', 'true');
+      }
+    } catch {}
+  }
+
   const [tasks, setTasks] = useState<TikTokTaskItem[]>(() => {
     try {
       const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_tasks') : null;
@@ -523,7 +538,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (Array.isArray(parsed) && parsed.length > 0) {
           const localSamples = ['/videos/sample1.mp4', '/videos/sample2.mp4', '/videos/sample3.mp4'];
           const realOnly = parsed
-            .filter((t: TikTokTaskItem) => !t.id.startsWith('task_') && !t.id.startsWith('mock_') && !t.id.startsWith('demo_'))
+            .filter((t: TikTokTaskItem) => 
+              !t.id.startsWith('task_') && 
+              !t.id.startsWith('mock_') && 
+              !t.id.startsWith('demo_') &&
+              t.channelHandle !== '@zenskin_vietnam' &&
+              t.channelHandle !== '@auraboutique.vn' &&
+              t.channelHandle !== '@homie_vietnam'
+            )
             .map((t: TikTokTaskItem, i: number) => {
               if (!t.videoPreviewUrl || t.videoPreviewUrl.includes('test-videos.co.uk') || t.videoPreviewUrl.includes('interactive-examples') || t.videoPreviewUrl.includes('vjs.zencdn.net')) {
                 return { ...t, videoPreviewUrl: localSamples[i % localSamples.length] };
@@ -543,8 +565,18 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          // Lọc sạch 100% các phiên live đã kết thúc, chỉ nạp phiên đang phát sóng
-          const activeOnly = parsed.filter((l: LivestreamTaskItem) => l.status === 'live');
+          // Lọc sạch 100% các phiên live đã kết thúc hoặc demo cũ
+          const activeOnly = parsed.filter((l: LivestreamTaskItem) => 
+            l.status === 'live' && 
+            !l.id.startsWith('demo_') && 
+            !l.id.startsWith('mock_') && 
+            !l.id.startsWith('sched_') && 
+            !l.id.startsWith('live_old_') &&
+            l.channelHandle !== '@milynxi' &&
+            l.channelHandle !== '@giauhuy' &&
+            l.channelHandle !== '@coptrontech' &&
+            l.channelHandle !== '@_tieutiennu'
+          );
           return activeOnly;
         }
       }
@@ -557,7 +589,19 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_campaigns') : null;
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const realCampaigns = parsed.filter((c: CampaignItem) => 
+            !c.id.startsWith('demo_') && 
+            !c.id.startsWith('mock_') &&
+            !c.id.startsWith('task_') &&
+            c.status !== 'completed' &&
+            c.channelHandle !== '@milynxi' &&
+            c.channelHandle !== '@giauhuy' &&
+            c.channelHandle !== '@coptrontech' &&
+            c.channelHandle !== '@_tieutiennu'
+          );
+          return realCampaigns;
+        }
       }
     } catch {}
     return ACTIVE_CAMPAIGNS;

@@ -328,44 +328,4 @@ export interface ScheduledLiveSession {
   isRegistered: boolean;
 }
 
-export const INITIAL_SCHEDULED_LIVES: ScheduledLiveSession[] = [
-  {
-    id: 'sched_1',
-    shopName: 'Mỹ Phẩm Cao Cấp ZenSkin',
-    shopHandle: '@zenskin_vietnam',
-    shopAvatar: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=120',
-    roomTitle: '🔥 MEGA LIVE 20H00: ĐẠI TIỆC SERUM B5 MUA 1 TẶNG 1 - TẶNG MÁY RỬA MẶT CHO 100 ĐƠN ĐẦU',
-    scheduledTime: '20:00 Tối Nay',
-    category: 'Mỹ Phẩm Skincare',
-    targetEyes: 1000,
-    rewardPerViewer: '+8,500 Xu / 15 phút',
-    registeredCount: 428,
-    isRegistered: false
-  },
-  {
-    id: 'sched_2',
-    shopName: 'Thời Trang Nam Aristino',
-    shopHandle: '@aristino_menswear',
-    shopAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120',
-    roomTitle: '⚡ XẢ KHO ĐỒNG GIÁ 199K: ÁO POLO VÀ SƠ MI CÔNG SỞ CAO CẤP',
-    scheduledTime: '12:00 Trưa Mai',
-    category: 'Thời Trang Nam',
-    targetEyes: 500,
-    rewardPerViewer: '+4,500 Xu / 10 phút',
-    registeredCount: 312,
-    isRegistered: true
-  },
-  {
-    id: 'sched_3',
-    shopName: 'Gia Dụng Thông Minh Homie',
-    shopHandle: '@homie_smarthome',
-    shopAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120',
-    roomTitle: '🤖 TRÊN TAY NỒI CHIÊN KHÔNG DẦU ĐIỆN TỬ - TẶNG CHẢO CHỐNG DÍNH MỖI 15 PHÚT',
-    scheduledTime: '19:30 Ngày Mai',
-    category: 'Đồ Gia Dụng',
-    targetEyes: 800,
-    rewardPerViewer: '+6,200 Xu / 12 phút',
-    registeredCount: 195,
-    isRegistered: false
-  }
-];
+export const INITIAL_SCHEDULED_LIVES: ScheduledLiveSession[] = [];

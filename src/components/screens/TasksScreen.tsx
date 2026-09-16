@@ -1529,82 +1529,111 @@ export const TasksScreen: React.FC<{
               </span>
             </div>
 
-            {/* Grid Live Rooms với Khung Live 1/4 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {displayLiveTasks.map((live) => {
-                const baseEarnings = Math.round((live.rewardPerMinute || 300) * live.targetMinutes * quota.multiplier);
-                const milestoneBonus = Math.round((live.milestoneBonusCoins || 500) * quota.multiplier);
-                const totalEstReward = baseEarnings + milestoneBonus;
-
-                return (
-                  <div
-                    key={live.id}
-                    onClick={() => handleOpenLiveRunner(live)}
-                    className="p-3 sm:p-3.5 rounded-2xl bg-[#090C16] border border-pink-500/30 hover:border-pink-400 transition-all flex flex-row gap-3 shadow-lg cursor-pointer group hover:scale-[1.01]"
+            {/* Grid Live Rooms với Khung Live 1/4 hoặc Empty State */}
+            {displayLiveTasks.length === 0 ? (
+              <div className="p-8 sm:p-12 rounded-3xl bg-[#090C16] border border-pink-500/20 text-center space-y-4 shadow-xl">
+                <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-pink-500/20 to-rose-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 shadow-lg">
+                  <Radio className="w-8 h-8 text-pink-400 animate-pulse" />
+                </div>
+                <div className="space-y-1.5">
+                  <h4 className="text-base sm:text-lg font-black text-white font-display">
+                    Hiện chưa có phiên livestream nào đang phát sóng
+                  </h4>
+                  <p className="text-xs text-slate-400 font-mono max-w-md mx-auto leading-relaxed">
+                    Tất cả phiên livestream cũ đã kết thúc và được lưu vào lịch sử. Hệ thống chỉ hiển thị 100% phiên live thật khi có người dùng hoặc đối tác phát sóng trực tiếp.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onOpenCreateCampaign) onOpenCreateCampaign();
+                      else if (onNavigate) onNavigate('create_campaign');
+                    }}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 hover:opacity-95 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-pink-600/30 transition-all cursor-pointer hover:scale-105 active:scale-95 font-display flex items-center gap-2 mx-auto"
                   >
-                    {/* KHUNG LIVESTREAM DỌC 9:16 CHIẾM 1/4 CARD */}
-                    <div className="relative w-[30%] sm:w-[28%] max-w-[120px] aspect-[9/16] rounded-xl overflow-hidden bg-black/80 border border-pink-500/40 shrink-0 shadow-inner group-hover:border-pink-400">
-                      <img src={live.channelAvatar} alt="" className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-500" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-between p-1.5">
-                        <span className="self-start px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[8px] font-black uppercase font-mono animate-pulse flex items-center gap-0.5">
-                          <Radio className="w-2.5 h-2.5" /> LIVE
-                        </span>
-                        <div className="text-center">
-                          <div className="w-8 h-8 mx-auto rounded-full bg-pink-500/80 group-hover:bg-pink-400 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-all">
-                            <Radio className="w-4 h-4 animate-pulse" />
-                          </div>
-                        </div>
-                        <div className="px-1 py-0.2 rounded bg-black/80 text-pink-300 font-mono text-[8px] font-bold text-center truncate">
-                          {live.currentViewers.toLocaleString()} mắt
-                        </div>
-                      </div>
-                    </div>
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Tạo Chiến Dịch Mắt Live Mới</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {displayLiveTasks.map((live) => {
+                  const baseEarnings = Math.round((live.rewardPerMinute || 300) * live.targetMinutes * quota.multiplier);
+                  const milestoneBonus = Math.round((live.milestoneBonusCoins || 500) * quota.multiplier);
+                  const totalEstReward = baseEarnings + milestoneBonus;
 
-                    {/* NỘI DUNG PHÒNG LIVE & NÚT BẤM 1 CHẠM */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-300 text-[9px] font-mono font-bold truncate">
-                            {live.category || "TikTok Shop"}
+                  return (
+                    <div
+                      key={live.id}
+                      onClick={() => handleOpenLiveRunner(live)}
+                      className="p-3 sm:p-3.5 rounded-2xl bg-[#090C16] border border-pink-500/30 hover:border-pink-400 transition-all flex flex-row gap-3 shadow-lg cursor-pointer group hover:scale-[1.01]"
+                    >
+                      {/* KHUNG LIVESTREAM DỌC 9:16 CHIẾM 1/4 CARD */}
+                      <div className="relative w-[30%] sm:w-[28%] max-w-[120px] aspect-[9/16] rounded-xl overflow-hidden bg-black/80 border border-pink-500/40 shrink-0 shadow-inner group-hover:border-pink-400">
+                        <img src={live.channelAvatar} alt="" className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-between p-1.5">
+                          <span className="self-start px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[8px] font-black uppercase font-mono animate-pulse flex items-center gap-0.5">
+                            <Radio className="w-2.5 h-2.5" /> LIVE
                           </span>
-                          <span className="text-[9px] font-mono text-amber-400 font-bold">
-                            +{totalEstReward.toLocaleString()} Xu
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <img src={live.channelAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-pink-500/60 shrink-0" />
-                          <div className="min-w-0 flex-1 truncate">
-                            <div className="text-xs font-bold text-white group-hover:text-pink-300 transition-colors truncate flex items-center gap-1">
-                              <span>{live.channelName}</span>
-                              <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                          <div className="text-center">
+                            <div className="w-8 h-8 mx-auto rounded-full bg-pink-500/80 group-hover:bg-pink-400 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-all">
+                              <Radio className="w-4 h-4 animate-pulse" />
                             </div>
-                            <div className="text-[10px] font-mono text-pink-400 truncate">{live.channelHandle}</div>
+                          </div>
+                          <div className="px-1 py-0.2 rounded bg-black/80 text-pink-300 font-mono text-[8px] font-bold text-center truncate">
+                            {live.currentViewers.toLocaleString()} mắt
                           </div>
                         </div>
-
-                        <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
-                          {live.roomTitle}
-                        </h5>
                       </div>
 
-                      <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono text-slate-400">
-                          ⏱️ {live.targetMinutes} phút
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleOpenLiveRunner(live); }}
-                          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-cyan-500 hover:opacity-95 text-white font-black text-[10px] font-mono flex items-center gap-1 shadow-md cursor-pointer shrink-0"
-                        >
-                          <Radio className="w-3 h-3 animate-pulse" />
-                          <span>Vào Xem Live</span>
-                        </button>
+                      {/* NỘI DUNG PHÒNG LIVE & NÚT BẤM 1 CHẠM */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-300 text-[9px] font-mono font-bold truncate">
+                              {live.category || "TikTok Shop"}
+                            </span>
+                            <span className="text-[9px] font-mono text-amber-400 font-bold">
+                              +{totalEstReward.toLocaleString()} Xu
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <img src={live.channelAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-pink-500/60 shrink-0" />
+                            <div className="min-w-0 flex-1 truncate">
+                              <div className="text-xs font-bold text-white group-hover:text-pink-300 transition-colors truncate flex items-center gap-1">
+                                <span>{live.channelName}</span>
+                                <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                              </div>
+                              <div className="text-[10px] font-mono text-pink-400 truncate">{live.channelHandle}</div>
+                            </div>
+                          </div>
+
+                          <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
+                            {live.roomTitle}
+                          </h5>
+                        </div>
+
+                        <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-mono text-slate-400">
+                            ⏱️ {live.targetMinutes} phút
+                          </span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleOpenLiveRunner(live); }}
+                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-cyan-500 hover:opacity-95 text-white font-black text-[10px] font-mono flex items-center gap-1 shadow-md cursor-pointer shrink-0"
+                          >
+                            <Radio className="w-3 h-3 animate-pulse" />
+                            <span>Vào Xem Live</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -2615,11 +2615,11 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 <tr>
                   <th className="p-3">Tài Khoản Gốc (Google / Gmail)</th>
                   <th className="p-3">Hạng VIP</th>
-                  <th className="p-3">Kênh TikTok Thực Thi</th>
+                  <th className="p-3">Mạng Xã Hội (TikTok • FB • YT)</th>
                   <th className="p-3">Nguồn Đăng Ký &amp; Nhiệm Vụ</th>
                   <th className="p-3">Số Dư Xu / Đã Cấp</th>
                   <th className="p-3">Gói Dịch Vụ</th>
-                  <th className="p-3">Trạng Thái</th>
+                  <th className="p-3">Trạng Thái &amp; Quyền Hạn</th>
                   <th className="p-3 text-right">Cấp Quyền &amp; Thao Tác</th>
                 </tr>
               </thead>
@@ -2632,16 +2632,16 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         className="flex items-center gap-2.5 cursor-pointer group"
                       >
                         <img 
-                          src={u.avatar} 
+                          src={u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80'} 
                           alt={u.name} 
-                          className="w-8 h-8 rounded-full border border-purple-500/30 object-cover group-hover:ring-2 group-hover:ring-purple-400" 
+                          className="w-8 h-8 rounded-full border border-purple-500/30 object-cover group-hover:ring-2 group-hover:ring-purple-400 shrink-0" 
                         />
                         <div>
                           <div className="font-bold text-white text-xs group-hover:text-purple-300 flex items-center gap-1.5 flex-wrap">
                             <span>{u.name}</span>
                             {u.hasAllPermissions && (
                               <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono font-black">
-                                👑 VIP
+                                👑 VIP TOÀN QUYỀN
                               </span>
                             )}
                             <Eye className="w-3 h-3 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -2658,17 +2658,38 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                           adminChangeUserRank(u.id, nextTier.name);
                         }}
                         title="Bấm để nâng lên cấp bậc tiếp theo (10 cấp bậc thăng tiến)"
-                        className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors flex items-center gap-1"
+                        className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors flex items-center gap-1 cursor-pointer"
                       >
                         <span>{getRankTierConfig(u.rankLevel).badge}</span>
                         <span>{getRankTierConfig(u.rankLevel).name.split(' - ')[1] || u.rankLevel} ✎</span>
                       </button>
                     </td>
-                    <td className="p-3 font-mono">
-                      <div className="text-white font-semibold">{u.tiktokConnected || '@chưa_kết_nối'}</div>
-                      <div className="text-[11px] text-emerald-400 font-bold">
-                        {(u.tiktokFollowers || 0).toLocaleString()} Follow
+                    <td className="p-3 font-mono text-[11px] space-y-1">
+                      {/* TikTok */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] px-1 py-0.2 rounded bg-black/60 border border-rose-500/30 text-rose-400 font-bold">TT</span>
+                        <span className="text-white font-semibold">{u.tiktokConnected || '@chưa_kết_nối'}</span>
+                        {u.tiktokConnected && (
+                          <span className="text-[10px] text-emerald-400 font-bold">({(u.tiktokFollowers || 0).toLocaleString()} flw)</span>
+                        )}
                       </div>
+                      {/* Facebook & YouTube */}
+                      {(u.facebookConnected || u.youtubeConnected) && (
+                        <div className="flex items-center gap-2 text-[10px] pt-0.5">
+                          {u.facebookConnected && (
+                            <span className="text-blue-400 flex items-center gap-0.5" title={`Facebook: ${u.facebookConnected}`}>
+                              <span className="px-1 rounded bg-blue-500/20 border border-blue-500/30 font-bold">FB</span>
+                              <span className="truncate max-w-[80px]">{u.facebookConnected}</span>
+                            </span>
+                          )}
+                          {u.youtubeConnected && (
+                            <span className="text-rose-400 flex items-center gap-0.5" title={`YouTube: ${u.youtubeConnected}`}>
+                              <span className="px-1 rounded bg-rose-500/20 border border-rose-500/30 font-bold">YT</span>
+                              <span className="truncate max-w-[80px]">{u.youtubeConnected}</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="p-3 font-mono text-[11px]">
                       <div className="flex items-center gap-1 text-slate-300">
@@ -2705,13 +2726,18 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       <div className="text-[10px] text-slate-400">{u.escrowLockedAmountVND || '0đ'} Ký quỹ</div>
                     </td>
                     <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                        u.status === 'active'
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                      }`}>
-                        {u.status === 'active' ? 'Hoạt động' : 'Bị Khóa'}
-                      </span>
+                      <div className="space-y-1">
+                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                          u.status === 'active'
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        }`}>
+                          {u.status === 'active' ? '● Hoạt động' : '○ Bị Khóa'}
+                        </span>
+                        {u.isWhitelisted && (
+                          <div className="text-[9px] text-amber-300 font-mono font-bold">🛡️ Whitelist</div>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">

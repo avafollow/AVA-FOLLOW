@@ -43,6 +43,7 @@ import { WeeklyMissionsPanel } from "./WeeklyMissionsPanel";
 import { INITIAL_CROSS_FOLLOW_ITEMS, TIER_CROSS_FOLLOW_QUOTAS } from "../../data/crossFollowData";
 import { TokenSinkStrategyModal } from "../modals/TokenSinkStrategyModal";
 import { parseMediaUrl } from "../../data/videoSources";
+import { SmartMediaThumbnail } from "../common/SmartMediaThumbnail";
 
 export const TasksScreen: React.FC<{ 
   darkMode: boolean; 
@@ -815,8 +816,16 @@ export const TasksScreen: React.FC<{
                   >
                     {/* KHUNG MEDIA CHIẾM 1/4 CARD (DỌC 9:16 HOẶC NGANG 16:9) */}
                     <div className={`relative w-[30%] sm:w-[28%] max-w-[120px] ${isHorizontal ? 'aspect-video self-center' : 'aspect-[9/16]'} rounded-xl overflow-hidden bg-black/80 border border-rose-500/40 shrink-0 shadow-inner group-hover:border-rose-400`}>
-                      <img src={task.videoPreviewUrl || task.channelAvatar} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-between p-1">
+                      <SmartMediaThumbnail
+                        targetUrl={task.targetUrl}
+                        videoPreviewUrl={task.videoPreviewUrl}
+                        channelAvatar={task.channelAvatar}
+                        channelHandle={task.channelHandle}
+                        badgeText={task.type}
+                        className="w-full h-full"
+                        showPlayIcon={true}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-between p-1 pointer-events-none">
                         <span className="self-start px-1.5 py-0.2 rounded bg-rose-600 text-white text-[8px] font-black font-mono uppercase">
                           {task.type}
                         </span>
@@ -1026,40 +1035,31 @@ export const TasksScreen: React.FC<{
                     >
                       {/* KHUNG MEDIA CHIẾM 1/4 CARD (TỰ ĐỘNG DỌC 9:16 HOẶC NGANG 16:9) */}
                       <div className={`relative w-[30%] sm:w-[28%] max-w-[120px] ${isHorizontal ? 'aspect-video self-center' : 'aspect-[9/16]'} rounded-xl overflow-hidden bg-black/80 border border-white/10 group-hover:border-cyan-400/60 shrink-0 transition-all shadow-inner`}>
-                        {card.thumbnail && card.thumbnail.includes('.mp4') ? (
-                          <video
-                            src={card.thumbnail}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                            muted
-                            playsInline
-                            loop
-                            autoPlay
-                            preload="metadata"
-                          />
-                        ) : (
-                          <img
-                            src={card.thumbnail}
-                            alt=""
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex items-center justify-center">
-                          <div className="w-8 h-8 rounded-full bg-cyan-500/80 group-hover:bg-cyan-400 text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition-all">
-                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                        <SmartMediaThumbnail
+                          targetUrl={card.targetUrl}
+                          videoPreviewUrl={card.thumbnail}
+                          channelAvatar={card.channelAvatar}
+                          channelHandle={card.channelHandle}
+                          isLive={card.taskType === 'livestream' || card.taskType === 'livestream_viewers'}
+                          isBoosted={card.isBoosted}
+                          badgeText={card.durationBadge}
+                          className="w-full h-full"
+                          showPlayIcon={true}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-between p-1 pointer-events-none">
+                          <div className="self-start px-1.5 py-0.2 rounded bg-black/80 text-cyan-300 font-mono text-[8px] font-bold border border-cyan-400/40">
+                            {card.durationBadge}
                           </div>
+                          {card.isBoosted ? (
+                            <div className="px-1 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-black text-center truncate">
+                              TOP 1
+                            </div>
+                          ) : (
+                            <div className="px-1 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-black text-center truncate">
+                              +{card.rewardXu.toLocaleString()} XU
+                            </div>
+                          )}
                         </div>
-                        <div className="absolute top-1 left-1 px-1.5 py-0.2 rounded bg-black/80 text-cyan-300 font-mono text-[8px] font-bold border border-cyan-400/40">
-                          {card.durationBadge}
-                        </div>
-                        {card.isBoosted ? (
-                          <div className="absolute bottom-1 left-1 right-1 px-1 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-black text-center truncate">
-                            TOP 1
-                          </div>
-                        ) : (
-                          <div className="absolute bottom-1 left-1 right-1 px-1 py-0.2 rounded bg-rose-600 text-white font-mono text-[8px] font-black text-center truncate">
-                            +{card.rewardXu.toLocaleString()} XU
-                          </div>
-                        )}
                       </div>
 
                       {/* NỘI DUNG THÔNG TIN CHIẾN DỊCH & NÚT BẤM 1 CHẠM */}
@@ -1339,8 +1339,17 @@ export const TasksScreen: React.FC<{
                 >
                   {/* KHUNG MEDIA CHIẾM 1/4 CARD */}
                   <div className={`relative w-[30%] sm:w-[28%] max-w-[120px] ${isHorizontal ? 'aspect-video self-center' : 'aspect-[9/16]'} rounded-xl overflow-hidden bg-black/80 border border-amber-500/40 shrink-0 shadow-inner group-hover:border-amber-400`}>
-                    <img src={task.videoPreviewUrl || task.channelAvatar} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-between p-1">
+                    <SmartMediaThumbnail
+                      targetUrl={task.targetUrl}
+                      videoPreviewUrl={task.videoPreviewUrl}
+                      channelAvatar={task.channelAvatar}
+                      channelHandle={task.channelHandle}
+                      isBoosted={isBoosted}
+                      badgeText="ESCROW"
+                      className="w-full h-full"
+                      showPlayIcon={true}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-between p-1 pointer-events-none">
                       <span className="self-start px-1.5 py-0.2 rounded bg-amber-500 text-black text-[8px] font-black font-mono">
                         ESCROW
                       </span>

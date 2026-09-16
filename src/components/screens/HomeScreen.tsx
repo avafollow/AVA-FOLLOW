@@ -46,6 +46,8 @@ import { useTikTokApp } from '../../context/TikTokAppContext';
 import { ScreenId } from '../../types';
 import { KocRegistrationModal } from '../modals/KocRegistrationModal';
 import { BrandLogo } from '../common/BrandLogo';
+import { SmartMediaThumbnail } from '../common/SmartMediaThumbnail';
+import { getTikTokAvatar } from '../../data/videoSources';
 
 export const HomeScreen: React.FC<{
   darkMode: boolean;
@@ -58,6 +60,7 @@ export const HomeScreen: React.FC<{
     user, 
     tasks, 
     livestreamTasks, 
+    campaigns,
     growthServices, 
     openRunner, 
     openFeedRunner, 
@@ -427,123 +430,194 @@ export const HomeScreen: React.FC<{
         {/* ========================================================================= */}
         {/* PHÒNG LIVE STREAM TIKTOK THẬT & CHIẾN DỊCH VIDEO ĐANG PHÁT (ĐỒNG BỘ MOBILE) */}
         {/* ========================================================================= */}
-        <div className="space-y-6">
-          {/* 1. KHỐI CHIẾN DỊCH VIDEO FYP & TIKTOK ĐANG PHÁT */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Play className="w-4 h-4 text-cyan-400 fill-cyan-400" />
-                <h3 className="text-sm font-black text-white uppercase tracking-wide font-display">
-                  Chiến Dịch Video TikTok Đang Phát ({tasks.filter(t => t.type === 'watch' || t.videoPreviewUrl).length} Video)
-                </h3>
-              </div>
-              <button 
-                onClick={() => openFeedRunner('all')}
-                className="text-xs text-cyan-400 hover:underline font-bold font-mono flex items-center gap-1"
-              >
-                <span>Bật Trình Lướt</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
+        {/* ========================================================================= */}
+        {/* PHÒNG LIVE STREAM TIKTOK THẬT & CHIẾN DỊCH VIDEO ĐANG PHÁT (ĐỒNG BỘ MOBILE) */}
+        {/* ========================================================================= */}
+        {(() => {
+          // 1. Genuine Active Campaigns (Tự động loại bỏ khi hết hiệu lực hoặc hoàn thành)
+          const activeCampaigns = (campaigns || []).filter(
+            c => c.status !== 'completed' && c.status !== 'paused' && (c.completedQuantity || 0) < (c.targetQuantity || 100)
+          );
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {tasks.filter(t => t.type === 'watch' || t.videoPreviewUrl).slice(0, 6).map((task) => (
-                <div
-                  key={task.id}
-                  onClick={() => openFeedRunner(task.id)}
-                  className="cursor-pointer p-3 rounded-2xl bg-[#0D111E] border border-cyan-500/30 hover:border-cyan-400 transition-all flex items-center gap-3 shadow-lg group hover:scale-[1.01]"
-                >
-                  <div className="relative w-16 h-20 rounded-xl overflow-hidden bg-black shrink-0 border border-white/10 group-hover:border-cyan-400/60 transition-colors">
-                    <img 
-                      src={task.videoPreviewUrl || task.channelAvatar} 
-                      alt="" 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <div className="w-6 h-6 rounded-full bg-cyan-500 text-black flex items-center justify-center shadow-md">
-                        <Play className="w-3 h-3 fill-current ml-0.5" />
-                      </div>
-                    </div>
+          const activeVideoCampaigns = activeCampaigns.filter(
+            c => c.type !== 'livestream' && c.type !== 'livestream_viewers' && !(c.targetUrl || '').includes('/live')
+          );
+
+          const displayedVideoItems = activeVideoCampaigns.length > 0
+            ? activeVideoCampaigns.map(c => ({
+                id: c.id,
+                title: c.title,
+                channelName: c.channelHandle,
+                channelHandle: c.channelHandle,
+                channelAvatar: getTikTokAvatar(c.channelHandle),
+                targetUrl: c.targetUrl,
+                videoPreviewUrl: c.videoPreviewUrl,
+                rewardCoins: 200,
+                isBoosted: c.isBoosted,
+                remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0))
+              }))
+            : tasks.filter(t => t.status !== 'completed' && (t.type === 'watch' || t.videoPreviewUrl || t.campaignCategory === 'partner')).slice(0, 6).map(t => ({
+                id: t.id,
+                title: t.title,
+                channelName: t.channelName,
+                channelHandle: t.channelHandle,
+                channelAvatar: t.channelAvatar || getTikTokAvatar(t.channelHandle),
+                targetUrl: t.targetUrl,
+                videoPreviewUrl: t.videoPreviewUrl,
+                rewardCoins: t.rewardCoins || 200,
+                isBoosted: t.isUrgent,
+                remainingSlots: t.remainingSlots || 50
+              }));
+
+          // 2. Genuine Active Live Rooms
+          const activeLiveCampaigns = activeCampaigns.filter(
+            c => c.type === 'livestream' || c.type === 'livestream_viewers' || (c.targetUrl || '').includes('/live')
+          );
+
+          const allActiveLiveRooms = [
+            ...activeLiveCampaigns.map(c => ({
+              id: c.id,
+              channelName: c.channelHandle,
+              channelHandle: c.channelHandle,
+              channelAvatar: getTikTokAvatar(c.channelHandle),
+              roomTitle: c.title,
+              targetUrl: c.targetUrl,
+              rewardPerMinute: 400,
+              currentViewers: 850,
+              status: 'live' as const
+            })),
+            ...livestreamTasks.filter(l => l.status === 'live' && (l.remainingSlots === undefined || l.remainingSlots > 0))
+          ];
+
+          const seenLive = new Set<string>();
+          const deduplicatedLiveRooms: typeof allActiveLiveRooms = [];
+          for (const item of allActiveLiveRooms) {
+            const key = ((item.channelHandle || '') + (item.targetUrl || '')).toLowerCase() || item.id;
+            if (!seenLive.has(key)) {
+              seenLive.add(key);
+              deduplicatedLiveRooms.push(item);
+            }
+          }
+
+          return (
+            <div className="space-y-6">
+              {/* 1. KHỐI CHIẾN DỊCH VIDEO FYP & TIKTOK ĐANG PHÁT */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Play className="w-4 h-4 text-cyan-400 fill-cyan-400" />
+                    <h3 className="text-sm font-black text-white uppercase tracking-wide font-display">
+                      Chiến Dịch Video TikTok Đang Phát ({displayedVideoItems.length} Video)
+                    </h3>
                   </div>
-
-                  <div className="flex-1 min-w-0 flex flex-col justify-between h-20 py-0.5">
-                    <div>
-                      <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
-                        {task.channelName}
-                      </div>
-                      <div className="text-[10px] text-cyan-400 font-mono truncate">{task.channelHandle}</div>
-                      <p className="text-[10px] text-slate-300 line-clamp-1 mt-0.5">{task.title}</p>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1 border-t border-white/5">
-                      <span className="text-[10px] font-mono font-black text-amber-400">
-                        +{task.rewardCoins || 200} Xu
-                      </span>
-                      <span className="text-[9px] font-mono font-bold text-cyan-400 flex items-center gap-0.5">
-                        Lướt ngay →
-                      </span>
-                    </div>
-                  </div>
+                  <button 
+                    onClick={() => openFeedRunner('all')}
+                    className="text-xs text-cyan-400 hover:underline font-bold font-mono flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Bật Trình Lướt</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* 2. KHỐI PHÒNG LIVE STREAM ĐANG CẦN MẮT XEM (ĐỒNG BỘ 13 PHÒNG) */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Radio className="w-4 h-4 text-rose-500 animate-pulse" />
-                <h3 className="text-sm font-black text-white uppercase tracking-wide font-display">
-                  Phòng Live TikTok Đang Phát Trực Tiếp ({livestreamTasks.filter(l => l.status === 'live' && (l.remainingSlots === undefined || l.remainingSlots > 0)).length} Phòng)
-                </h3>
-              </div>
-              <button 
-                onClick={() => onNavigate('tasks')}
-                className="text-xs text-rose-400 hover:underline font-bold font-mono flex items-center gap-1"
-              >
-                <span>Xem Tất Cả</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {livestreamTasks.filter(l => l.status === 'live' && (l.remainingSlots === undefined || l.remainingSlots > 0)).slice(0, 6).map((live) => (
-                <div
-                  key={live.id}
-                  onClick={() => openLiveRunner(live)}
-                  className="cursor-pointer p-3.5 rounded-2xl bg-[#0D111E] border border-rose-500/30 hover:border-rose-400 transition-all flex items-center justify-between gap-3 shadow-lg group hover:scale-[1.01]"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="relative shrink-0">
-                      <img
-                        src={live.channelAvatar}
-                        alt=""
-                        className="w-11 h-11 rounded-full object-cover ring-2 ring-rose-500/50"
-                      />
-                      <span className="absolute -bottom-1 -right-1 px-1 py-0.2 rounded-full bg-rose-600 text-white text-[7px] font-black font-mono animate-pulse">
-                        LIVE
-                      </span>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-bold text-white text-xs truncate group-hover:text-rose-300 transition-colors">
-                        {live.channelName}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {displayedVideoItems.slice(0, 6).map((task) => (
+                    <div
+                      key={task.id}
+                      onClick={() => openFeedRunner(task.id)}
+                      className="cursor-pointer p-3 rounded-2xl bg-[#0D111E] border border-cyan-500/30 hover:border-cyan-400 transition-all flex items-center gap-3 shadow-lg group hover:scale-[1.01]"
+                    >
+                      <div className="relative w-16 h-20 sm:w-20 sm:h-24 rounded-xl overflow-hidden bg-black shrink-0 border border-white/10 group-hover:border-cyan-400/60 transition-colors shadow-md">
+                        <SmartMediaThumbnail
+                          targetUrl={task.targetUrl}
+                          videoPreviewUrl={task.videoPreviewUrl}
+                          channelAvatar={task.channelAvatar}
+                          channelHandle={task.channelHandle}
+                          badgeText="15 GIÂY"
+                          isBoosted={task.isBoosted}
+                          className="w-full h-full"
+                        />
                       </div>
-                      <div className="text-[10px] text-rose-400 font-mono truncate">{live.channelHandle}</div>
-                      <div className="text-[9px] text-slate-400 truncate max-w-[140px]">{live.roomTitle}</div>
+
+                      <div className="flex-1 min-w-0 flex flex-col justify-between h-20 sm:h-24 py-0.5">
+                        <div>
+                          <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
+                            {task.channelName}
+                          </div>
+                          <div className="text-[10px] text-cyan-400 font-mono truncate">{task.channelHandle}</div>
+                          <p className="text-[10px] text-slate-300 line-clamp-1 mt-0.5">{task.title}</p>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                          <span className="text-[10px] font-mono font-black text-amber-400">
+                            +{task.rewardCoins || 200} Xu
+                          </span>
+                          <span className="text-[9px] font-mono font-bold text-cyan-400 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                            Lướt ngay →
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right shrink-0 flex flex-col justify-between items-end">
-                    <div className="text-xs font-black text-amber-400 font-mono">+{live.rewardPerMinute} Xu/p</div>
-                    <span className="mt-1 px-2 py-0.5 rounded-lg bg-rose-600/20 text-rose-300 border border-rose-500/30 text-[9px] font-mono font-bold group-hover:bg-rose-600 group-hover:text-white transition-all">
-                      Vào Xem Live
-                    </span>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              {/* 2. KHỐI PHÒNG LIVE STREAM ĐANG CẦN MẮT XEM (ĐỒNG BỘ PHÒNG THẬT) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Radio className="w-4 h-4 text-rose-500 animate-pulse" />
+                    <h3 className="text-sm font-black text-white uppercase tracking-wide font-display">
+                      Phòng Live TikTok Đang Phát Trực Tiếp ({deduplicatedLiveRooms.length} Phòng)
+                    </h3>
+                  </div>
+                  <button 
+                    onClick={() => onNavigate('tasks')}
+                    className="text-xs text-rose-400 hover:underline font-bold font-mono flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Xem Tất Cả</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {deduplicatedLiveRooms.slice(0, 6).map((live) => (
+                    <div
+                      key={live.id}
+                      onClick={() => openLiveRunner(live as any)}
+                      className="cursor-pointer p-3 rounded-2xl bg-[#0D111E] border border-rose-500/30 hover:border-rose-400 transition-all flex items-center justify-between gap-3 shadow-lg group hover:scale-[1.01]"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="relative w-14 h-16 sm:w-16 sm:h-18 rounded-xl overflow-hidden shrink-0 border border-rose-500/40 group-hover:border-rose-400 transition-colors shadow-md">
+                          <SmartMediaThumbnail
+                            targetUrl={live.targetUrl}
+                            channelAvatar={live.channelAvatar}
+                            channelHandle={live.channelHandle}
+                            isLive={true}
+                            viewersCount={live.currentViewers || 580}
+                            className="w-full h-full"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-white text-xs truncate group-hover:text-rose-300 transition-colors">
+                            {live.channelName}
+                          </div>
+                          <div className="text-[10px] text-rose-400 font-mono truncate">{live.channelHandle}</div>
+                          <div className="text-[9px] text-slate-400 truncate max-w-[130px]">{live.roomTitle}</div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 flex flex-col justify-between items-end h-16 sm:h-18 py-0.5">
+                        <div className="text-xs font-black text-amber-400 font-mono">+{live.rewardPerMinute} Xu/p</div>
+                        <span className="mt-1 px-2 py-1 rounded-lg bg-rose-600/20 text-rose-300 border border-rose-500/30 text-[9px] font-mono font-bold group-hover:bg-rose-600 group-hover:text-white transition-all">
+                          Vào Xem Live
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })()}
       </div>
 
       {/* Right Sidebar */}

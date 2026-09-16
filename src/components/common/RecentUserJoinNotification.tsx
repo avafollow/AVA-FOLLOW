@@ -10,6 +10,8 @@ export const RecentUserJoinNotification: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
 
   useEffect(() => {
+    if (!RECENT_JOINED_USERS_100 || RECENT_JOINED_USERS_100.length === 0) return;
+
     // Initial display after 3.5 seconds
     const initialTimer = setTimeout(() => {
       showNextUser();
@@ -27,6 +29,7 @@ export const RecentUserJoinNotification: React.FC = () => {
   }, []);
 
   const showNextUser = () => {
+    if (!RECENT_JOINED_USERS_100 || RECENT_JOINED_USERS_100.length === 0) return;
     setCurrentIndex(prev => {
       const nextIdx = (prev + 1) % RECENT_JOINED_USERS_100.length;
       setCurrentUser(RECENT_JOINED_USERS_100[nextIdx]);
@@ -41,7 +44,7 @@ export const RecentUserJoinNotification: React.FC = () => {
     });
   };
 
-  if (!currentUser) return null;
+  if (!currentUser || !RECENT_JOINED_USERS_100 || RECENT_JOINED_USERS_100.length === 0) return null;
 
   return (
     <div

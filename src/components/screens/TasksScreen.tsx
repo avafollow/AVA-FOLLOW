@@ -82,6 +82,8 @@ export const TasksScreen: React.FC<{
     claimTaskAction,
     openDeposit,
     openShareModal,
+    openOrderModal,
+    growthServices,
     campaigns,
     tasksActiveTab,
     setTasksActiveTab
@@ -1850,84 +1852,105 @@ export const TasksScreen: React.FC<{
             </button>
           </div>
 
-          {/* LƯỚI CÁC KÊNH FOLLOW CHÉO (CHUẨN TỈ LỆ 1/4) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {displayCrossFollow.map((item) => (
-              <div
-                key={item.id}
-                className="p-3 sm:p-3.5 rounded-2xl bg-[#090C16] border border-emerald-500/20 hover:border-emerald-400 transition-all flex flex-row gap-3 shadow-lg group hover:scale-[1.01]"
+          {/* LƯỚI CÁC KÊNH FOLLOW CHÉO (CHUẨN TỈ LỆ 1/4) HOẶC EMPTY STATE */}
+          {displayCrossFollow.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center bg-[#090C16] border border-emerald-500/20 rounded-3xl space-y-4">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <RefreshCw className="w-7 h-7" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-white font-display">Hiện chưa có kênh chéo tương tác nào</h4>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  Tất cả nhiệm vụ chéo follow và tương tác do cộng đồng người dùng tự tạo. Hãy tạo chiến dịch để nhận follow chéo thật ngay!
+                </p>
+              </div>
+              <button
+                onClick={() => openOrderModal(growthServices[0])}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-display cursor-pointer inline-flex items-center gap-2 shadow-lg"
               >
-                {/* KHUNG KÊNH CHIẾM 1/4 CARD */}
-                <div className="relative w-[30%] sm:w-[28%] max-w-[120px] aspect-[9/16] rounded-xl overflow-hidden bg-black/80 border border-emerald-500/40 shrink-0 shadow-inner group-hover:border-emerald-400">
-                  <img src={item.channelAvatar} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-between p-1">
-                    <span className="self-start px-1.5 py-0.2 rounded bg-emerald-500 text-black text-[8px] font-black font-mono">
-                      CHÉO
-                    </span>
-                    <div className="px-1 py-0.2 rounded bg-emerald-600 text-white font-mono text-[8px] font-black text-center truncate">
-                      +{item.rewardXu} Xu
+                <PlusCircle className="w-4 h-4" />
+                <span>Tạo Chiến Dịch Follow Chéo Ngay</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {displayCrossFollow.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-3 sm:p-3.5 rounded-2xl bg-[#090C16] border border-emerald-500/20 hover:border-emerald-400 transition-all flex flex-row gap-3 shadow-lg group hover:scale-[1.01]"
+                >
+                  {/* KHUNG KÊNH CHIẾM 1/4 CARD */}
+                  <div className="relative w-[30%] sm:w-[28%] max-w-[120px] aspect-[9/16] rounded-xl overflow-hidden bg-black/80 border border-emerald-500/40 shrink-0 shadow-inner group-hover:border-emerald-400">
+                    <img src={item.channelAvatar} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-between p-1">
+                      <span className="self-start px-1.5 py-0.2 rounded bg-emerald-500 text-black text-[8px] font-black font-mono">
+                        CHÉO
+                      </span>
+                      <div className="px-1 py-0.2 rounded bg-emerald-600 text-white font-mono text-[8px] font-black text-center truncate">
+                        +{item.rewardXu} Xu
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* NỘI DUNG KÊNH & NÚT BẤM 1 CHẠM */}
-                <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold truncate">
-                        {item.category || "TikTok Creator"}
-                      </span>
-                      <span className="text-[9px] font-mono text-emerald-400 font-bold">
-                        +{item.rewardXu} Xu
-                      </span>
-                    </div>
+                  {/* NỘI DUNG KÊNH & NÚT BẤM 1 CHẠM */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold truncate">
+                          {item.category || "TikTok Creator"}
+                        </span>
+                        <span className="text-[9px] font-mono text-emerald-400 font-bold">
+                          +{item.rewardXu} Xu
+                        </span>
+                      </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <img src={item.channelAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-emerald-500/40 shrink-0" />
-                      <div className="min-w-0 flex-1 truncate">
-                        <div className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors truncate">
-                          {item.channelName}
+                      <div className="flex items-center gap-1.5">
+                        <img src={item.channelAvatar} alt="" className="w-5 h-5 rounded-full object-cover ring-1 ring-emerald-500/40 shrink-0" />
+                        <div className="min-w-0 flex-1 truncate">
+                          <div className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors truncate">
+                            {item.channelName}
+                          </div>
+                          <div className="text-[10px] font-mono text-emerald-400 truncate">{item.channelHandle}</div>
                         </div>
-                        <div className="text-[10px] font-mono text-emerald-400 truncate">{item.channelHandle}</div>
+                      </div>
+
+                      <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
+                        {item.title}
+                      </h5>
+
+                      <div className="text-[9px] font-mono text-slate-400">
+                        Đã làm: <strong className="text-emerald-400">{item.completedByUsersCount}/{item.followersCount}</strong>
                       </div>
                     </div>
 
-                    <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
-                      {item.title}
-                    </h5>
-
-                    <div className="text-[9px] font-mono text-slate-400">
-                      Đã làm: <strong className="text-emerald-400">{item.completedByUsersCount}/{item.followersCount}</strong>
+                    <div className="pt-1.5 border-t border-white/5">
+                      <button
+                        onClick={() => handleExecuteCrossFollow(item)}
+                        disabled={item.isCompleted}
+                        className={`w-full py-1.5 rounded-xl text-[10px] font-mono font-bold transition-all flex items-center justify-center gap-1 ${
+                          item.isCompleted
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default"
+                            : "bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-md"
+                        }`}
+                      >
+                        {item.isCompleted ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Đã Tương Tác Kênh</span>
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-3 h-3" />
+                            <span>Tương Tác Chéo (+{item.rewardXu} Xu)</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
-
-                  <div className="pt-1.5 border-t border-white/5">
-                    <button
-                      onClick={() => handleExecuteCrossFollow(item)}
-                      disabled={item.isCompleted}
-                      className={`w-full py-1.5 rounded-xl text-[10px] font-mono font-bold transition-all flex items-center justify-center gap-1 ${
-                        item.isCompleted
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default"
-                          : "bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-md"
-                      }`}
-                    >
-                      {item.isCompleted ? (
-                        <>
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Đã Tương Tác Kênh</span>
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="w-3 h-3" />
-                          <span>Tương Tác Chéo (+{item.rewardXu} Xu)</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

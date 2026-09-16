@@ -53,112 +53,7 @@ interface CommunityPostItem {
   status: 'published' | 'pending_approval';
 }
 
-const INITIAL_POSTS: CommunityPostItem[] = [
-  {
-    id: 'post_1',
-    author: {
-      name: 'Vũ Đức Thành',
-      handle: '@thanh_tiktokgrowth',
-      role: 'Top Creator (850K Follow)',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      verified: true,
-      isKycVerified: true
-    },
-    time: '25 phút trước',
-    tag: 'Thuật toán FYP',
-    content: '🔥 BÍ QUYẾT LÊN XU HƯỚNG TIKTOK 2026 CHO KÊNH MỚI:\nXây kênh chuẩn bền vững: Hãy dùng nhiệm vụ người dùng thật xem video 15s đầu kết hợp follow tự nhiên. Kênh mình vừa cán mốc 850k follow và video nào cũng cắn đề xuất For You Page (FYP)! Anh em nào cần trao đổi kinh nghiệm cứ bấm kết bạn và nhắn tin riêng với mình nhé!',
-    image: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&auto=format&fit=crop&q=80',
-    likes: 342,
-    commentsCount: 3,
-    shares: 89,
-    isLiked: true,
-    status: 'published',
-    commentsList: [
-      {
-        id: 'c1',
-        authorName: 'Hồng Ánh',
-        authorHandle: '@anhhong_99',
-        authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
-        content: 'Chuẩn luôn anh ơi, kéo follow thật tỷ lệ giữ chân xem video cao hơn hẳn!',
-        time: '15 phút trước'
-      },
-      {
-        id: 'c2',
-        authorName: 'Trần Tuấn',
-        authorHandle: '@tuan_media',
-        authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-        content: 'Cho em hỏi thời gian xem live giữ mắt 3-5 phút có đẩy kênh bán hàng TikTok Shop tốt không ạ?',
-        time: '8 phút trước'
-      },
-      {
-        id: 'c3',
-        authorName: 'Vũ Đức Thành',
-        authorHandle: '@thanh_tiktokgrowth',
-        authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-        content: '@tuan_media Rất tốt em nhé, mắt xem thật giúp TikTok phân phối live vào top ngành hàng ngay!',
-        time: '2 phút trước'
-      }
-    ]
-  },
-  {
-    id: 'post_2',
-    author: {
-      name: 'Đặng Mai Phương',
-      handle: '@phuongbeauty_koc',
-      role: 'KOC Review Mỹ Phẩm (120K Follow)',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
-      verified: true,
-      isKycVerified: true
-    },
-    time: '2 giờ trước',
-    tag: 'Kinh nghiệm Booking',
-    content: '🎉 Khoe nhẹ với cả nhà bill rút 5.000.000 VNĐ tiền nhiệm vụ và hoa hồng booking vừa về tài khoản MB Bank trong 30 giây! Các bạn làm KOC chú ý: Khi nhận hợp đồng booking video ký quỹ Escrow 3 bên trên app, video nộp lên được bảo hành nghiệm thu 72h. Yên tâm 100% không lo brand bùng tiền vì tiền đã khóa sẵn trong két sàn rồi nhé!',
-    image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&auto=format&fit=crop&q=80',
-    likes: 215,
-    commentsCount: 1,
-    shares: 41,
-    status: 'published',
-    commentsList: [
-      {
-        id: 'c4',
-        authorName: 'Linh Nga',
-        authorHandle: '@linga_review',
-        authorAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
-        content: 'Cơ chế ký quỹ này văn minh thực sự, làm video xong yên tâm nhận tiền!',
-        time: '1 giờ trước'
-      }
-    ]
-  },
-  {
-    id: 'post_3',
-    author: {
-      name: 'Lê Hoàng Nam',
-      handle: '@namtiktok_ads',
-      role: 'Chủ Shop Thời Trang (320K Follow)',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-      verified: true,
-      isKycVerified: true
-    },
-    time: '4 giờ trước',
-    tag: 'Mắt Xem Live',
-    content: '🔥 Vừa kích hoạt chiến dịch Đẩy Top 50.000 Xu trên sàn, phòng Live vọt lên 1.200 mắt xem thật trong 10 phút đầu! Doanh số chốt đơn tăng gấp 3 lần phiên live trước. Ae nào đang chạy live bán hàng nên tận dụng gói Đẩy Top này nhé!',
-    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80',
-    likes: 184,
-    commentsCount: 2,
-    shares: 28,
-    status: 'published',
-    commentsList: [
-      {
-        id: 'c5',
-        authorName: 'Vũ Đức Thành',
-        authorHandle: '@thanh_tiktokgrowth',
-        authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-        content: 'Phí đẩy 50k xu vào thẳng két sàn mà hiệu quả gom mắt thật cực đỉnh bác ơi!',
-        time: '3 giờ trước'
-      }
-    ]
-  }
-];
+const INITIAL_POSTS: CommunityPostItem[] = [];
 
 export const CommunityScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const { 
@@ -524,7 +419,20 @@ export const CommunityScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) =
 
           {/* POSTS FEED */}
           <div className="space-y-4">
-            {filteredPosts.map((post) => {
+            {filteredPosts.length === 0 ? (
+              <div className="p-8 sm:p-12 text-center bg-[#0D111E] border border-white/10 rounded-3xl space-y-4">
+                <div className="w-14 h-14 mx-auto rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                  <MessageSquare className="w-7 h-7" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-white font-display">Chưa có bài viết nào trong cộng đồng</h4>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    Hãy là người đầu tiên chia sẻ bí quyết xây kênh, thuật toán FYP hoặc kinh nghiệm nhận booking KOC lên bảng tin!
+                  </p>
+                </div>
+              </div>
+            ) : (
+              filteredPosts.map((post) => {
               const isPending = post.status === 'pending_approval';
               const isExpanded = expandedComments[post.id];
               const friendRecord = friends.find(f => f.handle === post.author.handle);
@@ -737,7 +645,7 @@ export const CommunityScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) =
                   )}
                 </div>
               );
-            })}
+            }))}
           </div>
         </div>
 

@@ -100,6 +100,8 @@ export const BookingEscrowScreen: React.FC = () => {
     approveEscrowDisburse, 
     disputeEscrow,
     user,
+    kocApplications,
+    openKocModal,
     requestContractExtension,
     respondToContractExtension,
     approveEscrowWithReview,
@@ -128,6 +130,51 @@ export const BookingEscrowScreen: React.FC = () => {
   const [selectedKocForModal, setSelectedKocForModal] = useState<KocProfile | null>(null);
   const [kocCategoryFilter, setKocCategoryFilter] = useState<string>('all');
   const [showPolicyDetails, setShowPolicyDetails] = useState<boolean>(true);
+
+  // Dynamic KOCs: 100% Real from Registered KOCs + Verified KOCs (Zero Mock)
+  const allVerifiedKocs: KocProfile[] = React.useMemo(() => {
+    const userKocs: KocProfile[] = (kocApplications || []).map(app => ({
+      id: app.id,
+      name: app.kocName,
+      handle: app.tiktokHandle,
+      avatar: app.avatar || user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      category: app.category,
+      verifiedKyc: true,
+      reputationScore: 100,
+      rating: 5.0,
+      totalReviews: 0,
+      completedJobs: 0,
+      experienceYears: 'KOC Mới Xác Thực',
+      onTimeDeliveryRate: '100% Cam Kết',
+      bio: app.bioDescription || 'Nhận booking sáng tạo video review sản phẩm ký quỹ Escrow bảo đảm 100%.',
+      capabilities: {
+        photoGraphic: { available: true, title: 'Chụp Ảnh Concept Sản Phẩm', desc: 'Chụp hình sản phẩm mẫu lookbook và thiết kế banner 9:16' },
+        realHumanVideo: { available: true, title: 'Video Người Thật 100%', desc: 'Trực tiếp quay video trải nghiệm sản phẩm', specs: ['Full HD 1080p / 4K', 'Thu âm rõ nét'] },
+        aiVideo: { available: false, title: 'Video AI', desc: '', specs: [] }
+      },
+      pricingTiers: [
+        { duration: '1 phút', durationCode: '1_min', priceVnd: app.pricePerVideoVND, priceNum: parseInt(app.pricePerVideoVND.replace(/\D/g, '')) || 500000, badge: 'Gói Chuẩn', description: 'Video review sản phẩm' }
+      ],
+      portfolioVideos: app.sampleVideoUrl ? [
+        {
+          id: `pf_${app.id}`,
+          title: 'Video Mẫu Kênh KOC',
+          category: app.category,
+          views: `${(app.followersCount || 1000).toLocaleString()} Follower`,
+          likes: '100% Thật',
+          videoType: 'real_human',
+          videoUrl: app.sampleVideoUrl,
+          thumbnail: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400'
+        }
+      ] : [],
+      reviews: [],
+      escrowGuarantees: [
+        'Ký quỹ Escrow bảo đảm tài chính 2 chiều',
+        'Bảo hành nghiệm thu 3 ngày (72h)'
+      ]
+    }));
+    return [...userKocs, ...VERIFIED_KOC_PROFILES];
+  }, [kocApplications, user.avatar]);
 
   // Contract Direct Communication Chat States
   const [chattingContract, setChattingContract] = useState<EscrowBookingContract | null>(null);
@@ -187,7 +234,7 @@ export const BookingEscrowScreen: React.FC = () => {
     return true;
   });
 
-  const displayedKocs = VERIFIED_KOC_PROFILES.filter(koc => {
+  const displayedKocs = allVerifiedKocs.filter(koc => {
     // Lọc theo định dạng sản xuất
     if (kocCategoryFilter === 'real_human' && !koc.capabilities.realHumanVideo.available) return false;
     if (kocCategoryFilter === 'ai_video' && !koc.capabilities.aiVideo.available) return false;
@@ -623,7 +670,7 @@ export const BookingEscrowScreen: React.FC = () => {
                   }`}
                 >
                   <Sparkles className="w-3 h-3 text-amber-300" />
-                  <span>Tất Cả ({VERIFIED_KOC_PROFILES.length})</span>
+                  <span>Tất Cả ({allVerifiedKocs.length})</span>
                 </button>
                 <button
                   onClick={() => setKocCategoryFilter('real_human')}
@@ -678,30 +725,46 @@ export const BookingEscrowScreen: React.FC = () => {
                 onClick={() => setKocCategoryFilter('all')}
                 className="text-xs text-purple-400 hover:text-purple-300 underline underline-offset-2 flex items-center gap-1 cursor-pointer font-mono"
               >
-                <span>✕ Xóa bộ lọc (Xem tất cả {VERIFIED_KOC_PROFILES.length} KOC)</span>
+                <span>✕ Xóa bộ lọc (Xem tất cả {allVerifiedKocs.length} KOC)</span>
               </button>
             )}
           </div>
 
           {/* KOC Profiles Grid (EMPTY STATE or LIST) */}
           {displayedKocs.length === 0 ? (
-            <div className="p-10 text-center bg-slate-900/80 border border-slate-800 rounded-3xl space-y-4">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+            <div className="p-8 sm:p-12 text-center bg-slate-900/80 border border-slate-800 rounded-3xl space-y-4">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
                 <UserCheck className="w-7 h-7" />
               </div>
-              <div>
-                <h4 className="text-base font-bold text-white font-display">Không tìm thấy KOC nào phù hợp với bộ lọc</h4>
-                <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                  Hiện tại chưa có KOC thuộc danh mục hoặc từ khóa bạn đang tìm kiếm. Vui lòng bấm nút bên dưới để xem lại toàn bộ {VERIFIED_KOC_PROFILES.length} hồ sơ KOC.
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-white font-display">
+                  {allVerifiedKocs.length === 0 
+                    ? 'Hiện chưa có hồ sơ KOC nào đăng ký trên sàn'
+                    : 'Không tìm thấy KOC nào phù hợp với bộ lọc'}
+                </h4>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  {allVerifiedKocs.length === 0
+                    ? 'Tất cả hồ sơ KOC và Reviewer phải là người thật đã xác thực danh tính. Hãy đăng ký kênh TikTok của bạn để nhận booking bảo chứng Escrow ngay hôm nay!'
+                    : 'Vui lòng thử chọn danh mục khác hoặc xóa từ khóa tìm kiếm.'}
                 </p>
               </div>
-              <button
-                onClick={() => { setKocCategoryFilter('all'); setSearchQuery(''); }}
-                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold font-display cursor-pointer inline-flex items-center gap-2 shadow-lg"
-              >
-                <Sparkles className="w-4 h-4 text-amber-300" />
-                <span>Xem Tất Cả {VERIFIED_KOC_PROFILES.length} KOC Đã Kiểm Chứng</span>
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => openKocModal()}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold font-display cursor-pointer inline-flex items-center gap-2 shadow-lg"
+                >
+                  <Award className="w-4 h-4 text-amber-300" />
+                  <span>Đăng Ký Trở Thành KOC Ngay</span>
+                </button>
+                {(kocCategoryFilter !== 'all' || searchQuery) && (
+                  <button
+                    onClick={() => { setKocCategoryFilter('all'); setSearchQuery(''); }}
+                    className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold cursor-pointer"
+                  >
+                    Xóa Bộ Lọc
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

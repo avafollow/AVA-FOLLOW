@@ -518,14 +518,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Tự động dọn sạch 100% dữ liệu demo cũ từ localStorage
   if (typeof window !== 'undefined') {
     try {
-      const hasPurged = localStorage.getItem('ava_purged_demo_v4');
+      const hasPurged = localStorage.getItem('ava_purged_demo_v5');
       if (!hasPurged) {
         localStorage.removeItem('ava_tasks');
         localStorage.removeItem('ava_livestream_tasks');
         localStorage.removeItem('ava_campaigns');
         localStorage.removeItem('ava_marquee_items');
         localStorage.removeItem('ava_marquee_history');
-        localStorage.setItem('ava_purged_demo_v4', 'true');
+        localStorage.removeItem('ava_cross_follow_items');
+        localStorage.removeItem('ava_fraud_appeals');
+        localStorage.removeItem('ava_campaign_audit_trail');
+        localStorage.removeItem('ava_community_posts');
+        localStorage.removeItem('ava_friends');
+        localStorage.removeItem('ava_chat_conversations');
+        localStorage.removeItem('ava_koc_profiles');
+        localStorage.setItem('ava_purged_demo_v5', 'true');
       }
     } catch {}
   }

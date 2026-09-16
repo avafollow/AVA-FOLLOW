@@ -101,6 +101,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     completeTask, 
     deleteCampaign,
     user,
+    userCompletedActions,
     connectTikTok,
     claimTaskAction,
     showToast,
@@ -165,25 +166,46 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     watch?: boolean;
   }>>({});
 
-  // 1. Toàn bộ Chiến Dịch Thật Tạo Mới & Đang Chạy (Tự động ẩn khi hoàn thành đủ số lượng đã mua)
-  const activeCampaigns = (campaigns || []).filter(c => c.status !== 'completed' && (c.completedQuantity || 0) < (c.targetQuantity || 100));
+  // 1. Toàn bộ Chiến Dịch Thật Tạo Mới & Đang Chạy (Tự động ẩn khi hoàn thành đủ số lượng đã mua hoặc user đã làm xong)
+  const activeCampaigns = (campaigns || []).filter(c => 
+    c.status !== 'completed' && 
+    (c.completedQuantity || 0) < (c.targetQuantity || 100) &&
+    !userCompletedActions?.[c.id]
+  );
+
   const createdCampaignFeedItems: UnifiedFeedItem[] = activeCampaigns.map((c) => {
-    const isLiveType = c.type === 'livestream' || c.type === 'livestream_viewers' || c.type === 'mega_live';
-    const isWatchOnly = c.type === 'watch' || (c.title || '').toLowerCase().includes('lượt xem') || (c.title || '').toLowerCase().includes('xem video');
-    const isLive = isLiveType || (c.targetUrl || '').toLowerCase().includes('/live');
+    const titleLower = (c.title || '').toLowerCase();
+    const targetUrlLower = (c.targetUrl || '').toLowerCase();
+
+    const isMulti = c.type === 'multi_target' || titleLower.includes('combo');
+    const isFollow = !isMulti && (c.type === 'follow' || titleLower.includes('follow') || titleLower.includes('follower'));
+    const isLike = !isMulti && (c.type === 'like' || titleLower.includes('thả tim') || titleLower.includes('like'));
+    const isComment = !isMulti && (c.type === 'comment' || titleLower.includes('bình luận') || titleLower.includes('comment'));
+    const isShare = !isMulti && (c.type === 'share' || titleLower.includes('chia sẻ') || titleLower.includes('share'));
+    const isWatchOnly = !isMulti && (c.type === 'watch' || titleLower.includes('lượt xem') || titleLower.includes('xem video') || titleLower.includes('15s') || titleLower.includes('15 giây'));
+    
+    // Livestream CHỈ KHI không phải là combo/follow/like/comment/share
+    const isLive = !isMulti && !isFollow && !isLike && !isComment && !isShare && (
+      c.type === 'livestream' || 
+      c.type === 'livestream_viewers' || 
+      c.type === 'mega_live' || 
+      (targetUrlLower.includes('tiktok.com/@') && targetUrlLower.includes('/live'))
+    );
+    
     const avatar = getTikTokAvatar(c.channelHandle);
+    const reward = isMulti ? 400 : (isLive ? 400 : (isFollow ? 200 : (isLike ? 100 : (isComment ? 200 : (isShare ? 240 : 200)))));
 
     return {
       id: c.id,
       kind: isLive ? 'livestream' : 'video',
       title: c.title,
-      type: c.type,
+      type: isMulti ? 'combo' : c.type,
       requiresWatch: isLive || isWatchOnly,
       channelName: c.channelHandle,
       channelHandle: c.channelHandle,
       channelAvatar: avatar,
       targetUrl: c.targetUrl,
-      rewardCoins: 200,
+      rewardCoins: reward,
       videoUrl: c.videoPreviewUrl || parseMediaUrl(c.targetUrl, c.channelHandle).streamUrl,
       sampleComments: [
         'Chiến dịch chất lượng quá!',
@@ -193,7 +215,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       guide: c.instructions || 'Tương tác thật 100% để nhận Xu thưởng vào ví.',
       campaignCategory: 'partner',
       partnerName: 'Chiến Dịch Đang Chạy',
-      partnerBadge: c.isBoosted ? '🔥 TOP 1 TOÀN SÀN' : (isLive ? '🔴 Live Thật' : 'Chiến Dịch Thật'),
+      partnerBadge: c.isBoosted ? '🔥 TOP 1 TOÀN SÀN' : (isMulti ? '⭐ Combo Đa Tương Tác' : (isLive ? '🔴 Live Thật' : 'Chiến Dịch Thật')),
       totalSlots: c.targetQuantity,
       remainingSlots: Math.max(1, c.targetQuantity - (c.completedQuantity || 0)),
       isUrgent: true,

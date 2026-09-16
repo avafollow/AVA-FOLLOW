@@ -492,14 +492,17 @@ export const HomeScreen: React.FC<{
         {/* PHÒNG LIVE STREAM TIKTOK THẬT & CHIẾN DỊCH VIDEO ĐANG PHÁT (ĐỒNG BỘ MOBILE) */}
         {/* ========================================================================= */}
         {(() => {
-          // 1. Genuine Active Campaigns (Tự động loại bỏ khi hết hiệu lực hoặc hoàn thành)
+          // 1. Genuine Active Campaigns (Tự động loại bỏ khi hết hiệu lực, hoàn thành hoặc user đã làm xong)
           const activeCampaigns = (campaigns || []).filter(
-            c => c.status !== 'completed' && c.status !== 'paused' && (c.completedQuantity || 0) < (c.targetQuantity || 100)
+            c => c.status !== 'completed' && c.status !== 'paused' && (c.completedQuantity || 0) < (c.targetQuantity || 100) && !userCompletedActions?.[c.id]
           );
 
-          const activeVideoCampaigns = activeCampaigns.filter(
-            c => c.type !== 'livestream' && c.type !== 'livestream_viewers' && !(c.targetUrl || '').includes('/live')
-          );
+          const activeVideoCampaigns = activeCampaigns.filter(c => {
+            const isMulti = c.type === 'multi_target' || (c.title || '').toLowerCase().includes('combo');
+            if (isMulti) return true;
+            const isLive = c.type === 'livestream' || c.type === 'livestream_viewers' || c.type === 'mega_live' || ((c.targetUrl || '').includes('tiktok.com/@') && (c.targetUrl || '').includes('/live'));
+            return !isLive;
+          });
 
           const displayedVideoItems = activeVideoCampaigns.length > 0
             ? activeVideoCampaigns.map(c => ({
@@ -514,7 +517,7 @@ export const HomeScreen: React.FC<{
                 isBoosted: c.isBoosted,
                 remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0))
               }))
-            : tasks.filter(t => t.status !== 'completed' && (t.type === 'watch' || t.videoPreviewUrl || t.campaignCategory === 'partner')).slice(0, 6).map(t => ({
+            : tasks.filter(t => t.status !== 'completed' && (t.type === 'watch' || t.videoPreviewUrl || t.campaignCategory === 'partner') && !userCompletedActions?.[t.id]).slice(0, 6).map(t => ({
                 id: t.id,
                 title: t.title,
                 channelName: t.channelName,
@@ -528,9 +531,11 @@ export const HomeScreen: React.FC<{
               }));
 
           // 2. Genuine Active Live Rooms
-          const activeLiveCampaigns = activeCampaigns.filter(
-            c => c.type === 'livestream' || c.type === 'livestream_viewers' || (c.targetUrl || '').includes('/live')
-          );
+          const activeLiveCampaigns = activeCampaigns.filter(c => {
+            const isMulti = c.type === 'multi_target' || (c.title || '').toLowerCase().includes('combo');
+            if (isMulti) return false;
+            return c.type === 'livestream' || c.type === 'livestream_viewers' || c.type === 'mega_live' || ((c.targetUrl || '').includes('tiktok.com/@') && (c.targetUrl || '').includes('/live'));
+          });
 
           const allActiveLiveRooms = [
             ...activeLiveCampaigns.map(c => ({
@@ -544,7 +549,7 @@ export const HomeScreen: React.FC<{
               currentViewers: 850,
               status: 'live' as const
             })),
-            ...livestreamTasks.filter(l => l.status === 'live' && (l.remainingSlots === undefined || l.remainingSlots > 0))
+            ...livestreamTasks.filter(l => l.status === 'live' && (l.remainingSlots === undefined || l.remainingSlots > 0) && !userCompletedActions?.[l.id])
           ];
 
           const seenLive = new Set<string>();

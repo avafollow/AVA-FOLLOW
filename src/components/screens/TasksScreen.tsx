@@ -34,7 +34,8 @@ import {
   Building2,
   Tv,
   Film,
-  PlusCircle
+  PlusCircle,
+  History
 } from "lucide-react";
 import { TikTokTaskItem, LivestreamTaskItem, CrossFollowItem } from "../../types";
 import { useTikTokApp } from "../../context/TikTokAppContext";
@@ -106,6 +107,7 @@ export const TasksScreen: React.FC<{
   const [enterpriseFilter, setEnterpriseFilter] = useState<"all" | "follow" | "watch" | "like" | "comment" | "targeted">("all");
   const [feedCategoryFilter, setFeedCategoryFilter] = useState<'all' | 'missions' | 'live' | 'partner' | 'cross_follow'>('all');
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [showHistorySection, setShowHistorySection] = useState<boolean>(false);
 
   // Inline Quick Edit & Switch Account State (Thu gọn thanh trạng thái kết nối TikTok, Facebook, YouTube)
   const [editingTikTok, setEditingTikTok] = useState<boolean>(false);
@@ -155,9 +157,9 @@ export const TasksScreen: React.FC<{
     showToast(`🎉 ĐÃ MUA THÊM +20 LƯỢT TƯƠNG TÁC! Đã triệt tiêu -${currentTierQuota.extraExpansionCostXu.toLocaleString()} Xu vào Quỹ Đốt Token.`);
   };
 
-  // Filtered & Sorted Partner Campaigns
+  // Filtered & Sorted Partner Campaigns (Ẩn các nhiệm vụ đã hoàn thành hoặc hết suất)
   const filteredPartnerTasks = tasks
-    .filter(t => t.campaignCategory === "partner")
+    .filter(t => t.campaignCategory === "partner" && t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !userCompletedActions?.[t.id])
     .filter(t => {
       if (enterpriseFilter === "targeted" && t.audienceTargeting?.mode !== "niche_targeted") return false;
       if (enterpriseFilter !== "all" && enterpriseFilter !== "targeted" && t.type !== enterpriseFilter) return false;
@@ -196,9 +198,9 @@ export const TasksScreen: React.FC<{
     return 0;
   });
 
-  // Filtered Livestream Rooms (Chỉ hiển thị phòng Live đang phát sóng, tự động ẩn khi kết thúc)
+  // Filtered Livestream Rooms (Chỉ hiển thị phòng Live đang phát sóng, tự động ẩn khi kết thúc hoặc đã xem)
   const filteredLiveTasks = livestreamTasks
-    .filter(live => live.status === 'live' && (live.remainingSlots === undefined || live.remainingSlots > 0))
+    .filter(live => live.status === 'live' && (live.remainingSlots === undefined || live.remainingSlots > 0) && !userCompletedActions?.[live.id])
     .filter((live) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -212,48 +214,76 @@ export const TasksScreen: React.FC<{
       return true;
     });
 
-  // Video Campaigns (all tasks with watch type or with videos)
-  const videoCampaignTasks = tasks.filter(t => t.type === "watch" || t.videoPreviewUrl || t.campaignCategory === "partner");
+  // Video Campaigns (all tasks with watch type or with videos, chưa làm và còn hiệu lực)
+  const videoCampaignTasks = tasks
+    .filter(t => t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !userCompletedActions?.[t.id])
+    .filter(t => t.type === "watch" || t.videoPreviewUrl || t.campaignCategory === "partner");
 
-  // Map user created campaigns to feed cards (Tự động ẩn khi hoàn thành đủ số lượng đã mua)
+  // Map user created campaigns to feed cards (Tự động ẩn 100% khi đã làm xong hoặc hết suất/kết thúc)
   const createdFeedCards = (campaigns || [])
-    .filter(c => c.status !== 'completed' && (c.completedQuantity || 0) < (c.targetQuantity || 100))
+    .filter(c => {
+      if (c.status === 'completed') return false;
+      if ((c.completedQuantity || 0) >= (c.targetQuantity || 100)) return false;
+      if (userCompletedActions?.[c.id]) return false;
+      return true;
+    })
     .map(c => {
-      const isLive = c.type === 'livestream' || c.type === 'livestream_viewers' || c.type === 'mega_live' || (c.targetUrl || '').toLowerCase().includes('/live');
-      const isMulti = c.type === 'multi_target' || (c.title || '').toLowerCase().includes('combo');
-      const isFollow = c.type === 'follow' || (c.title || '').toLowerCase().includes('follow') || (c.title || '').toLowerCase().includes('follower');
-      const isWatch = c.type === 'watch' || (c.title || '').toLowerCase().includes('lượt xem') || (c.title || '').toLowerCase().includes('xem video');
-      const isLike = c.type === 'like' || (c.title || '').toLowerCase().includes('thả tim');
-      const isComment = c.type === 'comment' || (c.title || '').toLowerCase().includes('bình luận');
-      const isShare = c.type === 'share' || (c.title || '').toLowerCase().includes('chia sẻ');
-      const isKoc = c.type === 'booking_review';
+      const titleLower = (c.title || '').toLowerCase();
+      const targetUrlLower = (c.targetUrl || '').toLowerCase();
+
+      // Ưu tiên phân loại chính xác: Combo -> Follow -> Like -> Comment -> Share -> Watch -> KOC -> Live
+      const isMulti = c.type === 'multi_target' || titleLower.includes('combo');
+      const isFollow = !isMulti && (c.type === 'follow' || titleLower.includes('follow') || titleLower.includes('follower'));
+      const isLike = !isMulti && (c.type === 'like' || titleLower.includes('thả tim') || titleLower.includes('like'));
+      const isComment = !isMulti && (c.type === 'comment' || titleLower.includes('bình luận') || titleLower.includes('comment'));
+      const isShare = !isMulti && (c.type === 'share' || titleLower.includes('chia sẻ') || titleLower.includes('share'));
+      const isWatch = !isMulti && (c.type === 'watch' || titleLower.includes('lượt xem') || titleLower.includes('xem video') || titleLower.includes('15s') || titleLower.includes('15 giây'));
+      const isKoc = !isMulti && c.type === 'booking_review';
+
+      // Livestream chỉ khi đúng là live stream và không phải combo/follow
+      const isLive = !isMulti && !isFollow && !isLike && !isComment && !isShare && (
+        c.type === 'livestream' || 
+        c.type === 'livestream_viewers' || 
+        c.type === 'mega_live' || 
+        (targetUrlLower.includes('tiktok.com/@') && targetUrlLower.includes('/live'))
+      );
 
       let computedType = c.type;
       let badge = 'NHẬN XU';
-      if (isLive) {
-        computedType = 'livestream';
-        badge = 'TRỰC TIẾP';
-      } else if (isMulti) {
+      let reward = 200;
+
+      if (isMulti) {
         computedType = 'multi_target';
         badge = 'COMBO';
+        reward = 400;
+      } else if (isLive) {
+        computedType = 'livestream';
+        badge = 'TRỰC TIẾP';
+        reward = 400;
       } else if (isFollow) {
         computedType = 'follow';
         badge = 'FOLLOW';
+        reward = 200;
       } else if (isWatch) {
         computedType = 'watch';
         badge = '15 GIÂY';
+        reward = 200;
       } else if (isLike) {
         computedType = 'like';
         badge = 'THẢ TIM';
+        reward = 100;
       } else if (isComment) {
         computedType = 'comment';
         badge = 'COMMENT';
+        reward = 200;
       } else if (isShare) {
         computedType = 'share';
         badge = 'CHIA SẺ';
+        reward = 240;
       } else if (isKoc) {
         computedType = 'booking_review';
         badge = 'KOC VIP';
+        reward = 500;
       }
 
       const stream = parseMediaUrl(c.targetUrl, c.channelHandle);
@@ -270,7 +300,7 @@ export const TasksScreen: React.FC<{
         channelAvatar: avatar,
         thumbnail: thumbnailMedia,
         videoUrl: c.videoPreviewUrl || stream.streamUrl,
-        rewardXu: 200,
+        rewardXu: reward,
         durationBadge: badge,
         remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0)),
         isRealCampaign: true,
@@ -279,9 +309,9 @@ export const TasksScreen: React.FC<{
       };
     });
 
-  // Map task items to feed cards (Tự động ẩn khi hết suất)
+  // Map task items to feed cards (Tự động ẩn khi hết suất hoặc đã hoàn thành)
   const missionFeedCards = tasks
-    .filter(t => t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0))
+    .filter(t => t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !userCompletedActions?.[t.id])
     .map(t => ({
       id: t.id,
       category: (t.campaignCategory === 'partner' ? 'partner' : 'missions') as 'partner' | 'missions',
@@ -1701,6 +1731,118 @@ export const TasksScreen: React.FC<{
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* 4.5. KHU VỰC LƯU TRỮ: LỊCH SỬ NHIỆM VỤ & CHIẾN DỊCH ĐÃ HOÀN THÀNH          */}
+      {/* Tách biệt hoàn toàn, không hiển thị lẫn vào danh sách chiến dịch đang chạy */}
+      {/* ========================================================================= */}
+      {(() => {
+        const completedActionList = Object.values(userCompletedActions || {});
+        const completedCampaignsList = (campaigns || []).filter(c => c.status === 'completed' || (c.completedQuantity || 0) >= (c.targetQuantity || 100));
+        const totalCompletedCount = completedActionList.length + completedCampaignsList.length;
+
+        return (
+          <div className="pt-2">
+            <div className="p-4 rounded-3xl bg-[#090C16] border border-white/10 hover:border-white/20 transition-all space-y-3">
+              <div 
+                onClick={() => setShowHistorySection(!showHistorySection)}
+                className="flex items-center justify-between cursor-pointer select-none"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                    <History className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-white font-display flex items-center gap-2">
+                      <span>Lịch Sử Nhiệm Vụ &amp; Chiến Dịch Đã Hoàn Thành</span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/30">
+                        {totalCompletedCount} Đã Xong
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-mono">
+                      Tự động lưu trữ các chiến dịch/nhiệm vụ đã kết thúc hoặc đã nhận Xu đủ
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono font-bold border border-white/10 flex items-center gap-1"
+                >
+                  <span>{showHistorySection ? 'Thu Gọn ▲' : 'Xem Lịch Sử ▼'}</span>
+                </button>
+              </div>
+
+              {showHistorySection && (
+                <div className="pt-3 border-t border-white/10 space-y-3 animate-in fade-in duration-200">
+                  {totalCompletedCount === 0 ? (
+                    <div className="py-6 text-center text-slate-500 text-xs font-mono">
+                      Chưa có nhiệm vụ hoặc chiến dịch nào hoàn thành. Khi bạn làm xong nhiệm vụ, thông tin sẽ được lưu trữ tại đây!
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-1">
+                      {completedActionList.map((action, idx) => (
+                        <div key={action.taskId || idx} className="p-3 rounded-2xl bg-black/40 border border-emerald-500/20 flex items-center justify-between gap-2.5">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <img 
+                              src={action.channelAvatar || getTikTokAvatar(action.channelHandle)} 
+                              alt="" 
+                              className="w-8 h-8 rounded-full object-cover ring-1 ring-emerald-400/50 shrink-0" 
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold text-white truncate">{action.channelHandle || action.channelName}</span>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              </div>
+                              <p className="text-[10px] text-slate-400 truncate">{action.taskTitle || 'Nhiệm vụ tương tác TikTok'}</p>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                {action.followed && <span className="text-[8px] px-1 py-0.2 rounded bg-pink-500/20 text-pink-300 font-mono">Follow</span>}
+                                {action.liked && <span className="text-[8px] px-1 py-0.2 rounded bg-rose-500/20 text-rose-300 font-mono">Tim</span>}
+                                {action.commented && <span className="text-[8px] px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono">Cmt</span>}
+                                {action.viewed && <span className="text-[8px] px-1 py-0.2 rounded bg-purple-500/20 text-purple-300 font-mono">Xem</span>}
+                                {action.shared && <span className="text-[8px] px-1 py-0.2 rounded bg-blue-500/20 text-blue-300 font-mono">Share</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="text-xs font-mono font-black text-emerald-400">+{action.totalCoinsEarned || 200} Xu</span>
+                            <span className="block text-[9px] font-mono text-slate-500">{action.completedAt || 'Đã hoàn thành'}</span>
+                          </div>
+                        </div>
+                      ))}
+
+                      {completedCampaignsList.map((camp) => (
+                        <div key={camp.id} className="p-3 rounded-2xl bg-black/40 border border-purple-500/20 flex items-center justify-between gap-2.5">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <img 
+                              src={camp.videoPreviewUrl || getTikTokAvatar(camp.channelHandle)} 
+                              alt="" 
+                              className="w-8 h-8 rounded-full object-cover ring-1 ring-purple-400/50 shrink-0" 
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold text-white truncate">{camp.channelHandle}</span>
+                                <span className="px-1.5 py-0.2 rounded text-[8px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                  ĐÃ ĐỦ CHỈ TIÊU
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 truncate">{camp.title}</p>
+                              <span className="text-[9px] font-mono text-slate-500">Đạt {camp.completedQuantity || camp.targetQuantity}/{camp.targetQuantity} lượt</span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="text-[10px] font-mono text-slate-400 font-bold">100% Hoàn Thành</span>
+                            <span className="block text-[9px] font-mono text-emerald-400">✓ Đã Lưu Trữ</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* 5. CÁC MODAL HỆ THỐNG: ĐẨY TOP, THÔNG BÁO, TRIỆT TIÊU XU                  */}

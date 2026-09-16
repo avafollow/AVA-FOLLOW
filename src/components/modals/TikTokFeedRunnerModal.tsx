@@ -168,17 +168,20 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   // 1. Toàn bộ Chiến Dịch Thật Tạo Mới & Đang Chạy (Tự động ẩn khi hoàn thành đủ số lượng đã mua)
   const activeCampaigns = (campaigns || []).filter(c => c.status !== 'completed' && (c.completedQuantity || 0) < (c.targetQuantity || 100));
   const createdCampaignFeedItems: UnifiedFeedItem[] = activeCampaigns.map((c) => {
-    const isLiveUrl = (c.targetUrl || '').toLowerCase().includes('/live');
-    const isLiveType = c.type === 'livestream' || c.type === 'livestream_viewers';
+    const isLiveType = c.type === 'livestream' || c.type === 'livestream_viewers' || c.type === 'mega_live';
+    const isWatchOnly = c.type === 'watch' || (c.title || '').toLowerCase().includes('lượt xem') || (c.title || '').toLowerCase().includes('xem video');
+    const isLive = isLiveType || (c.targetUrl || '').toLowerCase().includes('/live');
+    const avatar = getTikTokAvatar(c.channelHandle);
+
     return {
       id: c.id,
-      kind: (isLiveType || isLiveUrl) ? 'livestream' : 'video',
+      kind: isLive ? 'livestream' : 'video',
       title: c.title,
       type: c.type,
-      requiresWatch: true,
+      requiresWatch: isLive || isWatchOnly,
       channelName: c.channelHandle,
       channelHandle: c.channelHandle,
-      channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+      channelAvatar: avatar,
       targetUrl: c.targetUrl,
       rewardCoins: 200,
       videoUrl: c.videoPreviewUrl || parseMediaUrl(c.targetUrl, c.channelHandle).streamUrl,
@@ -190,7 +193,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       guide: c.instructions || 'Tương tác thật 100% để nhận Xu thưởng vào ví.',
       campaignCategory: 'partner',
       partnerName: 'Chiến Dịch Đang Chạy',
-      partnerBadge: c.isBoosted ? '🔥 TOP 1 TOÀN SÀN' : 'Chiến Dịch Thật',
+      partnerBadge: c.isBoosted ? '🔥 TOP 1 TOÀN SÀN' : (isLive ? '🔴 Live Thật' : 'Chiến Dịch Thật'),
       totalSlots: c.targetQuantity,
       remainingSlots: Math.max(1, c.targetQuantity - (c.completedQuantity || 0)),
       isUrgent: true,
@@ -1456,7 +1459,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           <div className="absolute left-3 bottom-14 z-30 space-y-2 max-w-[72%] pointer-events-auto text-left">
             {/* TASK ACTION BADGE - Hiển thị rõ ràng nhiệm vụ cần làm */}
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-neonGold/60 shadow-lg animate-in fade-in">
-              {currentItem.type === 'follow' ? (
+              {currentItem.type === 'multi_target' || currentItem.type === 'combo' || (currentItem.title || '').toLowerCase().includes('combo') ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-[10px] font-mono font-black text-amber-300 uppercase">Nhiệm vụ: Combo Đa Tương Tác (+400 Xu)</span>
+                </>
+              ) : currentItem.type === 'follow' ? (
                 <>
                   <UserPlus className="w-3.5 h-3.5 text-rose-400" />
                   <span className="text-[10px] font-mono font-black text-neonGold uppercase">Nhiệm vụ: Follow Kênh (+200 Xu)</span>
@@ -1481,7 +1489,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   <Share2 className="w-3.5 h-3.5 text-blue-400" />
                   <span className="text-[10px] font-mono font-black text-blue-300 uppercase">Nhiệm vụ: Chia Sẻ Video (+240 Xu)</span>
                 </>
-              ) : currentItem.kind === 'livestream' ? (
+              ) : isLiveItem ? (
                 <>
                   <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
                   <span className="text-[10px] font-mono font-black text-rose-300 uppercase">Nhiệm vụ: Xem Live Giữ Mắt (+400 Xu)</span>
@@ -1546,8 +1554,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           {/* Right Action Bar (Chỉ hiển thị trên Video Thường, ẩn khi Livestream hoặc Embed để không đè màn hình, chỉ hiện DUY NHẤT 1 nút tương ứng với loại chiến dịch) */}
           {playerMode !== 'embed' && !isLiveItem && (
             <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-3.5 pointer-events-auto animate-in fade-in duration-300">
-              {/* Creator Avatar with Follow Plus Badge (Chỉ hiện khi chiến dịch là Follow) */}
-              {targetCampaignAction === 'follow' && (
+              {/* Creator Avatar with Follow Plus Badge (Hiện khi Follow hoặc Combo) */}
+              {(targetCampaignAction === 'follow' || targetCampaignAction === 'combo' || targetCampaignAction === 'multi_target') && (
                 <div 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1582,8 +1590,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 </div>
               )}
 
-              {/* Like Button (Chỉ hiện khi chiến dịch là Like / Thả tim) */}
-              {targetCampaignAction === 'like' && (
+              {/* Like Button (Hiện khi Like hoặc Combo) */}
+              {(targetCampaignAction === 'like' || targetCampaignAction === 'combo' || targetCampaignAction === 'multi_target') && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1603,8 +1611,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 </button>
               )}
 
-              {/* Comment Button (Chỉ hiện khi chiến dịch là Comment / Bình luận) */}
-              {targetCampaignAction === 'comment' && (
+              {/* Comment Button (Hiện khi Comment hoặc Combo) */}
+              {(targetCampaignAction === 'comment' || targetCampaignAction === 'combo' || targetCampaignAction === 'multi_target') && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1708,7 +1716,55 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
         {/* QUICK IN-APP TASK INTERACTION DECK (TẬP TRUNG 1 HÀNH ĐỘNG DUY NHẤT THEO LOẠI CHIẾN DỊCH) */}
         <div className="p-2.5 bg-[#080B14] border-t border-white/10 text-xs font-mono shrink-0">
-          {targetCampaignAction === 'follow' && (
+          {/* COMBO ĐA MỤC TIÊU: Render cụm nút Follow + Thả Tim + Bình Luận */}
+          {(targetCampaignAction === 'combo' || targetCampaignAction === 'multi_target' || (currentItem.title || '').toLowerCase().includes('combo')) && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-neonGold font-bold px-1">
+                <span>⭐ NHIỆM VỤ COMBO: HOÀN THÀNH CÁC BƯỚC ĐỂ NHẬN ĐỦ XU</span>
+                <span>+{currentItem.rewardCoins || 400} Xu</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleFollowAction}
+                  className={`py-2 px-1 rounded-xl flex items-center justify-center gap-1 font-bold text-[10px] transition-all cursor-pointer shadow-md ${
+                    currentClaimed.follow
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                      : 'bg-gradient-to-r from-rose-600 to-pink-600 text-white hover:opacity-90 active:scale-95'
+                  }`}
+                >
+                  {currentClaimed.follow ? <Check className="w-3 h-3 stroke-[3]" /> : <Plus className="w-3 h-3 stroke-[3]" />}
+                  <span>{currentClaimed.follow ? 'Đã Follow' : 'Follow (+200)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLikeAction}
+                  className={`py-2 px-1 rounded-xl flex items-center justify-center gap-1 font-bold text-[10px] transition-all cursor-pointer shadow-md ${
+                    currentClaimed.like
+                      ? 'bg-pink-500/20 text-pink-400 border border-pink-500/40'
+                      : 'bg-gradient-to-r from-pink-600 to-rose-600 text-white hover:opacity-90 active:scale-95'
+                  }`}
+                >
+                  <Heart className={`w-3 h-3 ${currentClaimed.like ? 'fill-pink-400' : ''}`} />
+                  <span>{currentClaimed.like ? 'Đã Tim' : 'Thả Tim (+100)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCommentInput(!showCommentInput)}
+                  className={`py-2 px-1 rounded-xl flex items-center justify-center gap-1 font-bold text-[10px] transition-all cursor-pointer shadow-md ${
+                    currentClaimed.comment
+                      ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
+                      : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:opacity-90 active:scale-95'
+                  }`}
+                >
+                  <MessageCircle className="w-3 h-3" />
+                  <span>{currentClaimed.comment ? 'Đã Cmt' : 'Bình Luận (+200)'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {targetCampaignAction === 'follow' && !(currentItem.title || '').toLowerCase().includes('combo') && (
             <button 
               type="button"
               onClick={handleFollowAction} 
@@ -1723,7 +1779,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             </button>
           )}
 
-          {targetCampaignAction === 'like' && (
+          {targetCampaignAction === 'like' && !(currentItem.title || '').toLowerCase().includes('combo') && (
             <button 
               type="button"
               onClick={handleLikeAction} 
@@ -1738,7 +1794,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             </button>
           )}
 
-          {targetCampaignAction === 'comment' && (
+          {targetCampaignAction === 'comment' && !(currentItem.title || '').toLowerCase().includes('combo') && (
             <button 
               type="button"
               onClick={() => setShowCommentInput(!showCommentInput)} 
@@ -1753,7 +1809,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             </button>
           )}
 
-          {targetCampaignAction === 'share' && (
+          {targetCampaignAction === 'share' && !(currentItem.title || '').toLowerCase().includes('combo') && (
             <button 
               type="button"
               onClick={handleShareAction} 

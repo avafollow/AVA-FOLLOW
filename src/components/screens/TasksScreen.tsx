@@ -42,7 +42,7 @@ import { FeatureGuideTooltip } from "../common/FeatureGuideTooltip";
 import { WeeklyMissionsPanel } from "./WeeklyMissionsPanel";
 import { INITIAL_CROSS_FOLLOW_ITEMS, TIER_CROSS_FOLLOW_QUOTAS } from "../../data/crossFollowData";
 import { TokenSinkStrategyModal } from "../modals/TokenSinkStrategyModal";
-import { parseMediaUrl } from "../../data/videoSources";
+import { parseMediaUrl, getTikTokAvatar } from "../../data/videoSources";
 import { SmartMediaThumbnail } from "../common/SmartMediaThumbnail";
 
 export const TasksScreen: React.FC<{ 
@@ -219,20 +219,59 @@ export const TasksScreen: React.FC<{
   const createdFeedCards = (campaigns || [])
     .filter(c => c.status !== 'completed' && (c.completedQuantity || 0) < (c.targetQuantity || 100))
     .map(c => {
-      const isLive = c.type === 'livestream' || c.type === 'livestream_viewers';
+      const isLive = c.type === 'livestream' || c.type === 'livestream_viewers' || c.type === 'mega_live' || (c.targetUrl || '').toLowerCase().includes('/live');
+      const isMulti = c.type === 'multi_target' || (c.title || '').toLowerCase().includes('combo');
+      const isFollow = c.type === 'follow' || (c.title || '').toLowerCase().includes('follow') || (c.title || '').toLowerCase().includes('follower');
+      const isWatch = c.type === 'watch' || (c.title || '').toLowerCase().includes('lượt xem') || (c.title || '').toLowerCase().includes('xem video');
+      const isLike = c.type === 'like' || (c.title || '').toLowerCase().includes('thả tim');
+      const isComment = c.type === 'comment' || (c.title || '').toLowerCase().includes('bình luận');
+      const isShare = c.type === 'share' || (c.title || '').toLowerCase().includes('chia sẻ');
+      const isKoc = c.type === 'booking_review';
+
+      let computedType = c.type;
+      let badge = 'NHẬN XU';
+      if (isLive) {
+        computedType = 'livestream';
+        badge = 'TRỰC TIẾP';
+      } else if (isMulti) {
+        computedType = 'multi_target';
+        badge = 'COMBO';
+      } else if (isFollow) {
+        computedType = 'follow';
+        badge = 'FOLLOW';
+      } else if (isWatch) {
+        computedType = 'watch';
+        badge = '15 GIÂY';
+      } else if (isLike) {
+        computedType = 'like';
+        badge = 'THẢ TIM';
+      } else if (isComment) {
+        computedType = 'comment';
+        badge = 'COMMENT';
+      } else if (isShare) {
+        computedType = 'share';
+        badge = 'CHIA SẺ';
+      } else if (isKoc) {
+        computedType = 'booking_review';
+        badge = 'KOC VIP';
+      }
+
       const stream = parseMediaUrl(c.targetUrl, c.channelHandle);
+      const avatar = getTikTokAvatar(c.channelHandle);
+      const thumbnailMedia = c.videoPreviewUrl || stream.streamUrl || avatar;
+
       return {
         id: c.id,
         category: isLive ? ('live' as const) : ('partner' as const),
-        taskType: c.type,
+        taskType: computedType,
         title: c.title || `Chiến Dịch: ${c.channelHandle}`,
         channelName: c.channelHandle,
         channelHandle: c.channelHandle,
-        channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-        thumbnail: stream.streamUrl || '/videos/sample1.mp4',
-        videoUrl: stream.streamUrl || '/videos/sample1.mp4',
+        channelAvatar: avatar,
+        thumbnail: thumbnailMedia,
+        videoUrl: c.videoPreviewUrl || stream.streamUrl,
         rewardXu: 200,
-        durationBadge: isLive ? 'TRỰC TIẾP' : '15 GIÂY',
+        durationBadge: badge,
         remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0)),
         isRealCampaign: true,
         isBoosted: c.isBoosted,
@@ -1120,10 +1159,30 @@ export const TasksScreen: React.FC<{
                     comment: '💬 Bình Luận',
                     share: '🚀 Chia Sẻ',
                     livestream: '🔴 Xem Live Giữ Mắt',
-                    livestream_viewers: '🔴 Mắt Live Thật'
+                    livestream_viewers: '🔴 Mắt Live Thật',
+                    mega_live: '🔴 Mega Live VIP',
+                    multi_target: '⭐ Combo Đa Mục Tiêu',
+                    combo: '⭐ Combo Đa Mục Tiêu',
+                    booking_review: '✨ Booking KOC'
                   };
                   const taskLabel = typeLabels[card.taskType] || '⚡ Làm Nhiệm Vụ';
                   const isHorizontal = card.targetUrl?.includes('youtube.com/watch') || (card.targetUrl?.includes('youtu.be') && !card.targetUrl?.includes('/shorts/'));
+
+                  const actionButtonText = completed 
+                    ? "Đã Xong" 
+                    : card.taskType === 'follow' 
+                      ? "Follow & Nhận Xu" 
+                      : card.taskType === 'like' 
+                        ? "Thả Tim & Nhận Xu" 
+                        : card.taskType === 'comment' 
+                          ? "Bình Luận & Nhận Xu" 
+                          : card.taskType === 'share' 
+                            ? "Chia Sẻ & Nhận Xu" 
+                            : card.taskType === 'livestream' || card.taskType === 'livestream_viewers' 
+                              ? "Vào Live & Nhận Xu" 
+                              : card.taskType === 'multi_target' 
+                                ? "Làm Combo & Nhận Xu" 
+                                : "Xem & Nhận Xu";
 
                   return (
                     <div
@@ -1138,7 +1197,7 @@ export const TasksScreen: React.FC<{
                           videoPreviewUrl={card.thumbnail}
                           channelAvatar={card.channelAvatar}
                           channelHandle={card.channelHandle}
-                          isLive={card.taskType === 'livestream' || card.taskType === 'livestream_viewers'}
+                          isLive={card.taskType === 'livestream' || card.taskType === 'livestream_viewers' || card.taskType === 'mega_live'}
                           isBoosted={card.isBoosted}
                           badgeText={card.durationBadge}
                           className="w-full h-full"
@@ -1198,7 +1257,7 @@ export const TasksScreen: React.FC<{
                             }`}
                           >
                             {completed ? <Check className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current" />}
-                            <span>{completed ? "Đã Xem Xong" : "Xem & Nhận Xu"}</span>
+                            <span>{actionButtonText}</span>
                           </button>
                         </div>
                       </div>

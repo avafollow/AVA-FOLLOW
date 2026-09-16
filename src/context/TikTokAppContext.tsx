@@ -522,12 +522,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const localSamples = ['/videos/sample1.mp4', '/videos/sample2.mp4', '/videos/sample3.mp4'];
-          return parsed.map((t: TikTokTaskItem, i: number) => {
-            if (!t.videoPreviewUrl || t.videoPreviewUrl.includes('test-videos.co.uk') || t.videoPreviewUrl.includes('interactive-examples') || t.videoPreviewUrl.includes('vjs.zencdn.net')) {
-              return { ...t, videoPreviewUrl: localSamples[i % localSamples.length] };
-            }
-            return t;
-          });
+          const realOnly = parsed
+            .filter((t: TikTokTaskItem) => !t.id.startsWith('task_') && !t.id.startsWith('mock_') && !t.id.startsWith('demo_'))
+            .map((t: TikTokTaskItem, i: number) => {
+              if (!t.videoPreviewUrl || t.videoPreviewUrl.includes('test-videos.co.uk') || t.videoPreviewUrl.includes('interactive-examples') || t.videoPreviewUrl.includes('vjs.zencdn.net')) {
+                return { ...t, videoPreviewUrl: localSamples[i % localSamples.length] };
+              }
+              return t;
+            });
+          return realOnly;
         }
       }
     } catch {}

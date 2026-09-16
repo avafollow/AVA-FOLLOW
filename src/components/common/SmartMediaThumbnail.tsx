@@ -28,7 +28,7 @@ export const SmartMediaThumbnail: React.FC<SmartMediaThumbnailProps> = ({
   isBoosted = false
 }) => {
   const mediaInfo = parseMediaUrl(targetUrl || videoPreviewUrl, channelHandle);
-  const effectiveIsLive = isLive || mediaInfo.isLive;
+  const effectiveIsLive = isLive === true;
   const [hasMediaError, setHasMediaError] = useState(false);
 
   // 1. YouTube thumbnail high-res

@@ -258,6 +258,11 @@ export const ProfileWalletScreen: React.FC<{
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
                   Hạng {user.rankLevel}
                 </span>
+                {(user.hasAllPermissions || user.isAdmin) && (
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-black bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300 border border-amber-500/50">
+                    👑 TOÀN QUYỀN VIP
+                  </span>
+                )}
                 <button
                   onClick={openPolicy}
                   className="text-[10px] text-amber-400 hover:underline font-mono flex items-center gap-1"
@@ -267,26 +272,49 @@ export const ProfileWalletScreen: React.FC<{
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="text-xs text-slate-400 font-mono">
-                  Kênh TikTok: <strong className="text-rose-400">{user.tiktokConnected || '@chưa_kết_nối'}</strong>
-                </span>
-                <a
-                  href={kycTiktokUrl.startsWith('http') ? kycTiktokUrl : `https://${kycTiktokUrl}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-[10px] text-rose-300 font-mono border border-rose-500/30 transition-colors"
-                  title="Mở kênh TikTok"
-                >
-                  <span>Mở TikTok</span>
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-                <button
-                  onClick={openConnect}
-                  className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 font-mono"
-                >
-                  {user.isTikTokVerified ? 'Đổi kênh' : 'Kết nối (+1k Xu)'}
-                </button>
+              {/* Master Google Identity & Connected Execution Channels */}
+              <div className="space-y-1.5 mt-2">
+                {/* 1. Google Master Account */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/60 border border-white/10 text-[11px] font-mono">
+                    <span className="text-rose-400 font-bold">G</span>
+                    <span className="text-slate-400">Tài khoản Google:</span>
+                    <strong className="text-cyan-300">{user.email || 'quocthiencr90@gmail.com'}</strong>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">✓ ĐÃ XÁC THỰC</span>
+                  </div>
+                </div>
+
+                {/* 2. TikTok Execution Channel */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/60 border border-rose-500/20 text-[11px] font-mono">
+                    <span className="text-rose-400 font-bold">♪</span>
+                    <span className="text-slate-400">Kênh TikTok làm nhiệm vụ:</span>
+                    <strong className="text-rose-300">{user.tiktokConnected || '@chưa_kết_nối'}</strong>
+                    {user.isTikTokVerified && (
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                        {(user.tiktokFollowers || 0).toLocaleString()} Followers
+                      </span>
+                    )}
+                  </div>
+                  {user.tiktokConnected && (
+                    <a
+                      href={`https://www.tiktok.com/${user.tiktokConnected}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-[10px] text-rose-300 font-mono border border-rose-500/30 transition-colors"
+                      title="Mở kênh TikTok"
+                    >
+                      <span>Mở Kênh</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  )}
+                  <button
+                    onClick={openConnect}
+                    className="px-2.5 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 font-mono transition-colors cursor-pointer"
+                  >
+                    {user.isTikTokVerified ? 'Đổi Kênh' : 'Kết Nối Kênh (+5.000 Xu)'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

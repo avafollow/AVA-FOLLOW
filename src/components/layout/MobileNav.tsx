@@ -42,7 +42,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     { id: 'marketplace', label: 'Gói Tăng Trưởng', icon: ShoppingBag, badge: 'HOT 1+1', desc: 'Mua Follow, Tim, Mắt Live tặng 100% View', color: 'from-amber-500/20 to-rose-500/20 text-amber-300 border-amber-500/40' },
     { id: 'tasks', label: 'Kiếm Tiền Ngay', icon: UserCheck, badge: `${openTasksCount} Mới`, desc: 'Làm nhiệm vụ kiếm Xu rút tiền mặt', color: 'from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30' },
     { id: 'create_campaign', label: 'Tạo Chiến Dịch', icon: PlusCircle, badge: 'HOT', desc: 'Tăng tương tác thật cho kênh TikTok', color: 'from-rose-500/20 to-pink-500/20 text-rose-400 border-rose-500/30' },
-    { id: 'business_portal', label: 'Đối Tác Kinh Doanh', icon: Building2, badge: 'VIP', desc: 'Cổng phân phối & tiếp thị doanh nghiệp', color: 'from-cyan-500/20 to-blue-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'business_portal', label: 'Quản Lý Chiến Dịch', icon: Building2, badge: 'VIP', desc: 'Quản lý gói dịch vụ & tiến độ phân phối', color: 'from-cyan-500/20 to-blue-500/20 text-cyan-300 border-cyan-500/30' },
     { id: 'booking_escrow', label: 'Kết Nối KOC', icon: Video, badge: 'ESCROW', desc: 'Booking KOC/KOL ký quỹ an toàn 3 bên', color: 'from-purple-500/20 to-pink-500/20 text-purple-300 border-purple-500/30' },
     { id: 'app_marketplace', label: 'App Kiếm Tiền', icon: Cpu, badge: 'AUTO', desc: 'Phần mềm tự động & công cụ tăng trưởng', color: 'from-violet-500/20 to-purple-500/20 text-violet-300 border-violet-500/30' },
     { id: 'analytics', label: 'Báo Cáo Thu Nhập', icon: BarChart3, desc: 'Thống kê Xu, số dư và biểu đồ tăng trưởng', color: 'from-indigo-500/20 to-cyan-500/20 text-indigo-300 border-indigo-500/30' },

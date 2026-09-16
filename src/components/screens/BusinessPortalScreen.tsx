@@ -145,7 +145,7 @@ export const BusinessPortalScreen: React.FC<{ darkMode: boolean }> = ({ darkMode
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold font-mono uppercase">
                 <Building2 className="w-3.5 h-3.5 text-amber-400" />
-                CỔNG DOANH NGHIỆP & KẾT NỐI KOC
+                QUẢN LÝ CHIẾN DỊCH & PHÂN PHỐI GÓI
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
                 <Zap className="w-3 h-3 text-amber-300" />

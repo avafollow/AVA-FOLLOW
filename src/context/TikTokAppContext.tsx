@@ -153,7 +153,17 @@ interface TikTokAppContextType {
   openOrderModal: (pkg: GrowthServiceItem) => void;
   closeOrderModal: () => void;
   purchaseServicePackage: (pkg: GrowthServiceItem, targetUrl: string, instructions?: string, paymentMethod?: 'coins' | 'sepay') => boolean;
-  refundLivestreamOrder: (orderId: string, reason?: string) => boolean;
+  refundLivestreamOrder: (orderId: string, reason?: string, overrideRefundAmount?: number) => {
+    success: boolean;
+    refundAmount: number;
+    completedPercent: number;
+    remainingPercent: number;
+    message: string;
+    totalPrice: number;
+    usedPrice: number;
+    targetQty: number;
+    completedQty: number;
+  };
   updateOrderTargetUrl: (orderId: string, newTargetUrl: string) => boolean;
 
   // Modals state
@@ -2911,15 +2921,70 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return true;
   };
 
-  // Hoàn tiền 100% gói Livestream nếu không đạt target cam kết
-  const refundLivestreamOrder = (orderId: string, reason?: string): boolean => {
+  // Đối Soát & Hoàn Tiền Phần Thiếu Gói Livestream (Chỉ hoàn phần chưa đạt chỉ tiêu, bảo vệ Xu đã trả cho người dùng làm nhiệm vụ)
+  const refundLivestreamOrder = (
+    orderId: string, 
+    reason?: string,
+    overrideRefundAmount?: number
+  ): { 
+    success: boolean; 
+    refundAmount: number; 
+    completedPercent: number; 
+    remainingPercent: number; 
+    message: string;
+    totalPrice: number;
+    usedPrice: number;
+    targetQty: number;
+    completedQty: number;
+  } => {
     const order = user.myOrders?.find(o => o.id === orderId);
-    if (!order) {
-      showToast('Không tìm thấy đơn hàng cần hoàn tiền!');
-      return false;
+    const camp = !order ? campaigns.find(c => c.id === orderId) : null;
+
+    if (!order && !camp) {
+      showToast('Không tìm thấy đơn hàng hoặc chiến dịch cần hoàn tiền!');
+      return {
+        success: false,
+        refundAmount: 0,
+        completedPercent: 0,
+        remainingPercent: 0,
+        message: 'Không tìm thấy đơn hàng cần đối soát hoàn tiền.',
+        totalPrice: 0,
+        usedPrice: 0,
+        targetQty: 0,
+        completedQty: 0
+      };
     }
 
-    const priceNumeric = parseInt((order.price || '0').replace(/[^0-9]/g, ''), 10) || 500000;
+    const targetQuantity = order?.targetQuantity || camp?.targetQuantity || 1000;
+    const completedQuantity = order ? (order.completedQuantity || order.deliveredEyes || 0) : (camp?.completedQuantity || 0);
+    const totalPriceString = order?.price || camp?.budgetTotal || '1,000,000đ';
+    const totalPriceNumeric = parseInt(totalPriceString.replace(/[^0-9]/g, ''), 10) || (targetQuantity * 200);
+
+    const completedRatio = Math.min(1, Math.max(0, completedQuantity / (targetQuantity || 1)));
+    const completedPercent = Math.min(100, Math.round(completedRatio * 100));
+    const remainingPercent = 100 - completedPercent;
+
+    // Chi phí đã sử dụng để chi trả cho các người dùng đã vào xem live / làm nhiệm vụ
+    const usedPrice = Math.round(totalPriceNumeric * completedRatio);
+    // Số tiền phần thiếu cần hoàn lại cho chủ shop
+    const refundAmount = overrideRefundAmount !== undefined 
+      ? overrideRefundAmount 
+      : Math.max(0, totalPriceNumeric - usedPrice);
+
+    if (refundAmount <= 0) {
+      showToast('Gói dịch vụ đã hoàn thành 100%, ngân sách đã được chi trả đầy đủ cho người làm nhiệm vụ!');
+      return {
+        success: false,
+        refundAmount: 0,
+        completedPercent: 100,
+        remainingPercent: 0,
+        message: 'Gói livestream đã đạt đủ 100% chỉ tiêu cam kết, toàn bộ Xu đã được thanh toán cho người dùng làm nhiệm vụ.',
+        totalPrice: totalPriceNumeric,
+        usedPrice: totalPriceNumeric,
+        targetQty: targetQuantity,
+        completedQty: completedQuantity
+      };
+    }
 
     setUser(prev => {
       const updatedOrders = (prev.myOrders || []).map(o => {
@@ -2927,7 +2992,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           return {
             ...o,
             status: 'refunded' as const,
-            liveBroadcastActive: false
+            liveBroadcastActive: false,
+            refundedAmount: refundAmount,
+            refundedPercent: remainingPercent,
+            refundReason: reason || `Hoàn tiền đối soát ${remainingPercent}% phần mắt xem chưa phân phối (${(targetQuantity - completedQuantity).toLocaleString()} mắt)`
           };
         }
         return o;
@@ -2936,29 +3004,45 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const newTx: TransactionRecord = {
         id: `tx_ref_${Date.now()}`,
         type: 'deposit',
-        title: `Hoàn Tiền 100% Gói Live #${orderId}`,
-        amount: `+${priceNumeric.toLocaleString()} Xu`,
+        title: `Đối Soát Hoàn Tiền Gói Live #${orderId} (${remainingPercent}% Phần Thiếu)`,
+        amount: `+${refundAmount.toLocaleString()} Xu`,
         isPositive: true,
         date: 'Vừa xong',
-        method: 'Hoàn Tiền Livestream',
+        method: 'Hoàn Tiền Đối Soát Livestream',
         status: 'success'
       };
 
       return {
         ...prev,
-        avaliveCoins: (prev.avaliveCoins || 0) + priceNumeric,
+        avaliveCoins: (prev.avaliveCoins || 0) + refundAmount,
         myOrders: updatedOrders,
         transactions: [newTx, ...(prev.transactions || [])]
       };
     });
+
+    if (camp) {
+      setCampaigns(prev => prev.map(c => c.id === orderId ? { ...c, status: 'completed' } : c));
+    }
 
     setLivestreamTasks(prev => prev.filter(l => l.id !== `live_bcast_${orderId}`));
     if (activeBroadcastNotification?.orderId === orderId) {
       setActiveBroadcastNotification(null);
     }
 
-    showToast(`💰 ĐÃ HOÀN TIỀN 100% (${order.price}) VÀO VÍ CỦA BẠN DO PHIÊN LIVE CHƯA ĐẠT TARGET!`);
-    return true;
+    const msg = `💰 ĐÃ ĐỐI SOÁT & HOÀN TIỀN +${refundAmount.toLocaleString()} Xu (${remainingPercent}% PHẦN THIẾU) VÀO VÍ CỦA BẠN!`;
+    showToast(msg);
+
+    return {
+      success: true,
+      refundAmount,
+      completedPercent,
+      remainingPercent,
+      message: msg,
+      totalPrice: totalPriceNumeric,
+      usedPrice,
+      targetQty: targetQuantity,
+      completedQty: completedQuantity
+    };
   };
 
   // Cập nhật link TikTok đích cho đơn hàng

@@ -521,6 +521,9 @@ export interface ServiceOrder {
   targetHearts?: number;
   deliveredComments?: number;
   targetComments?: number;
+  refundedAmount?: number;
+  refundedPercent?: number;
+  refundReason?: string;
 }
 
 // Người Dùng Dành Cho Trang Quản Trị Admin Toàn Diện

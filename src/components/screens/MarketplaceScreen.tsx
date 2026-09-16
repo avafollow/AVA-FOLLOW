@@ -60,7 +60,7 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
     { id: 'livestream', label: `Mắt Xem Live (${growthServices.filter(s => s.category === 'livestream').length})`, icon: Radio },
     { id: 'combo', label: `Combo Kết Hợp (${growthServices.filter(s => s.category === 'combo' || s.category === 'full_channel').length})`, icon: Layers },
     { id: 'follow', label: `Tăng Follower Thật (${growthServices.filter(s => s.category === 'follow').length})`, icon: Users },
-    { id: 'watch', label: `Xem Video 15s FYP (${growthServices.filter(s => s.category === 'watch').length})`, icon: Play },
+    { id: 'watch', label: `Xem Giữ Chân 40-60s (${growthServices.filter(s => s.category === 'watch').length})`, icon: Play },
     { id: 'engagement', label: `Thả Tim FYP (${growthServices.filter(s => s.category === 'engagement').length})`, icon: Heart },
     { id: 'comment', label: `Seeding Bình Luận (${growthServices.filter(s => s.category === 'comment').length})`, icon: MessageSquare },
     { id: 'share', label: `Chia Sẻ & Lan Tỏa (${growthServices.filter(s => s.category === 'share').length})`, icon: Share2 }

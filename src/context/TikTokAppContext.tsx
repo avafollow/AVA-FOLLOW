@@ -2014,9 +2014,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         totalSlots: pkg.targetQuantity,
         completedSlots: 0,
         remainingSlots: pkg.targetQuantity,
-        requiresWatch: false, // Tặng kèm view tự nhiên khi làm nhiệm vụ
-        guide: instructions || `Vào kênh thực hiện ${pkg.unit} để nhận Xu thưởng.`,
-        requirements: ['Tài khoản TikTok thật', 'Giữ tương tác tối thiểu 30 ngày'],
+        requiresWatch: pkg.category === 'watch', // Gói MUA XEM VIEW chuyên dụng: Bắt buộc xem từ 40-60s cố định
+        guide: instructions || (pkg.category === 'watch' 
+          ? `Gói Mua Xem Giữ Chân: Xem cố định từ 40 - 60 giây để đảm bảo chỉ số giữ chân chất lượng cao.` 
+          : `Vào kênh thực hiện ${pkg.unit} để nhận Xu thưởng.`),
+        requirements: pkg.category === 'watch' 
+          ? ['Xem cố định 40 - 60 giây', 'Tài khoản hoạt động thật', 'Không tắt màn hình'] 
+          : ['Tài khoản TikTok thật', 'Giữ tương tác tối thiểu 30 ngày'],
         status: 'open',
         createdAt: 'Vừa xong'
       };

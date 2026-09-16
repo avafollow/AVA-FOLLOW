@@ -152,11 +152,13 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const touchEndY = useRef<number>(0);
 
 
-  // Kiểm tra hoàn thành nhiệm vụ ngày (Bắt buộc xong nhiệm vụ ngày mới mở Live & Follow chéo)
+  // Kiểm tra hoàn thành nhiệm vụ ngày (Bắt buộc xong nhiệm vụ ngày mới mở Live & Follow chéo - Admin & Whitelisted được toàn quyền)
   const dailyMissions = userMissions?.filter(m => m.category === 'daily') || [];
-  const isDailyMissionsCompleted = dailyMissions.length > 0 
-    ? dailyMissions.every(m => m.status === 'claimed' || m.completedCount >= m.targetCount)
-    : true;
+  const isDailyMissionsCompleted = (user.isAdmin || user.hasAllPermissions || user.isWhitelisted || user.canFollowCrossUnrestricted)
+    ? true
+    : (dailyMissions.length > 0 
+        ? dailyMissions.every(m => m.status === 'claimed' || m.completedCount >= m.targetCount)
+        : true);
 
   // Per-task claimed actions tracking (Idempotent 1 time only)
   const [taskClaimedMap, setTaskClaimedMap] = useState<Record<string, {

@@ -139,6 +139,41 @@ function AppContent() {
     fraudAppealTargetTask
   } = useTikTokApp();
 
+  // Ref tới phần tử nội dung cuộn chính
+  const mainContentRef = React.useRef<HTMLElement>(null);
+
+  // Xử lý cuộn chuột mượt mà tại BẤT KỲ VỊ TRÍ NÀO trên màn hình máy tính (Header, Sidebar, Lề, Nền)
+  useEffect(() => {
+    const handleGlobalWheel = (e: WheelEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      // Nếu đang hover vào modal, dropdown hoặc vùng có thanh cuộn riêng biệt thì giữ nguyên
+      let el: HTMLElement | null = target;
+      let hasInnerScroll = false;
+      while (el && el !== document.body && el !== mainContentRef.current) {
+        const style = window.getComputedStyle(el);
+        const isScrollable = (style.overflowY === 'auto' || style.overflowY === 'scroll') && el.scrollHeight > el.clientHeight;
+        if (el.getAttribute('role') === 'dialog' || isScrollable) {
+          hasInnerScroll = true;
+          break;
+        }
+        el = el.parentElement;
+      }
+
+      // Nếu không ở trong hộp thoại/bảng riêng và không hover trực tiếp vào main, chuyển tiếp cuộn tới mainContentRef
+      if (!hasInnerScroll && mainContentRef.current && !mainContentRef.current.contains(target)) {
+        mainContentRef.current.scrollBy({
+          top: e.deltaY,
+          behavior: 'auto'
+        });
+      }
+    };
+
+    window.addEventListener('wheel', handleGlobalWheel, { passive: true });
+    return () => window.removeEventListener('wheel', handleGlobalWheel);
+  }, []);
+
   // Sync dark theme
   useEffect(() => {
     if (darkMode) {
@@ -270,7 +305,7 @@ function AppContent() {
         />
 
         {/* Screen Router */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-2.5 sm:p-6 lg:p-8 pb-32 md:pb-8 space-y-3.5 sm:space-y-6 max-w-full overscroll-y-contain">
+        <main ref={mainContentRef} className="flex-1 overflow-y-auto overflow-x-hidden p-2.5 sm:p-6 lg:p-8 pb-32 md:pb-8 space-y-3.5 sm:space-y-6 max-w-full overscroll-y-contain">
           {/* Quick Exit / Back to Home Bar (Hiển thị trên tất cả thiết bị khi đi sâu vào trang con) */}
           {currentScreen !== 'home' && (
             <div className="flex items-center justify-between p-3 px-4 rounded-2xl bg-[#0D111E]/95 border border-rose-500/30 shadow-lg backdrop-blur-md">

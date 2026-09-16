@@ -521,4 +521,68 @@ export async function fetchUserProfileFromSupabase(email: string): Promise<{ suc
   }
 }
 
+/**
+ * 14. TẢI TẤT CẢ HỒ SƠ NGƯỜI DÙNG TỪ SUPABASE CLOUD (ĐỒNG BỘ ĐẦY ĐỦ CHO TRANG QUẢN TRỊ ADMIN)
+ */
+export async function fetchAllProfilesFromSupabase(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    const profiles: any[] = [];
+    const seenEmails = new Set<string>();
 
+    // 1. Lấy từ bảng Postgres user_profiles
+    try {
+      const { data: dbUsers, error: dbErr } = await supabaseAdmin
+        .from('user_profiles')
+        .select('*');
+      if (!dbErr && dbUsers && Array.isArray(dbUsers)) {
+        for (const u of dbUsers) {
+          const email = (u.email || '').toLowerCase();
+          if (email && !seenEmails.has(email)) {
+            seenEmails.add(email);
+            profiles.push(u);
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Liệt kê toàn bộ file JSON trong bucket ava_data_sync/profiles/
+    try {
+      const { data: fileList, error: listErr } = await supabaseAdmin.storage
+        .from('ava_data_sync')
+        .list('profiles', { limit: 1000 });
+
+      if (!listErr && fileList && Array.isArray(fileList)) {
+        for (const file of fileList) {
+          if (file.name && file.name.endsWith('.json')) {
+            try {
+              const { data: fileData } = await supabaseAdmin.storage
+                .from('ava_data_sync')
+                .download(`profiles/${file.name}`);
+              if (fileData) {
+                const text = await fileData.text();
+                const parsed = JSON.parse(text);
+                const email = (parsed.email || '').toLowerCase();
+                if (email) {
+                  if (!seenEmails.has(email)) {
+                    seenEmails.add(email);
+                    profiles.push(parsed);
+                  } else {
+                    // Cập nhật thông tin mới nhất
+                    const existingIdx = profiles.findIndex(p => p.email?.toLowerCase() === email);
+                    if (existingIdx >= 0) {
+                      profiles[existingIdx] = { ...profiles[existingIdx], ...parsed };
+                    }
+                  }
+                }
+              }
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+
+    return { success: true, data: profiles };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}

@@ -94,7 +94,8 @@ import {
   syncAffiliateToSupabase,
   syncMasterSnapshotToSupabase,
   fetchMasterSnapshotFromSupabase,
-  fetchUserProfileFromSupabase
+  fetchUserProfileFromSupabase,
+  fetchAllProfilesFromSupabase
 } from '../services/supabaseClient';
 import { SecurityLayerDef } from '../types';
 import { 
@@ -880,19 +881,25 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     let isMounted = true;
     const loadCloudData = async () => {
       try {
-        const cloudRes = await fetchMasterSnapshotFromSupabase();
-        if (isMounted && cloudRes.success && cloudRes.data) {
-          const cloudData = cloudRes.data;
+        const [cloudRes, allProfilesRes] = await Promise.all([
+          fetchMasterSnapshotFromSupabase(),
+          fetchAllProfilesFromSupabase()
+        ]);
 
-          // 1. Đồng bộ danh sách người dùng Admin
-          if (Array.isArray(cloudData.adminUsers) && cloudData.adminUsers.length > 0) {
-            setAdminUsers(prev => {
-              const mergedMap = new Map<string, AdminUserManagementItem>();
-              prev.forEach(u => {
-                if (u && (u.email || u.id)) {
-                  mergedMap.set(u.email?.toLowerCase() || u.id, u);
-                }
-              });
+        if (isMounted) {
+          const cloudData = cloudRes.success && cloudRes.data ? cloudRes.data : null;
+          const individualProfiles = allProfilesRes.success && Array.isArray(allProfilesRes.data) ? allProfilesRes.data : [];
+
+          // 1. Đồng bộ danh sách người dùng Admin (Gộp từ cả Master Snapshot và từng hồ sơ riêng lẻ)
+          setAdminUsers(prev => {
+            const mergedMap = new Map<string, AdminUserManagementItem>();
+            prev.forEach(u => {
+              if (u && (u.email || u.id)) {
+                mergedMap.set(u.email?.toLowerCase() || u.id, u);
+              }
+            });
+
+            if (cloudData && Array.isArray(cloudData.adminUsers)) {
               cloudData.adminUsers.forEach((u: AdminUserManagementItem) => {
                 if (u && (u.email || u.id)) {
                   const key = u.email?.toLowerCase() || u.id;
@@ -900,18 +907,57 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   mergedMap.set(key, local ? { ...local, ...u } : u);
                 }
               });
-              const nextList = Array.from(mergedMap.values());
-              try {
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
-                }
-              } catch {}
-              return nextList;
+            }
+
+            individualProfiles.forEach((p: any) => {
+              if (p && (p.email || p.id)) {
+                const key = p.email?.toLowerCase() || p.id;
+                const local = mergedMap.get(key);
+                const userAdminItem: AdminUserManagementItem = {
+                  id: p.id || local?.id || `usr_${Date.now()}`,
+                  name: p.name || local?.name || 'Người dùng',
+                  handle: p.tiktokConnected || p.handle || local?.handle || '@user',
+                  avatar: p.avatar || local?.avatar || '',
+                  email: p.email || local?.email || key,
+                  phone: p.phone || local?.phone || '0988888888',
+                  tiktokConnected: p.tiktokConnected || local?.tiktokConnected || '',
+                  tiktokFollowers: p.tiktokFollowers !== undefined ? p.tiktokFollowers : (local?.tiktokFollowers || 0),
+                  isTikTokVerified: !!(p.tiktokConnected || local?.isTikTokVerified),
+                  facebookConnected: p.facebookConnected || local?.facebookConnected,
+                  youtubeConnected: p.youtubeConnected || local?.youtubeConnected,
+                  rankLevel: p.rankLevel || local?.rankLevel || 'Đồng',
+                  coinsBalance: p.avaliveCoins !== undefined ? p.avaliveCoins : (p.coinsBalance !== undefined ? p.coinsBalance : (local?.coinsBalance || 0)),
+                  tokenBalance: p.avaliveCoins !== undefined ? p.avaliveCoins : (p.tokenBalance !== undefined ? p.tokenBalance : (local?.tokenBalance || 0)),
+                  completedTasksCount: p.completedTasksCount !== undefined ? p.completedTasksCount : (local?.completedTasksCount || 0),
+                  createdCampaignsCount: local?.createdCampaignsCount || 0,
+                  purchasedPackagesCount: local?.purchasedPackagesCount || 0,
+                  escrowLockedAmountVND: local?.escrowLockedAmountVND || '0đ',
+                  status: p.status || local?.status || 'active',
+                  kycStatus: (p.kycStatus || local?.kycStatus || 'unverified') as KycStatus,
+                  hasAllPermissions: p.hasAllPermissions !== undefined ? p.hasAllPermissions : local?.hasAllPermissions,
+                  isWhitelisted: p.isWhitelisted !== undefined ? p.isWhitelisted : local?.isWhitelisted,
+                  grantedCoinsTotal: p.grantedCoinsTotal !== undefined ? p.grantedCoinsTotal : local?.grantedCoinsTotal,
+                  grantedPackagesTotal: p.grantedPackagesTotal !== undefined ? p.grantedPackagesTotal : local?.grantedPackagesTotal,
+                  registrationSource: p.registrationSource || local?.registrationSource || (p.referredBy ? 'link' : 'direct'),
+                  referredBy: p.referredBy || local?.referredBy,
+                  firstTaskCompleted: (p.completedTasksCount || 0) > 0 || !!p.firstTaskCompleted || !!local?.firstTaskCompleted,
+                  joinedDate: p.joinedDate || local?.joinedDate || 'Gần đây'
+                };
+                mergedMap.set(key, local ? { ...local, ...userAdminItem } : userAdminItem);
+              }
             });
-          }
+
+            const nextList = Array.from(mergedMap.values());
+            try {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
+              }
+            } catch {}
+            return nextList;
+          });
 
           // 2. Đồng bộ chiến dịch
-          if (Array.isArray(cloudData.campaigns) && cloudData.campaigns.length > 0) {
+          if (cloudData && Array.isArray(cloudData.campaigns) && cloudData.campaigns.length > 0) {
             setCampaigns(prev => {
               const ids = new Set(prev.map(c => c.id));
               const newItems = cloudData.campaigns.filter((c: any) => c && c.id && !ids.has(c.id));
@@ -3056,7 +3102,18 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       notes: `Hành động ${actionType} đã xác thực thành công. Ghi nhận 1 lượt cho chiến dịch.`
     });
 
-    showToast(`✓ +${finalReward.toLocaleString()} Xu! Đã ghi nhận 1 lượt ${label}.`);
+    if (isFirstTask) {
+      triggerFireworks({
+        type: 'mission',
+        badge: '🎉 NHIỆM VỤ ĐẦU TIÊN',
+        title: 'CHÚC MỪNG HOÀN THÀNH NHIỆM VỤ ĐẦU TIÊN!',
+        subtitle: 'Khởi đầu thuận lợi cùng AVA FOLLOW!',
+        rewardText: `+${finalReward.toLocaleString()} XU`,
+        message: `Bạn đã nhận thưởng +${finalReward.toLocaleString()} Xu! ${user.referredBy ? `Người bảo trợ (${user.referredBy}) của bạn cũng được cộng ngay +5.000 Xu tri ân.` : 'Hãy tiếp tục làm nhiệm vụ để nhân đôi thu nhập.'}`
+      });
+    } else {
+      showToast(`✓ +${finalReward.toLocaleString()} Xu! Đã ghi nhận 1 lượt ${label}.`);
+    }
     return finalReward;
   };
 
@@ -4017,7 +4074,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return prev;
     });
 
-    showToast('✅ Kết nối tài khoản TikTok thành công! Đã đồng bộ lên hệ thống quản trị.');
+    // Đồng bộ hồ sơ mới nhất lên Supabase Cloud
+    syncUserProfileToSupabase(updatedUser);
+
+    if (addedWelcomeBonus > 0) {
+      triggerFireworks({
+        type: 'mission',
+        badge: '🎁 THƯỞNG CHÀO MỪNG',
+        title: 'CHÀO MỪNG BẠN MỚI LIÊN KẾT TIKTOK!',
+        subtitle: 'Tài khoản TikTok đã xác thực thành công!',
+        rewardText: `+${addedWelcomeBonus.toLocaleString()} XU (+5.000đ)`,
+        message: `Bạn đã nhận thưởng nóng +${addedWelcomeBonus.toLocaleString()} Xu (+5.000đ) vào ví chính! Hãy bắt đầu lướt video và làm nhiệm vụ kiếm tiền ngay.`
+      });
+    } else {
+      showToast('✅ Kết nối tài khoản TikTok thành công! Đã đồng bộ lên hệ thống quản trị.');
+    }
     closeConnect();
   };
 

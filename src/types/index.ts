@@ -987,17 +987,21 @@ export interface UserProfileWallet {
   tiktokProfileUrl?: string; // Link trực tiếp trang TikTok
   tiktokFollowers: number;
   tiktokFollowingCount?: number; // Số lượng Đang theo dõi (Phục vụ đối soát delta 2 chiều)
+  tiktokAvatar?: string;
   isTikTokVerified: boolean;
   facebookConnected?: string;
   facebookProfileUrl?: string;
   facebookType?: 'personal' | 'fanpage' | 'group';
+  facebookAvatar?: string;
   isFacebookVerified?: boolean;
   facebookFollowers?: number;
   youtubeConnected?: string;
   youtubeProfileUrl?: string;
+  youtubeAvatar?: string;
   isYoutubeVerified?: boolean;
   youtubeSubscribers?: number;
   bioVerificationCode: string;
+  isNewUserBonusClaimed?: boolean;
   withdrawCount?: number; // Số lần đã rút tiền (Lần 1 miễn phí, lần 2 trở đi phí 5% & bắt buộc KYC)
   avaliveCoins: number;
   coinsValueVND: string;

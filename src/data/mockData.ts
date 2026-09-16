@@ -26,16 +26,20 @@ export const USER_PROFILE_WALLET: UserProfileWallet = {
   role: 'Creator Pro • Chuyên Gia Xây Kênh TikTok',
   tiktokConnected: '',
   tiktokFollowers: 0,
+  tiktokAvatar: '',
   isTikTokVerified: false,
   facebookConnected: '',
   isFacebookVerified: false,
   facebookFollowers: 0,
+  facebookAvatar: '',
   youtubeConnected: '',
   isYoutubeVerified: false,
   youtubeSubscribers: 0,
+  youtubeAvatar: '',
   bioVerificationCode: 'TIKTOK-VERIFY-8899',
-  avaliveCoins: 0,
-  coinsValueVND: '0đ',
+  isNewUserBonusClaimed: true,
+  avaliveCoins: 5000,
+  coinsValueVND: '5.000đ',
   tokenBalance: 0,
   usdtBalance: 0,
   fiatVND: '0đ',
@@ -52,7 +56,17 @@ export const USER_PROFILE_WALLET: UserProfileWallet = {
     accountHolder: 'NGUYEN VAN MINH',
     branch: 'Chi nhánh Hà Nội'
   },
-  transactions: [],
+  transactions: [
+    {
+      id: 'tx_welcome_bonus',
+      type: 'earn',
+      title: 'Thưởng chào mừng thành viên mới (5.000 Xu = 5.000đ)',
+      amount: '+5.000 Xu (+5.000đ)',
+      isPositive: true,
+      date: 'Thành viên mới',
+      status: 'success'
+    }
+  ],
   myOrders: [],
 
   myAppLicenses: []

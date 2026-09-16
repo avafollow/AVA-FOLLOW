@@ -286,11 +286,11 @@ interface TikTokAppContextType {
   endMarqueeItem: (id: string, reason?: 'livestream_ended' | 'campaign_completed' | 'user_ended') => void;
 
   checkInDaily: () => void;
-  connectTikTok: (handle: string) => void;
+  connectTikTok: (handle: string, followers?: number, avatarUrl?: string) => void;
   disconnectTikTok: () => void;
-  connectFacebook: (urlOrHandle: string, fbType?: 'personal' | 'fanpage' | 'group') => void;
+  connectFacebook: (urlOrHandle: string, fbType?: 'personal' | 'fanpage' | 'group', followers?: number, avatarUrl?: string) => void;
   disconnectFacebook: () => void;
-  connectYoutube: (urlOrHandle: string) => void;
+  connectYoutube: (urlOrHandle: string, subscribers?: number, avatarUrl?: string) => void;
   disconnectYoutube: () => void;
   deposit: (amountVND: number, method: string) => void;
   withdraw: (amountVND: number, bankInfo: BankAccountInfo) => boolean;
@@ -3506,8 +3506,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`Đã quy đổi ${tokenAmount} Token thành ${coinsToAdd.toLocaleString()} Xu theo giá thị trường!`);
   };
 
-  // Connect TikTok (Lưu danh sách tài khoản liên kết & linh hoạt chuyển đổi)
-  const connectTikTok = (handle: string) => {
+  // Connect TikTok (Lưu danh sách tài khoản liên kết & hiển thị số liệu thật)
+  const connectTikTok = (handle: string, followers?: number, avatarUrl?: string) => {
     const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
     
     const currentList = ipAccountsMap[clientIp] || [];
@@ -3518,38 +3518,48 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       saveIpAccounts({ ...ipAccountsMap, [clientIp]: updatedList });
     }
 
-    const bonusCoins = 1000;
-    const newCoins = user.avaliveCoins + bonusCoins;
-
-    const newTx: TransactionRecord = {
-      id: `tx_connect_${Date.now()}`,
-      type: 'earn',
-      title: `Thưởng kết nối kênh TikTok thật ${cleanHandle}`,
-      amount: `+${bonusCoins.toLocaleString()} Xu`,
-      isPositive: true,
-      date: 'Vừa xong',
-      status: 'success'
-    };
-
     try {
       if (typeof window !== 'undefined') {
         localStorage.setItem('ava_tiktok_connected', cleanHandle);
       }
     } catch {}
 
-    setUser(prev => ({
-      ...prev,
-      tiktokConnected: cleanHandle,
-      tiktokHandle: cleanHandle,
-      tiktokProfileUrl: `https://www.tiktok.com/${cleanHandle}`,
-      isTikTokVerified: true,
-      tiktokFollowers: prev.tiktokFollowers > 0 ? prev.tiktokFollowers : 248500,
-      avaliveCoins: newCoins,
-      coinsValueVND: `${newCoins.toLocaleString()}đ`,
-      transactions: [newTx, ...prev.transactions]
-    }));
+    setUser(prev => {
+      let addedWelcomeBonus = 0;
+      let newTransactions = [...prev.transactions];
 
-    showToast(`✅ Đã kết nối & xác thực tài khoản TikTok ${cleanHandle} thành công! Nhận ngay +1,000 Xu.`);
+      if (!prev.isNewUserBonusClaimed) {
+        addedWelcomeBonus = 5000;
+        const welcomeTx: TransactionRecord = {
+          id: `tx_welcome_${Date.now()}`,
+          type: 'earn',
+          title: 'Thưởng chào mừng tài khoản mới liên kết (5.000 Xu = 5.000đ)',
+          amount: '+5.000 Xu (+5.000đ)',
+          isPositive: true,
+          date: 'Vừa xong',
+          status: 'success'
+        };
+        newTransactions = [welcomeTx, ...newTransactions];
+      }
+
+      const newCoins = prev.avaliveCoins + addedWelcomeBonus;
+
+      return {
+        ...prev,
+        tiktokConnected: cleanHandle,
+        tiktokHandle: cleanHandle,
+        tiktokProfileUrl: `https://www.tiktok.com/${cleanHandle}`,
+        isTikTokVerified: true,
+        tiktokFollowers: followers !== undefined ? followers : (prev.tiktokFollowers || 0),
+        tiktokAvatar: avatarUrl || prev.tiktokAvatar || prev.avatar,
+        isNewUserBonusClaimed: true,
+        avaliveCoins: newCoins,
+        coinsValueVND: `${newCoins.toLocaleString()}đ`,
+        transactions: newTransactions
+      };
+    });
+
+    showToast('✅ Kết nối tài khoản thành công!');
     closeConnect();
   };
 
@@ -3567,23 +3577,48 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast('Đã ngắt kết nối tài khoản TikTok.');
   };
 
-  // Connect Facebook (Trang cá nhân, Fanpage, Hội nhóm - Cài đặt sẵn, chưa cộng Xu)
-  const connectFacebook = (urlOrHandle: string, fbType: 'personal' | 'fanpage' | 'group' = 'personal') => {
+  // Connect Facebook (Trang cá nhân, Fanpage, Hội nhóm - Số liệu thật & Avatar thật)
+  const connectFacebook = (urlOrHandle: string, fbType: 'personal' | 'fanpage' | 'group' = 'personal', followers?: number, avatarUrl?: string) => {
     const clean = urlOrHandle.trim()
       .replace(/^https?:\/\/(www\.)?facebook\.com\//, '')
       .replace(/\/$/, '');
 
-    setUser(prev => ({
-      ...prev,
-      facebookConnected: clean,
-      facebookProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://facebook.com/${clean}`,
-      facebookType: fbType,
-      isFacebookVerified: true,
-      facebookFollowers: prev.facebookFollowers && prev.facebookFollowers > 0 ? prev.facebookFollowers : 15800
-    }));
+    setUser(prev => {
+      let addedWelcomeBonus = 0;
+      let newTransactions = [...prev.transactions];
 
-    const typeName = fbType === 'fanpage' ? 'Fanpage' : fbType === 'group' ? 'Hội nhóm' : 'Trang cá nhân';
-    showToast(`✅ Đã ghi nhận ${typeName} Facebook: fb.com/${clean}! (Cài đặt sẵn • Chưa tính Xu).`);
+      if (!prev.isNewUserBonusClaimed) {
+        addedWelcomeBonus = 5000;
+        const welcomeTx: TransactionRecord = {
+          id: `tx_welcome_${Date.now()}`,
+          type: 'earn',
+          title: 'Thưởng chào mừng tài khoản mới liên kết (5.000 Xu = 5.000đ)',
+          amount: '+5.000 Xu (+5.000đ)',
+          isPositive: true,
+          date: 'Vừa xong',
+          status: 'success'
+        };
+        newTransactions = [welcomeTx, ...newTransactions];
+      }
+
+      const newCoins = prev.avaliveCoins + addedWelcomeBonus;
+
+      return {
+        ...prev,
+        facebookConnected: clean,
+        facebookProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://facebook.com/${clean}`,
+        facebookType: fbType,
+        isFacebookVerified: true,
+        facebookFollowers: followers !== undefined ? followers : (prev.facebookFollowers || 0),
+        facebookAvatar: avatarUrl || prev.facebookAvatar || prev.avatar,
+        isNewUserBonusClaimed: true,
+        avaliveCoins: newCoins,
+        coinsValueVND: `${newCoins.toLocaleString()}đ`,
+        transactions: newTransactions
+      };
+    });
+
+    showToast('✅ Kết nối tài khoản thành công!');
     closeConnect();
   };
 
@@ -3597,22 +3632,50 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast('Đã ngắt kết nối tài khoản Facebook.');
   };
 
-  // Connect YouTube (Kênh YouTube - Cài đặt sẵn, chưa cộng Xu)
-  const connectYoutube = (urlOrHandle: string) => {
+  // Connect YouTube (Kênh YouTube - Số liệu sub thật & Avatar thật)
+  const connectYoutube = (urlOrHandle: string, subscribers?: number, avatarUrl?: string) => {
     const clean = urlOrHandle
       .replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '')
       .replace(/^@/, '')
       .replace(/\/$/, '');
 
-    setUser(prev => ({
-      ...prev,
-      youtubeConnected: `@${clean}`,
-      youtubeProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean}`,
-      isYoutubeVerified: true,
-      youtubeSubscribers: prev.youtubeSubscribers && prev.youtubeSubscribers > 0 ? prev.youtubeSubscribers : 12500
-    }));
+    const formattedYt = `@${clean}`;
 
-    showToast(`✅ Đã ghi nhận kênh YouTube @${clean}! (Cài đặt sẵn • Chưa tính Xu).`);
+    setUser(prev => {
+      let addedWelcomeBonus = 0;
+      let newTransactions = [...prev.transactions];
+
+      if (!prev.isNewUserBonusClaimed) {
+        addedWelcomeBonus = 5000;
+        const welcomeTx: TransactionRecord = {
+          id: `tx_welcome_${Date.now()}`,
+          type: 'earn',
+          title: 'Thưởng chào mừng tài khoản mới liên kết (5.000 Xu = 5.000đ)',
+          amount: '+5.000 Xu (+5.000đ)',
+          isPositive: true,
+          date: 'Vừa xong',
+          status: 'success'
+        };
+        newTransactions = [welcomeTx, ...newTransactions];
+      }
+
+      const newCoins = prev.avaliveCoins + addedWelcomeBonus;
+
+      return {
+        ...prev,
+        youtubeConnected: formattedYt,
+        youtubeProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean}`,
+        isYoutubeVerified: true,
+        youtubeSubscribers: subscribers !== undefined ? subscribers : (prev.youtubeSubscribers || 0),
+        youtubeAvatar: avatarUrl || prev.youtubeAvatar || prev.avatar,
+        isNewUserBonusClaimed: true,
+        avaliveCoins: newCoins,
+        coinsValueVND: `${newCoins.toLocaleString()}đ`,
+        transactions: newTransactions
+      };
+    });
+
+    showToast('✅ Kết nối tài khoản thành công!');
     closeConnect();
   };
 

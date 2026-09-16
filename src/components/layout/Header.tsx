@@ -354,7 +354,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               ) : (
                 <span className="whitespace-nowrap font-display text-[11px] sm:text-xs">
-                  + Kết Nối TikTok (+1K Xu)
+                  + Kết Nối TikTok
                 </span>
               )}
             </button>
@@ -597,7 +597,7 @@ export const Header: React.FC<HeaderProps> = ({
                           {user.tiktokConnected ? user.tiktokConnected : 'Chưa nối TikTok'}
                         </div>
                         <div className="text-[9px] text-slate-400 font-mono">
-                          {user.tiktokConnected ? `Đã kết nối (${connectedAccountsOnIp.length}/5 IP)` : '+ Nối nhận 1K Xu'}
+                          {user.tiktokConnected ? `Đã kết nối (${connectedAccountsOnIp.length}/5 IP)` : '+ Kết Nối Kênh'}
                         </div>
                       </div>
                     </div>

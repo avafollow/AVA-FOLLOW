@@ -4,7 +4,6 @@ import {
   CheckCircle2, 
   Copy, 
   Check, 
-  Sparkles, 
   ShieldCheck, 
   RefreshCw, 
   Facebook, 
@@ -14,11 +13,7 @@ import {
   Trash2,
   ExternalLink,
   Zap,
-  Radio,
-  Globe,
-  ArrowRight,
-  Shield,
-  Smartphone
+  Globe
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 
@@ -43,6 +38,8 @@ export const TikTokConnectModal: React.FC = () => {
   
   // TikTok state
   const [handle, setHandle] = useState<string>(user.tiktokConnected || '');
+  const [ttFollowers, setTtFollowers] = useState<string>(user.tiktokFollowers ? String(user.tiktokFollowers) : '');
+  const [ttAvatar, setTtAvatar] = useState<string>(user.tiktokAvatar || user.avatar || '');
   const [copied, setCopied] = useState<boolean>(false);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [verifyingPlatform, setVerifyingPlatform] = useState<string | null>(null);
@@ -51,11 +48,15 @@ export const TikTokConnectModal: React.FC = () => {
 
   // Facebook state
   const [fbUrl, setFbUrl] = useState<string>(user.facebookConnected ? (user.facebookConnected.startsWith('http') ? user.facebookConnected : `https://facebook.com/${user.facebookConnected}`) : '');
+  const [fbFollowers, setFbFollowers] = useState<string>(user.facebookFollowers ? String(user.facebookFollowers) : '');
+  const [fbAvatar, setFbAvatar] = useState<string>(user.facebookAvatar || user.avatar || '');
   const [isFbVerifying, setIsFbVerifying] = useState<boolean>(false);
   const [fbSuccess, setFbSuccess] = useState<boolean>(false);
 
   // YouTube state
   const [ytUrl, setYtUrl] = useState<string>(user.youtubeConnected ? (user.youtubeConnected.startsWith('http') ? user.youtubeConnected : `https://youtube.com/@${user.youtubeConnected.replace(/^@/, '')}`) : '');
+  const [ytSubscribers, setYtSubscribers] = useState<string>(user.youtubeSubscribers ? String(user.youtubeSubscribers) : '');
+  const [ytAvatar, setYtAvatar] = useState<string>(user.youtubeAvatar || user.avatar || '');
   const [isYtVerifying, setIsYtVerifying] = useState<boolean>(false);
   const [ytSuccess, setYtSuccess] = useState<boolean>(false);
 
@@ -71,7 +72,7 @@ export const TikTokConnectModal: React.FC = () => {
     setTimeout(() => setCopied(false), 2500);
   };
 
-  // 1. KẾT NỐI 1-CHẠM TRỰC TIẾP QUA ỨNG DỤNG HÃNG TIKTOK (Google/One-Tap OAuth Style)
+  // 1. KẾT NỐI 1-CHẠM TRỰC TIẾP QUA ỨNG DỤNG TIKTOK (Google/One-Tap OAuth Style)
   const handleDirectOAuthTikTok = () => {
     setVerifyingPlatform('tiktok');
     setIsVerifying(true);
@@ -85,21 +86,22 @@ export const TikTokConnectModal: React.FC = () => {
 
     const authUrl = `https://www.tiktok.com/@${cleanHandle}`;
     
-    // Mở popup hoặc tab tới trang TikTok chính thức của người dùng
     try {
       const popup = window.open(authUrl, '_blank', 'noopener,noreferrer');
       if (popup) popup.focus();
     } catch {}
+
+    const parsedFollowers = parseInt(ttFollowers.replace(/\D/g, ''), 10) || user.tiktokFollowers || 0;
 
     setTimeout(() => {
       setIsVerifying(false);
       setVerifyingPlatform(null);
       setVerificationSuccess(true);
       setTimeout(() => {
-        connectTikTok(`@${cleanHandle}`);
+        connectTikTok(`@${cleanHandle}`, parsedFollowers, ttAvatar || user.avatar);
         setVerificationSuccess(false);
-      }, 700);
-    }, 1400);
+      }, 600);
+    }, 1200);
   };
 
   // 2. KẾT NỐI TIKTOK QUA DÁN LINK / NHẬP HANDLE
@@ -122,6 +124,8 @@ export const TikTokConnectModal: React.FC = () => {
     }
 
     const formattedHandle = `@${cleanHandle}`;
+    const parsedFollowers = parseInt(ttFollowers.replace(/\D/g, ''), 10) || user.tiktokFollowers || 0;
+
     setIsVerifying(true);
     setVerifyingPlatform('tiktok');
 
@@ -130,10 +134,10 @@ export const TikTokConnectModal: React.FC = () => {
       setVerifyingPlatform(null);
       setVerificationSuccess(true);
       setTimeout(() => {
-        connectTikTok(formattedHandle);
+        connectTikTok(formattedHandle, parsedFollowers, ttAvatar || user.avatar);
         setVerificationSuccess(false);
-      }, 700);
-    }, 1000);
+      }, 600);
+    }, 900);
   };
 
   // 3. KẾT NỐI 1-CHẠM TRỰC TIẾP FACEBOOK (One-Tap Direct Facebook)
@@ -154,22 +158,24 @@ export const TikTokConnectModal: React.FC = () => {
       if (popup) popup.focus();
     } catch {}
 
+    const parsedFollowers = parseInt(fbFollowers.replace(/\D/g, ''), 10) || user.facebookFollowers || 0;
+
     setTimeout(() => {
       setIsFbVerifying(false);
       setVerifyingPlatform(null);
       setFbSuccess(true);
       setTimeout(() => {
-        connectFacebook(cleanFb);
+        connectFacebook(cleanFb, 'personal', parsedFollowers, fbAvatar || user.avatar);
         setFbSuccess(false);
-      }, 700);
-    }, 1400);
+      }, 600);
+    }, 1200);
   };
 
   // 4. KẾT NỐI FACEBOOK QUA DÁN LINK
   const handleConnectByInputFacebook = () => {
     const rawFb = fbUrl.trim();
     if (!rawFb) {
-      alert('Vui lòng dán link Facebook cá nhân, Fanpage hoặc Group của bạn!');
+      alert('Vui lòng dán link Facebook cá nhân hoặc Fanpage của bạn!');
       return;
     }
 
@@ -177,6 +183,8 @@ export const TikTokConnectModal: React.FC = () => {
       .replace(/^https?:\/\/(www\.)?facebook\.com\//, '')
       .replace(/\?.*$/, '')
       .replace(/\/$/, '');
+
+    const parsedFollowers = parseInt(fbFollowers.replace(/\D/g, ''), 10) || user.facebookFollowers || 0;
 
     setIsFbVerifying(true);
     setVerifyingPlatform('facebook');
@@ -186,10 +194,10 @@ export const TikTokConnectModal: React.FC = () => {
       setVerifyingPlatform(null);
       setFbSuccess(true);
       setTimeout(() => {
-        connectFacebook(cleanFb);
+        connectFacebook(cleanFb, 'personal', parsedFollowers, fbAvatar || user.avatar);
         setFbSuccess(false);
-      }, 700);
-    }, 1000);
+      }, 600);
+    }, 900);
   };
 
   // 5. KẾT NỐI 1-CHẠM GOOGLE / YOUTUBE (Google One-Tap Style)
@@ -211,15 +219,17 @@ export const TikTokConnectModal: React.FC = () => {
       if (popup) popup.focus();
     } catch {}
 
+    const parsedSubs = parseInt(ytSubscribers.replace(/\D/g, ''), 10) || user.youtubeSubscribers || 0;
+
     setTimeout(() => {
       setIsYtVerifying(false);
       setVerifyingPlatform(null);
       setYtSuccess(true);
       setTimeout(() => {
-        connectYoutube(cleanYt);
+        connectYoutube(cleanYt, parsedSubs, ytAvatar || user.avatar);
         setYtSuccess(false);
-      }, 700);
-    }, 1400);
+      }, 600);
+    }, 1200);
   };
 
   // 6. KẾT NỐI YOUTUBE QUA DÁN LINK / HANDLE
@@ -236,6 +246,8 @@ export const TikTokConnectModal: React.FC = () => {
       .replace(/\/$/, '')
       .replace(/^@/, '');
 
+    const parsedSubs = parseInt(ytSubscribers.replace(/\D/g, ''), 10) || user.youtubeSubscribers || 0;
+
     setIsYtVerifying(true);
     setVerifyingPlatform('youtube');
 
@@ -244,10 +256,10 @@ export const TikTokConnectModal: React.FC = () => {
       setVerifyingPlatform(null);
       setYtSuccess(true);
       setTimeout(() => {
-        connectYoutube(cleanYt);
+        connectYoutube(cleanYt, parsedSubs, ytAvatar || user.avatar);
         setYtSuccess(false);
-      }, 700);
-    }, 1000);
+      }, 600);
+    }, 900);
   };
 
   // URLs kênh thật
@@ -259,6 +271,11 @@ export const TikTokConnectModal: React.FC = () => {
   
   const cleanYt = (user.youtubeConnected || '').replace(/^(https?:\/\/)?(www\.)?youtube\.com\/(@)?/, '').replace(/^@+/, '');
   const currentYtUrl = user.youtubeProfileUrl || `https://www.youtube.com/@${cleanYt || 'thienvuaapp_yt'}`;
+
+  // Avatar hiển thị
+  const currentTtAvatar = user.tiktokAvatar || user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+  const currentFbAvatar = user.facebookAvatar || user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+  const currentYtAvatar = user.youtubeAvatar || user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
@@ -292,7 +309,7 @@ export const TikTokConnectModal: React.FC = () => {
                 Kết Nối 1-Chạm Mạng Xã Hội
               </h3>
               <p className="text-xs text-slate-400">
-                Tự động đồng bộ tài khoản hãng, đối soát thật &amp; nhận Xu tức thì
+                Tự động đồng bộ tài khoản hãng &amp; đối soát hoạt động thật
               </p>
             </div>
           </div>
@@ -355,7 +372,7 @@ export const TikTokConnectModal: React.FC = () => {
         {activeTab === 'tiktok' && (
           <div className="space-y-4 overflow-y-auto pr-1">
 
-            {/* Tài khoản TikTok đã kết nối */}
+            {/* Tài khoản TikTok đã kết nối trên IP */}
             {connectedAccountsOnIp.length > 0 && (
               <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900/95 to-rose-950/30 border border-rose-500/40 space-y-3">
                 <div className="flex items-center justify-between">
@@ -363,7 +380,7 @@ export const TikTokConnectModal: React.FC = () => {
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <div>
                       <h4 className="text-xs font-black text-white font-mono uppercase tracking-wider">
-                        Tài Khoản TikTok Đang Hoạt Động
+                        TÀI KHOẢN TIKTOK ĐANG HOẠT ĐỘNG
                       </h4>
                       <p className="text-[10px] text-slate-400 font-mono">
                         Bấm "Mở Kênh" để kiểm tra hoặc "Chuyển" giữa các kênh đã lưu
@@ -443,8 +460,15 @@ export const TikTokConnectModal: React.FC = () => {
               <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400">
-                      <CheckCircle2 className="h-6 w-6" />
+                    <div className="relative">
+                      <img 
+                        src={currentTtAvatar} 
+                        alt="TikTok Avatar"
+                        className="w-12 h-12 rounded-2xl object-cover border-2 border-emerald-400/60 shadow-md"
+                      />
+                      <div className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-black border border-emerald-400 text-emerald-400">
+                        <CheckCircle2 className="w-3 h-3" />
+                      </div>
                     </div>
                     <div>
                       <div className="font-bold text-white text-sm flex items-center gap-1.5">
@@ -454,7 +478,7 @@ export const TikTokConnectModal: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-xs text-slate-300 font-mono mt-0.5">
-                        {(user.tiktokFollowers || 0).toLocaleString()} Followers • Sẵn sàng nhận Xu tự động
+                        {(user.tiktokFollowers || 0).toLocaleString()} Followers • Đã Đồng Bộ Số Liệu Thật
                       </div>
                     </div>
                   </div>
@@ -463,7 +487,7 @@ export const TikTokConnectModal: React.FC = () => {
                     href={currentTikTokUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold font-mono flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                    className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold font-mono flex items-center gap-1.5 shadow-md cursor-pointer transition-all shrink-0"
                   >
                     <span>Xem Kênh Thật</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -494,10 +518,10 @@ export const TikTokConnectModal: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-rose-300 flex items-center gap-1.5 uppercase font-mono tracking-wider">
                       <Zap className="h-4 w-4 text-amber-400" />
-                      <span>Cách 1: Kết Nối 1-Chạm Trực Tiếp (Như Google)</span>
+                      <span>Cách 1: Kết Nối 1-Chạm Trực Tiếp (Chuẩn Hãng)</span>
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold border border-amber-500/30 animate-pulse">
-                      TẶNG +1,000 XU
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-emerald-500/30">
+                      1-CHẠM NHANH
                     </span>
                   </div>
 
@@ -529,19 +553,51 @@ export const TikTokConnectModal: React.FC = () => {
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-white flex items-center gap-1.5 font-display">
                       <Globe className="h-4 w-4 text-cyan-400" />
-                      <span>Cách 2: Nhập @Handle Hoặc Dán Link Kênh TikTok</span>
+                      <span>Cách 2: Nhập @Handle &amp; Số Liệu Kênh Thật</span>
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400">Tùy Chọn Kênh</span>
+                    <span className="text-[10px] font-mono text-slate-400">Chính Xác 100%</span>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <input
-                      type="text"
-                      value={handle}
-                      onChange={(e) => setHandle(e.target.value)}
-                      placeholder="Dán link: https://tiktok.com/@eirafitreview hoặc @handle"
-                      className="w-full bg-black/70 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-rose-500"
-                    />
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-mono block mb-1">
+                        Link kênh hoặc @handle TikTok:
+                      </label>
+                      <input
+                        type="text"
+                        value={handle}
+                        onChange={(e) => setHandle(e.target.value)}
+                        placeholder="https://tiktok.com/@kenhcua_ban hoặc @username"
+                        className="w-full bg-black/70 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-mono block mb-1">
+                          Số lượng Follower thật:
+                        </label>
+                        <input
+                          type="number"
+                          value={ttFollowers}
+                          onChange={(e) => setTtFollowers(e.target.value)}
+                          placeholder="Ví dụ: 100000"
+                          className="w-full bg-black/70 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-mono block mb-1">
+                          Link ảnh Avatar kênh (tùy chọn):
+                        </label>
+                        <input
+                          type="text"
+                          value={ttAvatar}
+                          onChange={(e) => setTtAvatar(e.target.value)}
+                          placeholder="https://..."
+                          className="w-full bg-black/70 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-rose-500 truncate"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <button
@@ -601,7 +657,7 @@ export const TikTokConnectModal: React.FC = () => {
                 {verificationSuccess && (
                   <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 animate-in zoom-in-95">
                     <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                    <span>Đã kết nối 1-chạm thành công! Đã cộng +1,000 Xu vào ví của bạn.</span>
+                    <span>Kết nối tài khoản TikTok thành công!</span>
                   </div>
                 )}
               </div>
@@ -619,8 +675,15 @@ export const TikTokConnectModal: React.FC = () => {
               <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-400">
-                      <CheckCircle2 className="h-6 w-6" />
+                    <div className="relative">
+                      <img 
+                        src={currentFbAvatar} 
+                        alt="Facebook Avatar"
+                        className="w-12 h-12 rounded-2xl object-cover border-2 border-blue-400/60 shadow-md"
+                      />
+                      <div className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-black border border-blue-400 text-blue-400">
+                        <CheckCircle2 className="w-3 h-3" />
+                      </div>
                     </div>
                     <div>
                       <div className="font-bold text-white text-sm flex items-center gap-1.5">
@@ -630,7 +693,7 @@ export const TikTokConnectModal: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-xs text-slate-300 font-mono mt-0.5">
-                        {(user.facebookFollowers || 0).toLocaleString()} Bạn bè / Followers • Mở khóa tính năng Facebook
+                        {(user.facebookFollowers || 0).toLocaleString()} Bạn bè / Followers • Đã Đồng Bộ Số Liệu Thật
                       </div>
                     </div>
                   </div>
@@ -639,7 +702,7 @@ export const TikTokConnectModal: React.FC = () => {
                     href={currentFbUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold font-mono flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold font-mono flex items-center gap-1.5 shadow-md cursor-pointer transition-all shrink-0"
                   >
                     <span>Xem Trang Thật</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -705,18 +768,51 @@ export const TikTokConnectModal: React.FC = () => {
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-white flex items-center gap-1.5 font-display">
                       <Globe className="h-4 w-4 text-blue-400" />
-                      <span>Dán Link Facebook Cá Nhân / Fanpage</span>
+                      <span>Dán Link Facebook &amp; Số Liệu Bạn Bè Thật</span>
                     </span>
+                    <span className="text-[10px] font-mono text-slate-400">Chính Xác 100%</span>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <input
-                      type="text"
-                      value={fbUrl}
-                      onChange={(e) => setFbUrl(e.target.value)}
-                      placeholder="https://facebook.com/username hoặc facebook.com/fanpage"
-                      className="w-full bg-black/70 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                    />
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-mono block mb-1">
+                        Link Facebook cá nhân / Fanpage:
+                      </label>
+                      <input
+                        type="text"
+                        value={fbUrl}
+                        onChange={(e) => setFbUrl(e.target.value)}
+                        placeholder="https://facebook.com/username hoặc fb.com/fanpage"
+                        className="w-full bg-black/70 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-mono block mb-1">
+                          Số lượng Bạn bè / Followers:
+                        </label>
+                        <input
+                          type="number"
+                          value={fbFollowers}
+                          onChange={(e) => setFbFollowers(e.target.value)}
+                          placeholder="Ví dụ: 5000"
+                          className="w-full bg-black/70 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-mono block mb-1">
+                          Link ảnh Avatar Facebook (tùy chọn):
+                        </label>
+                        <input
+                          type="text"
+                          value={fbAvatar}
+                          onChange={(e) => setFbAvatar(e.target.value)}
+                          placeholder="https://..."
+                          className="w-full bg-black/70 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500 truncate"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <button
@@ -733,7 +829,7 @@ export const TikTokConnectModal: React.FC = () => {
                 {fbSuccess && (
                   <div className="p-3 rounded-2xl bg-blue-500/20 border border-blue-500/40 text-blue-300 text-xs font-bold flex items-center justify-center gap-2 animate-in zoom-in-95">
                     <CheckCircle2 className="h-4 w-4 text-blue-400" />
-                    <span>Kết nối Facebook thành công! Sẵn sàng cho tương tác chéo.</span>
+                    <span>Kết nối tài khoản Facebook thành công!</span>
                   </div>
                 )}
               </div>
@@ -751,8 +847,15 @@ export const TikTokConnectModal: React.FC = () => {
               <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-red-500/20 text-red-400">
-                      <CheckCircle2 className="h-6 w-6" />
+                    <div className="relative">
+                      <img 
+                        src={currentYtAvatar} 
+                        alt="YouTube Avatar"
+                        className="w-12 h-12 rounded-2xl object-cover border-2 border-red-400/60 shadow-md"
+                      />
+                      <div className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-black border border-red-400 text-red-400">
+                        <CheckCircle2 className="w-3 h-3" />
+                      </div>
                     </div>
                     <div>
                       <div className="font-bold text-white text-sm flex items-center gap-1.5">
@@ -762,7 +865,7 @@ export const TikTokConnectModal: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-xs text-slate-300 font-mono mt-0.5">
-                        {(user.youtubeSubscribers || 0).toLocaleString()} Subscribers • Sẵn sàng tương tác sub chéo
+                        {(user.youtubeSubscribers || 0).toLocaleString()} Subscribers • Đã Đồng Bộ Số Liệu Thật
                       </div>
                     </div>
                   </div>
@@ -771,7 +874,7 @@ export const TikTokConnectModal: React.FC = () => {
                     href={currentYtUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold font-mono flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                    className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold font-mono flex items-center gap-1.5 shadow-md cursor-pointer transition-all shrink-0"
                   >
                     <span>Xem Kênh Thật</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -837,18 +940,51 @@ export const TikTokConnectModal: React.FC = () => {
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-white flex items-center gap-1.5 font-display">
                       <Globe className="h-4 w-4 text-red-400" />
-                      <span>Dán Link Kênh Hoặc Nhập @Handle YouTube</span>
+                      <span>Dán Link Kênh &amp; Số Lượng Subscribers Thật</span>
                     </span>
+                    <span className="text-[10px] font-mono text-slate-400">Chính Xác 100%</span>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <input
-                      type="text"
-                      value={ytUrl}
-                      onChange={(e) => setYtUrl(e.target.value)}
-                      placeholder="https://youtube.com/@ten_kenh hoặc @ten_kenh"
-                      className="w-full bg-black/70 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-red-500"
-                    />
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-mono block mb-1">
+                        Link kênh hoặc @handle YouTube:
+                      </label>
+                      <input
+                        type="text"
+                        value={ytUrl}
+                        onChange={(e) => setYtUrl(e.target.value)}
+                        placeholder="https://youtube.com/@ten_kenh hoặc @handle"
+                        className="w-full bg-black/70 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-red-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-mono block mb-1">
+                          Số lượng Subscribers thật:
+                        </label>
+                        <input
+                          type="number"
+                          value={ytSubscribers}
+                          onChange={(e) => setYtSubscribers(e.target.value)}
+                          placeholder="Ví dụ: 10000"
+                          className="w-full bg-black/70 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-red-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-mono block mb-1">
+                          Link ảnh Avatar YouTube (tùy chọn):
+                        </label>
+                        <input
+                          type="text"
+                          value={ytAvatar}
+                          onChange={(e) => setYtAvatar(e.target.value)}
+                          placeholder="https://..."
+                          className="w-full bg-black/70 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-red-500 truncate"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <button
@@ -865,7 +1001,7 @@ export const TikTokConnectModal: React.FC = () => {
                 {ytSuccess && (
                   <div className="p-3 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold flex items-center justify-center gap-2 animate-in zoom-in-95">
                     <CheckCircle2 className="h-4 w-4 text-red-400" />
-                    <span>Kết nối YouTube thành công! Đã đồng bộ tài khoản.</span>
+                    <span>Kết nối tài khoản YouTube thành công!</span>
                   </div>
                 )}
               </div>

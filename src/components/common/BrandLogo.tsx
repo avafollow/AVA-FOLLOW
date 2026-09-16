@@ -1,4 +1,5 @@
 import React from "react";
+import { useTikTokApp } from "../../context/TikTokAppContext";
 
 export interface BrandLogoProps {
   size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
@@ -17,8 +18,26 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   subtitleText = "KẾT NỐI • TĂNG TRƯỞNG • BỨT PHÁ",
   className = "",
   textClassName = "",
-  onClick = () => { window.location.href = '/'; }
+  onClick
 }) => {
+  let appRefresh: (() => void) | undefined;
+  try {
+    const app = useTikTokApp();
+    appRefresh = app.refreshAllData;
+  } catch {
+    // fallback if outside provider
+  }
+
+  const handleLogoClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      if (appRefresh) {
+        appRefresh();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
   // Size config
   const sizeMap = {
     xs: {
@@ -69,7 +88,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
   return (
     <div
-      onClick={onClick}
+      onClick={handleLogoClick}
       className={`inline-flex items-center gap-2.5 sm:gap-3 select-none cursor-pointer hover:opacity-95 transition-opacity ${className}`}
     >
       {/* 3D Circular Emblem with Multi-Layer Neon Glowing Aura */}

@@ -23,6 +23,7 @@ import {
   SoftwareAppItem,
   AppLicensePurchase,
   KycVerificationData,
+  KycStatus,
   TokenLedgerRecord,
   REFERRAL_BONUS_COINS,
   FLEXIBLE_LIVESTREAM_TIERS,
@@ -96,6 +97,9 @@ import {
 import { SecurityLayerDef } from '../types';
 import { 
   MAX_TIKTOK_ACCOUNTS_PER_IP, 
+  MAX_GMAIL_ACCOUNTS_PER_IP,
+  MAX_FACEBOOK_ACCOUNTS_PER_IP,
+  MAX_YOUTUBE_ACCOUNTS_PER_IP,
   DEFAULT_CLIENT_IP, 
   INITIAL_IP_ACCOUNTS, 
   SECURITY_7_LAYERS,
@@ -379,6 +383,7 @@ interface TikTokAppContextType {
 
   // Admin Grant Actions
   adminToggleUserStatus: (userId: string) => void;
+  adminGrantAllPermissions: (userId: string, enable?: boolean) => void;
   adminAdjustUserCoins: (userId: string, amount: number) => void;
   adminGrantPackage: (userId: string, packageItem: GrowthServiceItem) => void;
   adminAdjustUserFollowers: (userId: string, count: number) => void;
@@ -388,6 +393,7 @@ interface TikTokAppContextType {
   adminDeleteUser: (userId: string) => void;
   adminUpdateGrantedOrder: (userId: string, orderId: string, data: Partial<ServiceOrder>) => void;
   adminDeleteGrantedOrder: (userId: string, orderId: string) => void;
+  refreshAllData: () => void;
 
   // Referral & Anti-Spam Verification
   claimReferralReward: (refId: string) => boolean;
@@ -729,6 +735,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const userHandle = user.tiktokConnected || user.handle || '@thienvuaapp';
       const existingIdx = prev.findIndex(u => u.email === userEmail || u.tiktokConnected === userHandle || u.id === (user.id || 'usr_001'));
 
+      const existing = existingIdx >= 0 ? prev[existingIdx] : null;
+
       const userAdminItem: AdminUserManagementItem = {
         id: user.id || 'usr_001',
         name: user.name,
@@ -739,6 +747,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         tiktokConnected: userHandle,
         tiktokFollowers: user.tiktokFollowers || 0,
         isTikTokVerified: user.isTikTokVerified || false,
+        facebookConnected: user.facebookConnected || existing?.facebookConnected,
+        youtubeConnected: user.youtubeConnected || existing?.youtubeConnected,
         rankLevel: user.rankLevel || 'Đồng',
         coinsBalance: user.avaliveCoins,
         tokenBalance: user.avaliveCoins,
@@ -747,10 +757,17 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         purchasedPackagesCount: (user.myOrders || []).length,
         escrowLockedAmountVND: `${(escrowBookings || []).reduce((acc, c) => acc + (parseInt(c.totalEscrowAmount.replace(/\D/g, '')) || 0), 0).toLocaleString()}đ`,
         status: user.status === 'banned' ? 'banned' : 'active',
+        hasAllPermissions: user.hasAllPermissions !== undefined ? user.hasAllPermissions : existing?.hasAllPermissions,
+        isWhitelisted: user.isWhitelisted !== undefined ? user.isWhitelisted : existing?.isWhitelisted,
+        grantedCoinsTotal: user.grantedCoinsTotal !== undefined ? user.grantedCoinsTotal : existing?.grantedCoinsTotal,
+        grantedPackagesTotal: user.grantedPackagesTotal !== undefined ? user.grantedPackagesTotal : existing?.grantedPackagesTotal,
+        registrationSource: user.registrationSource || existing?.registrationSource || (user.referredBy ? 'link' : 'direct'),
+        referredBy: user.referredBy || existing?.referredBy || (getReferralCookie() || undefined),
+        firstTaskCompleted: (user.completedTasksCount || 0) > 0 || !!user.firstTaskCompleted || !!existing?.firstTaskCompleted,
         kycStatus: user.kycStatus || 'unverified',
         kycData: user.kycData,
-        joinedDate: '2026-09-01',
-        orders: user.myOrders || []
+        joinedDate: existing?.joinedDate || '2026-09-01',
+        orders: user.myOrders || existing?.orders || []
       };
 
       if (existingIdx >= 0) {
@@ -1798,36 +1815,130 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const targetEmail = customEmail || 'quocthiencr90@gmail.com';
     const isAdmin = targetEmail === 'quocthiencr90@gmail.com';
 
-    setUser(prev => ({
-      ...prev,
+    // 1. Kiểm tra giới hạn tối đa 5 tài khoản Gmail / 1 địa chỉ IP (Admin đặc cách)
+    const ipGmailListKey = `ava_ip_gmails_${clientIp}`;
+    let currentIpGmails: string[] = [];
+    try {
+      const savedGmails = localStorage.getItem(ipGmailListKey);
+      currentIpGmails = savedGmails ? JSON.parse(savedGmails) : [];
+    } catch {}
+
+    if (!isAdmin && !currentIpGmails.includes(targetEmail.toLowerCase())) {
+      if (currentIpGmails.length >= MAX_GMAIL_ACCOUNTS_PER_IP) {
+        showToast(`⚠️ Địa chỉ IP (${clientIp}) đã đạt giới hạn tối đa ${MAX_GMAIL_ACCOUNTS_PER_IP} tài khoản Gmail theo chính sách bảo mật! Vui lòng sử dụng tài khoản đã tạo.`);
+        return;
+      }
+      currentIpGmails.push(targetEmail.toLowerCase());
+      try {
+        localStorage.setItem(ipGmailListKey, JSON.stringify(currentIpGmails));
+      } catch {}
+    }
+
+    // Tra cứu trong danh sách adminUsers để kế thừa toàn bộ quyền, xu, cấp bậc và gói đã cấp
+    const matchedAdminUser = adminUsers.find(
+      u => u.email.toLowerCase() === targetEmail.toLowerCase() || u.id === targetEmail
+    );
+
+    const nextCoins = matchedAdminUser ? matchedAdminUser.coinsBalance : (isAdmin ? 100000000 : user.avaliveCoins);
+    const nextRank = matchedAdminUser?.rankLevel || (isAdmin ? 'Kim Cương' : (user.rankLevel || 'Đồng'));
+    const hasAll = isAdmin || !!matchedAdminUser?.hasAllPermissions || user.hasAllPermissions;
+    const isWhite = isAdmin || !!matchedAdminUser?.isWhitelisted || user.isWhitelisted;
+    const canRun = isAdmin || !!matchedAdminUser?.canRunAnyCampaign || user.canRunAnyCampaign;
+    const canFollow = isAdmin || !!matchedAdminUser?.canFollowCrossUnrestricted || user.canFollowCrossUnrestricted;
+    const connectedTiktok = matchedAdminUser?.tiktokConnected || user.tiktokConnected;
+
+    const updatedUser: UserProfileWallet = {
+      ...user,
       email: targetEmail,
-      name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : (prev.name || 'Người Dùng Google'),
-      role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : 'Nhà Sáng Tạo AVA FOLLOW',
+      name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : (matchedAdminUser?.name || user.name || 'Người Dùng Google'),
+      role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : (user.role || 'Nhà Sáng Tạo AVA FOLLOW'),
       isAdmin: isAdmin,
+      rankLevel: nextRank,
+      avaliveCoins: nextCoins,
+      coinsValueVND: `${nextCoins.toLocaleString()}đ`,
+      hasAllPermissions: hasAll,
+      isWhitelisted: isWhite,
+      canRunAnyCampaign: canRun,
+      canFollowCrossUnrestricted: canFollow,
+      grantedCoinsTotal: matchedAdminUser?.grantedCoinsTotal || user.grantedCoinsTotal,
+      grantedPackagesTotal: matchedAdminUser?.grantedPackagesTotal || user.grantedPackagesTotal,
+      tiktokConnected: connectedTiktok || '',
+      tiktokFollowers: matchedAdminUser?.tiktokFollowers || user.tiktokFollowers,
+      isTikTokVerified: !!connectedTiktok,
       avatar: isAdmin 
         ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'
-    }));
+        : (matchedAdminUser?.avatar || user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80')
+    };
 
+    setUser(updatedUser);
     setIsAuthenticated(true);
     try {
       localStorage.setItem('tiktok_pro_auth', 'true');
       localStorage.setItem('ava_user_email', targetEmail);
+      localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
     } catch {}
+
+    // Cập nhật ngay lập tức vào adminUsers theo thời gian thực (Real-time)
+    setAdminUsers(prev => {
+      const idx = prev.findIndex(u => u.email.toLowerCase() === targetEmail.toLowerCase() || u.id === targetEmail);
+      const userAdminItem: AdminUserManagementItem = {
+        id: matchedAdminUser?.id || `usr_${Date.now()}`,
+        name: updatedUser.name,
+        handle: updatedUser.tiktokConnected || updatedUser.handle || '@user',
+        avatar: updatedUser.avatar || '',
+        email: targetEmail,
+        phone: '0988888888',
+        tiktokConnected: updatedUser.tiktokConnected || '',
+        tiktokFollowers: updatedUser.tiktokFollowers || 0,
+        isTikTokVerified: !!updatedUser.tiktokConnected,
+        facebookConnected: updatedUser.facebookConnected,
+        youtubeConnected: updatedUser.youtubeConnected,
+        rankLevel: updatedUser.rankLevel,
+        coinsBalance: updatedUser.avaliveCoins,
+        tokenBalance: updatedUser.avaliveCoins,
+        completedTasksCount: updatedUser.completedTasksCount || 0,
+        createdCampaignsCount: (campaigns || []).length,
+        purchasedPackagesCount: (updatedUser.myOrders || []).length,
+        escrowLockedAmountVND: '0đ',
+        status: 'active',
+        kycStatus: (matchedAdminUser?.kycStatus || user.kycStatus || 'unverified') as KycStatus,
+        hasAllPermissions: updatedUser.hasAllPermissions,
+        isWhitelisted: updatedUser.isWhitelisted,
+        grantedCoinsTotal: updatedUser.grantedCoinsTotal,
+        grantedPackagesTotal: updatedUser.grantedPackagesTotal,
+        registrationSource: updatedUser.registrationSource || (updatedUser.referredBy ? 'link' : 'direct'),
+        referredBy: updatedUser.referredBy,
+        firstTaskCompleted: (updatedUser.completedTasksCount || 0) > 0,
+        joinedDate: matchedAdminUser?.joinedDate || 'Hôm nay'
+      };
+
+      let nextList = [...prev];
+      if (idx >= 0) {
+        nextList[idx] = { ...nextList[idx], ...userAdminItem };
+      } else {
+        nextList = [userAdminItem, ...nextList];
+      }
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
+        }
+      } catch {}
+      return nextList;
+    });
 
     // Đồng bộ user lên Supabase Cloud
     const activeRefSponsor = getReferralCookie() || 'THIENVUAAPP88';
     registerUserToSupabase({
       email: targetEmail,
-      name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : 'Người Dùng Google',
-      tiktokHandle: user.tiktokConnected,
+      name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : (matchedAdminUser?.name || 'Người Dùng Google'),
+      tiktokHandle: matchedAdminUser?.tiktokConnected || user.tiktokConnected,
       referredBy: activeRefSponsor
     });
 
     if (isAdmin) {
       showToast('👑 Chào mừng Admin Nguyễn Quốc Thiện! Toàn quyền quản trị hệ thống đã kích hoạt.');
     } else {
-      showToast('🚀 Đăng nhập Google 1 chạm thành công! Chào mừng bạn đến với AVA FOLLOW.');
+      showToast('🚀 Đăng nhập Google 1 chạm thành công! Toàn bộ dữ liệu tài khoản đã được đồng bộ chuẩn xác.');
     }
   };
 
@@ -1835,25 +1946,114 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const formattedHandle = handle ? (handle.startsWith('@') ? handle : `@${handle}`) : user.tiktokConnected;
     const isAdmin = email === 'quocthiencr90@gmail.com';
     const activeRefSponsor = getReferralCookie() || 'THIENVUAAPP88';
-    setUser(prev => {
-      const bonusWelcome = 5000;
-      const nextCoins = prev.avaliveCoins + bonusWelcome;
-      return {
-        ...prev,
-        email: email,
-        name: name || prev.name,
-        role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : prev.role,
-        isAdmin: isAdmin,
-        tiktokConnected: formattedHandle,
-        avaliveCoins: nextCoins,
-        coinsValueVND: `${nextCoins.toLocaleString()}đ`
-      };
-    });
+
+    // 1. Kiểm tra giới hạn tối đa 5 tài khoản Gmail / 1 địa chỉ IP
+    const ipGmailListKey = `ava_ip_gmails_${clientIp}`;
+    let currentIpGmails: string[] = [];
+    try {
+      const savedGmails = localStorage.getItem(ipGmailListKey);
+      currentIpGmails = savedGmails ? JSON.parse(savedGmails) : [];
+    } catch {}
+
+    if (!isAdmin && !currentIpGmails.includes(email.toLowerCase())) {
+      if (currentIpGmails.length >= MAX_GMAIL_ACCOUNTS_PER_IP) {
+        showToast(`⚠️ Địa chỉ IP (${clientIp}) đã đạt giới hạn tối đa ${MAX_GMAIL_ACCOUNTS_PER_IP} tài khoản Gmail theo chính sách bảo mật! Vui lòng sử dụng tài khoản đã đăng ký.`);
+        return;
+      }
+      currentIpGmails.push(email.toLowerCase());
+      try {
+        localStorage.setItem(ipGmailListKey, JSON.stringify(currentIpGmails));
+      } catch {}
+    }
+
+    const matchedAdminUser = adminUsers.find(
+      u => u.email.toLowerCase() === email.toLowerCase() || u.id === email
+    );
+
+    const bonusWelcome = 5000;
+    const baseCoins = matchedAdminUser ? matchedAdminUser.coinsBalance : user.avaliveCoins;
+    const nextCoins = baseCoins + (user.isNewUserBonusClaimed ? 0 : bonusWelcome);
+    const nextRank = matchedAdminUser?.rankLevel || user.rankLevel || 'Đồng';
+
+    const updatedUser: UserProfileWallet = {
+      ...user,
+      email: email,
+      name: name || matchedAdminUser?.name || user.name,
+      role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : 'Nhà Sáng Tạo AVA FOLLOW',
+      isAdmin: isAdmin,
+      tiktokConnected: formattedHandle || matchedAdminUser?.tiktokConnected || '',
+      tiktokHandle: formattedHandle || matchedAdminUser?.tiktokConnected || user.tiktokHandle,
+      tiktokProfileUrl: formattedHandle ? `https://www.tiktok.com/${formattedHandle}` : user.tiktokProfileUrl,
+      isTikTokVerified: !!formattedHandle,
+      rankLevel: nextRank,
+      hasAllPermissions: isAdmin || !!matchedAdminUser?.hasAllPermissions || user.hasAllPermissions,
+      isWhitelisted: isAdmin || !!matchedAdminUser?.isWhitelisted || user.isWhitelisted,
+      canRunAnyCampaign: isAdmin || !!matchedAdminUser?.canRunAnyCampaign || user.canRunAnyCampaign,
+      canFollowCrossUnrestricted: isAdmin || !!matchedAdminUser?.canFollowCrossUnrestricted || user.canFollowCrossUnrestricted,
+      grantedCoinsTotal: matchedAdminUser?.grantedCoinsTotal || user.grantedCoinsTotal,
+      grantedPackagesTotal: matchedAdminUser?.grantedPackagesTotal || user.grantedPackagesTotal,
+      avaliveCoins: nextCoins,
+      coinsValueVND: `${nextCoins.toLocaleString()}đ`,
+      registrationSource: user.registrationSource || (activeRefSponsor ? 'link' : 'direct'),
+      referredBy: user.referredBy || activeRefSponsor,
+      isNewUserBonusClaimed: true
+    };
+
+    setUser(updatedUser);
     setIsAuthenticated(true);
     try {
       localStorage.setItem('tiktok_pro_auth', 'true');
       localStorage.setItem('ava_user_email', email);
+      localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
     } catch {}
+
+    // Cập nhật ngay lập tức vào adminUsers theo thời gian thực (Real-time)
+    setAdminUsers(prev => {
+      const idx = prev.findIndex(u => u.email.toLowerCase() === email.toLowerCase() || u.id === email);
+      const userAdminItem: AdminUserManagementItem = {
+        id: matchedAdminUser?.id || `usr_${Date.now()}`,
+        name: updatedUser.name,
+        handle: formattedHandle || '@user',
+        avatar: updatedUser.avatar || '',
+        email: email,
+        phone: '0988888888',
+        tiktokConnected: formattedHandle || '',
+        tiktokFollowers: updatedUser.tiktokFollowers || 0,
+        isTikTokVerified: !!formattedHandle,
+        facebookConnected: updatedUser.facebookConnected,
+        youtubeConnected: updatedUser.youtubeConnected,
+        rankLevel: nextRank,
+        coinsBalance: nextCoins,
+        tokenBalance: nextCoins,
+        completedTasksCount: updatedUser.completedTasksCount || 0,
+        createdCampaignsCount: (campaigns || []).length,
+        purchasedPackagesCount: (updatedUser.myOrders || []).length,
+        escrowLockedAmountVND: '0đ',
+        status: 'active',
+        kycStatus: (matchedAdminUser?.kycStatus || user.kycStatus || 'unverified') as KycStatus,
+        hasAllPermissions: updatedUser.hasAllPermissions,
+        isWhitelisted: updatedUser.isWhitelisted,
+        grantedCoinsTotal: updatedUser.grantedCoinsTotal,
+        grantedPackagesTotal: updatedUser.grantedPackagesTotal,
+        registrationSource: updatedUser.registrationSource || (activeRefSponsor ? 'link' : 'direct'),
+        referredBy: updatedUser.referredBy || activeRefSponsor,
+        firstTaskCompleted: (updatedUser.completedTasksCount || 0) > 0,
+        joinedDate: matchedAdminUser?.joinedDate || 'Hôm nay'
+      };
+
+      let nextList = [...prev];
+      if (idx >= 0) {
+        nextList[idx] = { ...nextList[idx], ...userAdminItem };
+      } else {
+        nextList = [userAdminItem, ...nextList];
+      }
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
+        }
+      } catch {}
+      return nextList;
+    });
 
     // Đồng bộ tài khoản và quà chào mừng 5.000 Xu lên Supabase
     registerUserToSupabase({
@@ -2582,12 +2782,75 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       status: 'success'
     };
 
-    setUser(prev => ({
-      ...prev,
+    const isFirstTask = (user.completedTasksCount || 0) === 0 && !user.firstTaskCompleted;
+    const nextCompletedTasks = (user.completedTasksCount || 0) + 1;
+
+    const updatedUser: UserProfileWallet = {
+      ...user,
       avaliveCoins: newCoins,
       coinsValueVND: `${newCoins.toLocaleString()}đ`,
-      transactions: [newTx, ...prev.transactions]
-    }));
+      completedTasksCount: nextCompletedTasks,
+      firstTaskCompleted: true,
+      transactions: [newTx, ...user.transactions]
+    };
+
+    setUser(updatedUser);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
+      }
+    } catch {}
+
+    // Cập nhật ngay lập tức vào adminUsers (Real-time)
+    setAdminUsers(prev => {
+      let copy = prev.map(u => {
+        if ((user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id) {
+          return {
+            ...u,
+            coinsBalance: newCoins,
+            tokenBalance: newCoins,
+            completedTasksCount: nextCompletedTasks,
+            firstTaskCompleted: true
+          };
+        }
+        return u;
+      });
+
+      // Nếu đây là nhiệm vụ đầu tiên và người dùng có người giới thiệu -> Tự động cộng 5.000 Xu cho người bảo trợ
+      if (isFirstTask && user.referredBy) {
+        const sponsorRef = user.referredBy.toLowerCase();
+        copy = copy.map(u => {
+          if (u.email.toLowerCase() === sponsorRef || u.handle.toLowerCase() === sponsorRef || u.id.toLowerCase() === sponsorRef) {
+            return {
+              ...u,
+              coinsBalance: u.coinsBalance + 5000,
+              tokenBalance: u.tokenBalance + 5000
+            };
+          }
+          return u;
+        });
+      }
+
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+        }
+      } catch {}
+      return copy;
+    });
+
+    // Nếu là nhiệm vụ đầu tiên của người được giới thiệu -> Cập nhật affiliateData
+    if (isFirstTask && user.referredBy) {
+      setAffiliateData(prev => ({
+        ...prev,
+        referralsList: prev.referralsList.map(r => {
+          if (r.tiktokHandle === user.tiktokConnected || r.username === user.name) {
+            return { ...r, hasCompletedTask: true, status: 'Đã hoàn thành nhiệm vụ 1 • Đủ điều kiện nhận 5.000 Xu' };
+          }
+          return r;
+        })
+      }));
+    }
 
     setAnalytics(prev => ({
       ...prev,
@@ -3559,14 +3822,29 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`Đã quy đổi ${tokenAmount} Token thành ${coinsToAdd.toLocaleString()} Xu theo giá thị trường!`);
   };
 
-  // Connect TikTok (Lưu danh sách tài khoản liên kết & hiển thị số liệu thật)
+  // Connect TikTok (Lưu danh sách tài khoản liên kết & hiển thị số liệu thật - 1 Gmail = 1 TikTok, Max 5 TikTok / 1 IP)
   const connectTikTok = (handle: string, followers?: number, avatarUrl?: string) => {
     const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
+    const userEmail = (user.email || '').toLowerCase();
     
-    const currentList = ipAccountsMap[clientIp] || [];
-    const isAlreadyConnected = currentList.includes(cleanHandle);
+    // 1. Kiểm tra quy tắc 1 Gmail = đúng 1 kênh TikTok duy nhất (Chống dùng chung kênh giữa các tài khoản Gmail)
+    const existingBinding = adminUsers.find(
+      u => u.tiktokConnected && u.tiktokConnected.toLowerCase() === cleanHandle.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail
+    );
+    if (existingBinding) {
+      showToast(`⚠️ Kênh TikTok ${cleanHandle} đã được liên kết với tài khoản Gmail ${existingBinding.email}! Theo chính sách bảo mật, 1 kênh TikTok chỉ được kết nối với đúng 1 tài khoản Gmail.`);
+      return;
+    }
 
-    if (!isAlreadyConnected) {
+    // 2. Kiểm tra giới hạn tối đa 5 kênh TikTok trên cùng 1 địa chỉ IP
+    const currentList = ipAccountsMap[clientIp] || [];
+    const isAlreadyConnectedOnIp = currentList.map(h => h.toLowerCase()).includes(cleanHandle.toLowerCase());
+
+    if (!isAlreadyConnectedOnIp) {
+      if (currentList.length >= MAX_TIKTOK_ACCOUNTS_PER_IP) {
+        showToast(`⚠️ Địa chỉ IP (${clientIp}) đã đạt giới hạn tối đa ${MAX_TIKTOK_ACCOUNTS_PER_IP} kênh TikTok theo chính sách bảo mật chống gian lận!`);
+        return;
+      }
       const updatedList = [...currentList, cleanHandle];
       saveIpAccounts({ ...ipAccountsMap, [clientIp]: updatedList });
     }
@@ -3577,42 +3855,70 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     } catch {}
 
-    setUser(prev => {
-      let addedWelcomeBonus = 0;
-      let newTransactions = [...prev.transactions];
+    let addedWelcomeBonus = 0;
+    let newTransactions = [...user.transactions];
 
-      if (!prev.isNewUserBonusClaimed) {
-        addedWelcomeBonus = 5000;
-        const welcomeTx: TransactionRecord = {
-          id: `tx_welcome_${Date.now()}`,
-          type: 'earn',
-          title: 'Thưởng chào mừng tài khoản mới liên kết (5.000 Xu = 5.000đ)',
-          amount: '+5.000 Xu (+5.000đ)',
-          isPositive: true,
-          date: 'Vừa xong',
-          status: 'success'
-        };
-        newTransactions = [welcomeTx, ...newTransactions];
-      }
-
-      const newCoins = prev.avaliveCoins + addedWelcomeBonus;
-
-      return {
-        ...prev,
-        tiktokConnected: cleanHandle,
-        tiktokHandle: cleanHandle,
-        tiktokProfileUrl: `https://www.tiktok.com/${cleanHandle}`,
-        isTikTokVerified: true,
-        tiktokFollowers: followers !== undefined ? followers : (prev.tiktokFollowers || 0),
-        tiktokAvatar: avatarUrl || prev.tiktokAvatar || prev.avatar,
-        isNewUserBonusClaimed: true,
-        avaliveCoins: newCoins,
-        coinsValueVND: `${newCoins.toLocaleString()}đ`,
-        transactions: newTransactions
+    if (!user.isNewUserBonusClaimed) {
+      addedWelcomeBonus = 5000;
+      const welcomeTx: TransactionRecord = {
+        id: `tx_welcome_${Date.now()}`,
+        type: 'earn',
+        title: 'Thưởng chào mừng tài khoản mới liên kết TikTok (5.000 Xu = 5.000đ)',
+        amount: '+5.000 Xu (+5.000đ)',
+        isPositive: true,
+        date: 'Vừa xong',
+        status: 'success'
       };
+      newTransactions = [welcomeTx, ...newTransactions];
+    }
+
+    const nextCoins = user.avaliveCoins + addedWelcomeBonus;
+
+    const updatedUser: UserProfileWallet = {
+      ...user,
+      tiktokConnected: cleanHandle,
+      tiktokHandle: cleanHandle,
+      tiktokProfileUrl: `https://www.tiktok.com/${cleanHandle}`,
+      isTikTokVerified: true,
+      tiktokFollowers: followers !== undefined ? followers : (user.tiktokFollowers || 0),
+      tiktokAvatar: avatarUrl || user.tiktokAvatar || user.avatar,
+      isNewUserBonusClaimed: true,
+      avaliveCoins: nextCoins,
+      coinsValueVND: `${nextCoins.toLocaleString()}đ`,
+      transactions: newTransactions
+    };
+
+    setUser(updatedUser);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
+      }
+    } catch {}
+
+    // Cập nhật ngay lập tức vào adminUsers theo thời gian thực (Real-time)
+    setAdminUsers(prev => {
+      const idx = prev.findIndex(u => (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = {
+          ...copy[idx],
+          tiktokConnected: cleanHandle,
+          tiktokFollowers: followers !== undefined ? followers : copy[idx].tiktokFollowers,
+          isTikTokVerified: true,
+          coinsBalance: nextCoins,
+          tokenBalance: nextCoins
+        };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+          }
+        } catch {}
+        return copy;
+      }
+      return prev;
     });
 
-    showToast('✅ Kết nối tài khoản thành công!');
+    showToast('✅ Kết nối tài khoản TikTok thành công! Đã đồng bộ lên hệ thống quản trị.');
     closeConnect();
   };
 
@@ -3622,70 +3928,141 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         localStorage.setItem('ava_tiktok_connected', '');
       }
     } catch {}
-    setUser(prev => ({
-      ...prev,
+    const updatedUser: UserProfileWallet = {
+      ...user,
       tiktokConnected: '',
       isTikTokVerified: false
-    }));
+    };
+    setUser(updatedUser);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
+      }
+    } catch {}
+
+    setAdminUsers(prev => {
+      const idx = prev.findIndex(u => (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], tiktokConnected: '', isTikTokVerified: false };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+          }
+        } catch {}
+        return copy;
+      }
+      return prev;
+    });
     showToast('Đã ngắt kết nối tài khoản TikTok.');
   };
 
-  // Connect Facebook (Trang cá nhân, Fanpage, Hội nhóm - Số liệu thật & Avatar thật)
+  // Connect Facebook (Trang cá nhân, Fanpage, Hội nhóm - 1 Gmail = 1 FB, Max 5 FB / 1 IP)
   const connectFacebook = (urlOrHandle: string, fbType: 'personal' | 'fanpage' | 'group' = 'personal', followers?: number, avatarUrl?: string) => {
     const clean = urlOrHandle.trim()
       .replace(/^https?:\/\/(www\.)?facebook\.com\//, '')
       .replace(/\/$/, '');
+    const userEmail = (user.email || '').toLowerCase();
 
-    setUser(prev => {
-      let addedWelcomeBonus = 0;
-      let newTransactions = [...prev.transactions];
+    // 1. Kiểm tra 1 Gmail = đúng 1 tài khoản Facebook
+    const existingBinding = adminUsers.find(
+      u => u.facebookConnected && u.facebookConnected.toLowerCase() === clean.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail
+    );
+    if (existingBinding) {
+      showToast(`⚠️ Tài khoản Facebook "${clean}" đã được liên kết với Gmail ${existingBinding.email}! Mỗi Facebook chỉ gắn với 1 tài khoản Gmail.`);
+      return;
+    }
 
-      if (!prev.isNewUserBonusClaimed) {
-        addedWelcomeBonus = 5000;
-        const welcomeTx: TransactionRecord = {
-          id: `tx_welcome_${Date.now()}`,
-          type: 'earn',
-          title: 'Thưởng chào mừng tài khoản mới liên kết (5.000 Xu = 5.000đ)',
-          amount: '+5.000 Xu (+5.000đ)',
-          isPositive: true,
-          date: 'Vừa xong',
-          status: 'success'
-        };
-        newTransactions = [welcomeTx, ...newTransactions];
+    // 2. Kiểm tra giới hạn tối đa 5 Facebook / 1 IP
+    const ipFbKey = `ava_ip_fb_${clientIp}`;
+    let ipFbList: string[] = [];
+    try {
+      const savedFb = localStorage.getItem(ipFbKey);
+      ipFbList = savedFb ? JSON.parse(savedFb) : [];
+    } catch {}
+
+    if (!ipFbList.map(f => f.toLowerCase()).includes(clean.toLowerCase())) {
+      if (ipFbList.length >= MAX_FACEBOOK_ACCOUNTS_PER_IP) {
+        showToast(`⚠️ Địa chỉ IP (${clientIp}) đã đạt giới hạn tối đa ${MAX_FACEBOOK_ACCOUNTS_PER_IP} tài khoản Facebook theo chính sách bảo mật!`);
+        return;
       }
+      ipFbList.push(clean.toLowerCase());
+      try {
+        localStorage.setItem(ipFbKey, JSON.stringify(ipFbList));
+      } catch {}
+    }
 
-      const newCoins = prev.avaliveCoins + addedWelcomeBonus;
+    const updatedUser: UserProfileWallet = {
+      ...user,
+      facebookConnected: clean,
+      facebookProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://facebook.com/${clean}`,
+      facebookType: fbType,
+      isFacebookVerified: true,
+      facebookFollowers: followers !== undefined ? followers : (user.facebookFollowers || 0),
+      facebookAvatar: avatarUrl || user.facebookAvatar || user.avatar
+    };
 
-      return {
-        ...prev,
-        facebookConnected: clean,
-        facebookProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://facebook.com/${clean}`,
-        facebookType: fbType,
-        isFacebookVerified: true,
-        facebookFollowers: followers !== undefined ? followers : (prev.facebookFollowers || 0),
-        facebookAvatar: avatarUrl || prev.facebookAvatar || prev.avatar,
-        isNewUserBonusClaimed: true,
-        avaliveCoins: newCoins,
-        coinsValueVND: `${newCoins.toLocaleString()}đ`,
-        transactions: newTransactions
-      };
+    setUser(updatedUser);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
+      }
+    } catch {}
+
+    setAdminUsers(prev => {
+      const idx = prev.findIndex(u => (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = {
+          ...copy[idx],
+          facebookConnected: clean
+        };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+          }
+        } catch {}
+        return copy;
+      }
+      return prev;
     });
 
-    showToast('✅ Kết nối tài khoản thành công!');
+    showToast('✅ Kết nối tài khoản Facebook thành công! Đã đồng bộ lên hệ thống quản trị.');
     closeConnect();
   };
 
   const disconnectFacebook = () => {
-    setUser(prev => ({
-      ...prev,
+    const updatedUser: UserProfileWallet = {
+      ...user,
       facebookConnected: '',
       facebookProfileUrl: '',
       isFacebookVerified: false
-    }));
+    };
+    setUser(updatedUser);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
+      }
+    } catch {}
+
+    setAdminUsers(prev => {
+      const idx = prev.findIndex(u => (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], facebookConnected: '', isFacebookVerified: false };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+          }
+        } catch {}
+        return copy;
+      }
+      return prev;
+    });
     showToast('Đã ngắt kết nối tài khoản Facebook.');
   };
 
-  // Connect YouTube (Kênh YouTube - Số liệu sub thật & Avatar thật)
+  // Connect YouTube (Kênh YouTube - 1 Gmail = 1 YouTube, Max 5 YT / 1 IP)
   const connectYoutube = (urlOrHandle: string, subscribers?: number, avatarUrl?: string) => {
     const clean = urlOrHandle
       .replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '')
@@ -3693,56 +4070,107 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       .replace(/\/$/, '');
 
     const formattedYt = `@${clean}`;
+    const userEmail = (user.email || '').toLowerCase();
 
-    setUser(prev => {
-      let addedWelcomeBonus = 0;
-      let newTransactions = [...prev.transactions];
+    // 1. Kiểm tra 1 Gmail = đúng 1 tài khoản YouTube
+    const existingBinding = adminUsers.find(
+      u => u.youtubeConnected && u.youtubeConnected.toLowerCase() === formattedYt.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail
+    );
+    if (existingBinding) {
+      showToast(`⚠️ Kênh YouTube "${formattedYt}" đã được liên kết với Gmail ${existingBinding.email}! Mỗi YouTube chỉ gắn với 1 tài khoản Gmail.`);
+      return;
+    }
 
-      if (!prev.isNewUserBonusClaimed) {
-        addedWelcomeBonus = 5000;
-        const welcomeTx: TransactionRecord = {
-          id: `tx_welcome_${Date.now()}`,
-          type: 'earn',
-          title: 'Thưởng chào mừng tài khoản mới liên kết (5.000 Xu = 5.000đ)',
-          amount: '+5.000 Xu (+5.000đ)',
-          isPositive: true,
-          date: 'Vừa xong',
-          status: 'success'
-        };
-        newTransactions = [welcomeTx, ...newTransactions];
+    // 2. Kiểm tra giới hạn tối đa 5 YouTube / 1 IP
+    const ipYtKey = `ava_ip_yt_${clientIp}`;
+    let ipYtList: string[] = [];
+    try {
+      const savedYt = localStorage.getItem(ipYtKey);
+      ipYtList = savedYt ? JSON.parse(savedYt) : [];
+    } catch {}
+
+    if (!ipYtList.map(y => y.toLowerCase()).includes(formattedYt.toLowerCase())) {
+      if (ipYtList.length >= MAX_YOUTUBE_ACCOUNTS_PER_IP) {
+        showToast(`⚠️ Địa chỉ IP (${clientIp}) đã đạt giới hạn tối đa ${MAX_YOUTUBE_ACCOUNTS_PER_IP} kênh YouTube theo chính sách bảo mật!`);
+        return;
       }
+      ipYtList.push(formattedYt.toLowerCase());
+      try {
+        localStorage.setItem(ipYtKey, JSON.stringify(ipYtList));
+      } catch {}
+    }
 
-      const newCoins = prev.avaliveCoins + addedWelcomeBonus;
+    const updatedUser: UserProfileWallet = {
+      ...user,
+      youtubeConnected: formattedYt,
+      youtubeProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean}`,
+      isYoutubeVerified: true,
+      youtubeSubscribers: subscribers !== undefined ? subscribers : (user.youtubeSubscribers || 0),
+      youtubeAvatar: avatarUrl || user.youtubeAvatar || user.avatar
+    };
 
-      return {
-        ...prev,
-        youtubeConnected: formattedYt,
-        youtubeProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean}`,
-        isYoutubeVerified: true,
-        youtubeSubscribers: subscribers !== undefined ? subscribers : (prev.youtubeSubscribers || 0),
-        youtubeAvatar: avatarUrl || prev.youtubeAvatar || prev.avatar,
-        isNewUserBonusClaimed: true,
-        avaliveCoins: newCoins,
-        coinsValueVND: `${newCoins.toLocaleString()}đ`,
-        transactions: newTransactions
-      };
+    setUser(updatedUser);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
+      }
+    } catch {}
+
+    setAdminUsers(prev => {
+      const idx = prev.findIndex(u => (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = {
+          ...copy[idx],
+          youtubeConnected: formattedYt,
+          isYoutubeVerified: true
+        };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+          }
+        } catch {}
+        return copy;
+      }
+      return prev;
     });
 
-    showToast('✅ Kết nối tài khoản thành công!');
+    showToast('✅ Kết nối kênh YouTube thành công! Đã đồng bộ sang hệ thống quản trị.');
     closeConnect();
   };
 
   const disconnectYoutube = () => {
-    setUser(prev => ({
-      ...prev,
+    const updatedUser: UserProfileWallet = {
+      ...user,
       youtubeConnected: '',
       youtubeProfileUrl: '',
       isYoutubeVerified: false
-    }));
+    };
+    setUser(updatedUser);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
+      }
+    } catch {}
+
+    setAdminUsers(prev => {
+      const idx = prev.findIndex(u => (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], youtubeConnected: '', isYoutubeVerified: false };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+          }
+        } catch {}
+        return copy;
+      }
+      return prev;
+    });
     showToast('Đã ngắt kết nối kênh YouTube.');
   };
 
-  // Deposit
+  // Deposit (Nạp Xu vào hệ thống - Đồng bộ ngay lập tức vào Admin)
   const deposit = (amountVND: number, method: string) => {
     const addedCoins = amountVND;
     const newCoins = user.avaliveCoins + addedCoins;
@@ -3758,15 +4186,48 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       status: 'success'
     };
 
-    setUser(prev => ({
-      ...prev,
+    const updatedUser: UserProfileWallet = {
+      ...user,
       avaliveCoins: newCoins,
       coinsValueVND: `${newCoins.toLocaleString()}đ`,
-      fiatVND: `${(parseInt(prev.fiatVND.replace(/\D/g, '')) + amountVND).toLocaleString()}đ`,
-      transactions: [newTx, ...prev.transactions]
+      fiatVND: `${(parseInt(user.fiatVND.replace(/\D/g, '') || '0') + amountVND).toLocaleString()}đ`,
+      transactions: [newTx, ...user.transactions]
+    };
+
+    setUser(updatedUser);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
+      }
+    } catch {}
+
+    // Cập nhật ngay lập tức vào adminUsers
+    setAdminUsers(prev => {
+      const idx = prev.findIndex(u => (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = {
+          ...copy[idx],
+          coinsBalance: newCoins,
+          tokenBalance: newCoins
+        };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+          }
+        } catch {}
+        return copy;
+      }
+      return prev;
+    });
+
+    // Cập nhật vào adminData
+    setAdminData(prev => ({
+      ...prev,
+      totalRevenueVND: `${(parseInt(prev.totalRevenueVND.replace(/\D/g, '') || '0') + amountVND).toLocaleString()}đ`
     }));
 
-    showToast(`💳 Nạp thành công ${amountVND.toLocaleString()}đ qua ${method}!`);
+    showToast(`💳 Nạp thành công ${amountVND.toLocaleString()}đ qua ${method}! Số dư đã cập nhật tức thì.`);
   };
 
   // Withdraw (Lần 1 miễn phí 0% • Từ lần 2 trở đi: Phí 5% & Bắt buộc KYC đầy đủ • Giải ngân 10:00 sáng Thứ Hai trong 24h)
@@ -3810,14 +4271,41 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       status: 'pending' // Chờ giải ngân vào 10:00 sáng Thứ Hai trong 24h
     };
 
-    setUser(prev => ({
-      ...prev,
+    const updatedUser: UserProfileWallet = {
+      ...user,
       avaliveCoins: newCoins,
       coinsValueVND: `${newCoins.toLocaleString()}đ`,
       bankInfo: bankInfo,
       withdrawCount: currentWithdrawCount + 1,
-      transactions: [newTx, ...prev.transactions]
-    }));
+      transactions: [newTx, ...user.transactions]
+    };
+
+    setUser(updatedUser);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
+      }
+    } catch {}
+
+    // Cập nhật ngay lập tức vào adminUsers
+    setAdminUsers(prev => {
+      const idx = prev.findIndex(u => (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = {
+          ...copy[idx],
+          coinsBalance: newCoins,
+          tokenBalance: newCoins
+        };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+          }
+        } catch {}
+        return copy;
+      }
+      return prev;
+    });
 
     if (isFirstWithdraw) {
       showToast(`🎉 RÚT TIỀN LẦN ĐẦU MIỄN PHÍ 100%! Lệnh rút ${amountVND.toLocaleString()} Xu không mất phí (thực nhận +${netReceivedVND.toLocaleString()}đ). Tiền sẽ được chuyển tự động vào 10:00 Sáng Thứ Hai (xử lý trong 24h).`);
@@ -5190,13 +5678,71 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast('Đã cập nhật trạng thái tài khoản người dùng!');
   };
 
+  const adminGrantAllPermissions = (userId: string, enable: boolean = true) => {
+    let matchedUser: AdminUserManagementItem | null = null;
+    const nowIso = new Date().toISOString();
+
+    setAdminUsers(prev => prev.map(u => {
+      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
+        matchedUser = u;
+        return {
+          ...u,
+          hasAllPermissions: enable,
+          isWhitelisted: enable,
+          canRunAnyCampaign: enable,
+          canFollowCrossUnrestricted: enable,
+          status: 'active',
+          grantedByAdminAt: nowIso
+        };
+      }
+      return u;
+    }));
+
+    if (matchedUser || isCurrentUser(userId)) {
+      setUser(prev => ({
+        ...prev,
+        hasAllPermissions: enable,
+        isWhitelisted: enable,
+        canRunAnyCampaign: enable,
+        canFollowCrossUnrestricted: enable,
+        status: 'active',
+        grantedByAdminAt: nowIso
+      }));
+    }
+
+    showToast(
+      enable 
+        ? `👑 Đã CẤP TOÀN QUYỀN HỆ THỐNG cho tài khoản (Không giới hạn, không khóa, làm mọi nhiệm vụ & chiến dịch)!`
+        : `Đã thu hồi quyền đặc cách của tài khoản!`
+    );
+  };
+
+  const refreshAllData = () => {
+    try {
+      const storedUser = localStorage.getItem('ava_user_profile_v3');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        setUser(prev => ({ ...prev, ...parsed }));
+      }
+      const storedAdminUsers = localStorage.getItem('ava_admin_users_v3');
+      if (storedAdminUsers) {
+        const parsedAdminUsers = JSON.parse(storedAdminUsers);
+        setAdminUsers(parsedAdminUsers);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    showToast('⚡ Đã làm mới & đồng bộ toàn bộ dữ liệu hệ thống mới nhất!');
+  };
+
   const adminAdjustUserCoins = (userId: string, amount: number) => {
     let matchedUser: AdminUserManagementItem | null = null;
     setAdminUsers(prev => prev.map(u => {
       if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
         const newBalance = Math.max(0, u.coinsBalance + amount);
+        const newGranted = (u.grantedCoinsTotal || 0) + (amount > 0 ? amount : 0);
         if (isCurrentUser(userId, u)) matchedUser = u;
-        return { ...u, coinsBalance: newBalance };
+        return { ...u, coinsBalance: newBalance, grantedCoinsTotal: newGranted };
       }
       return u;
     }));
@@ -5204,10 +5750,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (matchedUser || isCurrentUser(userId)) {
       setUser(prev => {
         const newCoins = Math.max(0, prev.avaliveCoins + amount);
+        const newGranted = (prev.grantedCoinsTotal || 0) + (amount > 0 ? amount : 0);
         const newTx: TransactionRecord = {
           id: `tx_admin_${Date.now()}`,
           type: amount >= 0 ? 'deposit' : 'spend',
-          title: `Quản Trị Viên (Admin) điều chỉnh: ${amount >= 0 ? '+' : ''}${amount.toLocaleString()} Xu`,
+          title: `Quản Trị Viên (Admin) cấp Xu: ${amount >= 0 ? '+' : ''}${amount.toLocaleString()} Xu`,
           amount: `${amount >= 0 ? '+' : ''}${amount.toLocaleString()} Xu (${Math.abs(amount).toLocaleString()}đ)`,
           isPositive: amount >= 0,
           date: 'Vừa xong',
@@ -5216,13 +5763,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return {
           ...prev,
           avaliveCoins: newCoins,
+          grantedCoinsTotal: newGranted,
           coinsValueVND: `${newCoins.toLocaleString()}đ`,
           transactions: [newTx, ...prev.transactions]
         };
       });
     }
 
-    showToast(`Đã điều chỉnh ${amount > 0 ? '+' : ''}${amount.toLocaleString()} Xu cho tài khoản!`);
+    showToast(`Đã cấp ${amount > 0 ? '+' : ''}${amount.toLocaleString()} Xu cho tài khoản!`);
   };
 
   const adminGrantPackage = (userId: string, packageItem: GrowthServiceItem) => {
@@ -5248,6 +5796,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return {
           ...u,
           purchasedPackagesCount: (u.purchasedPackagesCount || 0) + 1,
+          grantedPackagesTotal: (u.grantedPackagesTotal || 0) + 1,
           orders: [newOrder, ...(u.orders || [])]
         };
       }
@@ -5268,6 +5817,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return {
           ...prev,
           purchasedPackagesCount: (prev.purchasedPackagesCount || 0) + 1,
+          grantedPackagesTotal: (prev.grantedPackagesTotal || 0) + 1,
           myOrders: [createdOrder!, ...(prev.myOrders || [])],
           transactions: [newTx, ...prev.transactions]
         };
@@ -5707,6 +6257,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         adminGrantPackage,
         adminAdjustUserFollowers,
         adminChangeUserRank,
+        adminGrantAllPermissions,
+        refreshAllData,
         adminAddUser,
         adminUpdateUser,
         adminDeleteUser,

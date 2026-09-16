@@ -63,7 +63,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   return (
     <>
       {/* 1. Thanh điều hướng đáy di động (Bottom Bar) */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0A0D17]/95 backdrop-blur-xl border-t border-white/10 px-2 py-1.5 pb-safe">
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-[#0A0D17]/95 backdrop-blur-2xl border-t border-white/10 px-2 py-1.5 pb-safe select-none shadow-2xl">
         <div className="flex items-center justify-around">
           {/* Trang chủ */}
           <button
@@ -141,7 +141,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
       {/* 2. Menu Mở Rộng Tất Cả Tab Chức Năng (Full Mobile Drawer) */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end animate-in fade-in duration-200">
-          <div className="w-full bg-[#0D111E] rounded-t-3xl border-t border-rose-500/30 shadow-2xl flex flex-col max-h-[88vh] overflow-hidden text-white">
+          <div className="w-full bg-[#0D111E] rounded-t-3xl border-t border-rose-500/30 shadow-2xl flex flex-col max-h-[88vh] overflow-hidden text-white pb-safe">
             {/* Drawer Header */}
             <div className="p-4 bg-gradient-to-r from-rose-950/60 via-purple-950/60 to-slate-950/80 border-b border-white/10 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">

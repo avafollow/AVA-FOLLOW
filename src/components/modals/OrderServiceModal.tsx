@@ -21,7 +21,8 @@ import {
   RefreshCw,
   ExternalLink,
   ClipboardList,
-  PlusCircle
+  PlusCircle,
+  Award
 } from 'lucide-react';
 
 interface OrderServiceModalProps {
@@ -283,9 +284,21 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
             <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                    {packageItem.badge || packageItem.tag || 'GÓI TĂNG TRƯỞNG'}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      {packageItem.badge || packageItem.tag || 'GÓI TĂNG TRƯỞNG'}
+                    </span>
+                    {packageItem.retentionRate && (
+                      <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        {packageItem.retentionRate}
+                      </span>
+                    )}
+                    {packageItem.weeklySlotBonus && (
+                      <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        +{packageItem.weeklySlotBonus} Slot Tuần
+                      </span>
+                    )}
+                  </div>
                   <h4 className="text-sm font-bold text-white mt-1.5">
                     {isLivestream 
                       ? `${packageItem.title.replace(/\(.*?\)/g, '').trim()} (${selectedDuration} Phút)` 
@@ -306,6 +319,23 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* VIP Benefits & Rights */}
+              {packageItem.benefits && packageItem.benefits.length > 0 && (
+                <div className="pt-2 border-t border-white/5 space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 font-mono flex items-center gap-1">
+                    <Award className="w-3 h-3 text-amber-400" /> Quyền Lợi & Đặc Quyền Khi Mua Gói:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {packageItem.benefits.map((benefit, i) => (
+                      <div key={i} className="flex items-start gap-1.5 text-[11px] text-slate-200">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                        <span>{benefit}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Nếu là Livestream: Chọn mốc thời gian */}
               {isLivestream && (

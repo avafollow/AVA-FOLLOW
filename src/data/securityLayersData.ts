@@ -1,6 +1,9 @@
 import { SecurityLayerDef } from '../types';
 
 export const MAX_TIKTOK_ACCOUNTS_PER_IP = 5;
+export const MAX_GMAIL_ACCOUNTS_PER_IP = 5;
+export const MAX_FACEBOOK_ACCOUNTS_PER_IP = 5;
+export const MAX_YOUTUBE_ACCOUNTS_PER_IP = 5;
 
 export const DEFAULT_CLIENT_IP = '118.69.182.45';
 
@@ -9,9 +12,9 @@ export const INITIAL_IP_ACCOUNTS: Record<string, string[]> = {};
 export const SECURITY_7_LAYERS: SecurityLayerDef[] = [
   {
     layer: 1,
-    name: 'Giới Hạn IP & Chống Bot Sàn',
+    name: 'Giới Hạn IP & Chống Bot Sàn (Max 5 Acc / IP)',
     code: 'IP_RATE_LIMIT_5',
-    description: 'Chỉ cho phép tối đa 5 tài khoản TikTok / 1 địa chỉ IP. Tự động phong tỏa mọi hành vi tạo clone bot hàng loạt, spam tool và đánh phá hạ tầng web.',
+    description: 'Chỉ cho phép tối đa 5 tài khoản Gmail, 5 kênh TikTok, 5 Facebook, 5 YouTube trên 1 địa chỉ IP. 1 tài khoản Gmail gắn chặt 1 kênh TikTok duy nhất. Tự động phong tỏa hành vi farm clone bot hàng loạt.',
     shieldStatus: 'active',
     blockedCount: 0,
     icon: '🌐'

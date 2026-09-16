@@ -118,14 +118,14 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className={`sticky top-0 z-40 w-full border-b transition-colors ${
+    <header className={`sticky top-0 z-40 w-full max-w-full overflow-hidden border-b transition-colors pt-[env(safe-area-inset-top,0px)] ${
       darkMode 
         ? 'bg-[#0B0F19]/95 border-white/10 text-white backdrop-blur-xl' 
         : 'bg-white/95 border-slate-200 text-slate-900 backdrop-blur-xl shadow-sm'
     }`}>
       {/* BẢNG ĐIỆN LED CHẠY CHỮ TOÀN SÀN (Horizontal Smooth LED Marquee Ticker) */}
       {marqueeTickerList.length > 0 && (
-        <div className="bg-gradient-to-r from-rose-950 via-[#1A0B2E] to-slate-950 border-b border-rose-500/30 px-3 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between gap-3 text-xs sm:text-sm select-none overflow-hidden relative shadow-inner min-h-[44px]">
+        <div className="bg-gradient-to-r from-rose-950 via-[#1A0B2E] to-slate-950 border-b border-rose-500/30 px-2 sm:px-5 py-2 sm:py-3 flex items-center justify-between gap-2 text-xs select-none overflow-hidden relative shadow-inner min-h-[40px] sm:min-h-[44px] max-w-full">
           {/* Left badge */}
           <div className="flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-xl bg-rose-950/90 border border-rose-500/50 text-rose-200 font-mono text-xs font-black uppercase shadow-sm z-10">
             <span className="flex h-2.5 w-2.5 rounded-full bg-rose-500 animate-ping shrink-0" />
@@ -215,9 +215,9 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      <div className="flex h-16 items-center justify-between px-3 sm:px-6">
+      <div className="flex h-14 sm:h-16 items-center justify-between px-2.5 sm:px-6 max-w-full overflow-hidden gap-1.5 sm:gap-3">
         {/* Left: Brand Logo & Tagline */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <BrandLogo
             size="sm"
             showSubtitle={false}

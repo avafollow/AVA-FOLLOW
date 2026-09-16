@@ -40,7 +40,10 @@ import {
   UserCheck,
   PlusCircle,
   PieChart,
-  RefreshCw
+  RefreshCw,
+  Mail,
+  Globe,
+  Key
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { ScreenId } from '../../types';
@@ -68,6 +71,8 @@ export const HomeScreen: React.FC<{
     openLuckyWheel, 
     openPolicy,
     openShareModal,
+    openConnect,
+    refreshAllData,
     userCompletedActions
   } = useTikTokApp();
 
@@ -97,6 +102,69 @@ export const HomeScreen: React.FC<{
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 space-y-6">
+
+            {/* 1. THANH TRẠNG THÁI KẾT NỐI TÀI KHOẢN & ĐỒNG BỘ TOÀN DIỆN */}
+            <div className="p-3 rounded-2xl bg-black/50 border border-white/10 backdrop-blur-md flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono">
+                {/* Google Account */}
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 border border-white/10 text-white shadow-sm">
+                  <Mail className="w-3.5 h-3.5 text-rose-400" />
+                  <span className="text-slate-400">Google:</span>
+                  <span className="font-bold text-cyan-300 truncate max-w-[140px] sm:max-w-[200px]">{user.email || 'Chưa đăng nhập'}</span>
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                </div>
+
+                {/* TikTok Channel */}
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 border border-white/10 text-white shadow-sm">
+                  <span className="text-rose-400 font-bold">♪</span>
+                  <span className="text-slate-400">TikTok:</span>
+                  <span className="font-bold text-rose-300 truncate max-w-[120px]">{user.tiktokConnected || '@chưa_kết_nối'}</span>
+                  {user.tiktokConnected ? (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                      {(user.tiktokFollowers || 0).toLocaleString()} fl
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* YouTube Channel */}
+                {user.youtubeConnected && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 border border-white/10 text-white shadow-sm">
+                    <span className="text-rose-500 font-bold">▶</span>
+                    <span className="text-slate-400">YouTube:</span>
+                    <span className="font-bold text-white truncate max-w-[120px]">{user.youtubeConnected}</span>
+                  </div>
+                )}
+
+                {/* VIP / Admin Master Privilege Badge */}
+                {(user.hasAllPermissions || user.isAdmin) && (
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/40 text-amber-300 font-black shadow-sm">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>👑 TOÀN QUYỀN VIP (KHÔNG KHÓA)</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Sync & Connect Actions */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => refreshAllData()}
+                  className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white border border-white/10 text-[10px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer"
+                  title="Đồng bộ lại toàn bộ dữ liệu người dùng & quản trị mới nhất"
+                >
+                  <RefreshCw className="w-3 h-3 text-cyan-400" />
+                  <span>Đồng Bộ Dữ Liệu</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openConnect()}
+                  className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-[10px] font-mono font-bold flex items-center gap-1 transition-all shadow cursor-pointer"
+                >
+                  <PlusCircle className="w-3 h-3" />
+                  <span>Kết Nối Kênh</span>
+                </button>
+              </div>
+            </div>
 
             {/* 2. TIÊU ĐỀ CHÍNH */}
             <div className="space-y-3">
@@ -744,6 +812,106 @@ export const HomeScreen: React.FC<{
                 Rút Tiền
               </button>
             </div>
+          </div>
+
+          {/* Connected Accounts & Multi-Channel Sync */}
+          <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-3 font-mono text-xs">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <span className="text-[11px] font-bold text-slate-300 uppercase flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-cyan-400" /> Kênh Đã Kết Nối
+              </span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                ● Đồng bộ chuẩn
+              </span>
+            </div>
+
+            <div className="space-y-2 text-[11px]">
+              {/* Google */}
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-white/5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Mail className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                  <div className="truncate">
+                    <div className="text-[10px] text-slate-400">Google Auth</div>
+                    <div className="text-white font-bold text-[10px] truncate">{user.email || 'Chưa đăng nhập'}</div>
+                  </div>
+                </div>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              </div>
+
+              {/* TikTok */}
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-white/5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-rose-400 font-bold shrink-0">♪</span>
+                  <div className="truncate">
+                    <div className="text-[10px] text-slate-400">Kênh TikTok</div>
+                    <div className="text-rose-300 font-bold text-[10px] truncate">{user.tiktokConnected || 'Chưa kết nối'}</div>
+                  </div>
+                </div>
+                {user.tiktokConnected ? (
+                  <span className="text-[9px] text-emerald-400 font-bold shrink-0">
+                    {(user.tiktokFollowers || 0).toLocaleString()} fl
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => openConnect()}
+                    className="text-[9px] text-cyan-400 hover:underline font-bold shrink-0"
+                  >
+                    + Nối ngay
+                  </button>
+                )}
+              </div>
+
+              {/* YouTube */}
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-white/5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-rose-500 font-bold shrink-0">▶</span>
+                  <div className="truncate">
+                    <div className="text-[10px] text-slate-400">Kênh YouTube</div>
+                    <div className="text-white font-bold text-[10px] truncate">{user.youtubeConnected || 'Chưa kết nối'}</div>
+                  </div>
+                </div>
+                {user.youtubeConnected ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                ) : (
+                  <button
+                    onClick={() => openConnect()}
+                    className="text-[9px] text-cyan-400 hover:underline font-bold shrink-0"
+                  >
+                    + Nối ngay
+                  </button>
+                )}
+              </div>
+
+              {/* Facebook */}
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-white/5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-blue-400 font-bold shrink-0">f</span>
+                  <div className="truncate">
+                    <div className="text-[10px] text-slate-400">Tài Khoản Facebook</div>
+                    <div className="text-white font-bold text-[10px] truncate">{user.facebookConnected || 'Chưa kết nối'}</div>
+                  </div>
+                </div>
+                {user.facebookConnected ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                ) : (
+                  <button
+                    onClick={() => openConnect()}
+                    className="text-[9px] text-cyan-400 hover:underline font-bold shrink-0"
+                  >
+                    + Nối ngay
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Sync Now Button */}
+            <button
+              onClick={() => refreshAllData()}
+              className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 text-cyan-300 border border-cyan-500/20 text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3 text-cyan-400 animate-spin-slow" />
+              <span>Đồng Bộ Dữ Liệu Với Quản Trị</span>
+            </button>
           </div>
         </div>
 

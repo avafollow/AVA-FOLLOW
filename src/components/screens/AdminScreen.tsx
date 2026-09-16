@@ -96,6 +96,8 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     adminGrantPackage,
     adminAdjustUserFollowers,
     adminChangeUserRank,
+    adminGrantAllPermissions,
+    refreshAllData,
     adminAddUser,
     adminUpdateUser,
     adminDeleteUser,
@@ -1500,7 +1502,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
               {/* Active Selected User Card with Edit / Delete / Save Actions */}
               {activeGrantUser && (
-                <div className="p-4 rounded-2xl bg-slate-800/80 border border-purple-500/40 space-y-3 shadow-lg">
+                <div className="p-4 rounded-2xl bg-slate-800/80 border border-purple-500/40 space-y-4 shadow-lg">
                   <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                     
                     {/* Avatar & Identifiers */}
@@ -1511,11 +1513,20 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         className="w-12 h-12 rounded-2xl object-cover ring-2 ring-purple-500/50 shrink-0" 
                       />
                       <div>
-                        <div className="font-bold text-white text-sm flex items-center gap-1.5">
+                        <div className="font-bold text-white text-sm flex items-center gap-1.5 flex-wrap">
                           <span>{activeGrantUser.name}</span>
                           <span className="text-[10px] px-2 py-0.2 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono">
                             ID: {activeGrantUser.id}
                           </span>
+                          {activeGrantUser.hasAllPermissions ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-500/50 font-black flex items-center gap-1 shadow-sm">
+                              👑 TOÀN QUYỀN VIP
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700/50 text-slate-400 border border-white/5 font-mono">
+                              Chuẩn
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-cyan-400 font-mono">{activeGrantUser.email}</div>
                         <div className="text-[11px] text-slate-400 font-mono">
@@ -1525,7 +1536,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-3 gap-3 font-mono text-xs w-full lg:w-auto">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs w-full lg:w-auto">
                       <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
                         <div className="text-[10px] text-slate-400">Hạng VIP</div>
                         <div className="text-amber-300 font-bold">{activeGrantUser.rankLevel}</div>
@@ -1535,13 +1546,17 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         <div className="text-amber-400 font-bold">{activeGrantUser.coinsBalance.toLocaleString()}</div>
                       </div>
                       <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
-                        <div className="text-[10px] text-slate-400">Followers</div>
-                        <div className="text-emerald-400 font-bold">{activeGrantUser.tiktokFollowers.toLocaleString()}</div>
+                        <div className="text-[10px] text-slate-400">Xu Đã Cấp</div>
+                        <div className="text-cyan-300 font-bold">{(activeGrantUser.grantedCoinsTotal || 0).toLocaleString()}</div>
+                      </div>
+                      <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
+                        <div className="text-[10px] text-slate-400">Gói Đã Cấp</div>
+                        <div className="text-purple-300 font-bold">{(activeGrantUser.grantedPackagesTotal || 0)} Gói</div>
                       </div>
                     </div>
 
                     {/* Actions: Edit, Delete, Save */}
-                    <div className="flex items-center gap-2 w-full lg:w-auto justify-end border-t lg:border-t-0 pt-2 lg:pt-0 border-white/5">
+                    <div className="flex items-center gap-2 w-full lg:w-auto justify-end border-t lg:border-t-0 pt-2 lg:pt-0 border-white/5 flex-wrap">
                       <button
                         type="button"
                         onClick={() => {
@@ -1587,6 +1602,61 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </div>
 
                   </div>
+
+                  {/* MASTER VIP PERMISSION BANNER & TOGGLE BUTTON */}
+                  <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                    activeGrantUser.hasAllPermissions
+                      ? 'bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-orange-500/15 border-amber-500/40'
+                      : 'bg-slate-900/60 border-white/5'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 ${
+                        activeGrantUser.hasAllPermissions
+                          ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                          : 'bg-slate-800 border border-white/10 text-slate-400'
+                      }`}>
+                        👑
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-white flex items-center gap-2">
+                          <span>ĐẶC CÁCH TOÀN QUYỀN HỆ THỐNG</span>
+                          {activeGrantUser.hasAllPermissions && (
+                            <span className="text-[9px] font-mono px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                              ĐANG BẬT
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400">
+                          {activeGrantUser.hasAllPermissions
+                            ? 'Tài khoản được miễn trừ kiểm duyệt, không bao giờ bị khóa, làm mọi nhiệm vụ & chiến dịch không giới hạn.'
+                            : 'Cấp quyền đặc cách tối cao cho tài khoản này để thao tác toàn quyền không bị giới hạn hoặc khóa.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextState = !activeGrantUser.hasAllPermissions;
+                        adminGrantAllPermissions(activeGrantUser.id, nextState);
+                        setGrantSuccessNotice(
+                          nextState
+                            ? `👑 Đã cấp TOÀN QUYỀN HỆ THỐNG cho ${activeGrantUser.name}!`
+                            : `Đã thu hồi đặc quyền của ${activeGrantUser.name}!`
+                        );
+                        setTimeout(() => setGrantSuccessNotice(null), 3500);
+                      }}
+                      className={`px-4 py-2.5 rounded-xl font-black text-xs font-mono transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg ${
+                        activeGrantUser.hasAllPermissions
+                          ? 'bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white'
+                          : 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:scale-105 text-black'
+                      }`}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>{activeGrantUser.hasAllPermissions ? 'Thu Hồi Quyền Đặc Cách' : '👑 CẤP TOÀN QUYỀN HỆ THỐNG'}</span>
+                    </button>
+                  </div>
+
                 </div>
               )}
             </div>
@@ -1618,7 +1688,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   </div>
 
                   {/* Quick grant presets */}
-                  <div className="grid grid-cols-4 gap-1.5 text-[11px] font-mono">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 text-[11px] font-mono">
                     <button
                       onClick={() => {
                         adminAdjustUserCoins(activeGrantUser.id, 10000);
@@ -1651,6 +1721,16 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </button>
                     <button
                       onClick={() => {
+                        adminAdjustUserCoins(activeGrantUser.id, 500000);
+                        setGrantSuccessNotice(`Đã cộng +500,000 Xu cho ${activeGrantUser.name}!`);
+                        setTimeout(() => setGrantSuccessNotice(null), 3000);
+                      }}
+                      className="py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-bold border border-amber-500/30 transition-all"
+                    >
+                      +500k
+                    </button>
+                    <button
+                      onClick={() => {
                         adminAdjustUserCoins(activeGrantUser.id, 1000000);
                         setGrantSuccessNotice(`Đã cộng +1,000,000 Xu cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
@@ -1658,6 +1738,16 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       className="py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40 transition-all"
                     >
                       +1M
+                    </button>
+                    <button
+                      onClick={() => {
+                        adminAdjustUserCoins(activeGrantUser.id, 5000000);
+                        setGrantSuccessNotice(`Đã cộng +5,000,000 Xu cho ${activeGrantUser.name}!`);
+                        setTimeout(() => setGrantSuccessNotice(null), 3000);
+                      }}
+                      className="py-1.5 rounded-lg bg-gradient-to-r from-amber-500/30 to-yellow-500/30 hover:bg-amber-500/40 text-yellow-300 font-black border border-amber-400/50 transition-all"
+                    >
+                      +5M
                     </button>
                   </div>
 
@@ -2523,13 +2613,14 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             <table className="w-full text-left text-xs">
               <thead className="bg-white/5 text-slate-400 font-mono uppercase text-[10px]">
                 <tr>
-                  <th className="p-3">Họ Tên / Tài Khoản Gmail</th>
+                  <th className="p-3">Tài Khoản Gốc (Google / Gmail)</th>
                   <th className="p-3">Hạng VIP</th>
-                  <th className="p-3">Kênh TikTok & Follow</th>
-                  <th className="p-3">Số Dư (Xu)</th>
-                  <th className="p-3">Gói Đã Mua / Ký Quỹ</th>
+                  <th className="p-3">Kênh TikTok Thực Thi</th>
+                  <th className="p-3">Nguồn Đăng Ký &amp; Nhiệm Vụ</th>
+                  <th className="p-3">Số Dư Xu / Đã Cấp</th>
+                  <th className="p-3">Gói Dịch Vụ</th>
                   <th className="p-3">Trạng Thái</th>
-                  <th className="p-3 text-right">Cấp Quyền & Thao Tác</th>
+                  <th className="p-3 text-right">Cấp Quyền &amp; Thao Tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-slate-300">
@@ -2546,8 +2637,13 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                           className="w-8 h-8 rounded-full border border-purple-500/30 object-cover group-hover:ring-2 group-hover:ring-purple-400" 
                         />
                         <div>
-                          <div className="font-bold text-white text-xs group-hover:text-purple-300 flex items-center gap-1.5">
+                          <div className="font-bold text-white text-xs group-hover:text-purple-300 flex items-center gap-1.5 flex-wrap">
                             <span>{u.name}</span>
+                            {u.hasAllPermissions && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono font-black">
+                                👑 VIP
+                              </span>
+                            )}
                             <Eye className="w-3 h-3 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                           <div className="text-[11px] text-cyan-400 font-mono underline decoration-cyan-500/40">{u.email}</div>
@@ -2569,16 +2665,43 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       </button>
                     </td>
                     <td className="p-3 font-mono">
-                      <div className="text-white font-semibold">{u.tiktokConnected}</div>
+                      <div className="text-white font-semibold">{u.tiktokConnected || '@chưa_kết_nối'}</div>
                       <div className="text-[11px] text-emerald-400 font-bold">
-                        {u.tiktokFollowers.toLocaleString()} Follow
+                        {(u.tiktokFollowers || 0).toLocaleString()} Follow
                       </div>
                     </td>
-                    <td className="p-3 font-mono font-bold text-amber-400">
-                      {u.coinsBalance.toLocaleString()} Xu
+                    <td className="p-3 font-mono text-[11px]">
+                      <div className="flex items-center gap-1 text-slate-300">
+                        {u.registrationSource === 'link' || u.referredBy ? (
+                          <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">
+                            🔗 Qua link ({u.referredBy || 'Ref'})
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.2 rounded bg-slate-700/50 text-slate-400 border border-white/5 text-[9px]">
+                            🌐 Trực tiếp
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-[10px]">
+                        {(u.completedTasksCount || 0) > 0 || u.firstTaskCompleted ? (
+                          <span className="text-emerald-400 font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Đã làm ({u.completedTasksCount || 1} NV)
+                          </span>
+                        ) : (
+                          <span className="text-amber-400 font-bold flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Chưa làm NV
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3 font-mono">
+                      <div className="font-bold text-amber-400">{u.coinsBalance.toLocaleString()} Xu</div>
+                      {u.grantedCoinsTotal ? (
+                        <div className="text-[10px] text-cyan-400">Cấp: +{u.grantedCoinsTotal.toLocaleString()}</div>
+                      ) : null}
                     </td>
                     <td className="p-3 font-mono text-slate-300">
-                      <span className="text-purple-300 font-bold">{u.purchasedPackagesCount || 1} Gói</span>
+                      <span className="text-purple-300 font-bold">{u.purchasedPackagesCount || (u.orders?.length) || 1} Gói</span>
                       <div className="text-[10px] text-slate-400">{u.escrowLockedAmountVND || '0đ'} Ký quỹ</div>
                     </td>
                     <td className="p-3">

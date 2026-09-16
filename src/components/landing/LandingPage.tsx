@@ -123,11 +123,11 @@ export const LandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#07090E] text-slate-100 font-sans selection:bg-rose-500 selection:text-white overflow-x-hidden">
+    <div className="min-h-[100dvh] max-w-full bg-[#07090E] text-slate-100 font-sans selection:bg-rose-500 selection:text-white overflow-x-hidden">
       
       {/* 1. LUXURY STICKY NAVBAR */}
-      <header className="sticky top-0 z-50 w-full bg-[#07090E]/90 backdrop-blur-2xl border-b border-white/10 transition-all shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+      <header className="sticky top-0 z-50 w-full pt-[env(safe-area-inset-top,0px)] bg-[#07090E]/90 backdrop-blur-2xl border-b border-white/10 transition-all shadow-2xl">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           
           {/* Brand Logo with Glowing Neon Aura */}
           <BrandLogo 

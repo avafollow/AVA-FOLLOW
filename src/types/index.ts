@@ -545,9 +545,23 @@ export interface AdminUserManagementItem {
   purchasedPackagesCount: number;
   escrowLockedAmountVND: string;
   status: 'active' | 'banned';
+  hasAllPermissions?: boolean;        // Toàn quyền hệ thống, không bao giờ bị khóa, làm mọi nhiệm vụ không giới hạn
+  isWhitelisted?: boolean;           // Tài khoản đặc cách VIP từ Admin
+  grantedCoinsTotal?: number;        // Tổng số Xu đã được Admin cấp riêng
+  grantedPackagesTotal?: number;     // Tổng số gói dịch vụ Admin đã cấp riêng
+  grantedByAdminAt?: string;         // Thời điểm Admin cấp quyền
+  canRunAnyCampaign?: boolean;       // Quyền tạo và chạy bất kỳ chiến dịch nào
+  canFollowCrossUnrestricted?: boolean; // Quyền lướt follow chéo không giới hạn
   kycStatus: KycStatus;
   kycData?: KycVerificationData;
   joinedDate: string;
+  registrationSource?: 'direct' | 'link';
+  referredBy?: string;
+  firstTaskCompleted?: boolean;
+  facebookConnected?: string;
+  isFacebookVerified?: boolean;
+  youtubeConnected?: string;
+  isYoutubeVerified?: boolean;
   orders?: ServiceOrder[];
   referralCount?: number;
   referralEarningsVND?: string;
@@ -600,7 +614,7 @@ export interface LivestreamTaskItem {
   dailyTierLevel?: number;       // Mức cấp độ thử thách (1, 2, 3, 4, 5, 6, 7)
 }
 
-// 24 Gói dịch vụ Booking & Xây kênh
+// 24+ Gói dịch vụ Booking & Xây kênh
 export interface GrowthServiceItem {
   id: string;
   title: string;
@@ -613,6 +627,11 @@ export interface GrowthServiceItem {
   unit: string;
   description: string;
   features: string[];
+  benefits?: string[];            // Danh sách đặc quyền & quyền lợi VIP khi kích hoạt gói
+  retentionRate?: string;         // Tỷ lệ giữ chân thuật toán (vd: "95% - 98% Retention Rate")
+  bonusGifts?: string[];          // Quà tặng đính kèm (vd: Tặng 100% Lượt Xem Tự Nhiên)
+  weeklySlotBonus?: number;       // Số slot nhiệm vụ tuần được cộng thêm (+2, +4, +6)
+  watchDurationNote?: string;     // Ghi chú thời lượng xem (40s-60s hoặc Tự nhiên)
   estimatedDelivery: string;
   badge?: string;
   rating: number;
@@ -1020,6 +1039,16 @@ export interface UserProfileWallet {
   selfiePhotoUrl?: string;
   id?: string;
   status?: 'active' | 'banned';
+  hasAllPermissions?: boolean;        // Toàn quyền hệ thống, không bao giờ bị khóa, làm mọi nhiệm vụ không giới hạn
+  isWhitelisted?: boolean;           // Tài khoản đặc cách VIP từ Admin
+  grantedCoinsTotal?: number;        // Tổng số Xu đã được Admin cấp riêng
+  grantedPackagesTotal?: number;     // Tổng số gói dịch vụ Admin đã cấp riêng
+  grantedByAdminAt?: string;         // Thời điểm Admin cấp quyền
+  canRunAnyCampaign?: boolean;       // Quyền tạo và chạy bất kỳ chiến dịch nào
+  canFollowCrossUnrestricted?: boolean; // Quyền lướt follow chéo không giới hạn
+  registrationSource?: 'direct' | 'link';
+  referredBy?: string;
+  firstTaskCompleted?: boolean;
   purchasedPackagesCount?: number;
   bankInfo?: BankAccountInfo;
   transactions: TransactionRecord[];

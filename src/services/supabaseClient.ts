@@ -464,3 +464,61 @@ export async function syncMasterSnapshotToSupabase(snapshot: {
   }
 }
 
+/**
+ * 12. TẢI TOÀN BỘ MASTER SNAPSHOT TỪ CLOUD (ĐỒNG BỘ ĐA THIẾT BỊ MÁY TÍNH & ĐIỆN THOẠI)
+ */
+export async function fetchMasterSnapshotFromSupabase(): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const { data, error } = await supabaseAdmin.storage
+      .from('ava_data_sync')
+      .download('system/master_snapshot.json');
+
+    if (error || !data) {
+      return { success: false, error: error?.message || 'Chưa có bản sao lưu trên Cloud' };
+    }
+
+    const text = await data.text();
+    const parsed = JSON.parse(text);
+    return { success: true, data: parsed };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * 13. TẢI HỒ SƠ NGƯỜI DÙNG CỤ THỂ TỪ SUPABASE CLOUD THEO EMAIL
+ */
+export async function fetchUserProfileFromSupabase(email: string): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    if (!email) return { success: false, error: 'Email trống' };
+    const cleanEmail = email.toLowerCase().replace(/[^a-zA-Z0-9_.-]/g, '_');
+
+    // 1. Tải từ Storage
+    const { data: storageData, error: storageErr } = await supabaseAdmin.storage
+      .from('ava_data_sync')
+      .download(`profiles/${cleanEmail}.json`);
+
+    if (storageData) {
+      const text = await storageData.text();
+      const parsed = JSON.parse(text);
+      return { success: true, data: parsed };
+    }
+
+    // 2. Thử truy vấn bảng user_profiles Postgres
+    const { data: dbData, error: dbError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .single();
+
+    if (dbData) {
+      return { success: true, data: dbData };
+    }
+
+    return { success: false, error: storageErr?.message || dbError?.message || 'Không tìm thấy hồ sơ trên Cloud' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+

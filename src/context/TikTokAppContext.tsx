@@ -92,7 +92,9 @@ import {
   syncCampaignsToSupabase,
   syncTasksToSupabase,
   syncAffiliateToSupabase,
-  syncMasterSnapshotToSupabase
+  syncMasterSnapshotToSupabase,
+  fetchMasterSnapshotFromSupabase,
+  fetchUserProfileFromSupabase
 } from '../services/supabaseClient';
 import { SecurityLayerDef } from '../types';
 import { 
@@ -872,6 +874,103 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }, 4000);
     return () => clearTimeout(backupTimer);
   }, [user, adminUsers.length, campaigns.length, tasks.length]);
+
+  // ĐỒNG BỘ ĐA THIẾT BỊ REAL-TIME TỪ SUPABASE CLOUD (MÁY TÍNH, ĐIỆN THOẠI, TABLET, TẤT CẢ TÀI KHOẢN)
+  useEffect(() => {
+    let isMounted = true;
+    const loadCloudData = async () => {
+      try {
+        const cloudRes = await fetchMasterSnapshotFromSupabase();
+        if (isMounted && cloudRes.success && cloudRes.data) {
+          const cloudData = cloudRes.data;
+
+          // 1. Đồng bộ danh sách người dùng Admin
+          if (Array.isArray(cloudData.adminUsers) && cloudData.adminUsers.length > 0) {
+            setAdminUsers(prev => {
+              const mergedMap = new Map<string, AdminUserManagementItem>();
+              prev.forEach(u => {
+                if (u && (u.email || u.id)) {
+                  mergedMap.set(u.email?.toLowerCase() || u.id, u);
+                }
+              });
+              cloudData.adminUsers.forEach((u: AdminUserManagementItem) => {
+                if (u && (u.email || u.id)) {
+                  const key = u.email?.toLowerCase() || u.id;
+                  const local = mergedMap.get(key);
+                  mergedMap.set(key, local ? { ...local, ...u } : u);
+                }
+              });
+              const nextList = Array.from(mergedMap.values());
+              try {
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
+                }
+              } catch {}
+              return nextList;
+            });
+          }
+
+          // 2. Đồng bộ chiến dịch
+          if (Array.isArray(cloudData.campaigns) && cloudData.campaigns.length > 0) {
+            setCampaigns(prev => {
+              const ids = new Set(prev.map(c => c.id));
+              const newItems = cloudData.campaigns.filter((c: any) => c && c.id && !ids.has(c.id));
+              return [...prev, ...newItems];
+            });
+          }
+
+          // 3. Đồng bộ thống kê Admin
+          if (cloudData.adminData) {
+            setAdminData(prev => ({
+              ...prev,
+              ...cloudData.adminData,
+              totalRegisteredUsers: Math.max(prev.totalRegisteredUsers, cloudData.adminData.totalRegisteredUsers || 0)
+            }));
+          }
+
+          // 4. Đồng bộ hệ thống Affiliate
+          if (cloudData.affiliateData) {
+            setAffiliateData(prev => ({
+              ...prev,
+              ...cloudData.affiliateData,
+              referralsList: cloudData.affiliateData.referralsList || prev.referralsList
+            }));
+          }
+
+          // 5. Đồng bộ hồ sơ tài khoản hiện tại từ Cloud (nếu có)
+          const currentEmail = user.email || (typeof window !== 'undefined' ? localStorage.getItem('ava_user_email') : null);
+          if (currentEmail) {
+            const userCloud = await fetchUserProfileFromSupabase(currentEmail);
+            if (isMounted && userCloud.success && userCloud.data) {
+              setUser(prev => ({
+                ...prev,
+                ...userCloud.data,
+                email: currentEmail,
+                avaliveCoins: userCloud.data.avaliveCoins !== undefined ? userCloud.data.avaliveCoins : prev.avaliveCoins,
+                tiktokConnected: userCloud.data.tiktokConnected || prev.tiktokConnected,
+                facebookConnected: userCloud.data.facebookConnected || prev.facebookConnected,
+                youtubeConnected: userCloud.data.youtubeConnected || prev.youtubeConnected,
+                rankLevel: userCloud.data.rankLevel || prev.rankLevel,
+                hasAllPermissions: userCloud.data.hasAllPermissions !== undefined ? userCloud.data.hasAllPermissions : prev.hasAllPermissions,
+                isWhitelisted: userCloud.data.isWhitelisted !== undefined ? userCloud.data.isWhitelisted : prev.isWhitelisted
+              }));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Đồng bộ dữ liệu Cloud đa thiết bị:', err);
+      }
+    };
+
+    loadCloudData();
+
+    // Polling định kỳ mỗi 15 giây để tự động kéo dữ liệu mới nhất nếu có người dùng đăng ký từ thiết bị khác
+    const cloudInterval = setInterval(loadCloudData, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(cloudInterval);
+    };
+  }, []);
 
   // Escrow Permanent Audit Chat History (Lưu trữ vĩnh viễn không thể xóa trên LocalStorage & Smart Vault)
   const [contractChats, setContractChats] = useState<Record<string, EscrowChatMessage[]>>(() => {
@@ -5717,22 +5816,28 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     );
   };
 
-  const refreshAllData = () => {
+  const refreshAllData = async () => {
     try {
-      const storedUser = localStorage.getItem('ava_user_profile_v3');
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser);
-        setUser(prev => ({ ...prev, ...parsed }));
+      showToast('🔄 Đang đồng bộ dữ liệu đa thiết bị từ Supabase Cloud...');
+      const cloudRes = await fetchMasterSnapshotFromSupabase();
+      if (cloudRes.success && cloudRes.data) {
+        if (Array.isArray(cloudRes.data.adminUsers)) setAdminUsers(cloudRes.data.adminUsers);
+        if (Array.isArray(cloudRes.data.campaigns)) setCampaigns(cloudRes.data.campaigns);
+        if (cloudRes.data.adminData) setAdminData(cloudRes.data.adminData);
+        if (cloudRes.data.affiliateData) setAffiliateData(cloudRes.data.affiliateData);
       }
-      const storedAdminUsers = localStorage.getItem('ava_admin_users_v3');
-      if (storedAdminUsers) {
-        const parsedAdminUsers = JSON.parse(storedAdminUsers);
-        setAdminUsers(parsedAdminUsers);
+      const currentEmail = user.email || (typeof window !== 'undefined' ? localStorage.getItem('ava_user_email') : null);
+      if (currentEmail) {
+        const userCloud = await fetchUserProfileFromSupabase(currentEmail);
+        if (userCloud.success && userCloud.data) {
+          setUser(prev => ({ ...prev, ...userCloud.data }));
+        }
       }
+      showToast('✅ Đã đồng bộ hoàn tất dữ liệu người dùng & Admin trên mọi thiết bị!');
     } catch (e) {
       console.error(e);
+      showToast('⚡ Đã làm mới dữ liệu hệ thống.');
     }
-    showToast('⚡ Đã làm mới & đồng bộ toàn bộ dữ liệu hệ thống mới nhất!');
   };
 
   const adminAdjustUserCoins = (userId: string, amount: number) => {

@@ -722,6 +722,55 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch {}
   }, [user]);
 
+  // TỰ ĐỒNG BỘ DỮ LIỆU THỜI GIAN THỰC TỪ USER PROFILE VÀO TRANG ADMIN DASHBOARD & DANH SÁCH THÀNH VIÊN
+  useEffect(() => {
+    setAdminUsers(prev => {
+      const userEmail = user.email || 'thienvuaapp@avalive.vn';
+      const userHandle = user.tiktokConnected || user.handle || '@thienvuaapp';
+      const existingIdx = prev.findIndex(u => u.email === userEmail || u.tiktokConnected === userHandle || u.id === (user.id || 'usr_001'));
+
+      const userAdminItem: AdminUserManagementItem = {
+        id: user.id || 'usr_001',
+        name: user.name,
+        handle: user.handle || '@thienvuaapp',
+        avatar: user.avatar || '',
+        email: userEmail,
+        phone: '0988888888',
+        tiktokConnected: userHandle,
+        tiktokFollowers: user.tiktokFollowers || 0,
+        isTikTokVerified: user.isTikTokVerified || false,
+        rankLevel: user.rankLevel || 'Đồng',
+        coinsBalance: user.avaliveCoins,
+        tokenBalance: user.avaliveCoins,
+        completedTasksCount: user.completedTasksCount || 0,
+        createdCampaignsCount: (campaigns || []).length,
+        purchasedPackagesCount: (user.myOrders || []).length,
+        escrowLockedAmountVND: `${(escrowBookings || []).reduce((acc, c) => acc + (parseInt(c.totalEscrowAmount.replace(/\D/g, '')) || 0), 0).toLocaleString()}đ`,
+        status: user.status === 'banned' ? 'banned' : 'active',
+        kycStatus: user.kycStatus || 'unverified',
+        kycData: user.kycData,
+        joinedDate: '2026-09-01',
+        orders: user.myOrders || []
+      };
+
+      if (existingIdx >= 0) {
+        const next = [...prev];
+        next[existingIdx] = { ...next[existingIdx], ...userAdminItem };
+        return next;
+      } else {
+        return [userAdminItem, ...prev];
+      }
+    });
+
+    setAdminData(prev => {
+      return {
+        ...prev,
+        totalRegisteredUsers: Math.max(prev.totalRegisteredUsers || 100, 100),
+        activeCampaignsCount: (campaigns || []).filter(c => c.status === 'running' || c.status === 'pending').length
+      };
+    });
+  }, [user.avaliveCoins, user.rankLevel, user.kycStatus, user.tiktokConnected, user.tiktokFollowers, user.completedTasksCount, user.name, user.email, user.transactions, user.myOrders, campaigns.length, escrowBookings.length]);
+
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -1965,17 +2014,17 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         totalSlots: pkg.targetQuantity,
         completedSlots: 0,
         remainingSlots: pkg.targetQuantity,
-        requiresWatch: true, // Bắt buộc ở lại xem video 40s
-        guide: instructions || `Vào kênh thực hiện ${pkg.unit} và ở lại xem video tối thiểu 40s để nhận Xu thưởng.`,
-        requirements: ['Tài khoản TikTok thật', 'Ở lại xem video tối thiểu 40s', 'Giữ tương tác tối thiểu 30 ngày'],
+        requiresWatch: false, // Tặng kèm view tự nhiên khi làm nhiệm vụ
+        guide: instructions || `Vào kênh thực hiện ${pkg.unit} để nhận Xu thưởng.`,
+        requirements: ['Tài khoản TikTok thật', 'Giữ tương tác tối thiểu 30 ngày'],
         status: 'open',
         createdAt: 'Vừa xong'
       };
 
-      // 🎁 CHÍNH SÁCH MUA 1 TẶNG 1: Tặng thêm 100% lượt LƯỢT XEM VIDEO (VIEW 40S) cho 100 người mua đầu tiên!
+      // 🎁 CHÍNH SÁCH MUA 1 TẶNG 1: Tặng thêm 100% lượt LƯỢT XEM VIDEO TỰ NHIÊN cho 100 người mua đầu tiên!
       const bonusViewTask: TikTokTaskItem = {
         id: `task_bonus_view_${Date.now()}`,
-        title: `🎁 [MUA 1 TẶNG 1] Tặng ${pkg.targetQuantity.toLocaleString()} Lượt Xem 40s cho ${cleanChan}`,
+        title: `🎁 [MUA 1 TẶNG 1] Tặng ${pkg.targetQuantity.toLocaleString()} Lượt Xem Video Tự Nhiên cho ${cleanChan}`,
         type: 'watch',
         rewardCoins: 200,
         rewardVND: `200đ`,
@@ -1986,9 +2035,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         totalSlots: pkg.targetQuantity,
         completedSlots: 0,
         remainingSlots: pkg.targetQuantity,
-        requiresWatch: true,
-        guide: `Xem trọn vẹn video tối thiểu 40 giây trên FYP. Thưởng +200 Xu vào ví tài khoản của bạn.`,
-        requirements: ['Xem đủ 40 giây', 'Không tắt màn hình'],
+        requiresWatch: false,
+        guide: `Lướt xem video tự nhiên trên FYP. Thưởng +200 Xu vào ví tài khoản của bạn.`,
+        requirements: ['Xem video tự nhiên', 'Tài khoản hoạt động thật'],
         status: 'open',
         createdAt: 'Vừa xong',
         isBoosted: true
@@ -3795,11 +3844,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const adminApproveKyc = (userId: string) => {
-    setKycRequests(prev => prev.map(r => r.userId === userId ? { ...r, status: 'verified', reviewedAt: 'Vừa xong' } : r));
-    setAdminUsers(prev => prev.map(u => u.id === userId ? { ...u, kycStatus: 'verified' } : u));
+    setKycRequests(prev => prev.map(r => (r.userId === userId || r.userEmail === user.email) ? { ...r, status: 'verified', reviewedAt: 'Vừa xong' } : r));
+    setAdminUsers(prev => prev.map(u => (u.id === userId || u.email === user.email) ? { ...u, kycStatus: 'verified' } : u));
     
-    // Nếu là user hiện tại
-    if (userId === 'usr_001' || user.email === 'thienvuaapp@gmail.com') {
+    // Đồng bộ tức thì với user hiện tại
+    if (userId === 'usr_001' || userId === user.id || user.email) {
       setUser(prev => ({ ...prev, kycStatus: 'verified' }));
     }
 
@@ -3807,10 +3856,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const adminRejectKyc = (userId: string, reason: string) => {
-    setKycRequests(prev => prev.map(r => r.userId === userId ? { ...r, status: 'rejected', rejectionReason: reason, reviewedAt: 'Vừa xong' } : r));
-    setAdminUsers(prev => prev.map(u => u.id === userId ? { ...u, kycStatus: 'rejected' } : u));
+    setKycRequests(prev => prev.map(r => (r.userId === userId || r.userEmail === user.email) ? { ...r, status: 'rejected', rejectionReason: reason, reviewedAt: 'Vừa xong' } : r));
+    setAdminUsers(prev => prev.map(u => (u.id === userId || u.email === user.email) ? { ...u, kycStatus: 'rejected' } : u));
 
-    if (userId === 'usr_001' || user.email === 'thienvuaapp@gmail.com') {
+    if (userId === 'usr_001' || userId === user.id || user.email) {
       setUser(prev => ({ ...prev, kycStatus: 'rejected' }));
     }
 

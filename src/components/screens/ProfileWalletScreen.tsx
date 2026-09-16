@@ -162,7 +162,7 @@ export const ProfileWalletScreen: React.FC<{
     setKycStatus('pending');
 
     submitKyc({
-      userId: 'usr_001',
+      userId: user.id || 'usr_001',
       userEmail: kycEmail,
       fullName: kycFullName.toUpperCase(),
       idNumber: kycIdNumber.trim(),

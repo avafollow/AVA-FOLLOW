@@ -422,7 +422,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         const liveSecs = currentItem.targetMinutes ? Math.round(currentItem.targetMinutes * 60) : 180;
         setTimeLeft(liveSecs);
       } else if (currentItem.type === 'watch' || currentItem.requiresWatch === true) {
-        setTimeLeft(40); // Bắt buộc xem trung bình 40 giây
+        setTimeLeft(15); // Lướt xem video 15s tự nhiên
       } else {
         setTimeLeft(0);
       }
@@ -523,7 +523,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             watch: true
           }
         }));
-        showToast('🎉 Đã xem đủ 40s (+200 Xu vào ví)! Bạn có thể tiếp tục xem trọn vẹn video hoặc bấm nút để chuyển tiếp.');
+        showToast('🎉 Đã xem đủ 15s (+200 Xu vào ví)! Bạn có thể tiếp tục xem trọn vẹn video hoặc bấm nút để chuyển tiếp.');
       } else if (currentItem.kind === 'livestream') {
         // Nhận thưởng xem live stream thật (30s, 1p, 3p...)
         const reward = claimTaskAction(currentItem.id, 'watch');
@@ -1882,7 +1882,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   )
                 ) : (
                   <span className="text-emerald-400 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> {isLiveItem ? 'Đã xem đủ phiên live (+Xu vào ví)!' : 'Đã đạt 40s (+200 Xu vào ví)!'}
+                    <CheckCircle2 className="h-3.5 w-3.5" /> {isLiveItem ? 'Đã xem đủ phiên live (+Xu vào ví)!' : 'Đã đạt 15s (+200 Xu vào ví)!'}
                   </span>
                 )
               ) : (

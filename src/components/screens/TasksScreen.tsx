@@ -113,11 +113,11 @@ export const TasksScreen: React.FC<{
 
   // Inline Quick Edit & Switch Account State (Thu gọn thanh trạng thái kết nối TikTok, Facebook, YouTube)
   const [editingTikTok, setEditingTikTok] = useState<boolean>(false);
-  const [tempTikTokHandle, setTempTikTokHandle] = useState<string>(user.tiktokConnected || "@thienvuaapp_official");
+  const [tempTikTokHandle, setTempTikTokHandle] = useState<string>(user.tiktokConnected || "");
   const [editingFacebook, setEditingFacebook] = useState<boolean>(false);
-  const [tempFacebookUrl, setTempFacebookUrl] = useState<string>(user.facebookConnected || "fb.com/thienvuaapp");
+  const [tempFacebookUrl, setTempFacebookUrl] = useState<string>(user.facebookConnected || "");
   const [editingYoutube, setEditingYoutube] = useState<boolean>(false);
-  const [tempYoutubeUrl, setTempYoutubeUrl] = useState<string>(user.youtubeConnected || "@thienvuaapp_yt");
+  const [tempYoutubeUrl, setTempYoutubeUrl] = useState<string>(user.youtubeConnected || "");
 
   // Kiểm tra hoàn thành toàn bộ Nhiệm Vụ Ngày để mở khóa Live Stream, Lướt Video & Follow Chéo
   const dailyMissions = userMissions?.filter(m => m.category === 'daily') || [];
@@ -507,14 +507,14 @@ export const TasksScreen: React.FC<{
       {/* 2. THANH KẾT NỐI TÀI KHOẢN (TIKTOK, FACEBOOK & YOUTUBE) MỞ TRỰC TIẾP KÊNH THẬT */}
       {/* ========================================================================= */}
       {(() => {
-        const cleanTikTokHandle = (user.tiktokConnected || 'thienvuaapp').replace(/^@+/, '').replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, '').split('?')[0].split('/')[0];
-        const tiktokChannelUrl = `https://www.tiktok.com/@${cleanTikTokHandle}`;
+        const cleanTikTokHandle = (user.tiktokConnected || '').replace(/^@+/, '').replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, '').split('?')[0].split('/')[0];
+        const tiktokChannelUrl = user.tiktokProfileUrl || `https://www.tiktok.com/@${cleanTikTokHandle || 'user'}`;
 
-        const cleanFacebook = (user.facebookConnected || 'thienvuaapp').replace(/^(https?:\/\/)?(www\.)?facebook\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
-        const facebookUrl = user.facebookConnected?.startsWith('http') ? user.facebookConnected : `https://www.facebook.com/${cleanFacebook}`;
+        const cleanFacebook = (user.facebookConnected || '').replace(/^(https?:\/\/)?(www\.)?facebook\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
+        const facebookUrl = user.facebookProfileUrl || (user.facebookConnected?.startsWith('http') ? user.facebookConnected : `https://www.facebook.com/${cleanFacebook || 'user'}`);
 
-        const cleanYoutube = (user.youtubeConnected || '@thienvuaapp_yt').replace(/^(https?:\/\/)?(www\.)?youtube\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
-        const youtubeUrl = user.youtubeProfileUrl || `https://www.youtube.com/@${cleanYoutube}`;
+        const cleanYoutube = (user.youtubeConnected || '').replace(/^(https?:\/\/)?(www\.)?youtube\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
+        const youtubeUrl = user.youtubeProfileUrl || `https://www.youtube.com/@${cleanYoutube || 'user'}`;
 
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -585,7 +585,7 @@ export const TasksScreen: React.FC<{
                       </a>
                       <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
                       <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
-                        ({(user.tiktokFollowers || 248500).toLocaleString()} fl)
+                        ({(user.tiktokFollowers || 0).toLocaleString()} fl)
                       </span>
                       {user.kycStatus !== 'verified' && (
                         <button
@@ -793,16 +793,16 @@ export const TasksScreen: React.FC<{
                         className="text-xs font-black text-white hover:text-red-400 transition-colors truncate max-w-[110px] sm:max-w-[150px] cursor-pointer"
                         title={`Mở ${youtubeUrl}`}
                       >
-                        {user.youtubeConnected || "@thienvuaapp_yt"}
+                        {user.youtubeConnected || "Chưa kết nối"}
                       </a>
                       <CheckCircle2 className="w-3 h-3 text-red-400 shrink-0" />
                       <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
-                        ({(user.youtubeSubscribers || 12500).toLocaleString()} subs)
+                        ({(user.youtubeSubscribers || 0).toLocaleString()} subs)
                       </span>
                       {user.kycStatus !== 'verified' && (
                         <button
                           onClick={() => {
-                            setTempYoutubeUrl(user.youtubeConnected || "@thienvuaapp_yt");
+                            setTempYoutubeUrl(user.youtubeConnected || "");
                             setEditingYoutube(true);
                           }}
                           className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-red-300 transition-colors cursor-pointer"
@@ -819,7 +819,7 @@ export const TasksScreen: React.FC<{
                 {user.kycStatus !== 'verified' ? (
                   <button
                     onClick={() => {
-                      setTempYoutubeUrl(user.youtubeConnected || "@thienvuaapp_yt");
+                      setTempYoutubeUrl(user.youtubeConnected || "");
                       setEditingYoutube(true);
                     }}
                     className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10"

@@ -2214,7 +2214,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     const newCoins = user.avaliveCoins + totalCoins + rankUpBonusCoins;
-    const newFollowers = (user.tiktokFollowers || 248500) + rankUpBonusFollowers;
+    const newFollowers = (user.tiktokFollowers || 0) + rankUpBonusFollowers;
 
     const newTx: TransactionRecord = {
       id: `tx_${Date.now()}`,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -64,6 +64,23 @@ export const TikTokConnectModal: React.FC = () => {
   const [ytAvatar, setYtAvatar] = useState<string>(user.youtubeAvatar || user.avatar || '');
   const [isYtEditing, setIsYtEditing] = useState<boolean>(false);
   const [isYtVerifying, setIsYtVerifying] = useState<boolean>(false);
+
+  // Sync state whenever modal opens or user profile changes
+  useEffect(() => {
+    if (isConnectOpen) {
+      setHandle(user.tiktokConnected || '');
+      setTtFollowers(user.tiktokFollowers ? String(user.tiktokFollowers) : '');
+      setTtAvatar(user.tiktokAvatar || user.avatar || '');
+
+      setFbUrl(user.facebookConnected ? (user.facebookConnected.startsWith('http') ? user.facebookConnected : `https://facebook.com/${user.facebookConnected}`) : '');
+      setFbFollowers(user.facebookFollowers ? String(user.facebookFollowers) : '');
+      setFbAvatar(user.facebookAvatar || user.avatar || '');
+
+      setYtUrl(user.youtubeConnected ? (user.youtubeConnected.startsWith('http') ? user.youtubeConnected : `https://youtube.com/@${user.youtubeConnected.replace(/^@/, '')}`) : '');
+      setYtSubscribers(user.youtubeSubscribers ? String(user.youtubeSubscribers) : '');
+      setYtAvatar(user.youtubeAvatar || user.avatar || '');
+    }
+  }, [isConnectOpen, user]);
 
   if (!isConnectOpen) return null;
 
@@ -407,7 +424,7 @@ export const TikTokConnectModal: React.FC = () => {
                           <span className="font-bold text-white text-base font-display">
                             {user.tiktokConnected}
                           </span>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold border border-emerald-500/30 flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold border border-emerald-500/30 flex items-center gap-1 whitespace-nowrap">
                             <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                             Đã Xác Minh Chính Chủ
                           </span>
@@ -649,7 +666,7 @@ export const TikTokConnectModal: React.FC = () => {
                           <span className="font-bold text-white text-base font-display">
                             facebook.com/{cleanFb}
                           </span>
-                          <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono text-[10px] font-bold border border-blue-500/30 flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono text-[10px] font-bold border border-blue-500/30 flex items-center gap-1 whitespace-nowrap">
                             <CheckCircle2 className="w-3 h-3 text-blue-400" />
                             Đã Xác Minh Chính Chủ
                           </span>
@@ -846,7 +863,7 @@ export const TikTokConnectModal: React.FC = () => {
                           <span className="font-bold text-white text-base font-display">
                             {user.youtubeConnected}
                           </span>
-                          <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-mono text-[10px] font-bold border border-red-500/30 flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-mono text-[10px] font-bold border border-red-500/30 flex items-center gap-1 whitespace-nowrap">
                             <CheckCircle2 className="w-3 h-3 text-red-400" />
                             Đã Xác Minh Google / YouTube
                           </span>

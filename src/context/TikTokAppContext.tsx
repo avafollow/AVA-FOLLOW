@@ -5819,35 +5819,63 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // ==============================================================================
 
   const isCurrentUser = (targetIdOrEmail: string, targetUser?: AdminUserManagementItem) => {
-    const cleanTarget = targetIdOrEmail.toLowerCase().replace(/^@/, '');
-    const userEmail = (user.email || '').toLowerCase();
-    const userHandle = (user.handle || '').toLowerCase().replace(/^@/, '');
-    const userTiktok = (user.tiktokConnected || '').toLowerCase().replace(/^@/, '');
+    if (!targetIdOrEmail) return false;
+    const cleanTarget = targetIdOrEmail.toLowerCase().trim().replace(/^@/, '');
+    const userEmail = (user.email || '').toLowerCase().trim();
+    const userHandle = (user.handle || '').toLowerCase().trim().replace(/^@/, '');
+    const userTiktok = (user.tiktokConnected || '').toLowerCase().trim().replace(/^@/, '');
+    const userId = (user.id || '').toLowerCase().trim();
     
+    if (cleanTarget === userEmail || cleanTarget === userHandle || cleanTarget === userTiktok || cleanTarget === userId) return true;
+
     if (targetUser) {
-      const tEmail = (targetUser.email || '').toLowerCase();
-      const tHandle = (targetUser.handle || '').toLowerCase().replace(/^@/, '');
+      const tEmail = (targetUser.email || '').toLowerCase().trim();
+      const tHandle = (targetUser.handle || '').toLowerCase().trim().replace(/^@/, '');
+      const tTiktok = (targetUser.tiktokConnected || '').toLowerCase().trim().replace(/^@/, '');
+      const tId = (targetUser.id || '').toLowerCase().trim();
       if (tEmail && (tEmail === userEmail || tEmail === userHandle)) return true;
       if (tHandle && (tHandle === userHandle || tHandle === userTiktok)) return true;
+      if (tTiktok && (tTiktok === userTiktok || tTiktok === userHandle)) return true;
+      if (tId && tId === userId) return true;
     }
-    return cleanTarget === userEmail || cleanTarget === userHandle || cleanTarget === userTiktok || targetIdOrEmail === user.id;
+    return false;
   };
 
   const adminToggleUserStatus = (userId: string) => {
-    let matched = false;
-    setAdminUsers(prev => prev.map(u => {
-      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
-        const nextStatus = u.status === 'active' ? 'banned' : 'active';
-        if (isCurrentUser(userId, u)) matched = true;
-        return { ...u, status: nextStatus };
-      }
-      return u;
-    }));
-    if (matched) {
-      setUser(prev => ({
-        ...prev,
-        status: prev.status === 'active' ? 'banned' : 'active'
-      }));
+    let matchedUser: AdminUserManagementItem | null = null;
+    setAdminUsers(prev => {
+      const nextList = prev.map(u => {
+        if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
+          const nextStatus = u.status === 'active' ? 'banned' : 'active';
+          matchedUser = { ...u, status: nextStatus };
+          return matchedUser;
+        }
+        return u;
+      });
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
+        }
+      } catch {}
+      return nextList;
+    });
+
+    if (isCurrentUser(userId, matchedUser || undefined)) {
+      setUser(prev => {
+        const updated = {
+          ...prev,
+          status: (prev.status === 'active' ? 'banned' : 'active') as 'active' | 'banned'
+        };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_user_profile', JSON.stringify(updated));
+          }
+        } catch {}
+        syncUserProfileToSupabase(updated);
+        return updated;
+      });
+    } else if (matchedUser) {
+      syncUserProfileToSupabase(matchedUser as any);
     }
     showToast('Đã cập nhật trạng thái tài khoản người dùng!');
   };
@@ -5880,7 +5908,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if (matchedUser || isCurrentUser(userId)) {
+    if (isCurrentUser(userId, matchedUser || undefined)) {
       setUser(prev => {
         const updated = {
           ...prev,
@@ -5891,6 +5919,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           status: 'active' as const,
           grantedByAdminAt: nowIso
         };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_user_profile', JSON.stringify(updated));
+          }
+        } catch {}
         syncUserProfileToSupabase(updated);
         return updated;
       });
@@ -5967,7 +6000,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if (matchedUser || isCurrentUser(userId)) {
+    if (isCurrentUser(userId, matchedUser || undefined)) {
       setUser(prev => {
         const newCoins = Math.max(0, prev.avaliveCoins + amount);
         const newGranted = (prev.grantedCoinsTotal || 0) + (amount > 0 ? amount : 0);
@@ -5985,8 +6018,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           avaliveCoins: newCoins,
           grantedCoinsTotal: newGranted,
           coinsValueVND: `${newCoins.toLocaleString()}đ`,
-          transactions: [newTx, ...prev.transactions]
+          transactions: [newTx, ...(prev.transactions || [])]
         };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_user_profile', JSON.stringify(updated));
+          }
+        } catch {}
         syncUserProfileToSupabase(updated);
         return updated;
       });
@@ -6035,7 +6073,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if ((matchedUser || isCurrentUser(userId)) && createdOrder) {
+    if (isCurrentUser(userId, matchedUser || undefined) && createdOrder) {
       setUser(prev => {
         const newTx: TransactionRecord = {
           id: `tx_grant_${Date.now()}`,
@@ -6051,8 +6089,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           purchasedPackagesCount: (prev.purchasedPackagesCount || 0) + 1,
           grantedPackagesTotal: (prev.grantedPackagesTotal || 0) + 1,
           myOrders: [createdOrder!, ...(prev.myOrders || [])],
-          transactions: [newTx, ...prev.transactions]
+          transactions: [newTx, ...(prev.transactions || [])]
         };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_user_profile', JSON.stringify(updated));
+          }
+        } catch {}
         syncUserProfileToSupabase(updated);
         return updated;
       });
@@ -6081,12 +6124,17 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if (matchedUser || isCurrentUser(userId)) {
+    if (isCurrentUser(userId, matchedUser || undefined)) {
       setUser(prev => {
         const updated = {
           ...prev,
           tiktokFollowers: Math.max(0, (prev.tiktokFollowers || 0) + count)
         };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_user_profile', JSON.stringify(updated));
+          }
+        } catch {}
         syncUserProfileToSupabase(updated);
         return updated;
       });
@@ -6115,12 +6163,17 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if (matchedUser || isCurrentUser(userId)) {
+    if (isCurrentUser(userId, matchedUser || undefined)) {
       setUser(prev => {
         const updated = {
           ...prev,
           rankLevel: rank
         };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_user_profile', JSON.stringify(updated));
+          }
+        } catch {}
         syncUserProfileToSupabase(updated);
         return updated;
       });
@@ -6163,28 +6216,47 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const adminUpdateUser = (userId: string, data: Partial<AdminUserManagementItem>) => {
-    let matched = false;
-    setAdminUsers(prev => prev.map(u => {
-      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
-        if (isCurrentUser(userId, u)) matched = true;
-        return { ...u, ...data };
-      }
-      return u;
-    }));
+    let matchedUser: AdminUserManagementItem | null = null;
+    setAdminUsers(prev => {
+      const nextList = prev.map(u => {
+        if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
+          matchedUser = { ...u, ...data };
+          return matchedUser;
+        }
+        return u;
+      });
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
+        }
+      } catch {}
+      return nextList;
+    });
 
-    if (matched || isCurrentUser(userId)) {
-      setUser(prev => ({
-        ...prev,
-        ...(data.name ? { name: data.name } : {}),
-        ...(data.phone ? { phone: data.phone } : {}),
-        ...(data.handle ? { handle: data.handle } : {}),
-        ...(data.tiktokConnected ? { tiktokConnected: data.tiktokConnected } : {}),
-        ...(data.tiktokFollowers !== undefined ? { tiktokFollowers: data.tiktokFollowers } : {}),
-        ...(data.rankLevel ? { rankLevel: data.rankLevel } : {}),
-        ...(data.coinsBalance !== undefined ? { avaliveCoins: data.coinsBalance, coinsValueVND: `${data.coinsBalance.toLocaleString()}đ` } : {}),
-        ...(data.kycStatus ? { kycStatus: data.kycStatus } : {}),
-        ...(data.status ? { status: data.status } : {})
-      }));
+    if (isCurrentUser(userId, matchedUser || undefined)) {
+      setUser(prev => {
+        const updated = {
+          ...prev,
+          ...(data.name ? { name: data.name } : {}),
+          ...(data.phone ? { phone: data.phone } : {}),
+          ...(data.handle ? { handle: data.handle } : {}),
+          ...(data.tiktokConnected ? { tiktokConnected: data.tiktokConnected } : {}),
+          ...(data.tiktokFollowers !== undefined ? { tiktokFollowers: data.tiktokFollowers } : {}),
+          ...(data.rankLevel ? { rankLevel: data.rankLevel } : {}),
+          ...(data.coinsBalance !== undefined ? { avaliveCoins: data.coinsBalance, coinsValueVND: `${data.coinsBalance.toLocaleString()}đ` } : {}),
+          ...(data.kycStatus ? { kycStatus: data.kycStatus } : {}),
+          ...(data.status ? { status: data.status } : {})
+        };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_user_profile', JSON.stringify(updated));
+          }
+        } catch {}
+        syncUserProfileToSupabase(updated);
+        return updated;
+      });
+    } else if (matchedUser) {
+      syncUserProfileToSupabase(matchedUser as any);
     }
 
     showToast('✅ Đã lưu cập nhật thông tin tài khoản!');

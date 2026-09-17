@@ -259,7 +259,7 @@ function AppContent() {
 
   // If AUTHENTICATED: Show Full Dashboard App Inside
   return (
-    <div className={`min-h-[100dvh] max-w-full flex flex-col font-sans transition-colors overflow-x-hidden ${
+    <div className={`h-screen h-[100dvh] max-w-full flex flex-col font-sans transition-colors overflow-hidden ${
       darkMode ? 'bg-[#07090E] text-slate-100' : 'bg-slate-50 text-slate-900'
     }`}>
       {/* Toast Notification */}
@@ -285,7 +285,7 @@ function AppContent() {
       />
 
       {/* Main Container */}
-      <div className="flex-1 flex overflow-hidden max-w-full">
+      <div className="flex-1 flex overflow-hidden min-h-0 max-w-full relative">
         {/* Left Sidebar (Desktop) */}
         <Sidebar
           currentScreen={currentScreen}
@@ -295,7 +295,7 @@ function AppContent() {
         />
 
         {/* Screen Router */}
-        <main ref={mainContentRef} className="flex-1 overflow-y-auto overflow-x-hidden p-2.5 sm:p-6 lg:p-8 pb-32 md:pb-8 space-y-3.5 sm:space-y-6 max-w-full overscroll-y-contain">
+        <main ref={mainContentRef} className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-2.5 sm:p-6 lg:p-8 pb-32 md:pb-8 space-y-3.5 sm:space-y-6 max-w-full overscroll-y-contain">
           {/* Quick Exit / Back to Home Bar (Hiển thị trên tất cả thiết bị khi đi sâu vào trang con) */}
           {currentScreen !== 'home' && (
             <div className="flex items-center justify-between p-3 px-4 rounded-2xl bg-[#0D111E]/95 border border-rose-500/30 shadow-lg backdrop-blur-md">

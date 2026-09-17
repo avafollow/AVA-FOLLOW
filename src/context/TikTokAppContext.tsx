@@ -2482,7 +2482,6 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setUserNotifications([]);
     setUserMissions([]);
     broadcastRealtimeEvent('USER_LOGGED_OUT', {});
-    showToast('Đã đăng xuất an toàn khỏi hệ thống.');
   };
 
   const updateCommissionSettings = (newSettings: Partial<PlatformCommissionSettings>) => {

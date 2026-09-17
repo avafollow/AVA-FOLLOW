@@ -51,6 +51,7 @@ import {
   ThumbsUp
 } from 'lucide-react';
 import { BrandLogo } from '../common/BrandLogo';
+import { COMPREHENSIVE_GROWTH_PACKAGES } from '../../data/growthPackages';
 
 export const LandingPage: React.FC = () => {
   const { openAuthModal } = useTikTokApp();
@@ -58,6 +59,9 @@ export const LandingPage: React.FC = () => {
   
   // Active Audience Tab (6 core segments)
   const [activeAudience, setActiveAudience] = useState<'student' | 'mom' | 'office' | 'koc' | 'shop' | 'enterprise'>('student');
+
+  // Active Package Showcase Tab
+  const [selectedPkgCategory, setSelectedPkgCategory] = useState<'all' | 'tiktok' | 'facebook' | 'youtube' | 'live' | 'combo'>('all');
 
   // Interactive Earnings & Business Calculator State
   const [dailyActions, setDailyActions] = useState<number>(35); // 10 - 150 actions/day
@@ -83,6 +87,27 @@ export const LandingPage: React.FC = () => {
       dailyEst
     };
   }, [dailyActions, affiliateFriends, kocContracts]);
+
+  // Filtered Growth Packages for Showcase Section
+  const filteredPackages = useMemo(() => {
+    if (selectedPkgCategory === 'all') return COMPREHENSIVE_GROWTH_PACKAGES.slice(0, 12);
+    if (selectedPkgCategory === 'tiktok') {
+      return COMPREHENSIVE_GROWTH_PACKAGES.filter(p => p.category === 'follow' || p.category === 'engagement' || p.category === 'watch' || p.category === 'comment' || p.category === 'share');
+    }
+    if (selectedPkgCategory === 'facebook') {
+      return COMPREHENSIVE_GROWTH_PACKAGES.filter(p => (p.category as string) === 'facebook_growth' || p.id?.includes('fb_') || p.title?.includes('Facebook') || p.title?.includes('Fanpage'));
+    }
+    if (selectedPkgCategory === 'youtube') {
+      return COMPREHENSIVE_GROWTH_PACKAGES.filter(p => (p.category as string) === 'youtube_growth' || p.id?.includes('yt_') || p.title?.includes('YouTube'));
+    }
+    if (selectedPkgCategory === 'live') {
+      return COMPREHENSIVE_GROWTH_PACKAGES.filter(p => p.category === 'livestream' || p.id?.includes('live') || p.title?.includes('Live'));
+    }
+    if (selectedPkgCategory === 'combo') {
+      return COMPREHENSIVE_GROWTH_PACKAGES.filter(p => p.category === 'combo' || p.category === 'full_channel');
+    }
+    return COMPREHENSIVE_GROWTH_PACKAGES.slice(0, 12);
+  }, [selectedPkgCategory]);
 
   // Modal Inspector for deep-dive cards
   const [inspectedCard, setInspectedCard] = useState<{
@@ -194,6 +219,13 @@ export const LandingPage: React.FC = () => {
               <Globe className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
               <span>Đa Nền Tảng</span>
             </a>
+            <a 
+              href="#packages-showcase" 
+              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-pink-300 hover:text-pink-200 hover:bg-pink-500/10 border border-pink-500/20 transition-all flex items-center gap-1.5 whitespace-nowrap group shadow-sm"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-pink-400 group-hover:scale-110 transition-transform" />
+              <span>Bảng Giá Gói</span>
+            </a>
           </nav>
 
           {/* Header Action Buttons */}
@@ -206,6 +238,46 @@ export const LandingPage: React.FC = () => {
               <span>Đăng Ký Kiếm Tiền Ngay</span>
             </button>
           </div>
+        </div>
+
+        {/* Mobile Quick Horizontal Sub-Navigation */}
+        <div className="xl:hidden w-full overflow-x-auto py-2 px-3 border-t border-white/5 flex items-center gap-1.5 bg-[#07090E]/95 backdrop-blur-md">
+          <a href="#human-network" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white shrink-0 flex items-center gap-1">
+            <ShieldCheck className="w-3 h-3 text-emerald-400" />
+            <span>Người Thật</span>
+          </a>
+          <a href="#ways-to-earn" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white shrink-0 flex items-center gap-1">
+            <Coins className="w-3 h-3 text-amber-400" />
+            <span>Kiếm Tiền</span>
+          </a>
+          <a href="#audiences" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white shrink-0 flex items-center gap-1">
+            <Target className="w-3 h-3 text-cyan-400" />
+            <span>Tệp Khách</span>
+          </a>
+          <a href="#calculator" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 shrink-0 flex items-center gap-1">
+            <TrendingUp className="w-3 h-3 text-amber-400" />
+            <span>Thu Nhập</span>
+          </a>
+          <a href="#live-traffic" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-rose-300 bg-rose-500/10 border border-rose-500/20 shrink-0 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+            <span>Mắt Live</span>
+          </a>
+          <a href="#escrow-koc" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20 shrink-0 flex items-center gap-1">
+            <Video className="w-3 h-3 text-purple-400" />
+            <span>KOC Ký Quỹ</span>
+          </a>
+          <a href="#affiliate" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-300 bg-white/5 hover:bg-white/10 shrink-0 flex items-center gap-1">
+            <Gift className="w-3 h-3 text-amber-400" />
+            <span>Hoa Hồng 35%</span>
+          </a>
+          <a href="#roadmap" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 shrink-0 flex items-center gap-1">
+            <Globe className="w-3 h-3 text-cyan-400" />
+            <span>Đa Nền Tảng</span>
+          </a>
+          <a href="#packages-showcase" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-pink-300 bg-pink-500/10 border border-pink-500/20 shrink-0 flex items-center gap-1">
+            <ShoppingBag className="w-3 h-3 text-pink-400" />
+            <span>Bảng Giá Gói</span>
+          </a>
         </div>
       </header>
 
@@ -1155,7 +1227,7 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Launching Product Banner */}
-          <div className="p-8 rounded-3xl bg-gradient-to-r from-purple-950/40 via-indigo-950/40 to-slate-950/40 border border-purple-500/30 max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+          <div id="escrow-koc" className="p-8 rounded-3xl bg-gradient-to-r from-purple-950/40 via-indigo-950/40 to-slate-950/40 border border-purple-500/30 max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl scroll-mt-28">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-mono font-bold uppercase">
@@ -1345,6 +1417,125 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
+        </div>
+      </section>
+
+      {/* 9A. KHO GÓI TĂNG TRƯỞNG & DỊCH VỤ ĐA NỀN TẢNG (TIKTOK • FACEBOOK • YOUTUBE) */}
+      <section id="packages-showcase" className="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-12 scroll-mt-28">
+        <div className="text-center space-y-3 max-w-3xl mx-auto">
+          <span className="px-3.5 py-1 rounded-full bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-amber-500/20 text-pink-300 text-xs font-mono font-bold uppercase border border-pink-500/30">
+            📦 BẢNG GIÁ &amp; KHO GÓI TĂNG TRƯỞNG ĐA DẠNG 📦
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-black text-white font-display">
+            Các Gói Dịch Vụ 100% Người Thật <br className="hidden sm:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-amber-300">
+              TikTok • Facebook • YouTube • Livestream
+            </span>
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            Chọn gói dịch vụ phù hợp để đẩy mạnh thương hiệu, mở khóa tính năng kiếm tiền và bứt phá doanh số:
+          </p>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="flex flex-wrap items-center justify-center gap-2 max-w-4xl mx-auto">
+          {[
+            { id: 'all', label: '🌟 Tất Cả Gói' },
+            { id: 'tiktok', label: '🎵 TikTok & Shop' },
+            { id: 'facebook', label: '📘 Facebook & Fanpage' },
+            { id: 'youtube', label: '🔴 YouTube Partner' },
+            { id: 'live', label: '📡 Mắt Xem Live' },
+            { id: 'combo', label: '👑 Combo Trọn Gói' },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedPkgCategory(cat.id as any)}
+              className={`px-4 py-2 rounded-2xl text-xs font-bold font-mono transition-all cursor-pointer ${
+                selectedPkgCategory === cat.id
+                  ? 'bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-900/40 scale-105 border border-white/20'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Packages Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPackages.map((pkg) => (
+            <div
+              key={pkg.id}
+              className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 hover:border-purple-500/60 transition-all flex flex-col justify-between space-y-4 relative group shadow-xl hover:shadow-2xl hover:shadow-purple-950/40"
+            >
+              {pkg.tag && (
+                <div className="absolute top-4 right-4 px-3 py-0.5 rounded-full bg-gradient-to-r from-rose-500/20 to-purple-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-mono font-bold uppercase">
+                  {pkg.tag}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="space-y-1 pr-16">
+                  <h3 className="text-base font-black text-white font-display leading-snug group-hover:text-amber-300 transition-colors">
+                    {pkg.title}
+                  </h3>
+                  <div className="text-[11px] text-cyan-300 font-mono font-bold">
+                    {pkg.unit}
+                  </div>
+                </div>
+
+                {/* Price Display */}
+                <div className="flex items-baseline gap-2 pt-1 border-t border-white/10">
+                  <span className="text-2xl font-black text-amber-400 font-mono">
+                    {pkg.price}
+                  </span>
+                  {pkg.originalPrice && (
+                    <span className="text-xs text-slate-500 font-mono line-through">
+                      {pkg.originalPrice}
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-slate-300 leading-relaxed line-clamp-3">
+                  {pkg.description}
+                </p>
+
+                {/* Features Highlights */}
+                {pkg.features && pkg.features.length > 0 && (
+                  <ul className="space-y-1.5 pt-2 border-t border-white/5 text-xs text-slate-300 font-sans">
+                    {pkg.features.slice(0, 3).map((feat, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                        <span className="text-[11px] leading-tight text-slate-300">{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Action Button */}
+              <div className="pt-2">
+                <button
+                  onClick={openAuthModal}
+                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:opacity-95 text-white font-bold text-xs font-mono uppercase tracking-wider shadow-lg shadow-purple-900/30 flex items-center justify-center gap-2 cursor-pointer group-hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>KÍCH HOẠT GÓI (+5.000 XU)</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom Banner */}
+        <div className="p-6 rounded-3xl bg-gradient-to-r from-indigo-950/40 via-purple-950/40 to-slate-950/40 border border-indigo-500/30 text-center space-y-3 max-w-4xl mx-auto shadow-xl">
+          <div className="flex items-center justify-center gap-2 text-amber-300 font-mono font-bold text-xs">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>CAM KẾT 100% NGƯỜI DÙNG THẬT • BẢO HÀNH CHỐNG TỤT 30 NGÀY</span>
+          </div>
+          <p className="text-xs text-slate-300 max-w-2xl mx-auto">
+            Mọi gói dịch vụ đều được điều phối trực tiếp đến hàng trăm ngàn thành viên thật đang hoạt động tại Việt Nam. Không dùng bot, không dùng VPS, bảo vệ kênh phát triển bền vững.
+          </p>
         </div>
       </section>
 

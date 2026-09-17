@@ -626,7 +626,7 @@ export interface GrowthServiceItem {
   id: string;
   title: string;
   platform?: 'tiktok' | 'facebook' | 'youtube';
-  category: 'follow' | 'engagement' | 'watch' | 'comment' | 'share' | 'livestream' | 'combo' | 'booking' | 'full_channel';
+  category: 'follow' | 'engagement' | 'watch' | 'comment' | 'share' | 'livestream' | 'combo' | 'booking' | 'full_channel' | 'like';
   tag: string;
   price: string;
   originalPrice?: string;

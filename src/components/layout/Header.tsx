@@ -118,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className={`sticky top-0 z-40 w-full max-w-full overflow-hidden border-b transition-colors pt-[env(safe-area-inset-top,0px)] ${
+    <header className={`sticky top-0 z-50 w-full max-w-full overflow-visible border-b transition-colors pt-[env(safe-area-inset-top,0px)] ${
       darkMode 
         ? 'bg-[#0B0F19]/95 border-white/10 text-white backdrop-blur-xl' 
         : 'bg-white/95 border-slate-200 text-slate-900 backdrop-blur-xl shadow-sm'
@@ -550,23 +550,80 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Profile Dropdown Menu */}
             {isProfileMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-[#0E1322] border border-white/10 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
-                {/* User Info Header */}
-                <div className="p-3 mb-1 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <img src={user.avatar} alt="" className="w-9 h-9 rounded-full ring-2 ring-rose-500" />
+              <div 
+                className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-[#0D111E] border-2 border-rose-500/40 rounded-3xl shadow-2xl shadow-black/90 p-3 z-[99999] animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl space-y-2.5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* User Info Header (Gmail Account) */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/10 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <img src={user.avatar} alt="" className="w-11 h-11 rounded-full ring-2 ring-rose-500 object-cover" />
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#0D111E] flex items-center justify-center">
+                        <CheckCircle2 className="w-3 h-3 text-white" />
+                      </div>
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-black text-white truncate">{user.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono truncate">{user.email || 'user@gmail.com'}</div>
+                      <div className="text-xs font-black text-white truncate flex items-center gap-1.5">
+                        <span>{user.name || user.handle}</span>
+                        {user.email === 'quocthiencr90@gmail.com' && (
+                          <span className="px-1.5 py-0.2 text-[8px] font-mono font-black bg-rose-600 text-white rounded">ADMIN</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-cyan-300 font-mono truncate flex items-center gap-1">
+                        <span>{user.email || 'user@gmail.com'}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[10px] font-mono">
-                    <span className="text-slate-400">Cấp: <strong className="text-amber-400">{user.rankLevel}</strong></span>
-                    <span className="text-slate-400">Số dư: <strong className="text-emerald-400">{(user.avaliveCoins || 0).toLocaleString('vi-VN')} Xu</strong></span>
+                  <div className="flex items-center justify-between pt-2 border-t border-white/10 text-[11px] font-mono">
+                    <span className="text-slate-400">Hạng: <strong className="text-amber-400 font-bold">{user.rankLevel}</strong></span>
+                    <span className="text-slate-400">Ví: <strong className="text-emerald-400 font-bold">{(user.avaliveCoins || 0).toLocaleString('vi-VN')} Xu</strong></span>
                   </div>
                 </div>
 
-                {/* Menu Items */}
+                {/* 2 NÚT HÀNH ĐỘNG QUAN TRỌNG: 1. QUAY LẠI TRANG CHỦ BÁN HÀNG & 2. ĐĂNG XUẤT */}
+                <div className="space-y-1.5 pt-1">
+                  {/* NÚT 1: QUAY LẠI TRANG CHỦ BÁN HÀNG (LANDING PAGE) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      if (onNavigateToLanding) onNavigateToLanding();
+                    }}
+                    className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-between shadow-lg shadow-purple-600/30 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition-transform" />
+                      <span className="font-display">Trang Chủ Bán Hàng (Landing)</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-lg bg-white/20 text-[10px] font-mono font-bold">
+                      XEM NGAY
+                    </span>
+                  </button>
+
+                  {/* NÚT 2: ĐĂNG XUẤT TÀI KHOẢN GMAIL */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full py-2.5 px-3 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white font-bold text-xs flex items-center justify-between transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <LogOut className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
+                      <span className="font-display">Đăng Xuất Tài Khoản</span>
+                    </div>
+                    <span className="text-[10px] text-rose-400/80 font-mono">
+                      Thoát
+                    </span>
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-white/10 my-1" />
+
+                {/* Quick Nav Items */}
                 <div className="space-y-0.5 text-xs font-medium">
                   {/* Hồ sơ cá nhân */}
                   <button
@@ -574,19 +631,19 @@ export const Header: React.FC<HeaderProps> = ({
                       setIsProfileMenuOpen(false);
                       onNavigateToProfile();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left cursor-pointer"
                   >
                     <Wallet className="w-4 h-4 text-cyan-400 shrink-0" />
-                    <span>Hồ Sơ Cá Nhân & Ví Xu</span>
+                    <span>Hồ Sơ Cá Nhân &amp; Ví Xu</span>
                   </button>
 
-                  {/* Kênh TikTok kết nối (Tối đa 5 TK/IP) */}
+                  {/* Kênh TikTok kết nối */}
                   <button
                     onClick={() => {
                       setIsProfileMenuOpen(false);
                       openConnect();
                     }}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-4 h-4 rounded bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center text-[9px] font-black shrink-0">
@@ -595,9 +652,6 @@ export const Header: React.FC<HeaderProps> = ({
                       <div className="min-w-0 flex-1">
                         <div className="text-xs font-bold truncate">
                           {user.tiktokConnected ? user.tiktokConnected : 'Chưa nối TikTok'}
-                        </div>
-                        <div className="text-[9px] text-slate-400 font-mono">
-                          {user.tiktokConnected ? `Đã kết nối (${connectedAccountsOnIp.length}/5 IP)` : '+ Kết Nối Kênh'}
                         </div>
                       </div>
                     </div>
@@ -612,7 +666,7 @@ export const Header: React.FC<HeaderProps> = ({
                       setIsProfileMenuOpen(false);
                       if (onNavigateToAffiliate) onNavigateToAffiliate();
                     }}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5">
                       <Share2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -628,7 +682,7 @@ export const Header: React.FC<HeaderProps> = ({
                       if (onNavigateToPolicyGuide) onNavigateToPolicyGuide();
                       else if (onOpenPolicy) onOpenPolicy();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 transition-all text-left cursor-pointer"
                   >
                     <BookOpen className="w-4 h-4 text-indigo-400 shrink-0" />
                     <span>Chính Sách Cấp Bậc</span>
@@ -641,7 +695,7 @@ export const Header: React.FC<HeaderProps> = ({
                         setIsProfileMenuOpen(false);
                         onNavigateToAdmin();
                       }}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all text-left font-bold"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all text-left font-bold cursor-pointer"
                     >
                       <div className="flex items-center gap-2.5">
                         <ShieldCheck className="w-4 h-4 text-rose-400 shrink-0" />
@@ -650,20 +704,6 @@ export const Header: React.FC<HeaderProps> = ({
                       <span className="px-1.5 py-0.2 text-[9px] font-black bg-rose-600 text-white rounded font-mono">ADMIN</span>
                     </button>
                   )}
-
-                  <div className="my-1 border-t border-white/5" />
-
-                  {/* Đăng xuất */}
-                  <button
-                    onClick={() => {
-                      setIsProfileMenuOpen(false);
-                      logout();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all text-left"
-                  >
-                    <LogOut className="w-4 h-4 text-rose-400 shrink-0" />
-                    <span>Đăng Xuất</span>
-                  </button>
                 </div>
               </div>
             )}

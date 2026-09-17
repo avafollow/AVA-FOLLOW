@@ -53,7 +53,7 @@ import {
 import { BrandLogo } from '../common/BrandLogo';
 import { COMPREHENSIVE_GROWTH_PACKAGES } from '../../data/growthPackages';
 
-export const LandingPage: React.FC = () => {
+const LandingPageCore: React.FC = () => {
   const { openAuthModal } = useTikTokApp();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   
@@ -2054,3 +2054,5 @@ export const LandingPage: React.FC = () => {
     </div>
   );
 };
+
+export const LandingPage = React.memo(LandingPageCore);

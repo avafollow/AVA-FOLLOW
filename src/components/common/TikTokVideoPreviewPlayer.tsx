@@ -166,7 +166,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full h-full min-h-[480px] rounded-3xl overflow-hidden bg-black border border-white/20 shadow-2xl group select-none flex flex-col ${className}`}
+      className={`relative w-full h-full min-h-[380px] sm:min-h-[480px] rounded-3xl overflow-hidden bg-black border border-white/20 shadow-2xl group select-none flex flex-col ${className}`}
     >
       {/* 1. TẬP HỢP CÁC TRÌNH PHÁT RIÊNG BIỆT */}
       <div className="relative w-full h-full flex-1 overflow-hidden bg-black flex items-center justify-center">
@@ -230,6 +230,18 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             isPlaying={isPlaying}
             onTogglePlay={togglePlay}
           />
+        )}
+
+        {/* Nút Nhắc Bật Âm Thanh Trên Thiết Bị Di Động */}
+        {isMuted && !effectiveIsLive && (
+          <button
+            type="button"
+            onClick={toggleMute}
+            className="absolute top-14 sm:top-16 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-black/80 hover:bg-black/95 text-white font-mono font-bold text-[10px] border border-white/20 shadow-2xl flex items-center gap-1.5 backdrop-blur-md active:scale-95 transition-all cursor-pointer animate-pulse"
+          >
+            <VolumeX className="w-3.5 h-3.5 text-amber-400" />
+            <span>Chạm để BẬT ÂM THANH 🔊</span>
+          </button>
         )}
       </div>
 

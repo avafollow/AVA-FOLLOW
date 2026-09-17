@@ -932,9 +932,9 @@ export const CreateCampaignScreen: React.FC<{
             </span>
           </div>
 
-          <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 bg-black/90 p-5 sm:p-6 rounded-3xl border border-white/15 shadow-2xl">
+          <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 bg-black/90 p-4 sm:p-6 rounded-3xl border border-white/15 shadow-2xl">
             {/* Khung phát video to đúng kích thước chuẩn TikTok 9:16 trên mọi thiết bị */}
-            <div className="w-full max-w-[340px] min-h-[480px] h-[520px] sm:h-[620px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-rose-500/40 relative bg-black">
+            <div className="w-full max-w-[340px] h-[460px] sm:h-[560px] lg:h-[620px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-rose-500/40 relative bg-black">
               <TikTokVideoPreviewPlayer
                 key={`preview-${targetUrl}-${channelHandle}-${selectedTargets.livestream ? 'live' : 'vod'}`}
                 url={targetUrl}
@@ -1674,7 +1674,7 @@ export const CreateCampaignScreen: React.FC<{
 
           {/* Ô XEM TRƯỚC PHIÊN LIVE / VIDEO MEGA */}
           <div className="p-5 sm:p-6 rounded-3xl bg-black/80 border border-amber-500/40 flex flex-col lg:flex-row items-center lg:items-start gap-6 shadow-2xl">
-            <div className="w-full max-w-[340px] min-h-[480px] h-[520px] sm:h-[580px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-500/50 bg-black">
+            <div className="w-full max-w-[340px] h-[460px] sm:h-[560px] lg:h-[620px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-500/50 bg-black">
               <TikTokVideoPreviewPlayer
                 key={`mega-preview-${targetUrl}-${channelHandle}`}
                 url={targetUrl}

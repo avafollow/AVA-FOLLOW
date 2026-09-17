@@ -1052,8 +1052,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     loadCloudData();
 
-    // Polling định kỳ mỗi 15 giây để tự động kéo dữ liệu mới nhất nếu có người dùng đăng ký từ thiết bị khác
-    const cloudInterval = setInterval(loadCloudData, 15000);
+    // Polling định kỳ mỗi 60 giây (tối ưu hóa tài nguyên CPU & RAM cho trải nghiệm mượt mà)
+    const cloudInterval = setInterval(loadCloudData, 60000);
     return () => {
       isMounted = false;
       clearInterval(cloudInterval);

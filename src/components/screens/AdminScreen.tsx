@@ -443,19 +443,22 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   };
 
   const matchedInputUser = inputAccountGmail.trim()
-    ? adminUsers.find(u => 
-        (u.email && u.email.toLowerCase().trim() === inputAccountGmail.trim().toLowerCase()) ||
-        (u.handle && u.handle.toLowerCase().trim().replace(/^@/, '') === inputAccountGmail.trim().replace(/^@/, '').toLowerCase()) ||
-        (u.tiktokConnected && u.tiktokConnected.toLowerCase().trim().replace(/^@/, '') === inputAccountGmail.trim().replace(/^@/, '').toLowerCase())
-      )
+    ? adminUsers.find(u => {
+        const q = inputAccountGmail.trim().toLowerCase();
+        const qHandle = q.replace(/^@/, '');
+        return (u.email && u.email.toLowerCase().trim() === q) ||
+               (u.id && u.id.toLowerCase().trim() === q) ||
+               (u.handle && u.handle.toLowerCase().trim().replace(/^@/, '') === qHandle) ||
+               (u.tiktokConnected && u.tiktokConnected.toLowerCase().trim().replace(/^@/, '') === qHandle);
+      })
     : null;
 
   const candidateUser: AdminUserManagementItem | null = inputAccountGmail.trim().length >= 3 ? {
-    id: `usr_input_${inputAccountGmail.trim().toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+    id: `usr_${inputAccountGmail.trim().toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
     name: inputAccountGmail.trim().split('@')[0],
     handle: inputAccountGmail.trim().replace(/^@/, '').split('@')[0],
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-    email: inputAccountGmail.trim().includes('@') ? inputAccountGmail.trim() : `${inputAccountGmail.trim()}@gmail.com`,
+    email: inputAccountGmail.trim().includes('@') ? inputAccountGmail.trim().toLowerCase() : `${inputAccountGmail.trim().toLowerCase()}@gmail.com`,
     phone: '0988888888',
     tiktokConnected: `@${inputAccountGmail.trim().replace(/^@/, '').split('@')[0]}`,
     tiktokFollowers: 1000,
@@ -479,7 +482,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
   const activeGrantUser: AdminUserManagementItem = (userSelectMode === 'input'
     ? (matchedInputUser || candidateUser || adminUsers[0])
-    : (adminUsers.find(u => u.id === selectedGrantUserId) || adminUsers[0])) as AdminUserManagementItem;
+    : (adminUsers.find(u => u.id === selectedGrantUserId || (u.email && u.email.toLowerCase() === selectedGrantUserId.toLowerCase())) || adminUsers[0])) as AdminUserManagementItem;
 
   const filteredGrantPackages = growthServices.filter(pkg => {
     if (grantCategoryFilter !== 'all' && pkg.category !== grantCategoryFilter) return false;

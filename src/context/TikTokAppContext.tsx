@@ -736,38 +736,39 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // TỰ ĐỒNG BỘ DỮ LIỆU THỜI GIAN THỰC TỪ USER PROFILE VÀO TRANG ADMIN DASHBOARD & DANH SÁCH THÀNH VIÊN
   useEffect(() => {
+    if (!user || !user.email) return;
+    const userEmail = user.email.toLowerCase().trim();
+    if (!userEmail) return;
+
     setAdminUsers(prev => {
-      const userEmail = (user.email || 'thienvuaapp@avalive.vn').toLowerCase().trim();
-      const userHandle = (user.tiktokConnected || user.handle || '@thienvuaapp').toLowerCase().trim().replace(/^@/, '');
+      const userHandle = (user.tiktokConnected || user.handle || userEmail.split('@')[0]).toLowerCase().trim().replace(/^@/, '');
       const existingIdx = prev.findIndex(u => 
-        (u.email && u.email.toLowerCase().trim() === userEmail) || 
-        (u.tiktokConnected && u.tiktokConnected.toLowerCase().trim().replace(/^@/, '') === userHandle) || 
-        (u.handle && u.handle.toLowerCase().trim().replace(/^@/, '') === userHandle) || 
-        u.id === (user.id || 'usr_001')
+        (u.email && u.email.toLowerCase().trim() === userEmail) ||
+        (user.id && u.id === user.id && !u.id.startsWith('usr_001'))
       );
 
       const existing = existingIdx >= 0 ? prev[existingIdx] : null;
 
       const userAdminItem: AdminUserManagementItem = {
-        id: user.id || 'usr_001',
+        id: existing?.id || user.id || `usr_${userEmail.replace(/[^a-z0-9]/g, '_')}`,
         name: user.name,
-        handle: user.handle || '@thienvuaapp',
+        handle: user.handle || userHandle,
         avatar: user.avatar || '',
         email: userEmail,
-        phone: '0988888888',
-        tiktokConnected: userHandle,
-        tiktokFollowers: user.tiktokFollowers || 0,
-        isTikTokVerified: user.isTikTokVerified || false,
+        phone: user.bankInfo?.accountNumber || existing?.phone || '0988888888',
+        tiktokConnected: user.tiktokConnected || existing?.tiktokConnected || `@${userHandle}`,
+        tiktokFollowers: user.tiktokFollowers !== undefined ? user.tiktokFollowers : (existing?.tiktokFollowers || 0),
+        isTikTokVerified: user.isTikTokVerified ?? existing?.isTikTokVerified ?? false,
         facebookConnected: user.facebookConnected || existing?.facebookConnected,
         youtubeConnected: user.youtubeConnected || existing?.youtubeConnected,
-        rankLevel: user.rankLevel || 'Đồng',
+        rankLevel: user.rankLevel || existing?.rankLevel || 'Đồng',
         coinsBalance: user.avaliveCoins,
         tokenBalance: user.avaliveCoins,
-        completedTasksCount: user.completedTasksCount || 0,
+        completedTasksCount: user.completedTasksCount || existing?.completedTasksCount || 0,
         createdCampaignsCount: (campaigns || []).length,
         purchasedPackagesCount: (user.myOrders || []).length,
         escrowLockedAmountVND: `${(escrowBookings || []).reduce((acc, c) => acc + (parseInt(c.totalEscrowAmount.replace(/\D/g, '')) || 0), 0).toLocaleString()}đ`,
-        status: user.status === 'banned' ? 'banned' : 'active',
+        status: user.status === 'banned' ? 'banned' : (existing?.status || 'active'),
         hasAllPermissions: user.hasAllPermissions !== undefined ? user.hasAllPermissions : existing?.hasAllPermissions,
         isWhitelisted: user.isWhitelisted !== undefined ? user.isWhitelisted : existing?.isWhitelisted,
         grantedCoinsTotal: user.grantedCoinsTotal !== undefined ? user.grantedCoinsTotal : existing?.grantedCoinsTotal,
@@ -775,8 +776,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         registrationSource: user.registrationSource || existing?.registrationSource || (user.referredBy ? 'link' : 'direct'),
         referredBy: user.referredBy || existing?.referredBy || (getReferralCookie() || undefined),
         firstTaskCompleted: (user.completedTasksCount || 0) > 0 || !!user.firstTaskCompleted || !!existing?.firstTaskCompleted,
-        kycStatus: user.kycStatus || 'unverified',
-        kycData: user.kycData,
+        kycStatus: user.kycStatus || existing?.kycStatus || 'unverified',
+        kycData: user.kycData || existing?.kycData,
         joinedDate: existing?.joinedDate || '2026-09-01',
         orders: user.myOrders || existing?.orders || []
       };
@@ -789,7 +790,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return [userAdminItem, ...prev];
       }
     });
+  }, [user]);
 
+  useEffect(() => {
     setAdminData(prev => {
       return {
         ...prev,
@@ -1085,9 +1088,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
 
         // 2. Nếu tài khoản được tác động chính là tài khoản đang đăng nhập hiện tại
-        const isTargetMe = isCurrentUser(targetUserId, data || msg.payload?.targetUser || msg.payload) ||
-          (targetEmail && (user.email || '').toLowerCase().trim() === targetEmail) ||
-          (targetHandle && (user.handle || '').toLowerCase().trim().replace(/^@/, '') === targetHandle);
+        const myEmail = (user.email || '').toLowerCase().trim();
+        const myId = (user.id || '').toLowerCase().trim();
+        const isTargetMe = (targetEmail && myEmail && targetEmail === myEmail) ||
+                           (targetUserId && myId && targetUserId === myId) ||
+                           isCurrentUser(targetUserId, data || msg.payload?.targetUser || msg.payload);
 
         if (isTargetMe) {
           setUser(prev => {
@@ -1150,8 +1155,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           });
         }
 
-        const isTargetMe = isCurrentUser(targetUserId, msg.payload) ||
-          (targetEmail && (user.email || '').toLowerCase().trim() === targetEmail);
+        const myEmail = (user.email || '').toLowerCase().trim();
+        const myId = (user.id || '').toLowerCase().trim();
+        const isTargetMe = (targetEmail && myEmail && targetEmail === myEmail) ||
+                           (targetUserId && myId && targetUserId === myId) ||
+                           isCurrentUser(targetUserId, msg.payload);
 
         if (isTargetMe && order) {
           setUser(prev => {
@@ -6027,50 +6035,69 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   // ==============================================================================
-  // ADMIN GRANT CAPABILITIES
+  // ADMIN GRANT CAPABILITIES & STRICT 1:1 ACCOUNT MATCHING
   // ==============================================================================
 
-  const isCurrentUser = (targetIdOrEmail: string, targetUser?: any) => {
+  const isCurrentUser = (targetIdOrEmail: string, targetUser?: any): boolean => {
     if (!targetIdOrEmail && !targetUser) return false;
-    const cleanTarget = (targetIdOrEmail || '').toLowerCase().trim().replace(/^@/, '');
+    const cleanTarget = (targetIdOrEmail || '').toLowerCase().trim();
     const userEmail = (user.email || '').toLowerCase().trim();
-    const userHandle = (user.handle || '').toLowerCase().trim().replace(/^@/, '');
-    const userTiktok = (user.tiktokConnected || '').toLowerCase().trim().replace(/^@/, '');
     const userId = (user.id || '').toLowerCase().trim();
-    
-    // Strict comparison - avoid matching empty strings or generic short handles
-    if (cleanTarget && cleanTarget !== 'user' && cleanTarget !== 'user123' && cleanTarget !== 'chưa_kết_nối') {
-      if (userEmail && cleanTarget === userEmail) return true;
-      if (userId && cleanTarget === userId) return true;
-      if (userTiktok && cleanTarget === userTiktok) return true;
-      if (userHandle && cleanTarget === userHandle) return true;
+
+    // Strict email check
+    if (userEmail && cleanTarget && (cleanTarget === userEmail || cleanTarget === userEmail.split('@')[0])) {
+      return true;
+    }
+    // Strict user ID check (excluding generic placeholder IDs)
+    if (userId && cleanTarget && userId === cleanTarget && !userId.startsWith('usr_001') && userId !== 'usr_default') {
+      return true;
     }
 
     if (targetUser) {
       const tEmail = (targetUser.email || '').toLowerCase().trim();
-      const tHandle = (targetUser.handle || '').toLowerCase().trim().replace(/^@/, '');
-      const tTiktok = (targetUser.tiktokConnected || '').toLowerCase().trim().replace(/^@/, '');
       const tId = (targetUser.id || '').toLowerCase().trim();
-      
       if (tEmail && userEmail && tEmail === userEmail) return true;
-      if (tId && userId && tId === userId) return true;
-      if (tTiktok && userTiktok && tTiktok === userTiktok && tTiktok !== 'chưa_kết_nối') return true;
-      if (tHandle && userHandle && tHandle === userHandle && tHandle !== 'user') return true;
+      if (tId && userId && tId === userId && !userId.startsWith('usr_001') && userId !== 'usr_default') return true;
     }
     return false;
   };
 
+  const findUserIndexInList = (list: AdminUserManagementItem[], key: string): number => {
+    if (!key) return -1;
+    const cleanKey = key.toLowerCase().trim();
+    const cleanHandle = cleanKey.replace(/^@/, '');
+
+    // 1. Exact ID match or Email match (highest priority)
+    let idx = list.findIndex(u => 
+      (u.id && u.id.toLowerCase().trim() === cleanKey) ||
+      (u.email && u.email.toLowerCase().trim() === cleanKey)
+    );
+    if (idx !== -1) return idx;
+
+    // 2. Exact TikTok Connected or Handle match
+    if (cleanHandle) {
+      idx = list.findIndex(u => 
+        (u.email && u.email.toLowerCase().trim().split('@')[0] === cleanHandle) ||
+        (u.handle && u.handle.toLowerCase().trim().replace(/^@/, '') === cleanHandle) ||
+        (u.tiktokConnected && u.tiktokConnected.toLowerCase().trim().replace(/^@/, '') === cleanHandle)
+      );
+    }
+    return idx;
+  };
+
   const adminToggleUserStatus = (userId: string) => {
     let matchedUser: AdminUserManagementItem | null = null;
+    const cleanKey = (userId || '').trim();
+
     setAdminUsers(prev => {
-      const nextList = prev.map(u => {
-        if (u.id === userId || (u.email && u.email.toLowerCase() === userId.toLowerCase())) {
-          const nextStatus = u.status === 'active' ? 'banned' : 'active';
-          matchedUser = { ...u, status: nextStatus };
-          return matchedUser;
-        }
-        return u;
-      });
+      const idx = findUserIndexInList(prev, cleanKey);
+      const nextList = [...prev];
+      if (idx >= 0) {
+        const u = prev[idx];
+        const nextStatus = u.status === 'active' ? 'banned' : 'active';
+        matchedUser = { ...u, status: nextStatus };
+        nextList[idx] = matchedUser;
+      }
       try {
         if (typeof window !== 'undefined') {
           localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
@@ -6079,7 +6106,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if (isCurrentUser(userId, matchedUser || undefined)) {
+    if (isCurrentUser(cleanKey, matchedUser || undefined)) {
       setUser(prev => {
         const updated = {
           ...prev,
@@ -6098,7 +6125,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     broadcastRealtimeEvent('ADMIN_UPDATE_USER', { 
-      userId, 
+      userId: (matchedUser as any)?.id || cleanKey, 
       email: (matchedUser as any)?.email, 
       handle: (matchedUser as any)?.handle, 
       data: matchedUser 
@@ -6108,37 +6135,37 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const adminGrantAllPermissions = (userId: string, enable: boolean = true) => {
     let matchedUser: AdminUserManagementItem | null = null;
+    const cleanKey = (userId || '').trim();
     const nowIso = new Date().toISOString();
 
     setAdminUsers(prev => {
-      let found = false;
-      const nextList = prev.map(u => {
-        if (u.id === userId || (u.email && u.email.toLowerCase() === userId.toLowerCase())) {
-          found = true;
-          matchedUser = {
-            ...u,
-            hasAllPermissions: enable,
-            isWhitelisted: enable,
-            canRunAnyCampaign: enable,
-            canFollowCrossUnrestricted: enable,
-            status: 'active',
-            grantedByAdminAt: nowIso
-          };
-          return matchedUser;
-        }
-        return u;
-      });
-      if (!found && userId) {
-        const email = userId.includes('@') ? userId : `${userId}@gmail.com`;
-        const handle = (userId.includes('@') ? userId.split('@')[0] : userId).replace(/^@/, '');
+      const idx = findUserIndexInList(prev, cleanKey);
+      const nextList = [...prev];
+
+      if (idx >= 0) {
+        const u = prev[idx];
         matchedUser = {
-          id: userId.startsWith('usr_') ? userId : `usr_${Date.now()}`,
-          name: handle,
-          handle,
+          ...u,
+          hasAllPermissions: enable,
+          isWhitelisted: enable,
+          canRunAnyCampaign: enable,
+          canFollowCrossUnrestricted: enable,
+          status: 'active',
+          grantedByAdminAt: nowIso
+        };
+        nextList[idx] = matchedUser;
+      } else if (cleanKey) {
+        const cleanLower = cleanKey.toLowerCase();
+        const cleanHandle = cleanLower.replace(/^@/, '').split('@')[0];
+        const email = cleanLower.includes('@') ? cleanLower : `${cleanHandle}@gmail.com`;
+        matchedUser = {
+          id: cleanKey.startsWith('usr_') ? cleanKey : `usr_${email.replace(/[^a-z0-9]/g, '_')}`,
+          name: cleanHandle,
+          handle: cleanHandle,
           avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
           email,
           phone: '0988888888',
-          tiktokConnected: `@${handle}`,
+          tiktokConnected: `@${cleanHandle}`,
           tiktokFollowers: 1000,
           isTikTokVerified: true,
           rankLevel: 'Đồng',
@@ -6160,6 +6187,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
         nextList.unshift(matchedUser);
       }
+
       try {
         if (typeof window !== 'undefined') {
           localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
@@ -6168,7 +6196,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if (isCurrentUser(userId, matchedUser || undefined)) {
+    if (isCurrentUser(cleanKey, matchedUser || undefined)) {
       setUser(prev => {
         const updated = {
           ...prev,
@@ -6192,7 +6220,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     broadcastRealtimeEvent('ADMIN_GRANT_PERMISSIONS', { 
-      userId, 
+      userId: (matchedUser as any)?.id || cleanKey, 
       email: (matchedUser as any)?.email, 
       handle: (matchedUser as any)?.handle, 
       hasAllPermissions: enable, 
@@ -6201,8 +6229,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
     showToast(
       enable 
-        ? `👑 Đã CẤP TOÀN QUYỀN HỆ THỐNG cho tài khoản (Không giới hạn, không khóa, làm mọi nhiệm vụ & chiến dịch)!`
-        : `Đã thu hồi quyền đặc cách của tài khoản!`
+        ? `👑 Đã CẤP TOÀN QUYỀN HỆ THỐNG cho tài khoản ${(matchedUser as any)?.name || cleanKey} (Không giới hạn, không khóa, làm mọi nhiệm vụ & chiến dịch)!`
+        : `Đã thu hồi quyền đặc cách của tài khoản ${(matchedUser as any)?.name || cleanKey}!`
     );
   };
 
@@ -6250,29 +6278,30 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const adminAdjustUserCoins = (userId: string, amount: number) => {
     let matchedUser: AdminUserManagementItem | null = null;
+    const cleanKey = (userId || '').trim();
+
     setAdminUsers(prev => {
-      let found = false;
-      const nextList = prev.map(u => {
-        if (u.id === userId || (u.email && u.email.toLowerCase() === userId.toLowerCase())) {
-          found = true;
-          const newBalance = Math.max(0, u.coinsBalance + amount);
-          const newGranted = (u.grantedCoinsTotal || 0) + (amount > 0 ? amount : 0);
-          matchedUser = { ...u, coinsBalance: newBalance, grantedCoinsTotal: newGranted };
-          return matchedUser;
-        }
-        return u;
-      });
-      if (!found && userId) {
-        const email = userId.includes('@') ? userId : `${userId}@gmail.com`;
-        const handle = (userId.includes('@') ? userId.split('@')[0] : userId).replace(/^@/, '');
+      const idx = findUserIndexInList(prev, cleanKey);
+      const nextList = [...prev];
+
+      if (idx >= 0) {
+        const u = prev[idx];
+        const newBalance = Math.max(0, u.coinsBalance + amount);
+        const newGranted = (u.grantedCoinsTotal || 0) + (amount > 0 ? amount : 0);
+        matchedUser = { ...u, coinsBalance: newBalance, grantedCoinsTotal: newGranted };
+        nextList[idx] = matchedUser;
+      } else if (cleanKey) {
+        const cleanLower = cleanKey.toLowerCase();
+        const cleanHandle = cleanLower.replace(/^@/, '').split('@')[0];
+        const email = cleanLower.includes('@') ? cleanLower : `${cleanHandle}@gmail.com`;
         matchedUser = {
-          id: userId.startsWith('usr_') ? userId : `usr_${Date.now()}`,
-          name: handle,
-          handle,
+          id: cleanKey.startsWith('usr_') ? cleanKey : `usr_${email.replace(/[^a-z0-9]/g, '_')}`,
+          name: cleanHandle,
+          handle: cleanHandle,
           avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
           email,
           phone: '0988888888',
-          tiktokConnected: `@${handle}`,
+          tiktokConnected: `@${cleanHandle}`,
           tiktokFollowers: 1000,
           isTikTokVerified: true,
           rankLevel: 'Đồng',
@@ -6292,6 +6321,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
         nextList.unshift(matchedUser);
       }
+
       try {
         if (typeof window !== 'undefined') {
           localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
@@ -6300,7 +6330,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if (isCurrentUser(userId, matchedUser || undefined)) {
+    if (isCurrentUser(cleanKey, matchedUser || undefined)) {
       setUser(prev => {
         const newCoins = Math.max(0, prev.avaliveCoins + amount);
         const newGranted = (prev.grantedCoinsTotal || 0) + (amount > 0 ? amount : 0);
@@ -6333,58 +6363,34 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     broadcastRealtimeEvent('ADMIN_GRANT_COINS', { 
-      userId, 
+      userId: (matchedUser as any)?.id || cleanKey, 
       email: (matchedUser as any)?.email, 
       handle: (matchedUser as any)?.handle, 
       coinsBalance: (matchedUser as any)?.coinsBalance, 
       amount, 
       data: matchedUser 
     });
-    showToast(`Đã cấp ${amount > 0 ? '+' : ''}${amount.toLocaleString()} Xu cho tài khoản!`);
+    showToast(`Đã cấp ${amount > 0 ? '+' : ''}${amount.toLocaleString()} Xu cho tài khoản ${(matchedUser as any)?.name || cleanKey}!`);
   };
 
   const adminGrantPackage = (userId: string, packageItem: GrowthServiceItem) => {
     let matchedUser: AdminUserManagementItem | null = null;
     let createdOrder: ServiceOrder | null = null;
+    const cleanKey = (userId || '').trim();
 
     setAdminUsers(prev => {
-      let found = false;
-      const nextList = prev.map(u => {
-        if (u.id === userId || (u.email && u.email.toLowerCase() === userId.toLowerCase())) {
-          found = true;
-          const newOrder: ServiceOrder = {
-            id: `ord_grant_${Date.now()}`,
-            packageId: packageItem.id,
-            packageTitle: packageItem.title,
-            category: packageItem.category,
-            price: packageItem.price,
-            targetUrl: u.tiktokConnected || `@${u.handle}`,
-            targetQuantity: packageItem.targetQuantity,
-            completedQuantity: 0,
-            status: 'running',
-            createdAt: 'Vừa xong'
-          };
-          createdOrder = newOrder;
-          matchedUser = {
-            ...u,
-            purchasedPackagesCount: (u.purchasedPackagesCount || 0) + 1,
-            grantedPackagesTotal: (u.grantedPackagesTotal || 0) + 1,
-            orders: [newOrder, ...(u.orders || [])]
-          };
-          return matchedUser;
-        }
-        return u;
-      });
-      if (!found && userId) {
-        const email = userId.includes('@') ? userId : `${userId}@gmail.com`;
-        const handle = (userId.includes('@') ? userId.split('@')[0] : userId).replace(/^@/, '');
+      const idx = findUserIndexInList(prev, cleanKey);
+      const nextList = [...prev];
+
+      if (idx >= 0) {
+        const u = prev[idx];
         const newOrder: ServiceOrder = {
           id: `ord_grant_${Date.now()}`,
           packageId: packageItem.id,
           packageTitle: packageItem.title,
           category: packageItem.category,
           price: packageItem.price,
-          targetUrl: `@${handle}`,
+          targetUrl: u.tiktokConnected || `@${u.handle}`,
           targetQuantity: packageItem.targetQuantity,
           completedQuantity: 0,
           status: 'running',
@@ -6392,13 +6398,37 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
         createdOrder = newOrder;
         matchedUser = {
-          id: userId.startsWith('usr_') ? userId : `usr_${Date.now()}`,
-          name: handle,
-          handle,
+          ...u,
+          purchasedPackagesCount: (u.purchasedPackagesCount || 0) + 1,
+          grantedPackagesTotal: (u.grantedPackagesTotal || 0) + 1,
+          orders: [newOrder, ...(u.orders || [])]
+        };
+        nextList[idx] = matchedUser;
+      } else if (cleanKey) {
+        const cleanLower = cleanKey.toLowerCase();
+        const cleanHandle = cleanLower.replace(/^@/, '').split('@')[0];
+        const email = cleanLower.includes('@') ? cleanLower : `${cleanHandle}@gmail.com`;
+        const newOrder: ServiceOrder = {
+          id: `ord_grant_${Date.now()}`,
+          packageId: packageItem.id,
+          packageTitle: packageItem.title,
+          category: packageItem.category,
+          price: packageItem.price,
+          targetUrl: `@${cleanHandle}`,
+          targetQuantity: packageItem.targetQuantity,
+          completedQuantity: 0,
+          status: 'running',
+          createdAt: 'Vừa xong'
+        };
+        createdOrder = newOrder;
+        matchedUser = {
+          id: cleanKey.startsWith('usr_') ? cleanKey : `usr_${email.replace(/[^a-z0-9]/g, '_')}`,
+          name: cleanHandle,
+          handle: cleanHandle,
           avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
           email,
           phone: '0988888888',
-          tiktokConnected: `@${handle}`,
+          tiktokConnected: `@${cleanHandle}`,
           tiktokFollowers: 1000,
           isTikTokVerified: true,
           rankLevel: 'Đồng',
@@ -6418,6 +6448,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
         nextList.unshift(matchedUser);
       }
+
       try {
         if (typeof window !== 'undefined') {
           localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
@@ -6426,7 +6457,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if (isCurrentUser(userId, matchedUser || undefined) && createdOrder) {
+    if (isCurrentUser(cleanKey, matchedUser || undefined) && createdOrder) {
       setUser(prev => {
         const newTx: TransactionRecord = {
           id: `tx_grant_${Date.now()}`,
@@ -6457,39 +6488,40 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     broadcastRealtimeEvent('ADMIN_GRANT_PACKAGE', { 
-      userId, 
+      userId: (matchedUser as any)?.id || cleanKey, 
       email: (matchedUser as any)?.email, 
       handle: (matchedUser as any)?.handle, 
       order: createdOrder, 
       packageTitle: packageItem.title, 
       data: matchedUser 
     });
-    showToast(`👑 Admin đã cấp đặc quyền gói "${packageItem.title}" miễn phí cho tài khoản!`);
+    showToast(`👑 Admin đã cấp đặc quyền gói "${packageItem.title}" miễn phí cho tài khoản ${(matchedUser as any)?.name || cleanKey}!`);
   };
 
   const adminAdjustUserFollowers = (userId: string, count: number) => {
     let matchedUser: AdminUserManagementItem | null = null;
+    const cleanKey = (userId || '').trim();
+
     setAdminUsers(prev => {
-      let found = false;
-      const nextList = prev.map(u => {
-        if (u.id === userId || (u.email && u.email.toLowerCase() === userId.toLowerCase())) {
-          found = true;
-          matchedUser = { ...u, tiktokFollowers: Math.max(0, u.tiktokFollowers + count) };
-          return matchedUser;
-        }
-        return u;
-      });
-      if (!found && userId) {
-        const email = userId.includes('@') ? userId : `${userId}@gmail.com`;
-        const handle = (userId.includes('@') ? userId.split('@')[0] : userId).replace(/^@/, '');
+      const idx = findUserIndexInList(prev, cleanKey);
+      const nextList = [...prev];
+
+      if (idx >= 0) {
+        const u = prev[idx];
+        matchedUser = { ...u, tiktokFollowers: Math.max(0, u.tiktokFollowers + count) };
+        nextList[idx] = matchedUser;
+      } else if (cleanKey) {
+        const cleanLower = cleanKey.toLowerCase();
+        const cleanHandle = cleanLower.replace(/^@/, '').split('@')[0];
+        const email = cleanLower.includes('@') ? cleanLower : `${cleanHandle}@gmail.com`;
         matchedUser = {
-          id: userId.startsWith('usr_') ? userId : `usr_${Date.now()}`,
-          name: handle,
-          handle,
+          id: cleanKey.startsWith('usr_') ? cleanKey : `usr_${email.replace(/[^a-z0-9]/g, '_')}`,
+          name: cleanHandle,
+          handle: cleanHandle,
           avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
           email,
           phone: '0988888888',
-          tiktokConnected: `@${handle}`,
+          tiktokConnected: `@${cleanHandle}`,
           tiktokFollowers: Math.max(0, 1000 + count),
           isTikTokVerified: true,
           rankLevel: 'Đồng',
@@ -6508,6 +6540,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
         nextList.unshift(matchedUser);
       }
+
       try {
         if (typeof window !== 'undefined') {
           localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
@@ -6516,7 +6549,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if (isCurrentUser(userId, matchedUser || undefined)) {
+    if (isCurrentUser(cleanKey, matchedUser || undefined)) {
       setUser(prev => {
         const updated = {
           ...prev,
@@ -6535,39 +6568,40 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     broadcastRealtimeEvent('ADMIN_GRANT_FOLLOWERS', { 
-      userId, 
+      userId: (matchedUser as any)?.id || cleanKey, 
       email: (matchedUser as any)?.email, 
       handle: (matchedUser as any)?.handle, 
       tiktokFollowers: (matchedUser as any)?.tiktokFollowers, 
       count, 
       data: matchedUser 
     });
-    showToast(`Đã cộng +${count.toLocaleString()} Follower cho kênh của người dùng!`);
+    showToast(`Đã cộng +${count.toLocaleString()} Follower cho kênh của tài khoản ${(matchedUser as any)?.name || cleanKey}!`);
   };
 
   const adminChangeUserRank = (userId: string, rank: string) => {
     let matchedUser: AdminUserManagementItem | null = null;
+    const cleanKey = (userId || '').trim();
+
     setAdminUsers(prev => {
-      let found = false;
-      const nextList = prev.map(u => {
-        if (u.id === userId || (u.email && u.email.toLowerCase() === userId.toLowerCase())) {
-          found = true;
-          matchedUser = { ...u, rankLevel: rank };
-          return matchedUser;
-        }
-        return u;
-      });
-      if (!found && userId) {
-        const email = userId.includes('@') ? userId : `${userId}@gmail.com`;
-        const handle = (userId.includes('@') ? userId.split('@')[0] : userId).replace(/^@/, '');
+      const idx = findUserIndexInList(prev, cleanKey);
+      const nextList = [...prev];
+
+      if (idx >= 0) {
+        const u = prev[idx];
+        matchedUser = { ...u, rankLevel: rank };
+        nextList[idx] = matchedUser;
+      } else if (cleanKey) {
+        const cleanLower = cleanKey.toLowerCase();
+        const cleanHandle = cleanLower.replace(/^@/, '').split('@')[0];
+        const email = cleanLower.includes('@') ? cleanLower : `${cleanHandle}@gmail.com`;
         matchedUser = {
-          id: userId.startsWith('usr_') ? userId : `usr_${Date.now()}`,
-          name: handle,
-          handle,
+          id: cleanKey.startsWith('usr_') ? cleanKey : `usr_${email.replace(/[^a-z0-9]/g, '_')}`,
+          name: cleanHandle,
+          handle: cleanHandle,
           avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
           email,
           phone: '0988888888',
-          tiktokConnected: `@${handle}`,
+          tiktokConnected: `@${cleanHandle}`,
           tiktokFollowers: 1000,
           isTikTokVerified: true,
           rankLevel: rank,
@@ -6586,6 +6620,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
         nextList.unshift(matchedUser);
       }
+
       try {
         if (typeof window !== 'undefined') {
           localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
@@ -6594,7 +6629,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if (isCurrentUser(userId, matchedUser || undefined)) {
+    if (isCurrentUser(cleanKey, matchedUser || undefined)) {
       setUser(prev => {
         const updated = {
           ...prev,
@@ -6613,13 +6648,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     broadcastRealtimeEvent('ADMIN_UPDATE_RANK', { 
-      userId, 
+      userId: (matchedUser as any)?.id || cleanKey, 
       email: (matchedUser as any)?.email, 
       handle: (matchedUser as any)?.handle, 
       rankLevel: rank, 
       data: matchedUser 
     });
-    showToast(`Đã nâng hạng tài khoản lên bậc ${rank}!`);
+    showToast(`Đã nâng hạng tài khoản ${(matchedUser as any)?.name || cleanKey} lên bậc ${rank}!`);
   };
 
   const adminAddUser = (userData: Partial<AdminUserManagementItem>): AdminUserManagementItem => {
@@ -6669,14 +6704,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const adminUpdateUser = (userId: string, data: Partial<AdminUserManagementItem>) => {
     let matchedUser: AdminUserManagementItem | null = null;
+    const cleanKey = (userId || '').trim();
+
     setAdminUsers(prev => {
-      const nextList = prev.map(u => {
-        if (u.id === userId || (u.email && u.email.toLowerCase() === userId.toLowerCase())) {
-          matchedUser = { ...u, ...data };
-          return matchedUser;
-        }
-        return u;
-      });
+      const idx = findUserIndexInList(prev, cleanKey);
+      const nextList = [...prev];
+      if (idx >= 0) {
+        matchedUser = { ...prev[idx], ...data };
+        nextList[idx] = matchedUser;
+      }
       try {
         if (typeof window !== 'undefined') {
           localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
@@ -6685,7 +6721,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    if (isCurrentUser(userId, matchedUser || undefined)) {
+    if (isCurrentUser(cleanKey, matchedUser || undefined)) {
       setUser(prev => {
         const updated = {
           ...prev,
@@ -6720,7 +6756,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     broadcastRealtimeEvent('ADMIN_UPDATE_USER', { 
-      userId, 
+      userId: (matchedUser as any)?.id || cleanKey, 
       email: (matchedUser as any)?.email, 
       handle: (matchedUser as any)?.handle, 
       data: matchedUser || data 
@@ -6729,23 +6765,32 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const adminDeleteUser = (userId: string) => {
-    setAdminUsers(prev => prev.filter(u => u.id !== userId && u.email.toLowerCase() !== userId.toLowerCase()));
-    broadcastRealtimeEvent('ADMIN_DELETE_USER', { userId });
+    const cleanKey = (userId || '').toLowerCase().trim();
+    setAdminUsers(prev => prev.filter(u => 
+      u.id.toLowerCase().trim() !== cleanKey && 
+      u.email.toLowerCase().trim() !== cleanKey
+    ));
+    broadcastRealtimeEvent('ADMIN_DELETE_USER', { userId: cleanKey });
     showToast('🗑️ Đã xóa tài khoản khỏi hệ thống!');
   };
 
   const adminUpdateGrantedOrder = (userId: string, orderId: string, data: Partial<ServiceOrder>) => {
     let matched = false;
-    setAdminUsers(prev => prev.map(u => {
-      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
-        const updatedOrders = (u.orders || []).map(ord => ord.id === orderId ? { ...ord, ...data } : ord);
-        if (isCurrentUser(userId, u)) matched = true;
-        return { ...u, orders: updatedOrders };
-      }
-      return u;
-    }));
+    const cleanKey = (userId || '').trim();
 
-    if (matched || isCurrentUser(userId)) {
+    setAdminUsers(prev => {
+      const idx = findUserIndexInList(prev, cleanKey);
+      const nextList = [...prev];
+      if (idx >= 0) {
+        const u = prev[idx];
+        const updatedOrders = (u.orders || []).map(ord => ord.id === orderId ? { ...ord, ...data } : ord);
+        if (isCurrentUser(cleanKey, u)) matched = true;
+        nextList[idx] = { ...u, orders: updatedOrders };
+      }
+      return nextList;
+    });
+
+    if (matched || isCurrentUser(cleanKey)) {
       setUser(prev => ({
         ...prev,
         myOrders: (prev.myOrders || []).map(ord => ord.id === orderId ? { ...ord, ...data } : ord)
@@ -6758,25 +6803,29 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const adminDeleteGrantedOrder = (userId: string, orderId: string) => {
     let matched = false;
-    setAdminUsers(prev => prev.map(u => {
-      if (u.id === userId || u.email.toLowerCase() === userId.toLowerCase()) {
-        const updatedOrders = (u.orders || []).filter(ord => ord.id !== orderId);
-        if (isCurrentUser(userId, u)) matched = true;
-        return { ...u, orders: updatedOrders, purchasedPackagesCount: Math.max(0, (u.purchasedPackagesCount || 1) - 1) };
-      }
-      return u;
-    }));
+    const cleanKey = (userId || '').trim();
 
-    if (matched || isCurrentUser(userId)) {
+    setAdminUsers(prev => {
+      const idx = findUserIndexInList(prev, cleanKey);
+      const nextList = [...prev];
+      if (idx >= 0) {
+        const u = prev[idx];
+        const updatedOrders = (u.orders || []).filter(ord => ord.id !== orderId);
+        if (isCurrentUser(cleanKey, u)) matched = true;
+        nextList[idx] = { ...u, orders: updatedOrders, purchasedPackagesCount: Math.max(0, (u.purchasedPackagesCount || 1) - 1) };
+      }
+      return nextList;
+    });
+
+    if (matched || isCurrentUser(cleanKey)) {
       setUser(prev => ({
         ...prev,
-        purchasedPackagesCount: Math.max(0, (prev.purchasedPackagesCount || 1) - 1),
         myOrders: (prev.myOrders || []).filter(ord => ord.id !== orderId)
       }));
     }
 
     broadcastRealtimeEvent('FORCE_FULL_SYNC', { timestamp: Date.now() });
-    showToast('🗑️ Đã xóa gói dịch vụ được cấp!');
+    showToast('🗑️ Đã xóa gói dịch vụ!');
   };
 
 

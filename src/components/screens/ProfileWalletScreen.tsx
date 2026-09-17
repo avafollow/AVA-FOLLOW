@@ -146,6 +146,24 @@ export const ProfileWalletScreen: React.FC<{
   const [avatarPreview, setAvatarPreview] = useState<string>(user.avatar || '');
   const [albumImages, setAlbumImages] = useState<Array<{ id: string; url: string; name: string; type: 'image' | 'video' }>>([]);
 
+  React.useEffect(() => {
+    setBankName(user.bankInfo?.bankName || 'MB Bank (Ngân Hàng Quân Đội)');
+    setAccountNumber(user.bankInfo?.accountNumber || '');
+    setAccountHolder(user.bankInfo?.accountHolder || user.name.toUpperCase());
+    setKycFullName(user.name || '');
+    setKycEmail(user.email || '');
+    setKycIdNumber(user.citizenId || user.kycData?.idNumber || '');
+    setKycDob(user.kycData?.dateOfBirth || '');
+    setKycTiktokUrl(
+      user.tiktokProfileUrl || (user.tiktokConnected ? `https://www.tiktok.com/${user.tiktokConnected.startsWith('@') ? user.tiktokConnected : '@' + user.tiktokConnected}` : '')
+    );
+    setAvatarPreview(user.avatar || '');
+    setKycStatus(user.kycStatus === 'verified' ? 'verified' : user.kycStatus === 'pending' ? 'pending' : 'unsubmitted');
+    if (user.kycData?.frontIdCardUrl) setFrontCardPreview(user.kycData.frontIdCardUrl);
+    if (user.kycData?.backIdCardUrl) setBackCardPreview(user.kycData.backIdCardUrl);
+    if (user.kycData?.selfiePhotoUrl || user.selfiePhotoUrl) setSelfiePreview(user.kycData?.selfiePhotoUrl || user.selfiePhotoUrl || '');
+  }, [user]);
+
   const handleKycSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!kycFullName || !kycEmail || !kycIdNumber || !kycDob || !kycProvince || !kycJob) {

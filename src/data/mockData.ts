@@ -18,12 +18,12 @@ import {
   ChatMessageItem
 } from '../types';
 
-export const USER_PROFILE_WALLET: UserProfileWallet = {
-  name: 'Nguyễn Văn Minh (Thiện Vua App)',
-  handle: '@thienvuaapp',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  email: 'thienvuaapp@gmail.com',
-  role: 'Creator Pro • Chuyên Gia Xây Kênh TikTok',
+export const EMPTY_GUEST_USER: UserProfileWallet = {
+  name: '',
+  handle: '',
+  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+  email: '',
+  role: 'Khách Vãng Lai',
   tiktokConnected: '',
   tiktokFollowers: 0,
   tiktokAvatar: '',
@@ -36,10 +36,54 @@ export const USER_PROFILE_WALLET: UserProfileWallet = {
   isYoutubeVerified: false,
   youtubeSubscribers: 0,
   youtubeAvatar: '',
-  bioVerificationCode: 'TIKTOK-VERIFY-8899',
-  isNewUserBonusClaimed: true,
-  avaliveCoins: 5000,
-  coinsValueVND: '5.000đ',
+  bioVerificationCode: '',
+  isNewUserBonusClaimed: false,
+  avaliveCoins: 0,
+  coinsValueVND: '0đ',
+  tokenBalance: 0,
+  usdtBalance: 0,
+  fiatVND: '0đ',
+  completedTasksCount: 0,
+  dailyTasksCompleted: 0,
+  dailyTasksLimit: 100,
+  luckyWheelFreeSpins: 0,
+  createdCampaignsCount: 0,
+  rankLevel: 'Đồng',
+  kycStatus: 'unverified',
+  isAdmin: false,
+  hasAllPermissions: false,
+  isWhitelisted: false,
+  canRunAnyCampaign: false,
+  canFollowCrossUnrestricted: false,
+  grantedCoinsTotal: 0,
+  grantedPackagesTotal: 0,
+  transactions: [],
+  myOrders: [],
+  myAppLicenses: []
+};
+
+export const USER_PROFILE_WALLET: UserProfileWallet = {
+  name: 'Người Dùng AVA FOLLOW',
+  handle: '@creator',
+  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+  email: '',
+  role: 'Nhà Sáng Tạo AVA FOLLOW',
+  tiktokConnected: '',
+  tiktokFollowers: 0,
+  tiktokAvatar: '',
+  isTikTokVerified: false,
+  facebookConnected: '',
+  isFacebookVerified: false,
+  facebookFollowers: 0,
+  facebookAvatar: '',
+  youtubeConnected: '',
+  isYoutubeVerified: false,
+  youtubeSubscribers: 0,
+  youtubeAvatar: '',
+  bioVerificationCode: 'AVA-VERIFY-8899',
+  isNewUserBonusClaimed: false,
+  avaliveCoins: 0,
+  coinsValueVND: '0đ',
   tokenBalance: 0,
   usdtBalance: 0,
   fiatVND: '0đ',
@@ -50,25 +94,8 @@ export const USER_PROFILE_WALLET: UserProfileWallet = {
   createdCampaignsCount: 0,
   rankLevel: 'Đồng',
   kycStatus: 'unverified',
-  bankInfo: {
-    bankName: 'MB Bank (Quân Đội)',
-    accountNumber: '999988886666',
-    accountHolder: 'NGUYEN VAN MINH',
-    branch: 'Chi nhánh Hà Nội'
-  },
-  transactions: [
-    {
-      id: 'tx_welcome_bonus',
-      type: 'earn',
-      title: 'Thưởng chào mừng thành viên mới (5.000 Xu = 5.000đ)',
-      amount: '+5.000 Xu (+5.000đ)',
-      isPositive: true,
-      date: 'Thành viên mới',
-      status: 'success'
-    }
-  ],
+  transactions: [],
   myOrders: [],
-
   myAppLicenses: []
 };
 

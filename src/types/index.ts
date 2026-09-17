@@ -563,8 +563,10 @@ export interface AdminUserManagementItem {
   firstTaskCompleted?: boolean;
   facebookConnected?: string;
   isFacebookVerified?: boolean;
+  facebookFollowers?: number;
   youtubeConnected?: string;
   isYoutubeVerified?: boolean;
+  youtubeSubscribers?: number;
   orders?: ServiceOrder[];
   referralCount?: number;
   referralEarningsVND?: string;

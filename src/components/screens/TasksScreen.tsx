@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   UserPlus, 
   Heart, 
@@ -119,6 +119,12 @@ export const TasksScreen: React.FC<{
   const [tempFacebookUrl, setTempFacebookUrl] = useState<string>(user.facebookConnected || "");
   const [editingYoutube, setEditingYoutube] = useState<boolean>(false);
   const [tempYoutubeUrl, setTempYoutubeUrl] = useState<string>(user.youtubeConnected || "");
+
+  useEffect(() => {
+    setTempTikTokHandle(user.tiktokConnected || "");
+    setTempFacebookUrl(user.facebookConnected || "");
+    setTempYoutubeUrl(user.youtubeConnected || "");
+  }, [user.tiktokConnected, user.facebookConnected, user.youtubeConnected]);
 
   // Kiểm tra hoàn thành toàn bộ Nhiệm Vụ Ngày để mở khóa Live Stream, Lướt Video & Follow Chéo
   const dailyMissions = userMissions?.filter(m => m.category === 'daily') || [];
@@ -588,7 +594,7 @@ export const TasksScreen: React.FC<{
                         className="text-xs font-black text-white hover:text-rose-400 transition-colors truncate max-w-[110px] sm:max-w-[150px] cursor-pointer"
                         title={`Mở https://tiktok.com/@${cleanTikTokHandle}`}
                       >
-                        {user.tiktokConnected || "@thienvuaapp"}
+                        {user.tiktokConnected || "Chưa kết nối"}
                       </a>
                       <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
                       <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
@@ -597,7 +603,7 @@ export const TasksScreen: React.FC<{
                       {user.kycStatus !== 'verified' && (
                         <button
                           onClick={() => {
-                            setTempTikTokHandle(user.tiktokConnected || "@thienvuaapp");
+                            setTempTikTokHandle(user.tiktokConnected || "");
                             setEditingTikTok(true);
                           }}
                           className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
@@ -614,7 +620,7 @@ export const TasksScreen: React.FC<{
                 {user.kycStatus !== 'verified' ? (
                   <button
                     onClick={() => {
-                      setTempTikTokHandle(user.tiktokConnected || "@thienvuaapp");
+                      setTempTikTokHandle(user.tiktokConnected || "");
                       setEditingTikTok(true);
                     }}
                     className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10"
@@ -693,16 +699,16 @@ export const TasksScreen: React.FC<{
                         className="text-xs font-black text-white hover:text-blue-400 transition-colors truncate max-w-[110px] sm:max-w-[150px] cursor-pointer"
                         title={`Mở ${facebookUrl}`}
                       >
-                        {user.facebookConnected || "fb.com/thienvuaapp"}
+                        {user.facebookConnected || "Chưa kết nối"}
                       </a>
                       <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
                       <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
-                        ({(user.facebookFollowers || 18500).toLocaleString()} fl)
+                        ({(user.facebookFollowers || 0).toLocaleString()} fl)
                       </span>
                       {user.kycStatus !== 'verified' && (
                         <button
                           onClick={() => {
-                            setTempFacebookUrl(user.facebookConnected || "fb.com/thienvuaapp");
+                            setTempFacebookUrl(user.facebookConnected || "");
                             setEditingFacebook(true);
                           }}
                           className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
@@ -719,7 +725,7 @@ export const TasksScreen: React.FC<{
                 {user.kycStatus !== 'verified' ? (
                   <button
                     onClick={() => {
-                      setTempFacebookUrl(user.facebookConnected || "fb.com/thienvuaapp");
+                      setTempFacebookUrl(user.facebookConnected || "");
                       setEditingFacebook(true);
                     }}
                     className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10"

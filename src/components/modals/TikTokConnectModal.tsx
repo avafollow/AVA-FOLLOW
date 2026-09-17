@@ -208,13 +208,13 @@ export const TikTokConnectModal: React.FC = () => {
 
   // URLs kênh thật
   const cleanTikTok = (user.tiktokConnected || '').replace(/^@+/, '');
-  const currentTikTokUrl = user.tiktokProfileUrl || `https://www.tiktok.com/@${cleanTikTok || 'thienvuaapp'}`;
+  const currentTikTokUrl = user.tiktokProfileUrl || (cleanTikTok ? `https://www.tiktok.com/@${cleanTikTok}` : '#');
   
   const cleanFb = (user.facebookConnected || '').replace(/^(https?:\/\/)?(www\.)?facebook\.com\//, '');
-  const currentFbUrl = user.facebookProfileUrl || (user.facebookConnected?.startsWith('http') ? user.facebookConnected : `https://www.facebook.com/${cleanFb || 'thienvuaapp'}`);
+  const currentFbUrl = user.facebookProfileUrl || (user.facebookConnected?.startsWith('http') ? user.facebookConnected : (cleanFb ? `https://www.facebook.com/${cleanFb}` : '#'));
   
   const cleanYt = (user.youtubeConnected || '').replace(/^(https?:\/\/)?(www\.)?youtube\.com\/(@)?/, '').replace(/^@+/, '');
-  const currentYtUrl = user.youtubeProfileUrl || `https://www.youtube.com/@${cleanYt || 'thienvuaapp_yt'}`;
+  const currentYtUrl = user.youtubeProfileUrl || (cleanYt ? `https://www.youtube.com/@${cleanYt}` : '#');
 
   // Avatar hiển thị chuẩn
   const currentTtAvatar = user.tiktokAvatar || user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';

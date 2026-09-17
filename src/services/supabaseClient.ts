@@ -603,6 +603,7 @@ export type RealtimeEventType =
   | 'TASK_COMPLETED'
   | 'USER_PURCHASE_PACKAGE'
   | 'USER_PROFILE_SYNC'
+  | 'USER_LOGGED_OUT'
   | 'MASTER_SNAPSHOT_SYNC'
   | 'FORCE_FULL_SYNC';
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { extractTikTokVideoId, extractTikTokHandle, getTikTokAvatar } from '../../../data/videoSources';
 import { Play, Volume2, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { DirectVideoPlayer } from './DirectVideoPlayer';
 
 export interface TikTokVideoEmbedPlayerProps {
   videoId?: string;
@@ -69,16 +70,14 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
     const cleanHandle = handle.replace(/^@+/, '');
     return (
       <div className={`relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-3xl group select-none ${className}`}>
-        {/* Video nền chuyển động chân thật */}
+        {/* Video nền chuyển động chân thật với trình phát DirectVideoPlayer bất tử */}
         <div className="absolute inset-0 z-0">
-          <video
+          <DirectVideoPlayer
             src="/videos/sample1.mp4"
             autoPlay
-            loop
-            muted
-            playsInline
-            {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
-            className="w-full h-full object-cover opacity-60"
+            isMuted={true}
+            isPlaying={true}
+            className="w-full h-full opacity-70"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/40" />
         </div>

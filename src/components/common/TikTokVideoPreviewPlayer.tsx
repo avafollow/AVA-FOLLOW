@@ -180,6 +180,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             videoId={mediaInfo.videoId}
             directUrl={url}
             title={mediaInfo.title}
+            isMuted={isMuted}
           />
         ) : (
           /* TAB 5: TRÌNH PHÁT VIDEO TRỰC TIẾP */

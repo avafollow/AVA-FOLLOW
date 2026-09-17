@@ -6100,6 +6100,37 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   </select>
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">Xác Minh KYC CCCD</label>
+                  <select
+                    value={editingUser.kycStatus || 'verified'}
+                    onChange={(e) => setEditingUser({ ...editingUser, kycStatus: e.target.value as any })}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="verified">✅ Đã Xác Minh (Verified)</option>
+                    <option value="pending">⏳ Đang Chờ Duyệt (Pending)</option>
+                    <option value="unverified">⚪ Chưa Xác Minh (Unverified)</option>
+                    <option value="rejected">❌ Bị Từ Chối (Rejected)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-amber-300 mb-1">👑 Đặc Cách Toàn Quyền VIP</label>
+                  <select
+                    value={editingUser.hasAllPermissions ? 'true' : 'false'}
+                    onChange={(e) => setEditingUser({ 
+                      ...editingUser, 
+                      hasAllPermissions: e.target.value === 'true',
+                      isWhitelisted: e.target.value === 'true'
+                    })}
+                    className="w-full bg-slate-900 border border-amber-500/40 rounded-xl px-3 py-2 text-amber-300 font-bold focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="true">👑 Bật Toàn Quyền Hệ Thống VIP</option>
+                    <option value="false">⚪ Tiêu Chuẩn (Theo Hạng)</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/10">

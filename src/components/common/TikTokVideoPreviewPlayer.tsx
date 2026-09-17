@@ -416,30 +416,58 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         </div>
       )}
 
-      {/* 4. BOTTOM INFO OVERLAY (Dành cho Video Direct) */}
-      {isDirectVideo && !effectiveIsLive && !mediaInfo.isLive && (
-        <div className="absolute bottom-3 left-3 right-16 z-20 pointer-events-none space-y-2">
-          {/* Creator Handle */}
-          <div 
-            onClick={openUserMedia}
-            className="flex items-center gap-1.5 drop-shadow-lg cursor-pointer pointer-events-auto hover:opacity-90 w-fit"
-            title={`Xem kênh @${cleanHandle}`}
-          >
-            <span className="text-white font-black text-sm truncate">
-              @{cleanHandle}
-            </span>
-            <CheckCircle2 className="w-4 h-4 text-cyan-400 fill-cyan-400/20 shrink-0" />
-          </div>
+      {/* 4. BOTTOM INFO & CHANNEL/FANPAGE BANNER (Hiển thị cho tất cả nền tảng: YouTube, Facebook, TikTok) */}
+      {!effectiveIsLive && !mediaInfo.isLive && (
+        <div className="absolute bottom-3 left-3 right-3 z-30 pointer-events-auto">
+          <div className="p-2.5 rounded-2xl bg-black/85 backdrop-blur-md border border-white/20 shadow-2xl flex items-center justify-between gap-2.5">
+            <div 
+              onClick={openUserMedia}
+              className="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-90 transition-opacity"
+              title={`Mở kênh ${mediaInfo.channelName}`}
+            >
+              <div className="relative shrink-0">
+                <img
+                  src={mediaInfo.avatarUrl}
+                  alt={mediaInfo.channelName}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120';
+                  }}
+                  className="w-8 h-8 rounded-full border border-white/30 object-cover"
+                />
+                <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-black text-white ${
+                  isYouTube ? 'bg-red-600' : isFacebook ? 'bg-blue-600' : 'bg-black text-rose-400 border border-rose-500'
+                }`}>
+                  {isYouTube ? '▶' : isFacebook ? 'f' : '♪'}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="text-white font-bold text-xs truncate max-w-[140px] sm:max-w-[180px]">
+                    {mediaInfo.channelName}
+                  </span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                </div>
+                <div className="text-[9px] text-slate-300 font-mono truncate">
+                  {isYouTube ? 'Kênh YouTube' : isFacebook ? 'Trang / Fanpage Facebook' : 'Kênh TikTok'} • {mediaInfo.handle}
+                </div>
+              </div>
+            </div>
 
-          {/* Caption */}
-          <div className="text-[11px] text-white/95 line-clamp-2 drop-shadow-lg font-sans">
-            <span>{mediaInfo.title || `Video chính thức từ @${cleanHandle}`}</span>
-          </div>
-
-          {/* Music Ticker */}
-          <div className="flex items-center gap-1.5 text-[9px] text-slate-300 font-mono drop-shadow truncate">
-            <Music2 className="w-3.5 h-3.5 text-rose-400 shrink-0 animate-bounce" />
-            <span className="truncate">♫ Âm thanh gốc - {cleanHandle} • Đang phát sóng</span>
+            {/* Direct Subscribe / Follow Action Button */}
+            <button
+              type="button"
+              onClick={openUserMedia}
+              className={`px-3 py-1.5 rounded-xl font-black text-[10px] sm:text-xs font-mono flex items-center gap-1.5 shrink-0 shadow-lg cursor-pointer active:scale-95 transition-all ${
+                isYouTube
+                  ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/40'
+                  : isFacebook
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/40'
+                  : 'bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white shadow-rose-900/40'
+              }`}
+            >
+              <span>{mediaInfo.actionCtaLabel}</span>
+              <ExternalLink className="w-3 h-3" />
+            </button>
           </div>
         </div>
       )}

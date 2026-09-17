@@ -320,6 +320,9 @@ interface TikTokAppContextType {
     multiTargets?: MultiTargetConfig[];
     audienceTargeting?: CampaignAudienceTargeting;
     videoPreviewUrl?: string;
+    platform?: 'tiktok' | 'facebook' | 'youtube';
+    channelUrl?: string;
+    fanpageUrl?: string;
   }) => boolean;
   unlockCampaignAnalytics: (campaignId: string) => boolean;
   boostCampaignToTop: (campaignId: string) => boolean;
@@ -631,8 +634,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_growth_packages') : null;
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        const parsed: GrowthServiceItem[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const map = new Map<string, GrowthServiceItem>();
+          parsed.forEach(p => map.set(p.id, p));
+          COMPREHENSIVE_GROWTH_PACKAGES.forEach(pkg => {
+            if (!map.has(pkg.id)) map.set(pkg.id, pkg);
+          });
+          return Array.from(map.values());
+        }
       }
     } catch {}
     return COMPREHENSIVE_GROWTH_PACKAGES;
@@ -5138,6 +5148,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     livestreamMinutes?: number;
     multiTargets?: MultiTargetConfig[];
     audienceTargeting?: CampaignAudienceTargeting;
+    videoPreviewUrl?: string;
+    platform?: 'tiktok' | 'facebook' | 'youtube';
+    channelUrl?: string;
+    fanpageUrl?: string;
   }): boolean => {
     // Trích xuất an toàn số Xu ngân sách thực tế (từ budgetCoins trực tiếp hoặc chỉ lấy phần số đầu tiên trước chữ Xu/VND)
     let rawBudget = campaignData.budgetCoins || 0;

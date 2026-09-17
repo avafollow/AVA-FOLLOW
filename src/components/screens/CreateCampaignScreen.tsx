@@ -193,11 +193,61 @@ export const CreateCampaignScreen: React.FC<{
   const [speed, setSpeed] = useState<'natural' | 'turbo'>('natural');
   const [instructions, setInstructions] = useState('Yêu cầu người dùng thật 100%, xem video 15s tự nhiên trước khi tương tác, bảo đảm không bị tụt.');
   
+  const [campaignPlatform, setCampaignPlatform] = useState<'tiktok' | 'facebook' | 'youtube'>('tiktok');
+
+  const getTargetLabels = (platform: 'tiktok' | 'facebook' | 'youtube') => {
+    if (platform === 'facebook') {
+      return {
+        follow: { label: 'Like & Follow Fanpage / Cá Nhân', desc: '500 Xu / follow thật', unitLabel: 'Follower / Like Page' },
+        watch: { label: 'Lượt Xem Reels / Video 60s', desc: '500 Xu / lượt xem giữ chân', unitLabel: 'Lượt Xem Reels' },
+        like: { label: 'Thả Like / Tym Bài Viết & Reels', desc: '250 Xu / like thật', unitLabel: 'Lượt Like' },
+        comment: { label: 'Bình Luận Seeding Kịch Bản', desc: '500 Xu / cmt chốt sale', unitLabel: 'Bình Luận' },
+        share: { label: 'Chia Sẻ Hội Nhóm & Profile', desc: '600 Xu / share thật', unitLabel: 'Lượt Chia Sẻ' },
+        livestream: { label: 'Mắt Live Facebook Giữ Chân', desc: 'Từ 350 Xu / mắt xem thật', unitLabel: 'Mắt Live' },
+        booking_review: { label: 'Booking KOC Trải Nghiệm', desc: '1.5M Xu / video', unitLabel: 'Video Review' }
+      };
+    }
+    if (platform === 'youtube') {
+      return {
+        follow: { label: 'Đăng Ký Kênh (Subscribers)', desc: '800 Xu / sub chống tụt', unitLabel: 'Subscribers' },
+        watch: { label: 'Lượt Xem Video / Shorts 1080p', desc: '500 Xu / view giữ chân', unitLabel: 'Lượt Xem YouTube' },
+        like: { label: 'Thả Like Video YouTube', desc: '250 Xu / like thật', unitLabel: 'Lượt Like' },
+        comment: { label: 'Bình Luận Đánh Giá Khen Ngợi', desc: '500 Xu / cmt chất lượng', unitLabel: 'Bình Luận' },
+        share: { label: 'Chia Sẻ Video YouTube', desc: '600 Xu / share thật', unitLabel: 'Lượt Chia Sẻ' },
+        livestream: { label: 'Mắt Live YouTube Giữ Chân', desc: 'Từ 350 Xu / mắt xem thật', unitLabel: 'Mắt Live' },
+        booking_review: { label: 'Booking KOC Trải Nghiệm', desc: '1.5M Xu / video', unitLabel: 'Video Review' }
+      };
+    }
+    return {
+      follow: { label: 'Kết Nối Follow Người Thật', desc: '500 Xu / follow thật', unitLabel: 'Follower' },
+      watch: { label: 'Kết Nối Lượt Xem Video FYP', desc: '500 Xu / lượt xem (Tặng kèm Mua 1 Tặng 1)', unitLabel: 'Lượt Xem Video' },
+      like: { label: 'Kết Nối Thả Tim Tương Tác', desc: '250 Xu / tim thật', unitLabel: 'Lượt Tim' },
+      comment: { label: 'Kết Nối Bình Luận Seeding', desc: '500 Xu / cmt chất lượng', unitLabel: 'Bình Luận' },
+      share: { label: 'Kết Nối Chia Sẻ Lan Tỏa', desc: '600 Xu / share thật', unitLabel: 'Lượt Chia Sẻ' },
+      livestream: { label: 'Kết Nối Mắt Live Giữ Chân', desc: 'Từ 350 Xu / mắt xem thật', unitLabel: 'Mắt Live' },
+      booking_review: { label: 'Booking KOC Trải Nghiệm', desc: '1.5M Xu / video', unitLabel: 'Video Review' }
+    };
+  };
+
+  const dynamicTargetLabels = getTargetLabels(campaignPlatform);
+
   // Xử lý thông minh khi người dùng dán link video TikTok, live hoặc ID kênh: phát live tức thì
   const handleTargetUrlChange = (inputVal: string) => {
     setTargetUrl(inputVal);
     const trimmed = inputVal.trim();
     if (!trimmed) return;
+
+    const lower = trimmed.toLowerCase();
+    if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+      setCampaignPlatform('youtube');
+      showToast('🔴 Đã nhận diện đường link YouTube! Tự động chuyển chế độ YouTube.');
+    } else if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.com')) {
+      setCampaignPlatform('facebook');
+      showToast('📘 Đã nhận diện đường link Facebook! Tự động chuyển chế độ Fanpage/Reels Facebook.');
+    } else if (lower.includes('tiktok.com')) {
+      setCampaignPlatform('tiktok');
+      showToast('🎵 Đã nhận diện đường link TikTok! Tự động chuyển chế độ TikTok.');
+    }
 
     // Trích xuất @handle từ URL nếu có
     const match = trimmed.match(/@([a-zA-Z0-9_.-]+)/);
@@ -342,8 +392,11 @@ export const CreateCampaignScreen: React.FC<{
 
     const success = createCampaign({
       title: finalTitle,
+      platform: campaignPlatform,
       type: primaryType,
       channelHandle,
+      channelUrl: targetUrl,
+      fanpageUrl: campaignPlatform === 'facebook' ? targetUrl : undefined,
       targetUrl,
       targetQuantity: activeTargetsList.reduce((sum, t) => sum + (targetQuantities[t.id] || 10), 0),
       budgetTotal: `${totalCostXu.toLocaleString()} Xu (${totalCostVND})`,
@@ -409,8 +462,11 @@ export const CreateCampaignScreen: React.FC<{
 
     const success = createCampaign({
       title: campaignTitle,
+      platform: campaignPlatform,
       type: megaType,
       channelHandle: channelHandle.startsWith('@') ? channelHandle : `@${channelHandle}`,
+      channelUrl: targetUrl,
+      fanpageUrl: campaignPlatform === 'facebook' ? targetUrl : undefined,
       targetUrl,
       targetQuantity: megaLiveGoal,
       budgetTotal: `${megaCostXu.toLocaleString()} Xu (${megaCostVND})`,
@@ -537,11 +593,65 @@ export const CreateCampaignScreen: React.FC<{
       {activeMainTab === 'standard' && (
       <form onSubmit={handleSubmit} className="p-6 sm:p-8 rounded-3xl bg-[#0D111E] border border-white/10 space-y-6 text-xs shadow-2xl">
         
+        {/* 0. NỀN TẢNG CHIẾN DỊCH (TIKTOK / FACEBOOK / YOUTUBE) */}
+        <div className="space-y-2.5">
+          <label className="block text-zinc-300 font-mono font-black uppercase text-[11px]">
+            1. Chọn nền tảng muốn tăng trưởng:
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setCampaignPlatform('tiktok');
+                setTargetUrl('https://www.tiktok.com/@vtv24news/video/7178345719323135259');
+                setChannelHandle('@vtv24news');
+              }}
+              className={`p-3.5 rounded-2xl border flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${
+                campaignPlatform === 'tiktok'
+                  ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white border-rose-400 shadow-lg shadow-rose-900/30 ring-2 ring-rose-400/30 font-black'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 border-white/10'
+              }`}
+            >
+              <span>🎵 TikTok Channel &amp; Video</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCampaignPlatform('facebook');
+                setTargetUrl('https://www.facebook.com/watch/?v=10158739268396729');
+                setChannelHandle('Fanpage Doanh Nghiệp');
+              }}
+              className={`p-3.5 rounded-2xl border flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${
+                campaignPlatform === 'facebook'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-400 shadow-lg shadow-blue-900/30 ring-2 ring-blue-400/30 font-black'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 border-white/10'
+              }`}
+            >
+              <span>📘 Facebook Fanpage &amp; Reels</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCampaignPlatform('youtube');
+                setTargetUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+                setChannelHandle('@YouTubePartnerVN');
+              }}
+              className={`p-3.5 rounded-2xl border flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${
+                campaignPlatform === 'youtube'
+                  ? 'bg-gradient-to-r from-red-600 to-rose-700 text-white border-red-400 shadow-lg shadow-red-900/30 ring-2 ring-red-400/30 font-black'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 border-white/10'
+              }`}
+            >
+              <span>🔴 YouTube Channel &amp; Video</span>
+            </button>
+          </div>
+        </div>
+
         {/* 1. Multi-Target Selector */}
         <div className="space-y-2.5">
           <div className="flex items-center justify-between">
             <label className="block text-zinc-300 font-mono font-black uppercase text-[11px]">
-              1. Chọn các mục tiêu chiến dịch (Hỗ trợ chọn nhiều mục cùng lúc):
+              2. Chọn các mục tiêu chiến dịch (Hỗ trợ chọn nhiều mục cùng lúc):
             </label>
             <span className="text-[10px] text-emerald-400 font-bold">● 100% Người Thật • Chống Tụt 15-30 Ngày</span>
           </div>
@@ -557,6 +667,7 @@ export const CreateCampaignScreen: React.FC<{
             {TARGET_OPTIONS.map((t) => {
               const Icon = t.icon;
               const isSelected = !!selectedTargets[t.id];
+              const targetInfo = dynamicTargetLabels[t.id] || t;
               return (
                 <button
                   type="button"
@@ -579,8 +690,8 @@ export const CreateCampaignScreen: React.FC<{
                     </span>
                   </div>
                   <div>
-                    <div className="font-bold text-white text-xs leading-snug">{t.label}</div>
-                    <div className="text-[10px] text-zinc-400 font-mono mt-0.5">{t.desc}</div>
+                    <div className="font-bold text-white text-xs leading-snug">{targetInfo.label}</div>
+                    <div className="text-[10px] text-zinc-400 font-mono mt-0.5">{targetInfo.desc}</div>
                   </div>
                 </button>
               );

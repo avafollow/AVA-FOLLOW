@@ -7,21 +7,25 @@ import {
   ArrowRight, 
   Sparkles, 
   Filter,
-  CheckCircle2,
-  ShieldCheck,
-  Flame,
-  Zap,
-  Users,
-  Heart,
-  MessageSquare,
-  Share2,
-  Radio,
-  Layers,
-  Award,
-  PlusCircle,
-  Headphones,
-  TrendingUp,
-  Play
+  CheckCircle2, 
+  ShieldCheck, 
+  Flame, 
+  Zap, 
+  Users, 
+  Heart, 
+  MessageSquare, 
+  Share2, 
+  Radio, 
+  Layers, 
+  Award, 
+  PlusCircle, 
+  Headphones, 
+  TrendingUp, 
+  Play,
+  Facebook,
+  Tv,
+  Music,
+  Globe
 } from 'lucide-react';
 import { GrowthServiceItem } from '../../types';
 import { useTikTokApp } from '../../context/TikTokAppContext';
@@ -51,22 +55,36 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
     closeKocModal
   } = useTikTokApp();
 
+  const [selectedPlatform, setSelectedPlatform] = useState<'all' | 'tiktok' | 'facebook' | 'youtube'>('all');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [priceFilter, setPriceFilter] = useState<'all' | 'under_1m' | '1m_3m' | '3m_7m' | '7m_10m'>('all');
 
-  const CATEGORIES = [
-    { id: 'all', label: `Tất Cả Gói (${growthServices.length})`, icon: Sparkles },
-    { id: 'livestream', label: `Mắt Xem Live (${growthServices.filter(s => s.category === 'livestream').length})`, icon: Radio },
-    { id: 'combo', label: `Combo Kết Hợp (${growthServices.filter(s => s.category === 'combo' || s.category === 'full_channel').length})`, icon: Layers },
-    { id: 'follow', label: `Tăng Follower Thật (${growthServices.filter(s => s.category === 'follow').length})`, icon: Users },
-    { id: 'watch', label: `Xem Giữ Chân 40-60s (${growthServices.filter(s => s.category === 'watch').length})`, icon: Play },
-    { id: 'engagement', label: `Thả Tim FYP (${growthServices.filter(s => s.category === 'engagement').length})`, icon: Heart },
-    { id: 'comment', label: `Seeding Bình Luận (${growthServices.filter(s => s.category === 'comment').length})`, icon: MessageSquare },
-    { id: 'share', label: `Chia Sẻ & Lan Tỏa (${growthServices.filter(s => s.category === 'share').length})`, icon: Share2 }
+  const PLATFORMS = [
+    { id: 'all', label: 'TẤT CẢ NỀN TẢNG', icon: Globe, count: growthServices.length, color: 'from-amber-500 to-rose-500', desc: 'Đầy đủ giải pháp Viral đa kênh' },
+    { id: 'tiktok', label: 'TIKTOK VIRAL', icon: Music, count: growthServices.filter(s => (s.platform || 'tiktok') === 'tiktok').length, color: 'from-rose-600 to-pink-600', desc: 'Mở Shop, Bật Live, Kéo FYP 2026' },
+    { id: 'facebook', label: 'FACEBOOK PRO', icon: Facebook, count: growthServices.filter(s => s.platform === 'facebook').length, color: 'from-blue-600 to-indigo-600', desc: 'Fanpage Chuẩn SEO, Reels, Seeding' },
+    { id: 'youtube', label: 'YOUTUBE PARTNER', icon: Tv, count: growthServices.filter(s => s.platform === 'youtube').length, color: 'from-red-600 to-rose-700', desc: '1k Sub, 4000h Xem Bật Kiếm Tiền' }
   ];
 
-  const filtered = (growthServices || []).filter((srv) => {
+  const platformFiltered = (growthServices || []).filter(srv => {
+    if (selectedPlatform === 'all') return true;
+    const plat = srv.platform || 'tiktok';
+    return plat === selectedPlatform;
+  });
+
+  const CATEGORIES = [
+    { id: 'all', label: `Tất Cả Hạng Mục (${platformFiltered.length})`, icon: Sparkles },
+    { id: 'follow', label: `Follow / Sub (${platformFiltered.filter(s => s.category === 'follow').length})`, icon: Users },
+    { id: 'watch', label: `Xem Giữ Chân (${platformFiltered.filter(s => s.category === 'watch').length})`, icon: Play },
+    { id: 'livestream', label: `Mắt Live (${platformFiltered.filter(s => s.category === 'livestream').length})`, icon: Radio },
+    { id: 'combo', label: `Combo Bùng Nổ (${platformFiltered.filter(s => s.category === 'combo' || s.category === 'full_channel').length})`, icon: Layers },
+    { id: 'engagement', label: `Thả Tim / Like (${platformFiltered.filter(s => s.category === 'engagement').length})`, icon: Heart },
+    { id: 'comment', label: `Seeding Bình Luận (${platformFiltered.filter(s => s.category === 'comment').length})`, icon: MessageSquare },
+    { id: 'share', label: `Chia Sẻ (${platformFiltered.filter(s => s.category === 'share').length})`, icon: Share2 }
+  ];
+
+  const filtered = platformFiltered.filter((srv) => {
     if (!srv) return false;
     if (activeCategory !== 'all') {
       if (activeCategory === 'combo') {
@@ -99,30 +117,30 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold animate-pulse">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>🔥 SIÊU ƯU ĐÃI: MUA 1 TẶNG 1 VIEW (CHO 100 NGƯỜI ĐẦU TIÊN)</span>
+                <span>🔥 SIÊU HỆ SINH THÁI 3 TRONG 1: TIKTOK • FACEBOOK • YOUTUBE</span>
               </div>
               <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[10px] font-mono font-bold">
-                ✓ Mua bao nhiêu tặng bấy nhiêu Lượt Xem Video
+                ✓ 100% Người Dùng Thật Việt Nam
               </span>
               <FeatureGuideTooltip
-                title="Chương Trình Mua 1 Tặng 1 Lượt Xem Video"
-                description="Dành riêng cho 100 khách hàng đầu tiên: Mua bất kỳ gói dịch vụ nào (Follow, Tim, Comment, Share) đều được TẶNG MIỄN PHÍ 100% số lượng Lượt Xem Video tương ứng. Người dùng làm nhiệm vụ bắt buộc phải vào kênh lướt xem video để tạo tín hiệu thuật toán đẩy xu hướng."
+                title="Hệ Sinh Thái Tăng Trưởng Đa Nền Tảng"
+                description="Hệ thống cung cấp trọn gói giải pháp xây dựng thương hiệu cá nhân, doanh nghiệp và bán hàng tự động trên cả 3 nền tảng lớn nhất hiện nay: TikTok Shop, Facebook Fanpage/Reels và Kênh YouTube Partner."
                 steps={[
-                  "Ví dụ: Mua 1,000 Follower → TẶNG THÊM 1,000 Lượt Xem Video miễn phí",
-                  "Ví dụ: Mua 5,000 Tim → TẶNG THÊM 5,000 Lượt Xem Video miễn phí",
-                  "Tặng Lượt Xem Video: Người làm nhiệm vụ vào kênh lướt xem video chất lượng",
-                  "Tự động kích hoạt song song 2 chiến dịch giúp kênh bùng nổ đề xuất FYP"
+                  "TikTok: 1,000 Follow mở Shop & Live Studio, Giữ chân 40s-60s đẩy FYP.",
+                  "Facebook: Like/Follow Fanpage chuẩn SEO, Follow cá nhân, View Reels 60s, Seeding chốt đơn.",
+                  "YouTube: 1,000 Subs thật chống tụt, 4,000h xem bật kiếm tiền YPP, Lượt xem 1080p.",
+                  "Bảo hành chống tụt 30 ngày tự động đền bù 100% cho mọi đơn hàng."
                 ]}
-                tips="100 suất đầu tiên sẽ được áp dụng tự động ngay khi bạn kích hoạt gói trên hệ thống."
-                badge="MUA 1 TẶNG 1"
+                tips="Chọn đúng Tab nền tảng bạn muốn mua để xem các gói tối ưu nhất cho kênh."
+                badge="ĐA NỀN TẢNG"
                 placement="bottom"
               />
             </div>
-            <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight">
-              Kho Dịch Vụ Tăng Tương Tác &amp; Tặng Kèm 100% View Thật
+            <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight font-display">
+              Kho Gói Tăng Trưởng Toàn Năng: TikTok • Facebook • YouTube
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Mọi gói bạn đặt mua sẽ được phân phối cho hơn <strong>154,200+ người dùng thật</strong>. Đặt mua bất kỳ gói nào đều được <strong>Tặng 100% Lượt Xem Video</strong> tương ứng giúp kênh tăng điểm đề xuất thuật toán.
+              Tận dụng sức mạnh của hơn <strong>154,200+ người dùng thật</strong> để bùng nổ traffic, tăng tương tác tự nhiên, mở khóa kiếm tiền và gia tăng doanh số bán hàng vượt bậc trên mọi nền tảng mạng xã hội.
             </p>
           </div>
 
@@ -145,6 +163,44 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
         </div>
       </div>
 
+      {/* 1. PLATFORM SWITCHER TABS (TIKTOK / FACEBOOK / YOUTUBE / ALL) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {PLATFORMS.map((plat) => {
+          const Icon = plat.icon;
+          const isSelected = selectedPlatform === plat.id;
+          return (
+            <button
+              key={plat.id}
+              type="button"
+              onClick={() => {
+                setSelectedPlatform(plat.id as any);
+                setActiveCategory('all');
+              }}
+              className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between gap-2 cursor-pointer ${
+                isSelected
+                  ? `bg-gradient-to-br ${plat.color} text-white border-white/30 shadow-xl shadow-purple-950/40 scale-[1.02] ring-2 ring-white/20`
+                  : 'bg-slate-900/80 hover:bg-slate-800/90 text-slate-300 border-slate-800 hover:border-slate-700'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className={`p-2 rounded-xl ${isSelected ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-400'}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                  isSelected ? 'bg-black/30 text-white' : 'bg-slate-800 text-slate-400'
+                }`}>
+                  {plat.count} Gói
+                </span>
+              </div>
+              <div>
+                <div className="text-sm font-black tracking-wide font-display">{plat.label}</div>
+                <div className={`text-[10px] line-clamp-1 ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>{plat.desc}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
       {/* 4 Pillars of Store Benefits (Di chuyển ra ngoài trang bán hàng & bảo hành 15-30 ngày) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2 relative overflow-hidden">
@@ -153,7 +209,7 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
           </div>
           <h4 className="text-sm font-bold text-white font-display">154,200+ Người Dùng Thật</h4>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Nhiệm vụ được chia nhỏ và phân phối cho người dùng lướt TikTok thật, 0% bot giả lập, an toàn tuyệt đối cho kênh.
+            Mạng lưới người dùng thật xem video, tương tác chéo tự nhiên trên TikTok, Facebook và YouTube.
           </p>
         </div>
 
@@ -161,9 +217,9 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
           <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 w-fit">
             <ShieldCheck className="w-5 h-5" />
           </div>
-          <h4 className="text-sm font-bold text-white font-display">Bảo Hành Chống Tụt 15-30 Ngày</h4>
+          <h4 className="text-sm font-bold text-white font-display">Bảo Hành Chống Tụt 30 Ngày</h4>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Hệ thống tự động theo dõi số lượng tương tác. Nếu có hiện tượng tụt giảm, hệ thống tự động bù lại đủ 100%.
+            Hệ thống tự động theo dõi số lượng tương tác. Cam kết bù đủ 100% nếu phát sinh hiện tượng tụt giảm.
           </p>
         </div>
 
@@ -173,7 +229,7 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
           </div>
           <h4 className="text-sm font-bold text-white font-display">Cố Vấn Kỹ Thuật 1-1</h4>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Đội ngũ chuyên gia TikTok Pro đồng hành trực tiếp, tư vấn khung giờ vàng đăng bài và chiến lược chốt đơn giỏ hàng.
+            Đội ngũ chuyên gia Marketing đồng hành tư vấn chiến lược xây kênh, tối ưu SEO và chốt đơn chuyển đổi cao.
           </p>
         </div>
 
@@ -181,9 +237,9 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
           <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 w-fit">
             <TrendingUp className="w-5 h-5" />
           </div>
-          <h4 className="text-sm font-bold text-white font-display">Kích Hoạt Thuật Toán FYP</h4>
+          <h4 className="text-sm font-bold text-white font-display">Kích Hoạt Thuật Toán Đề Xuất</h4>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Cơ chế Drip-feed nhịp độ tự nhiên giúp tài khoản TikTok nhận điểm tín nhiệm cao, dễ dàng được đẩy vào tab Dành Cho Bạn.
+            Cơ chế Drip-feed nhịp độ tự nhiên giúp kênh đạt điểm tín nhiệm cao, dễ dàng được đẩy vào tab Đề Xuất.
           </p>
         </div>
       </div>
@@ -211,17 +267,16 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
           })}
         </div>
         <FeatureGuideTooltip
-          title="Hệ Thống Gói Mắt Live & Combo Tăng Trưởng Toàn Năng"
-          description="Kho dịch vụ tăng trưởng TikTok chuẩn thuật toán 2026, cung cấp đầy đủ các gói Mắt Xem Live và Combo Kết Hợp từ mức khởi nghiệp 499,000đ đến mức doanh nghiệp kim cương 10,000,000đ."
+          title="Hệ Thống Gói Tăng Trưởng Toàn Năng"
+          description="Kho dịch vụ tăng trưởng đa nền tảng chuẩn thuật toán 2026, cung cấp đầy đủ các gói TikTok, Facebook và YouTube từ mức cá nhân đến doanh nghiệp."
           steps={[
-            "Mắt Xem Live (7 gói từ 499k - 10M): Giữ 400 đến 10,000 mắt thật suốt 90p - 6 tiếng, bù mắt tự động 15s.",
-            "Combo Kết Hợp (7 gói từ 499k - 10M): Tích hợp Mắt Live + Follower thật + Tap Tim + Comment Seeding + Share.",
-            "Tăng Follower Thật (4 gói): Mở khóa Livestream (1k follow) và TikTok Shop Affiliate.",
-            "Thả Tim FYP & Comment Seeding (8 gói): Kích nổ thuật toán FYP và điều phối giỏ hàng chuyển đổi cao.",
-            "Chiết khấu Token: Thanh toán bằng Token được giảm ngay 10% trên mọi gói dịch vụ."
+            "TikTok: Follow mở shop, View FYP, Thả tim, Seeding, Mắt live 400 - 10k mắt.",
+            "Facebook: Like/Follow Fanpage chuẩn SEO, Follow profile, View Reels 60s, Seeding chốt đơn.",
+            "YouTube: 1,000 Subscribers thật, 4,000 giờ xem bật kiếm tiền YPP, View 1080p, Like, Comment.",
+            "Bảo hành chống tụt: 30 ngày tự động đền bù 100%."
           ]}
-          tips="Gói Combo 499k rất phù hợp cho shop mới mở bán; còn các phiên Mega Live ngày đôi nên dùng Combo từ 1,990,000đ đến 10,000,000đ để chiếm Top 1 Trending."
-          badge="Kho Gói 499K - 10M"
+          tips="Sử dụng các gói Combo để tiết kiệm từ 30% đến 40% chi phí xây dựng kênh."
+          badge="Đa Nền Tảng"
           placement="left"
         />
       </div>
@@ -273,9 +328,20 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-black/30" />
                 
                 <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-mono font-bold text-amber-400 border border-amber-500/30">
-                    {srv.badge || srv.tag}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase font-mono shadow-md ${
+                      srv.platform === 'youtube'
+                        ? 'bg-red-600 text-white'
+                        : srv.platform === 'facebook'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-black/90 text-rose-400 border border-rose-500/40'
+                    }`}>
+                      {srv.platform === 'youtube' ? '🔴 YouTube' : srv.platform === 'facebook' ? '📘 Facebook' : '🎵 TikTok'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-[9px] font-mono font-bold text-amber-300 border border-amber-500/30">
+                      {srv.badge || srv.tag}
+                    </span>
+                  </div>
                   <FeatureGuideTooltip
                     title={`Chi Tiết: ${srv.title}`}
                     description={srv.description}

@@ -1448,5 +1448,395 @@ export const COMPREHENSIVE_GROWTH_PACKAGES: GrowthServiceItem[] = [
     "rating": 5,
     "reviewCount": 195,
     "thumbnail": "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=300&auto=format&fit=crop&q=80"
+  },
+
+  // =========================================================================
+  // GÓI TĂNG TRƯỞNG FACEBOOK (FANPAGE, TRANG CÁ NHÂN, REELS, SEEDING, LIVE)
+  // =========================================================================
+  {
+    "id": "pkg_fb_page_1000",
+    "platform": "facebook",
+    "title": "Gói 1,000 Like & Follow Fanpage Facebook Chuẩn SEO Xanh",
+    "category": "follow",
+    "tag": "Facebook Fanpage",
+    "price": "350,000đ",
+    "originalPrice": "500,000đ",
+    "priceNum": 350000,
+    "targetQuantity": 1000,
+    "unit": "Like/Follow Fanpage",
+    "description": "Tăng ngay 1,000 người thích và theo dõi Fanpage Facebook thật 100% tại Việt Nam. Giúp Fanpage trông chuyên nghiệp, đủ điều kiện chạy quảng cáo, tăng điểm chất lượng Page và tạo niềm tin vững chắc cho khách hàng mua hàng.",
+    "features": [
+      "1,000 Người thật theo dõi và thích Fanpage Facebook hoạt động thường xuyên",
+      "Gia tăng điểm chất lượng Fanpage (Page Quality Score) và độ trust khi chạy Ads",
+      "Tối ưu hóa thứ hạng tìm kiếm SEO trên thanh công cụ Facebook",
+      "Bảo hành chống tụt 30 ngày, tự động bù đủ 100%"
+    ],
+    "benefits": [
+      "Xây dựng Fanpage bán hàng uy tín ngay từ ngày đầu tiên",
+      "TẶNG KÈM 500 Lượt tương tác like bài viết Fanpage miễn phí",
+      "Mở khóa +2 Slot Nhiệm Vụ Tuần nhận thưởng Xu liên tục",
+      "Bảo hành không tụt 30 ngày từ sàn AVA-FOLLOW"
+    ],
+    "retentionRate": "99.2% Giữ Fanpage Bền Vững",
+    "bonusGifts": [
+      "🎁 TẶNG MIỄN PHÍ 500 Like bài viết Fanpage",
+      "⚡ Mở khóa +2 Slot Nhiệm Vụ Tuần VIP",
+      "🛡️ Bảo hành 30 ngày bù 100%"
+    ],
+    "weeklySlotBonus": 2,
+    "watchDurationNote": "Tương tác người dùng thật 100% tại Việt Nam",
+    "estimatedDelivery": "Hoàn thành trong 24h - 48h",
+    "badge": "Hot Fanpage",
+    "rating": 5,
+    "reviewCount": 780,
+    "thumbnail": "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=300&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "pkg_fb_profile_1000",
+    "platform": "facebook",
+    "title": "Gói 1,000 Follow Trang Cá Nhân Facebook Xây Thương Hiệu Chuyên Nghiệp",
+    "category": "follow",
+    "tag": "Facebook Profile",
+    "price": "350,000đ",
+    "originalPrice": "500,000đ",
+    "priceNum": 350000,
+    "targetQuantity": 1000,
+    "unit": "Follower Cá Nhân",
+    "description": "Xây dựng thương hiệu cá nhân uy tín, profile người bán hàng chuyên nghiệp với 1,000 người theo dõi thật. Tăng tương tác cho bài đăng cá nhân, thu hút khách hàng tiềm năng và gia tăng tỷ lệ chốt đơn qua tin nhắn Messenger.",
+    "features": [
+      "1,000 Follower trang cá nhân người thật có avatar và tương tác thật",
+      "Tăng độ nhận diện thương hiệu cá nhân cho CEO, chuyên gia, người kinh doanh",
+      "Tự nhiên, an toàn 100% cho tài khoản cá nhân",
+      "Bảo hành chống tụt 30 ngày an tâm tuyệt đối"
+    ],
+    "benefits": [
+      "Định vị hình ảnh chuyên nghiệp trong mắt đối tác và khách hàng",
+      "TẶNG NGAY 500 Lượt thích bài viết gần nhất",
+      "Mở khóa +2 Slot Nhiệm Vụ Tuần VIP",
+      "Bảo hành chống tụt 30 ngày"
+    ],
+    "retentionRate": "99.0% Ổn Định",
+    "bonusGifts": [
+      "🎁 TẶNG 500 Like bài viết trang cá nhân",
+      "⚡ Mở khóa +2 Slot Nhiệm Vụ Tuần",
+      "🛡️ Bảo hành 30 ngày"
+    ],
+    "weeklySlotBonus": 2,
+    "watchDurationNote": "Tài khoản người dùng thật có lịch sử hoạt động",
+    "estimatedDelivery": "Hoàn thành trong 24h - 48h",
+    "badge": "Profile VIP",
+    "rating": 4.9,
+    "reviewCount": 620,
+    "thumbnail": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "pkg_fb_reels_view_10k",
+    "platform": "facebook",
+    "title": "Gói 10,000 Lượt Xem Facebook Reels Giữ Chân 60s Đẩy Xu Hướng",
+    "category": "watch",
+    "tag": "Reels Viral",
+    "price": "300,000đ",
+    "originalPrice": "500,000đ",
+    "priceNum": 300000,
+    "targetQuantity": 10000,
+    "unit": "Lượt Xem Reels 60s",
+    "description": "Kéo video Facebook Reels của bạn lên xu hướng đề xuất với 10,000 lượt xem chất lượng cao giữ chân 40-60 giây. Kích thích thuật toán Facebook phân phối video đến hàng trăm nghìn người dùng tự nhiên.",
+    "features": [
+      "10,000 Lượt xem thật giữ chân trung bình 40-60s cho Facebook Reels",
+      "Tăng tỷ lệ xem hết (Completion Rate) kích hoạt đề xuất Facebook",
+      "Tốc độ phân phối mượt mà tự nhiên, chuẩn chính sách Facebook 2026",
+      "Tăng lượt tiếp cận không trả phí (Organic Reach)"
+    ],
+    "benefits": [
+      "Đẩy video Reels vào luồng đề xuất khám phá Facebook",
+      "TẶNG KÈM 1,000 Thả tim/like tương tác",
+      "Mở khóa +2 Slot Nhiệm Vụ Tuần",
+      "Bảo hành lượt xem an toàn tuyệt đối"
+    ],
+    "retentionRate": "98.5% Giữ Chân 60s",
+    "bonusGifts": [
+      "🎁 TẶNG 1,000 Thả Like/Tym Reels",
+      "⚡ Mở khóa +2 Slot Nhiệm Vụ Tuần",
+      "🛡️ Bảo hành an toàn 100%"
+    ],
+    "weeklySlotBonus": 2,
+    "watchDurationNote": "Xem đủ thời lượng 40s - 60s kích hoạt thuật toán Reels",
+    "estimatedDelivery": "Hoàn thành trong 12h - 24h",
+    "badge": "Reels Xu Hướng",
+    "rating": 5,
+    "reviewCount": 940,
+    "thumbnail": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=300&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "pkg_fb_cmt_500",
+    "platform": "facebook",
+    "title": "Gói 500 Bình Luận Seeding Kịch Bản Chốt Đơn Fanpage Facebook",
+    "category": "comment",
+    "tag": "Seeding Chốt Đơn",
+    "price": "250,000đ",
+    "originalPrice": "400,000đ",
+    "priceNum": 250000,
+    "targetQuantity": 500,
+    "unit": "Bình Luận Kịch Bản",
+    "description": "500 Bình luận người thật hỏi mua hàng, khen ngợi chất lượng sản phẩm, xin giá và review tốt theo đúng kịch bản của bạn. Tạo hiệu ứng đám đông (FOMO), kích thích khách hàng thật đặt đơn ngay trên bài viết.",
+    "features": [
+      "500 Bình luận từ nick thật có avatar, tên tiếng Việt tự nhiên",
+      "Nhập kịch bản tùy ý hoặc để AI tạo bình luận chốt sale thông minh",
+      "Khoảng cách thời gian ngẫu nhiên, không bị Facebook quét spam",
+      "Tăng tỷ lệ chuyển đổi đơn hàng lên gấp 2 - 3 lần"
+    ],
+    "benefits": [
+      "Tạo hiệu ứng mua hàng đông đúc giúp chốt đơn dễ dàng",
+      "TẶNG NGAY 500 Thả Like cho bài viết",
+      "Mở khóa +2 Slot Nhiệm Vụ Tuần",
+      "Bảo hành hiển thị vĩnh viễn"
+    ],
+    "retentionRate": "100% Comment Tự Nhiên",
+    "bonusGifts": [
+      "🎁 TẶNG 500 Like bài viết",
+      "⚡ Mở khóa +2 Slot Nhiệm Vụ Tuần",
+      "🛡️ Bảo hành vĩnh viễn"
+    ],
+    "weeklySlotBonus": 2,
+    "watchDurationNote": "Nick thật bình luận theo kịch bản chốt đơn",
+    "estimatedDelivery": "Chạy rải đều trong 24h",
+    "badge": "Chốt Đơn Khủng",
+    "rating": 4.9,
+    "reviewCount": 510,
+    "thumbnail": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=300&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "pkg_fb_live_200",
+    "platform": "facebook",
+    "title": "Gói 200 Mắt Xem Livestream Facebook Bán Hàng Giữ Chân 60 Phút",
+    "category": "livestream",
+    "tag": "Mắt Live FB",
+    "price": "600,000đ",
+    "originalPrice": "900,000đ",
+    "priceNum": 600000,
+    "targetQuantity": 200,
+    "unit": "Mắt Live Giữ Chân 60 Phút",
+    "description": "Duy trì ổn định 200 mắt xem liên tục trong suốt 60 phút livestream bán hàng Facebook. Kéo phiên live lên đề xuất, tạo độ uy tín cao, kích thích người lướt Facebook dừng lại xem và đặt hàng.",
+    "features": [
+      "200 Mắt xem giữ chân liên tục 60 phút không bị rớt",
+      "Tự động nhảy vào phòng livestream ngay sau khi bắt đầu phát sóng",
+      "Kèm tương tác thả tim và chia sẻ live vào các hội nhóm",
+      "Đẩy phiên live lên top đề xuất Facebook Watch & Facebook Live"
+    ],
+    "benefits": [
+      "Tạo không khí phòng live sôi động, tăng tỷ lệ chốt đơn trực tiếp",
+      "TẶNG KÈM 50 Bình luận hỏi mua hàng trong lúc live",
+      "Mở khóa +4 Slot Nhiệm Vụ Tuần VIP",
+      "Hỗ trợ kỹ thuật 24/7 trực tiếp phiên live"
+    ],
+    "retentionRate": "100% Giữ Mắt 60 Phút",
+    "bonusGifts": [
+      "🎁 TẶNG 50 Comment chốt đơn trong Live",
+      "⚡ Mở khóa +4 Slot Nhiệm Vụ Tuần",
+      "🛡️ Hỗ trợ kỹ thuật trực tiếp"
+    ],
+    "weeklySlotBonus": 4,
+    "watchDurationNote": "Duy trì ổn định 60 phút xuyên suốt buổi livestream",
+    "estimatedDelivery": "Bắt đầu sau 1 phút phát live",
+    "badge": "Bão Đơn Live",
+    "rating": 5,
+    "reviewCount": 430,
+    "thumbnail": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "pkg_fb_combo_vip",
+    "platform": "facebook",
+    "title": "Combo Fanpage Doanh Nghiệp VIP (5k Follow Page + 10k Like + 1k Cmt Seeding + 500 Share)",
+    "category": "combo",
+    "tag": "Combo Doanh Nghiệp FB",
+    "price": "2,800,000đ",
+    "originalPrice": "4,500,000đ",
+    "priceNum": 2800000,
+    "targetQuantity": 16500,
+    "unit": "Combo Doanh Nghiệp FB",
+    "description": "Gói giải pháp toàn diện đưa Fanpage doanh nghiệp từ con số 0 trở thành thương hiệu uy tín hàng đầu: 5,000 Like/Follow Page + 10,000 Like bài viết + 1,000 Bình luận seeding chốt sale + 500 Lượt chia sẻ vào hội nhóm. Tiết kiệm 38% chi phí.",
+    "features": [
+      "+5,000 Like/Follow Fanpage chuẩn SEO xanh",
+      "+10,000 Thả Like bài viết và video Reels",
+      "+1,000 Bình luận seeding khen ngợi sản phẩm theo kịch bản",
+      "+500 Lượt chia sẻ bài viết lan tỏa rộng rãi",
+      "Bảo hành chống tụt 30 ngày cam kết chất lượng"
+    ],
+    "benefits": [
+      "Xây dựng trọn gói Fanpage bán hàng uy tín chuẩn Doanh Nghiệp",
+      "TẶNG KÈM 01 Buổi tư vấn tối ưu hóa quảng cáo Facebook Ads",
+      "Mở khóa tối đa +6 Slot Nhiệm Vụ Tuần Cấp Tối Cao",
+      "Bảo hành 30 ngày đền bù 100%"
+    ],
+    "retentionRate": "99.8% Toàn Diện",
+    "bonusGifts": [
+      "⚡ Mở khóa +6 Slot Nhiệm Vụ Tuần Tối Cao",
+      "📊 Tư vấn chiến lược chạy Facebook Ads hiệu quả",
+      "🛡️ Bảo hành 30 ngày đền bù 100%"
+    ],
+    "weeklySlotBonus": 6,
+    "watchDurationNote": "Trọn bộ tương tác thật trên toàn bộ Fanpage",
+    "estimatedDelivery": "Triển khai trong 3 - 5 ngày",
+    "badge": "Doanh Nghiệp VIP",
+    "rating": 5,
+    "reviewCount": 380,
+    "thumbnail": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=300&auto=format&fit=crop&q=80"
+  },
+
+  // =========================================================================
+  // GÓI TĂNG TRƯỞNG YOUTUBE (SUBSCRIBERS, GIỜ XEM BẬT KIẾM TIỀN, VIEW, LIVE)
+  // =========================================================================
+  {
+    "id": "pkg_yt_sub_1000",
+    "platform": "youtube",
+    "title": "Gói 1,000 Subscribers Kênh YouTube Thật Chuẩn Bật Kiếm Tiền",
+    "category": "follow",
+    "tag": "YouTube Subs",
+    "price": "800,000đ",
+    "originalPrice": "1,200,000đ",
+    "priceNum": 800000,
+    "targetQuantity": 1000,
+    "unit": "Subscribers Người Thật",
+    "description": "Đạt ngay cột mốc 1,000 Người đăng ký (Subscribers) người thật tại Việt Nam để đủ điều kiện tham gia Chương trình Đối tác YouTube (YPP - YouTube Partner Program), bật kiếm tiền và tạo uy tín lớn cho kênh.",
+    "features": [
+      "1,000 Subscribers người thật có tài khoản Google/YouTube hoạt động lâu năm",
+      "Xem video từ 1-3 phút trước khi bấm Đăng ký kênh để chống tụt sub thuật toán",
+      "Đủ điều kiện tiêu chuẩn 1,000 Sub bật kiếm tiền YouTube Partner",
+      "Bảo hành Anti-Drop 30 ngày tự động đối soát"
+    ],
+    "benefits": [
+      "Đạt chuẩn điều kiện bật kiếm tiền YouTube Partner",
+      "TẶNG NGAY 2,000 Lượt xem video YouTube chất lượng cao 1080p",
+      "Mở khóa +2 Slot Nhiệm Vụ Tuần VIP",
+      "Bảo hành chống tụt vĩnh viễn 30 ngày"
+    ],
+    "retentionRate": "99.0% Không Tụt Sub",
+    "bonusGifts": [
+      "🎁 TẶNG 2,000 Lượt xem video YouTube 1080p",
+      "⚡ Mở khóa +2 Slot Nhiệm Vụ Tuần VIP",
+      "🛡️ Bảo hành 30 ngày đối soát tự động"
+    ],
+    "weeklySlotBonus": 2,
+    "watchDurationNote": "Tài khoản xem video trước khi bấm Đăng Ký chống tụt sub",
+    "estimatedDelivery": "Hoàn thành trong 48h - 72h",
+    "badge": "Bật Kiếm Tiền",
+    "rating": 5,
+    "reviewCount": 890,
+    "thumbnail": "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=300&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "pkg_yt_watch_4000h",
+    "platform": "youtube",
+    "title": "Gói 4,000 Giờ Xem Video Chuẩn YouTube Partner Bật Kiếm Tiền YPP",
+    "category": "watch",
+    "tag": "4000h Kiếm Tiền",
+    "price": "1,800,000đ",
+    "originalPrice": "2,800,000đ",
+    "priceNum": 1800000,
+    "targetQuantity": 4000,
+    "unit": "Giờ Xem Chuẩn YPP",
+    "description": "Vượt qua rào cản khó nhất của YouTube với 4,000 Giờ xem công khai hợp lệ từ người dùng thật. Giờ xem được cập nhật chính xác vào mục Kiếm tiền trong YouTube Studio, cam kết 100% duyệt đơn bật kiếm tiền.",
+    "features": [
+      "4,000 Giờ xem video người thật cập nhật chuẩn xác vào YouTube Studio Analytics",
+      "Phân phối từ các thiết bị Desktop và Mobile tại Việt Nam với IP sạch",
+      "Giữ chân trung bình từ 15 - 30 phút trên mỗi lượt xem",
+      "Được bảo hành giờ xem đầy đủ trong suốt quá trình YouTube xét duyệt đơn"
+    ],
+    "benefits": [
+      "Hoàn thành 100% điều kiện 4,000 giờ xem bật kiếm tiền YouTube",
+      "TẶNG KÈM 500 Subscribers và 1,000 Thả Like",
+      "Mở khóa +4 Slot Nhiệm Vụ Tuần VIP",
+      "Hỗ trợ hướng dẫn gửi đơn bật kiếm tiền duyệt nhanh trong 24h"
+    ],
+    "retentionRate": "100% Cập Nhật Studio",
+    "bonusGifts": [
+      "🎁 TẶNG 500 Subs + 1,000 Like",
+      "⚡ Mở khóa +4 Slot Nhiệm Vụ Tuần",
+      "🛡️ Bảo hành xét duyệt kiếm tiền"
+    ],
+    "weeklySlotBonus": 4,
+    "watchDurationNote": "Giờ xem công khai hợp lệ chuẩn tiêu chí YouTube Partner",
+    "estimatedDelivery": "Hoàn thành trong 5 - 7 ngày",
+    "badge": "YPP Partner",
+    "rating": 5,
+    "reviewCount": 740,
+    "thumbnail": "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "pkg_yt_view_10k",
+    "platform": "youtube",
+    "title": "Gói 10,000 Lượt Xem Video / Shorts 1080p Giữ Chân Cao Tăng Đề Xuất",
+    "category": "watch",
+    "tag": "YouTube View 1080p",
+    "price": "450,000đ",
+    "originalPrice": "700,000đ",
+    "priceNum": 450000,
+    "targetQuantity": 10000,
+    "unit": "Lượt Xem 1080p",
+    "description": "10,000 Lượt xem video YouTube chất lượng cao (Full HD 1080p) giữ chân từ 60s - 3 phút. Kích hoạt thuật toán YouTube Suggested Videos và Browse Features để video tiếp cận hàng chục nghìn khán giả tự nhiên.",
+    "features": [
+      "10,000 Lượt xem chất lượng cao từ người dùng thật tại Việt Nam",
+      "Thời lượng giữ chân cao (High Audience Retention Rate)",
+      "Nguồn xem đến từ Đề xuất YouTube (Suggested Videos) và Tìm kiếm",
+      "An toàn 100% cho kênh đã bật hoặc chưa bật kiếm tiền"
+    ],
+    "benefits": [
+      "Đẩy video lên trang chủ và cột đề xuất bên phải YouTube",
+      "TẶNG NGAY 1,000 Thả Like YouTube",
+      "Mở khóa +2 Slot Nhiệm Vụ Tuần VIP",
+      "Bảo hành lượt xem vĩnh viễn"
+    ],
+    "retentionRate": "98.8% Giữ Chân Đề Xuất",
+    "bonusGifts": [
+      "🎁 TẶNG 1,000 Like video",
+      "⚡ Mở khóa +2 Slot Nhiệm Vụ Tuần",
+      "🛡️ Bảo hành vĩnh viễn"
+    ],
+    "weeklySlotBonus": 2,
+    "watchDurationNote": "Xem giữ chân chất lượng cao kích hoạt đề xuất",
+    "estimatedDelivery": "Hoàn thành trong 24h - 48h",
+    "badge": "Đề Xuất YouTube",
+    "rating": 4.9,
+    "reviewCount": 1120,
+    "thumbnail": "https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=300&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "pkg_yt_combo_partner",
+    "platform": "youtube",
+    "title": "Combo Bật Kiếm Tiền YouTube Trọn Gói (1k Subs + 4000h Xem + 10k View + 2k Like)",
+    "category": "combo",
+    "tag": "Combo Bật Kiếm Tiền",
+    "price": "2,900,000đ",
+    "originalPrice": "4,800,000đ",
+    "priceNum": 2900000,
+    "targetQuantity": 17000,
+    "unit": "Combo Kiếm Tiền YPP",
+    "description": "Giải pháp chìa khóa trao tay đưa kênh YouTube của bạn đủ điều kiện và bật kiếm tiền thành công 100%: 1,000 Subscribers thật + 4,000 Giờ xem chuẩn YPP + 10,000 View video + 2,000 Like. Tiết kiệm 40% chi phí so với mua lẻ.",
+    "features": [
+      "+1,000 Subscribers thật chống tụt 100%",
+      "+4,000 Giờ xem công khai hợp lệ cập nhật YouTube Studio",
+      "+10,000 Lượt xem video chất lượng cao 1080p",
+      "+2,000 Thả Like tương tác kênh",
+      "Hỗ trợ trọn gói từ gửi đơn đến khi nút Bật kiếm tiền sáng xanh"
+    ],
+    "benefits": [
+      "Bật kiếm tiền YouTube Partner thành công 100%",
+      "Mở khóa tối đa +6 Slot Nhiệm Vụ Tuần Cấp Tối Cao",
+      "TẶNG KHÓA HỌC Xây dựng kênh YouTube triệu view chuẩn 2026",
+      "Hỗ trợ 1-1 qua Zalo chuyên viên cao cấp"
+    ],
+    "retentionRate": "100% Thành Công Bật Kiếm Tiền",
+    "bonusGifts": [
+      "⚡ Mở khóa +6 Slot Nhiệm Vụ Tuần Tối Cao",
+      "📚 Khóa học xây kênh YouTube triệu view",
+      "👨‍💼 Hỗ trợ chuyên viên 1-1 bật kiếm tiền"
+    ],
+    "weeklySlotBonus": 6,
+    "watchDurationNote": "Trọn gói đủ chuẩn xét duyệt YouTube Partner Program",
+    "estimatedDelivery": "Hoàn tất trong 5 - 7 ngày",
+    "badge": "YPP Pro VIP",
+    "rating": 5,
+    "reviewCount": 540,
+    "thumbnail": "https://images.unsplash.com/photo-1593697821252-0c9137d9fc45?w=300&auto=format&fit=crop&q=80"
   }
 ];

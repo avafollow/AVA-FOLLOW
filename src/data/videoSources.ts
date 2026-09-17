@@ -1,12 +1,18 @@
-// ===== BỘ NGUỒN VIDEO & LIVESTREAM SIÊU MƯỢT (ULTRA-SMOOTH CDN, YOUTUBE, FACEBOOK & TIKTOK PARSER) =====
+// ===== BỘ NGUỒN VIDEO & LIVESTREAM ĐA NỀN TẢNG (TIKTOK, FACEBOOK, YOUTUBE & CDN STREAM) =====
 
 export interface ParsedMediaInfo {
+  platform: 'tiktok' | 'facebook' | 'youtube' | 'direct';
   isTikTok: boolean;
   isLive: boolean;
   isYouTube: boolean;
   isFacebook: boolean;
   isDirectVideo: boolean;
   handle: string;
+  channelName: string;
+  channelUrl: string;
+  fanpageUrl?: string;
+  avatarUrl: string;
+  actionCtaLabel: string;
   videoId?: string;
   youtubeId?: string;
   embedUrl?: string;
@@ -37,6 +43,17 @@ export const HIGH_SPEED_CDN_VIDEOS = {
   ]
 };
 
+// Nhận diện nền tảng từ URL
+export function detectPlatform(url: string): 'tiktok' | 'facebook' | 'youtube' | 'direct' {
+  if (!url) return 'tiktok';
+  const clean = url.toLowerCase().trim();
+  if (clean.includes('youtube.com') || clean.includes('youtu.be')) return 'youtube';
+  if (clean.includes('facebook.com') || clean.includes('fb.watch') || clean.includes('fb.com')) return 'facebook';
+  if (clean.includes('tiktok.com') || clean.includes('vt.tiktok.com')) return 'tiktok';
+  if (/\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i.test(clean)) return 'direct';
+  return 'tiktok';
+}
+
 // Hàm trích xuất @handle từ URL bất kỳ
 export function extractTikTokHandle(rawUrlOrHandle: string): string {
   if (!rawUrlOrHandle) return '@creator_tiktok';
@@ -59,9 +76,15 @@ export function extractTikTokHandle(rawUrlOrHandle: string): string {
     return `@${ytMatch[1]}`;
   }
 
-  // Nếu là link facebook.com/username
+  // Nếu là link youtube.com/c/username hoặc youtube.com/channel/...
+  const ytChannelMatch = clean.match(/youtube\.com\/(?:c|channel|user)\/([a-zA-Z0-9_\.\-]+)/i);
+  if (ytChannelMatch && ytChannelMatch[1]) {
+    return `@${ytChannelMatch[1]}`;
+  }
+
+  // Nếu là link facebook.com/username hoặc fanpage
   const fbMatch = clean.match(/facebook\.com\/([a-zA-Z0-9_\.\-]+)/i);
-  if (fbMatch && fbMatch[1] && !['watch', 'reel', 'videos', 'share'].includes(fbMatch[1].toLowerCase())) {
+  if (fbMatch && fbMatch[1] && !['watch', 'reel', 'videos', 'share', 'groups', 'stories', 'events', 'photo'].includes(fbMatch[1].toLowerCase())) {
     return `@${fbMatch[1]}`;
   }
 
@@ -121,67 +144,87 @@ export function extractYouTubeVideoId(url: string): string | null {
 // Phân tích toàn diện URL dán vào để trả về bộ thông tin stream & embed
 export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedMediaInfo {
   const url = (inputUrl || '').trim();
-  const handle = extractTikTokHandle(url) || defaultHandle || '@creator_tiktok';
+  const handle = extractTikTokHandle(url) || defaultHandle || '@creator_vietnam';
+  const cleanHandle = handle.replace(/^@+/, '');
+
   const isLive = /\/(live|livestream)($|\/|\?)/i.test(url) || /tiktok\.com\/@[\w\.-]+\/live/i.test(url) || /youtube\.com\/.*\/live/i.test(url);
   const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
   const isFacebook = url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com');
   const isDirectVideo = /\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i.test(url);
-  const isTikTok = !isYouTube && !isFacebook && (url.includes('tiktok.com') || url.includes('vt.tiktok.com') || url.startsWith('@') || !url.startsWith('http'));
+  const isTikTok = !isYouTube && !isFacebook && !isDirectVideo;
+
+  const platform: ParsedMediaInfo['platform'] = isYouTube ? 'youtube' : (isFacebook ? 'facebook' : (isDirectVideo ? 'direct' : 'tiktok'));
 
   const videoId = extractTikTokVideoId(url);
   const youtubeId = extractYouTubeVideoId(url);
-
-  // Hash handle/url để chọn stream ổn định cố định cho từng kênh/video
-  let hash = 0;
-  const seedStr = url || handle;
-  for (let i = 0; i < seedStr.length; i++) {
-    hash = ((hash << 5) - hash) + seedStr.charCodeAt(i);
-    hash |= 0;
-  }
-  const absHash = Math.abs(hash);
 
   let streamUrl = url;
   let sourceType: ParsedMediaInfo['sourceType'] = 'direct_stream';
   let embedUrl: string | undefined;
 
-  if (isDirectVideo) {
-    streamUrl = url;
-    sourceType = 'direct_stream';
-  } else if (isYouTube && youtubeId) {
-    embedUrl = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`;
-    sourceType = 'youtube_embed';
-    streamUrl = url;
+  let channelName = cleanHandle;
+  let channelUrl = url;
+  let fanpageUrl: string | undefined = undefined;
+  let actionCtaLabel = 'Follow TikTok';
+
+  if (isYouTube) {
+    actionCtaLabel = 'Đăng Ký Kênh YouTube';
+    channelName = cleanHandle ? `Kênh ${cleanHandle}` : 'Kênh YouTube';
+    channelUrl = cleanHandle ? `https://www.youtube.com/@${cleanHandle}` : (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : url);
+    if (youtubeId) {
+      embedUrl = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`;
+      sourceType = 'youtube_embed';
+      streamUrl = url;
+    }
   } else if (isFacebook) {
+    actionCtaLabel = 'Theo Dõi Fanpage Facebook';
+    channelName = cleanHandle ? `Fanpage ${cleanHandle}` : 'Fanpage Facebook';
+    channelUrl = cleanHandle ? `https://www.facebook.com/${cleanHandle}` : url;
+    fanpageUrl = channelUrl;
     embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=0&allowfullscreen=true`;
     sourceType = 'facebook_embed';
     streamUrl = url;
-  } else if (isTikTok && videoId) {
-    embedUrl = `https://www.tiktok.com/embed/v2/${videoId}`;
-    sourceType = 'tiktok_embed';
+  } else if (isTikTok) {
+    actionCtaLabel = 'Follow TikTok';
+    channelName = `@${cleanHandle}`;
+    channelUrl = `https://www.tiktok.com/@${cleanHandle}`;
+    if (videoId) {
+      embedUrl = `https://www.tiktok.com/embed/v2/${videoId}`;
+      sourceType = 'tiktok_embed';
+    } else if (isLive) {
+      sourceType = 'live_stream';
+    }
     streamUrl = url;
-  } else if (isLive) {
-    sourceType = 'live_stream';
+  } else if (isDirectVideo) {
     streamUrl = url;
-  } else {
-    streamUrl = url;
+    sourceType = 'direct_stream';
+    actionCtaLabel = 'Theo Dõi Kênh';
   }
 
-  let title = `Video TikTok: ${handle}`;
+  let title = `Video TikTok: @${cleanHandle}`;
   if (isLive) {
-    title = `🔴 LIVE STREAM: ${handle}`;
+    title = `🔴 LIVE STREAM: ${channelName}`;
   } else if (isYouTube) {
-    title = `▶️ YouTube Video: ${handle}`;
+    title = `▶️ YouTube Video: ${channelName}`;
   } else if (isFacebook) {
-    title = `🌐 Facebook Video: ${handle}`;
+    title = `🌐 Facebook Video: ${channelName}`;
   }
+
+  const avatarUrl = getPlatformAvatar(platform, cleanHandle);
 
   return {
+    platform,
     isTikTok,
     isLive,
     isYouTube,
     isFacebook,
     isDirectVideo,
     handle,
+    channelName,
+    channelUrl,
+    fanpageUrl,
+    avatarUrl,
+    actionCtaLabel,
     videoId: videoId || undefined,
     youtubeId: youtubeId || undefined,
     embedUrl,
@@ -191,10 +234,22 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
   };
 }
 
-// Lấy Avatar TikTok thật 100% dựa trên Handle chính xác của tài khoản
-export function getTikTokAvatar(handle?: string, fallback?: string): string {
+// Lấy Avatar dựa trên Platform & Handle
+export function getPlatformAvatar(platform: 'tiktok' | 'facebook' | 'youtube' | 'direct', handle?: string, fallback?: string): string {
   const clean = (handle || '').replace(/^@+/, '').trim();
   if (!clean) return fallback || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120';
+  
+  if (platform === 'youtube') {
+    return `https://unavatar.io/youtube/${clean}`;
+  }
+  if (platform === 'facebook') {
+    return `https://unavatar.io/facebook/${clean}`;
+  }
   return `https://unavatar.io/tiktok/${clean}`;
+}
+
+// Lấy Avatar TikTok thật 100% dựa trên Handle chính xác của tài khoản
+export function getTikTokAvatar(handle?: string, fallback?: string): string {
+  return getPlatformAvatar('tiktok', handle, fallback);
 }
 

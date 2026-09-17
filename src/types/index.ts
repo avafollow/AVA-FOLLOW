@@ -42,6 +42,9 @@ export interface TikTokTaskItem {
   campaignCategory?: 'community' | 'partner'; // 'community': Xem tự do, cứ xem là có Xu | 'partner': Doanh nghiệp/Đối tác tài trợ, giới hạn suất, ai đến trước nhận trước
   partnerName?: string; // Tên doanh nghiệp / thương hiệu đối tác
   partnerBadge?: string; // e.g. 'Doanh Nghiệp Kim Cương', 'Shop Yêu Thích'
+  platform?: 'tiktok' | 'facebook' | 'youtube';
+  channelUrl?: string;       // Link trực tiếp đến kênh / Fanpage
+  fanpageUrl?: string;       // Link Fanpage Facebook
   isUrgent?: boolean; // Vừa mới mở, suất có hạn
   isBoosted?: boolean; // Đã được ưu tiên Đẩy Top (-5.000 Xu phí về sàn)
   boostedAt?: string; // Thời điểm đẩy top
@@ -622,6 +625,7 @@ export interface LivestreamTaskItem {
 export interface GrowthServiceItem {
   id: string;
   title: string;
+  platform?: 'tiktok' | 'facebook' | 'youtube';
   category: 'follow' | 'engagement' | 'watch' | 'comment' | 'share' | 'livestream' | 'combo' | 'booking' | 'full_channel';
   tag: string;
   price: string;
@@ -722,8 +726,11 @@ export interface CampaignAudienceTargeting {
 export interface CampaignItem {
   id: string;
   title: string;
+  platform?: 'tiktok' | 'facebook' | 'youtube';
   type: CampaignType;
   channelHandle: string;
+  channelUrl?: string;
+  fanpageUrl?: string;
   targetUrl: string;
   targetQuantity: number;
   completedQuantity: number;

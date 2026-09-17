@@ -1124,71 +1124,79 @@ export const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-10">
           
           <div className="text-center space-y-3 max-w-3xl mx-auto">
-            <span className="px-3.5 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-mono font-bold uppercase border border-blue-500/30">
-              🌐 TẦM NHÌN HỆ SINH THÁI ĐA KÊNH 🌐
+            <span className="px-3.5 py-1 rounded-full bg-gradient-to-r from-rose-500/20 via-blue-500/20 to-red-500/20 text-white text-xs font-mono font-bold uppercase border border-white/20">
+              🚀 SIÊU HỆ SINH THÁI 3 TRONG 1: TIKTOK • FACEBOOK • YOUTUBE 🚀
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-white font-display">
-              Không Chỉ Dừng Lại Ở TikTok: <br className="hidden sm:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">
-                Lộ Trình Kết Nối Facebook, YouTube &amp; Instagram
+              Đột Phá Doanh Thu &amp; Tăng Trưởng Toàn Diện: <br className="hidden sm:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-blue-400 to-red-400">
+                TikTok Shop, Fanpage Facebook &amp; Kênh YouTube Partner
               </span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Hệ sinh thái AVA FOLLOW được thiết kế để trở thành siêu hạ tầng kết nối tương tác người thật đa kênh lớn nhất Đông Nam Á:
+              AVA FOLLOW tích hợp trực tiếp 3 đại nền tảng mạng xã hội hàng đầu với 100% người dùng thật hoạt động hàng ngày, kích hoạt thuật toán đề xuất đa kênh:
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-6xl mx-auto">
-            <div className="p-5 rounded-3xl bg-[#0D111E] border-2 border-rose-500/50 space-y-3 relative overflow-hidden">
-              <div className="absolute top-0 right-0 px-2.5 py-0.5 bg-rose-500 text-white text-[9px] font-mono font-bold rounded-bl-lg">
-                ĐANG HOẠT ĐỘNG
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-6xl mx-auto">
+            <div className="p-6 rounded-3xl bg-[#0D111E] border-2 border-rose-500/60 space-y-4 relative overflow-hidden shadow-2xl shadow-rose-950/40 hover:border-rose-400 transition-all">
+              <div className="absolute top-0 right-0 px-3 py-1 bg-rose-600 text-white text-[10px] font-mono font-black rounded-bl-xl shadow">
+                ⚡ ĐANG HOẠT ĐỘNG
               </div>
-              <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-lg">
-                TT
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center font-black text-xl shadow-lg">
+                🎵
               </div>
-              <h3 className="text-sm font-black text-white font-display">TIKTOK &amp; TIKTOK SHOP</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Tăng follow người thật, mắt xem livestream giữ chân 3-5 phút, seeding video FYP và booking KOC Escrow.
+              <div>
+                <h3 className="text-base font-black text-white font-display">TIKTOK &amp; TIKTOK SHOP</h3>
+                <span className="text-[11px] font-mono text-rose-400 font-bold">Thuật Toán FYP &amp; Giỏ Hàng</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Tăng Follow người thật không tụt mở TikTok Shop, mắt xem Livestream giữ chân 3-5 phút nổ đơn liên tục, đẩy video FYP xu hướng và Booking KOC Escrow bảo chứng.
               </p>
+              <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                <span>Tốc độ: Siêu tốc 1-3p</span>
+                <span className="text-rose-400 font-bold">100% User Thật</span>
+              </div>
             </div>
 
-            <div className="p-5 rounded-3xl bg-[#0D111E] border border-blue-500/30 space-y-3 hover:border-blue-400 transition-all">
-              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-[9px] font-mono font-bold rounded-full">
-                SẮP RA MẮT
-              </span>
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg">
-                FB
+            <div className="p-6 rounded-3xl bg-[#0D111E] border-2 border-blue-500/60 space-y-4 relative overflow-hidden shadow-2xl shadow-blue-950/40 hover:border-blue-400 transition-all">
+              <div className="absolute top-0 right-0 px-3 py-1 bg-blue-600 text-white text-[10px] font-mono font-black rounded-bl-xl shadow">
+                ⚡ ĐANG HOẠT ĐỘNG
               </div>
-              <h3 className="text-sm font-black text-white font-display">FACEBOOK &amp; REELS</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Tăng tương tác Fanpage, Group cộng đồng, mắt xem livestream bán hàng Facebook và video ngắn Reels.
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/40 text-blue-400 flex items-center justify-center font-black text-xl shadow-lg">
+                📘
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white font-display">FACEBOOK &amp; FANPAGE PRO</h3>
+                <span className="text-[11px] font-mono text-blue-400 font-bold">Like Fanpage, Profile &amp; Reels</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Tăng Like/Follow Fanpage chuẩn SEO doanh nghiệp, theo dõi trang cá nhân uy tín, cày View Reels 60s và giữ mắt Live Facebook kích thích khách chốt đơn inbox.
               </p>
+              <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                <span>Nút bấm: Theo Dõi Fanpage</span>
+                <span className="text-blue-400 font-bold">Chuẩn SEO 2026</span>
+              </div>
             </div>
 
-            <div className="p-5 rounded-3xl bg-[#0D111E] border border-red-500/30 space-y-3 hover:border-red-400 transition-all">
-              <span className="px-2 py-0.5 bg-red-500/20 text-red-300 text-[9px] font-mono font-bold rounded-full">
-                GIAI ĐOẠN 3
-              </span>
-              <div className="w-10 h-10 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center font-bold text-lg">
-                YT
+            <div className="p-6 rounded-3xl bg-[#0D111E] border-2 border-red-500/60 space-y-4 relative overflow-hidden shadow-2xl shadow-red-950/40 hover:border-red-400 transition-all">
+              <div className="absolute top-0 right-0 px-3 py-1 bg-red-600 text-white text-[10px] font-mono font-black rounded-bl-xl shadow">
+                ⚡ ĐANG HOẠT ĐỘNG
               </div>
-              <h3 className="text-sm font-black text-white font-display">YOUTUBE &amp; SHORTS</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Tăng người đăng ký (Subscribers) người thật, giờ xem video dài đạt chuẩn bật kiếm tiền YouTube Partner.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-3xl bg-[#0D111E] border border-pink-500/30 space-y-3 hover:border-pink-400 transition-all">
-              <span className="px-2 py-0.5 bg-pink-500/20 text-pink-300 text-[9px] font-mono font-bold rounded-full">
-                GIAI ĐOẠN 4
-              </span>
-              <div className="w-10 h-10 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center font-bold text-lg">
-                IG
+              <div className="w-12 h-12 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center font-black text-xl shadow-lg">
+                🔴
               </div>
-              <h3 className="text-sm font-black text-white font-display">INSTAGRAM &amp; THREADS</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Mạng lưới tương tác người thật quốc tế, phát triển thương hiệu cá nhân cao cấp cho KOL và doanh nghiệp.
+              <div>
+                <h3 className="text-base font-black text-white font-display">YOUTUBE &amp; YPP PARTNER</h3>
+                <span className="text-[11px] font-mono text-red-400 font-bold">Subscribers &amp; 4.000 Giờ Xem</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                1.000 Subscribers người thật chống tụt trọn đời, 4.000 giờ xem đạt chuẩn xét duyệt Bật Kiếm Tiền YouTube Partner, View Shorts &amp; Video 1080p retention cao.
               </p>
+              <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                <span>Nút bấm: Đăng Ký Kênh</span>
+                <span className="text-red-400 font-bold">Bật Kiếm Tiền YPP</span>
+              </div>
             </div>
           </div>
 

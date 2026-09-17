@@ -108,6 +108,7 @@ export const TasksScreen: React.FC<{
   const [crossFollowTypeFilter, setCrossFollowTypeFilter] = useState<"all" | "follow" | "watch" | "like" | "comment" | "share">("all");
   const [enterpriseFilter, setEnterpriseFilter] = useState<"all" | "follow" | "watch" | "like" | "comment" | "targeted">("all");
   const [feedCategoryFilter, setFeedCategoryFilter] = useState<'all' | 'missions' | 'live' | 'partner' | 'cross_follow'>('all');
+  const [feedPlatformFilter, setFeedPlatformFilter] = useState<'all' | 'tiktok' | 'facebook' | 'youtube'>('all');
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showHistorySection, setShowHistorySection] = useState<boolean>(false);
 
@@ -321,6 +322,7 @@ export const TasksScreen: React.FC<{
       }
 
       const stream = parseMediaUrl(c.targetUrl, c.channelHandle);
+      const cardPlatform = c.platform || stream.platform || (c.targetUrl?.toLowerCase().includes('facebook.com') ? 'facebook' : (c.targetUrl?.toLowerCase().includes('youtube.com') || c.targetUrl?.toLowerCase().includes('youtu.be')) ? 'youtube' : 'tiktok');
       const avatar = getTikTokAvatar(c.channelHandle);
       const thumbnailMedia = c.videoPreviewUrl || stream.streamUrl || avatar;
 
@@ -339,7 +341,8 @@ export const TasksScreen: React.FC<{
         remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0)),
         isRealCampaign: true,
         isBoosted: c.isBoosted,
-        targetUrl: c.targetUrl
+        targetUrl: c.targetUrl,
+        platform: cardPlatform
       };
     });
 
@@ -360,7 +363,8 @@ export const TasksScreen: React.FC<{
     remainingSlots: t.remainingSlots || 50,
     isRealCampaign: false,
     isBoosted: false,
-    targetUrl: t.targetUrl
+    targetUrl: t.targetUrl,
+    platform: t.platform || 'tiktok'
   }));
 
   // Map live stream tasks to feed cards
@@ -378,7 +382,8 @@ export const TasksScreen: React.FC<{
     remainingSlots: 350,
     isRealCampaign: false,
     isBoosted: false,
-    targetUrl: l.targetUrl
+    targetUrl: l.targetUrl,
+    platform: (l as any).platform || 'tiktok'
   }));
 
   // Map cross follow items to feed cards
@@ -396,11 +401,12 @@ export const TasksScreen: React.FC<{
     remainingSlots: Math.max(10, (cf.followersCount || 1000) - (cf.completedByUsersCount || 0)),
     isRealCampaign: false,
     isBoosted: false,
-    targetUrl: cf.targetUrl
+    targetUrl: cf.targetUrl,
+    platform: 'tiktok'
   }));
 
   // Hàm khử trùng lặp triệt để và sắp xếp: Đẩy TOP 1 (100.000 Xu) lên đầu tiên
-  const deduplicateAndSortCards = <T extends { targetUrl?: string; channelHandle?: string; id: string; isBoosted?: boolean; isRealCampaign?: boolean }>(cards: T[]): T[] => {
+  const deduplicateAndSortCards = <T extends { targetUrl?: string; channelHandle?: string; id: string; isBoosted?: boolean; isRealCampaign?: boolean; platform?: string }>(cards: T[]): T[] => {
     const seen = new Set<string>();
     const unique: T[] = [];
 
@@ -434,8 +440,9 @@ export const TasksScreen: React.FC<{
   const feedCountPartner = allUnifiedCards.length;
   const feedCountCross = 0;
 
-  // Filtered cards according to feedCategoryFilter
+  // Filtered cards according to feedCategoryFilter & feedPlatformFilter
   const filteredFeedCards = allUnifiedCards.filter(card => {
+    if (feedPlatformFilter !== 'all' && (card as any).platform && (card as any).platform !== feedPlatformFilter) return false;
     if (feedCategoryFilter === 'all') return true;
     if (feedCategoryFilter === 'missions') return card.category === 'partner' && card.taskType !== 'livestream' && card.taskType !== 'livestream_viewers';
     if (feedCategoryFilter === 'live') return card.category === 'live' || card.taskType === 'livestream' || card.taskType === 'livestream_viewers';
@@ -1304,6 +1311,29 @@ export const TasksScreen: React.FC<{
                 }`}>
                   {btn.count}
                 </span>
+              </button>
+            ))}
+          </div>
+
+          {/* PLATFORM FILTER: LỌC THEO NỀN TẢNG (TẤT CẢ, TIKTOK, FACEBOOK, YOUTUBE) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+            <span className="text-[11px] font-bold text-slate-400 shrink-0 font-mono uppercase mr-1">Nền Tảng:</span>
+            {[
+              { id: 'all' as const, label: '🌐 Tất Cả Nền Tảng', color: 'border-slate-500/40 bg-slate-800/60 text-white' },
+              { id: 'tiktok' as const, label: '🎵 TikTok', color: 'border-rose-500/40 bg-rose-500/10 text-rose-300' },
+              { id: 'facebook' as const, label: '📘 Facebook & Fanpage', color: 'border-blue-500/40 bg-blue-500/10 text-blue-300' },
+              { id: 'youtube' as const, label: '🔴 YouTube & Shorts', color: 'border-red-500/40 bg-red-500/10 text-red-300' },
+            ].map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setFeedPlatformFilter(p.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 border cursor-pointer ${
+                  feedPlatformFilter === p.id
+                    ? `${p.color} ring-2 ring-cyan-400 shadow-md font-black`
+                    : 'border-white/10 bg-[#0A0D18] text-slate-400 hover:text-white hover:border-white/20'
+                }`}
+              >
+                <span>{p.label}</span>
               </button>
             ))}
           </div>

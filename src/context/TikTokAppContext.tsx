@@ -95,7 +95,11 @@ import {
   syncMasterSnapshotToSupabase,
   fetchMasterSnapshotFromSupabase,
   fetchUserProfileFromSupabase,
-  fetchAllProfilesFromSupabase
+  fetchAllProfilesFromSupabase,
+  broadcastRealtimeEvent,
+  subscribeToRealtimeEvents,
+  initSupabaseRealtimeListener,
+  RealtimeMessage
 } from '../services/supabaseClient';
 import { SecurityLayerDef } from '../types';
 import { 
@@ -1017,6 +1021,98 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       clearInterval(cloudInterval);
     };
   }, []);
+
+  // ==============================================================================
+  // LẮNG NGHE SỰ KIỆN ĐỒNG BỘ REALTIME TỨC THÌ 0MS GIỮA CÁC TAB VÀ QUA MẠNG CLOUD
+  // ==============================================================================
+  useEffect(() => {
+    const handleIncomingRealtimeEvent = (msg: RealtimeMessage) => {
+      if (!msg || !msg.type) return;
+
+      if (msg.type === 'ADMIN_GRANT_COINS' || msg.type === 'ADMIN_UPDATE_USER' || msg.type === 'ADMIN_GRANT_PERMISSIONS' || msg.type === 'ADMIN_GRANT_FOLLOWERS' || msg.type === 'ADMIN_UPDATE_RANK') {
+        const { userId, data, coinsBalance, rankLevel, hasAllPermissions, tiktokFollowers } = msg.payload || {};
+        
+        // 1. Cập nhật trong danh sách quản lý Admin Users
+        setAdminUsers(prev => prev.map(u => {
+          if (u.id === userId || (data?.email && u.email.toLowerCase() === data.email.toLowerCase()) || (msg.payload?.email && u.email.toLowerCase() === msg.payload.email.toLowerCase())) {
+            return {
+              ...u,
+              ...(coinsBalance !== undefined ? { coinsBalance } : {}),
+              ...(rankLevel ? { rankLevel } : {}),
+              ...(hasAllPermissions !== undefined ? { hasAllPermissions } : {}),
+              ...(tiktokFollowers !== undefined ? { tiktokFollowers } : {}),
+              ...(data || {})
+            };
+          }
+          return u;
+        }));
+
+        // 2. Nếu tài khoản được tác động chính là tài khoản đang đăng nhập hiện tại
+        if (isCurrentUser(userId || '', data)) {
+          setUser(prev => ({
+            ...prev,
+            ...(coinsBalance !== undefined ? { avaliveCoins: coinsBalance, coinsValueVND: `${coinsBalance.toLocaleString()}đ` } : {}),
+            ...(rankLevel ? { rankLevel } : {}),
+            ...(hasAllPermissions !== undefined ? { hasAllPermissions } : {}),
+            ...(tiktokFollowers !== undefined ? { tiktokFollowers } : {}),
+            ...(data?.name ? { name: data.name } : {}),
+            ...(data?.tiktokConnected ? { tiktokConnected: data.tiktokConnected } : {}),
+            ...(data?.kycStatus ? { kycStatus: data.kycStatus } : {}),
+            ...(data?.status ? { status: data.status } : {})
+          }));
+        }
+      } else if (msg.type === 'ADMIN_GRANT_PACKAGE' || msg.type === 'USER_PURCHASE_PACKAGE') {
+        const { userId, order } = msg.payload || {};
+        if (order) {
+          setAdminUsers(prev => prev.map(u => {
+            if (u.id === userId || (u.email && msg.payload?.email && u.email.toLowerCase() === msg.payload.email.toLowerCase())) {
+              return {
+                ...u,
+                purchasedPackagesCount: (u.purchasedPackagesCount || 0) + 1,
+                grantedPackagesTotal: (u.grantedPackagesTotal || 0) + 1,
+                orders: [order, ...(u.orders || []).filter(o => o.id !== order.id)]
+              };
+            }
+            return u;
+          }));
+        }
+        if (isCurrentUser(userId || '')) {
+          if (order) {
+            setUser(prev => ({
+              ...prev,
+              purchasedPackagesCount: (prev.purchasedPackagesCount || 0) + 1,
+              grantedPackagesTotal: (prev.grantedPackagesTotal || 0) + 1,
+              myOrders: [order, ...(prev.myOrders || []).filter(o => o.id !== order.id)]
+            }));
+          }
+        }
+      } else if (msg.type === 'ADMIN_DELETE_USER') {
+        const { userId } = msg.payload || {};
+        if (userId) {
+          setAdminUsers(prev => prev.filter(u => u.id !== userId && u.email.toLowerCase() !== userId.toLowerCase()));
+        }
+      } else if (msg.type === 'COMMISSION_SETTINGS_UPDATED') {
+        if (msg.payload?.settings) {
+          setCommissionSettings(msg.payload.settings);
+        }
+      } else if (msg.type === 'TASK_COMPLETED') {
+        const { taskId, newCompletedSlots } = msg.payload || {};
+        if (taskId) {
+          setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completedSlots: newCompletedSlots || (t.completedSlots + 1) } : t));
+        }
+      } else if (msg.type === 'FORCE_FULL_SYNC') {
+        refreshAllData();
+      }
+    };
+
+    const unsubscribeLocal = subscribeToRealtimeEvents(handleIncomingRealtimeEvent);
+    const unsubscribeCloud = initSupabaseRealtimeListener(handleIncomingRealtimeEvent);
+
+    return () => {
+      unsubscribeLocal();
+      unsubscribeCloud();
+    };
+  }, [user.email, user.handle, user.id, user.tiktokConnected]);
 
   // Escrow Permanent Audit Chat History (Lưu trữ vĩnh viễn không thể xóa trên LocalStorage & Smart Vault)
   const [contractChats, setContractChats] = useState<Record<string, EscrowChatMessage[]>>(() => {
@@ -2231,7 +2327,16 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateCommissionSettings = (newSettings: Partial<PlatformCommissionSettings>) => {
-    setCommissionSettings(prev => ({ ...prev, ...newSettings }));
+    setCommissionSettings(prev => {
+      const merged = { ...prev, ...newSettings };
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_platform_commission_settings', JSON.stringify(merged));
+        }
+      } catch {}
+      broadcastRealtimeEvent('COMMISSION_SETTINGS_UPDATED', { settings: merged });
+      return merged;
+    });
     showToast('Đã cập nhật cấu hình hoa hồng & tỷ lệ ăn chia toàn sàn!');
   };
 
@@ -2705,6 +2810,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       };
     });
 
+    broadcastRealtimeEvent('TASK_COMPLETED', { taskId, userId: user.id });
     showToast(`+${totalCoins.toLocaleString()} Xu! Đã cộng vào ví.`);
     return { coinsEarned: totalCoins, vndEarned: totalVND };
   };
@@ -5877,6 +5983,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } else if (matchedUser) {
       syncUserProfileToSupabase(matchedUser as any);
     }
+
+    broadcastRealtimeEvent('ADMIN_UPDATE_USER', { userId, data: { status: (matchedUser as any)?.status } });
     showToast('Đã cập nhật trạng thái tài khoản người dùng!');
   };
 
@@ -5931,6 +6039,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       syncUserProfileToSupabase(matchedUser as any);
     }
 
+    broadcastRealtimeEvent('ADMIN_GRANT_PERMISSIONS', { userId, hasAllPermissions: enable, enable });
     showToast(
       enable 
         ? `👑 Đã CẤP TOÀN QUYỀN HỆ THỐNG cho tài khoản (Không giới hạn, không khóa, làm mọi nhiệm vụ & chiến dịch)!`
@@ -6032,6 +6141,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       syncUserProfileToSupabase(matchedUser as any);
     }
 
+    broadcastRealtimeEvent('ADMIN_GRANT_COINS', { userId, coinsBalance: (matchedUser as any)?.coinsBalance, amount });
     showToast(`Đã cấp ${amount > 0 ? '+' : ''}${amount.toLocaleString()} Xu cho tài khoản!`);
   };
 
@@ -6103,6 +6213,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       syncUserProfileToSupabase(matchedUser as any);
     }
 
+    broadcastRealtimeEvent('ADMIN_GRANT_PACKAGE', { userId, order: createdOrder, packageTitle: packageItem.title });
     showToast(`👑 Admin đã cấp đặc quyền gói "${packageItem.title}" miễn phí cho tài khoản!`);
   };
 
@@ -6142,6 +6253,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       syncUserProfileToSupabase(matchedUser as any);
     }
 
+    broadcastRealtimeEvent('ADMIN_GRANT_FOLLOWERS', { userId, tiktokFollowers: (matchedUser as any)?.tiktokFollowers, count });
     showToast(`Đã cộng +${count.toLocaleString()} Follower cho kênh của người dùng!`);
   };
 
@@ -6181,6 +6293,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       syncUserProfileToSupabase(matchedUser as any);
     }
 
+    broadcastRealtimeEvent('ADMIN_UPDATE_RANK', { userId, rankLevel: rank });
     showToast(`Đã nâng hạng tài khoản lên bậc ${rank}!`);
   };
 
@@ -6211,6 +6324,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       orders: userData.orders || []
     };
     setAdminUsers(prev => [newUser, ...prev]);
+    broadcastRealtimeEvent('ADMIN_UPDATE_USER', { userId: newUser.id, data: newUser });
     showToast(`✅ Đã thêm tài khoản "${newUser.email}" vào hệ thống!`);
     return newUser;
   };
@@ -6259,11 +6373,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       syncUserProfileToSupabase(matchedUser as any);
     }
 
+    broadcastRealtimeEvent('ADMIN_UPDATE_USER', { userId, data });
     showToast('✅ Đã lưu cập nhật thông tin tài khoản!');
   };
 
   const adminDeleteUser = (userId: string) => {
     setAdminUsers(prev => prev.filter(u => u.id !== userId && u.email.toLowerCase() !== userId.toLowerCase()));
+    broadcastRealtimeEvent('ADMIN_DELETE_USER', { userId });
     showToast('🗑️ Đã xóa tài khoản khỏi hệ thống!');
   };
 
@@ -6285,6 +6401,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }));
     }
 
+    broadcastRealtimeEvent('FORCE_FULL_SYNC', { timestamp: Date.now() });
     showToast('✅ Đã cập nhật gói dịch vụ của người dùng!');
   };
 
@@ -6307,6 +6424,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }));
     }
 
+    broadcastRealtimeEvent('FORCE_FULL_SYNC', { timestamp: Date.now() });
     showToast('🗑️ Đã xóa gói dịch vụ được cấp!');
   };
 

@@ -586,3 +586,136 @@ export async function fetchAllProfilesFromSupabase(): Promise<{ success: boolean
     return { success: false, error: err.message };
   }
 }
+
+// ==============================================================================
+// 10. REALTIME SYNCHRONIZATION BUS (BROADCASTCHANNEL & SUPABASE REALTIME)
+// ==============================================================================
+
+export type RealtimeEventType =
+  | 'ADMIN_GRANT_COINS'
+  | 'ADMIN_GRANT_PACKAGE'
+  | 'ADMIN_GRANT_PERMISSIONS'
+  | 'ADMIN_GRANT_FOLLOWERS'
+  | 'ADMIN_UPDATE_RANK'
+  | 'ADMIN_UPDATE_USER'
+  | 'ADMIN_DELETE_USER'
+  | 'COMMISSION_SETTINGS_UPDATED'
+  | 'TASK_COMPLETED'
+  | 'USER_PURCHASE_PACKAGE'
+  | 'USER_PROFILE_SYNC'
+  | 'MASTER_SNAPSHOT_SYNC'
+  | 'FORCE_FULL_SYNC';
+
+export interface RealtimeMessage {
+  id: string;
+  type: RealtimeEventType;
+  senderId: string;
+  timestamp: number;
+  payload: any;
+}
+
+const CHANNEL_NAME = 'ava_realtime_sync_v3';
+let broadcastChannel: BroadcastChannel | null = null;
+
+try {
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    broadcastChannel = new BroadcastChannel(CHANNEL_NAME);
+  }
+} catch (err) {
+  console.warn('[RealtimeSyncBus] BroadcastChannel not supported:', err);
+}
+
+const realtimeListeners: Array<(msg: RealtimeMessage) => void> = [];
+
+if (broadcastChannel) {
+  broadcastChannel.onmessage = (event: MessageEvent) => {
+    if (event.data && event.data.type) {
+      realtimeListeners.forEach((fn) => {
+        try {
+          fn(event.data);
+        } catch (e) {
+          console.error('[RealtimeSyncBus] Listener error:', e);
+        }
+      });
+    }
+  };
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'ava_realtime_event_signal' && e.newValue) {
+      try {
+        const msg: RealtimeMessage = JSON.parse(e.newValue);
+        realtimeListeners.forEach((fn) => {
+          try {
+            fn(msg);
+          } catch (err) {
+            console.error('[RealtimeSyncBus] Storage event error:', err);
+          }
+        });
+      } catch {}
+    }
+  });
+}
+
+export function subscribeToRealtimeEvents(callback: (msg: RealtimeMessage) => void): () => void {
+  realtimeListeners.push(callback);
+  return () => {
+    const idx = realtimeListeners.indexOf(callback);
+    if (idx >= 0) realtimeListeners.splice(idx, 1);
+  };
+}
+
+export function broadcastRealtimeEvent(type: RealtimeEventType, payload: any): void {
+  const msg: RealtimeMessage = {
+    id: `rt_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+    type,
+    senderId: typeof window !== 'undefined' ? (localStorage.getItem('ava_user_email') || 'system') : 'system',
+    timestamp: Date.now(),
+    payload
+  };
+
+  if (broadcastChannel) {
+    try {
+      broadcastChannel.postMessage(msg);
+    } catch {}
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('ava_realtime_event_signal', JSON.stringify(msg));
+    } catch {}
+  }
+
+  try {
+    const channel = supabase.channel('public:ava_live_events');
+    channel.send({
+      type: 'broadcast',
+      event: 'app_event',
+      payload: msg
+    }).catch(() => {});
+  } catch {}
+}
+
+export function initSupabaseRealtimeListener(onEventReceived: (msg: RealtimeMessage) => void) {
+  try {
+    const channel = supabase.channel('public:ava_live_events');
+    channel
+      .on('broadcast', { event: 'app_event' }, ({ payload }) => {
+        if (payload && payload.type) {
+          onEventReceived(payload as RealtimeMessage);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    };
+  } catch (err) {
+    console.warn('[RealtimeSyncBus] Supabase Realtime subscription error:', err);
+    return () => {};
+  }
+}
+

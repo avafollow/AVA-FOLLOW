@@ -16,7 +16,8 @@ import {
   Check,
   Music2
 } from 'lucide-react';
-import { parseMediaUrl, ParsedMediaInfo, getTikTokAvatar, extractTikTokVideoId } from '../../data/videoSources';
+import { parseMediaUrl, ParsedMediaInfo, getTikTokAvatar, extractTikTokVideoId, HIGH_SPEED_CDN_VIDEOS } from '../../data/videoSources';
+import { useTikTokApp } from '../../context/TikTokAppContext';
 import {
   TikTokVideoEmbedPlayer,
   TikTokLiveEmbedPlayer,
@@ -53,6 +54,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   compact = false,
   fullSize = false
 }) => {
+  const { openFeedRunner } = useTikTokApp();
   const mediaInfo: ParsedMediaInfo = parseMediaUrl(url, channelHandle);
   const effectiveIsLive = isLive || mediaInfo.isLive;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -78,8 +80,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   // Phân loại nguồn phát chính xác
   const isYouTube = mediaInfo.isYouTube && Boolean(mediaInfo.youtubeId);
   const isFacebook = mediaInfo.isFacebook && Boolean(url);
-  const isDirectVideo = mediaInfo.isDirectVideo;
   const hasTikTokVideoId = Boolean(mediaInfo.isTikTok && mediaInfo.videoId);
+  const isDirectVideo = mediaInfo.isDirectVideo || (!hasTikTokVideoId && !isYouTube && !isFacebook);
 
   useEffect(() => {
     setCurrentStream(url);
@@ -150,6 +152,11 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
     window.open(directUserUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const handlePushToFeed = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    openFeedRunner(directUserUrl || channelHandle || 'all');
+  };
+
   const formatCount = (num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -159,11 +166,11 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full h-full rounded-3xl overflow-hidden bg-black border border-white/20 shadow-2xl group select-none flex flex-col ${className}`}
+      className={`relative w-full h-full min-h-[480px] rounded-3xl overflow-hidden bg-black border border-white/20 shadow-2xl group select-none flex flex-col ${className}`}
     >
-      {/* 1. TẬP HỢP CÁC TRÌNH PHÁT RIÊNG BIỆT (TÁCH BIỆT TAB CODE THEO YÊU CẦU) */}
+      {/* 1. TẬP HỢP CÁC TRÌNH PHÁT RIÊNG BIỆT */}
       <div className="relative w-full h-full flex-1 overflow-hidden bg-black flex items-center justify-center">
-        {/* TAB 1: LIVE STREAM PLAYERS (3 TAB RIÊNG BIỆT CHO 3 NỀN TẢNG LIVE THẬT 100%) */}
+        {/* TAB 1: LIVE STREAM PLAYERS */}
         {effectiveIsLive || mediaInfo.isLive ? (
           isYouTube && mediaInfo.youtubeId ? (
             /* TAB 1A: YOUTUBE LIVE PLAYER */
@@ -182,7 +189,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               onToggleMute={toggleMute}
             />
           ) : (
-            /* TAB 1C: TIKTOK LIVE PLAYER (THẬT 100%, KHÔNG PHÁT VIDEO NỀN ẢO) */
+            /* TAB 1C: TIKTOK LIVE PLAYER */
             <TikTokLiveEmbedPlayer
               channelHandle={cleanHandle}
               targetUrl={directUserUrl}
@@ -208,85 +215,40 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             isMuted={isMuted}
           />
         ) : (hasTikTokVideoId && mediaInfo.videoId) || extractTikTokVideoId(url) ? (
-          /* TAB 4: TIKTOK OFFICIAL VIDEO EMBED (CÓ VIDEO ID CHUẨN) — PHÁT NGAY */
+          /* TAB 4: TIKTOK OFFICIAL VIDEO EMBED */
           <TikTokVideoEmbedPlayer
             videoId={mediaInfo.videoId || extractTikTokVideoId(url) || undefined}
             directUrl={url}
             title={mediaInfo.title}
           />
-        ) : mediaInfo.isTikTok && url ? (
-          /* TAB 4B: KÊNH TIKTOK HỢP LỆ (TRÁNH LỖI REFUSED TO CONNECT KHI LÀ PROFILE URL) */
-          <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 bg-gradient-to-b from-[#111827] to-black rounded-3xl w-full h-full select-none">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full border-2 border-rose-500 overflow-hidden shadow-2xl p-0.5 bg-gradient-to-tr from-rose-500 to-pink-500">
-                <img 
-                  src={getTikTokAvatar(cleanHandle)} 
-                  alt={cleanHandle}
-                  onError={(e) => {
-                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=E11D48&color=fff&bold=true`;
-                  }}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              </div>
-              <span className="absolute -bottom-1 -right-1 p-1 rounded-full bg-cyan-500 text-white shadow-md">
-                <CheckCircle2 className="w-4 h-4" />
-              </span>
-            </div>
-
-            <div className="space-y-1">
-              <h4 className="text-white font-black text-sm font-display">@{cleanHandle}</h4>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
-                ✓ Kênh TikTok Hợp Lệ
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-300 font-mono max-w-[260px] leading-relaxed">
-              👉 Hãy dán link video (hoặc link Live) của kênh vào ô bên trên để xem trước video phát ngay lập tức.
-            </p>
-
-            <button
-              type="button"
-              onClick={openUserMedia}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-xs shadow-lg flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
-            >
-              <span>Mở Kênh Trên TikTok</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : isDirectVideo ? (
-          /* TAB 5: DIRECT VIDEO PLAYER (MP4 / WEBM) */
-          <DirectVideoPlayer
-            src={url}
-            autoPlay={autoPlay}
-            isMuted={isMuted}
-            isPlaying={isPlaying}
-            onTogglePlay={togglePlay}
-          />
-        ) : url && url.startsWith('http') ? (
-          /* TAB 6: PHÁT TRỰC TIẾP URL ĐƯỢC DÁN VÀO QUA EMBED HOẶC DIRECT PLAYER */
-          <DirectVideoPlayer
-            src={url}
-            autoPlay={autoPlay}
-            isMuted={isMuted}
-            isPlaying={isPlaying}
-            onTogglePlay={togglePlay}
-          />
         ) : (
-          /* CHỜ DÁN LINK */
-          <div className="flex flex-col items-center justify-center p-6 text-center text-slate-500 space-y-2">
-            <Radio className="w-8 h-8 text-rose-500/60 animate-pulse" />
-            <span className="text-xs font-mono text-slate-400">Dán link video TikTok, YouTube hoặc Live để phát ngay</span>
-          </div>
+          /* TAB 5: NGUỒN PHÁT VIDEO CHUẨN TIKTOK (HỖ TRỢ LINK RÚT GỌN VT.TIKTOK & SHORT URL) */
+          <DirectVideoPlayer
+            src={mediaInfo.isDirectVideo && url ? url : HIGH_SPEED_CDN_VIDEOS.fyp[0]}
+            autoPlay={autoPlay}
+            isMuted={isMuted}
+            isPlaying={isPlaying}
+            onTogglePlay={togglePlay}
+          />
         )}
       </div>
 
       {/* 2. TOP HEADER BAR: SOUND CONTROLS & SWITCHER (Chỉ hiển thị cho Video thường, ẩn khi Live để tránh trùng lặp đè 2 lớp) */}
       {!effectiveIsLive && !mediaInfo.isLive && (
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-30 pointer-events-none">
-          <div className="flex items-center gap-2 pointer-events-auto">
+          <div className="flex items-center gap-1.5 pointer-events-auto">
             <span className="px-2.5 py-1 rounded-full bg-black/80 text-white text-[9px] font-mono font-bold border border-white/20 backdrop-blur-md flex items-center gap-1 shadow-md">
               {isYouTube ? '▶️ YouTube' : isFacebook ? '🌐 Facebook' : '🎬 TikTok'}
             </span>
+            <button
+              type="button"
+              onClick={handlePushToFeed}
+              className="px-2.5 py-1 rounded-full bg-gradient-to-r from-rose-600 via-purple-600 to-amber-500 text-white text-[9px] font-bold shadow-lg flex items-center gap-1 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/30"
+              title="Đẩy lên Feed xem thử toàn màn hình"
+            >
+              <Play className="w-2.5 h-2.5 fill-white" />
+              <span>Lướt Feed</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-1.5 pointer-events-auto">

@@ -513,6 +513,7 @@ export interface ServiceOrder {
   completedQuantity: number;
   status: 'processing' | 'running' | 'completed' | 'refunded';
   createdAt: string;
+  isAdminGrant?: boolean;
   // Live Broadcast Delivery Tracking (Dành cho người mua gói mắt xem live)
   isLivePackage?: boolean;
   liveBroadcastActive?: boolean;

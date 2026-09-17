@@ -56,39 +56,52 @@ export function detectPlatform(url: string): 'tiktok' | 'facebook' | 'youtube' |
 
 // Hàm trích xuất @handle từ URL bất kỳ
 export function extractTikTokHandle(rawUrlOrHandle: string): string {
-  if (!rawUrlOrHandle) return '@creator_tiktok';
+  if (!rawUrlOrHandle) return '@creator_vietnam';
   const clean = rawUrlOrHandle.trim();
   
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    // 1. TikTok standard @username
+    const match = clean.match(/tiktok\.com\/@([a-zA-Z0-9_\.\-]+)/i);
+    if (match && match[1]) {
+      return `@${match[1]}`;
+    }
+
+    // 2. TikTok short links (vt.tiktok.com or vm.tiktok.com)
+    if (clean.includes('vt.tiktok.com') || clean.includes('vm.tiktok.com')) {
+      const codeMatch = clean.match(/tiktok\.com\/([a-zA-Z0-9_\.\-]+)/i);
+      if (codeMatch && codeMatch[1]) {
+        return `@tiktok_${codeMatch[1].toLowerCase().replace(/[^a-z0-9_]/g, '')}`;
+      }
+      return '@creator_tiktok';
+    }
+
+    // 3. YouTube @handle
+    const ytMatch = clean.match(/youtube\.com\/@([a-zA-Z0-9_\.\-]+)/i);
+    if (ytMatch && ytMatch[1]) {
+      return `@${ytMatch[1]}`;
+    }
+
+    // 4. YouTube channel / user
+    const ytChannelMatch = clean.match(/youtube\.com\/(?:c|channel|user)\/([a-zA-Z0-9_\.\-]+)/i);
+    if (ytChannelMatch && ytChannelMatch[1]) {
+      return `@${ytChannelMatch[1]}`;
+    }
+
+    // 5. Facebook page / user
+    const fbMatch = clean.match(/facebook\.com\/([a-zA-Z0-9_\.\-]+)/i);
+    if (fbMatch && fbMatch[1] && !['watch', 'reel', 'videos', 'share', 'groups', 'stories', 'events', 'photo'].includes(fbMatch[1].toLowerCase())) {
+      return `@${fbMatch[1]}`;
+    }
+
+    return '@creator_vietnam';
+  }
+
   // Nếu đã có dạng @username
   if (clean.startsWith('@')) {
     return clean.split(/[\/\?]/)[0];
   }
 
-  // Nếu là link tiktok.com/@username/video/...
-  const match = clean.match(/tiktok\.com\/@([a-zA-Z0-9_\.\-]+)/i);
-  if (match && match[1]) {
-    return `@${match[1]}`;
-  }
-
-  // Nếu là link youtube.com/@username
-  const ytMatch = clean.match(/youtube\.com\/@([a-zA-Z0-9_\.\-]+)/i);
-  if (ytMatch && ytMatch[1]) {
-    return `@${ytMatch[1]}`;
-  }
-
-  // Nếu là link youtube.com/c/username hoặc youtube.com/channel/...
-  const ytChannelMatch = clean.match(/youtube\.com\/(?:c|channel|user)\/([a-zA-Z0-9_\.\-]+)/i);
-  if (ytChannelMatch && ytChannelMatch[1]) {
-    return `@${ytChannelMatch[1]}`;
-  }
-
-  // Nếu là link facebook.com/username hoặc fanpage
-  const fbMatch = clean.match(/facebook\.com\/([a-zA-Z0-9_\.\-]+)/i);
-  if (fbMatch && fbMatch[1] && !['watch', 'reel', 'videos', 'share', 'groups', 'stories', 'events', 'photo'].includes(fbMatch[1].toLowerCase())) {
-    return `@${fbMatch[1]}`;
-  }
-
-  return clean.startsWith('@') ? clean : `@${clean}`;
+  return `@${clean}`;
 }
 
 // Hàm trích xuất Video ID từ TikTok URL

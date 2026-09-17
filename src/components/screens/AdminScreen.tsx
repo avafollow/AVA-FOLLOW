@@ -2759,8 +2759,15 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       <div className="font-bold text-amber-400">{u.coinsBalance.toLocaleString()} Xu</div>
                     </td>
                     <td className="p-3 font-mono text-slate-300">
-                      <span className="text-purple-300 font-bold">{(u.purchasedPackagesCount || u.orders?.length || 0)} Gói</span>
-                      <div className="text-[10px] text-slate-400">{u.escrowLockedAmountVND || '0đ'} Ký quỹ</div>
+                      {(() => {
+                        const paidCount = (u.orders || []).filter(o => o && !o.isAdminGrant && !o.id?.startsWith('mock_') && !o.id?.startsWith('demo_') && (o.status === 'processing' || o.status === 'running' || o.status === 'completed')).length || (u.purchasedPackagesCount && u.orders && u.orders.some(o => !o.isAdminGrant) ? u.purchasedPackagesCount : 0);
+                        return (
+                          <>
+                            <span className="text-purple-300 font-bold">{paidCount} Gói</span>
+                            <div className="text-[10px] text-slate-400">{paidCount > 0 ? (u.escrowLockedAmountVND || '0đ') : '0đ'} Ký quỹ</div>
+                          </>
+                        );
+                      })()}
                     </td>
                     <td className="p-3">
                       <div className="space-y-1">
@@ -4320,7 +4327,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 <div className="p-3 bg-slate-800/60 rounded-2xl border border-slate-700/60">
                   <span className="text-[10px] text-slate-400 font-mono">Gói Đã Sở Hữu</span>
                   <div className="text-base font-black text-purple-400 font-mono">
-                    {inspectedUser.purchasedPackagesCount || (inspectedUser.orders?.length) || 0} Gói
+                    {(inspectedUser.orders || []).filter(o => o && !o.isAdminGrant && !o.id?.startsWith('mock_') && !o.id?.startsWith('demo_') && (o.status === 'processing' || o.status === 'running' || o.status === 'completed')).length || 0} Gói
                   </div>
                 </div>
               </div>

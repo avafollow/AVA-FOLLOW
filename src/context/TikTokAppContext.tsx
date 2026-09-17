@@ -721,14 +721,19 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         );
         const healed = filtered.map(u => {
           const granted = u.grantedCoinsTotal || 0;
+          const realOrders = (u.orders || []).filter(o => o && o.id && !o.id.startsWith('mock_') && !o.id.startsWith('demo_') && !o.isAdminGrant && (o.status === 'processing' || o.status === 'running' || o.status === 'completed'));
+          const realCount = realOrders.length;
+          let userRes: AdminUserManagementItem = {
+            ...u,
+            orders: realOrders,
+            purchasedPackagesCount: realCount,
+            escrowLockedAmountVND: realCount > 0 ? (u.escrowLockedAmountVND || '0đ') : '0đ'
+          };
           if (granted > 0 && (!u.coinsBalance || u.coinsBalance < granted)) {
-            return {
-              ...u,
-              coinsBalance: Math.max(u.coinsBalance || 0, granted),
-              tokenBalance: Math.max(u.tokenBalance || 0, granted)
-            };
+            userRes.coinsBalance = Math.max(u.coinsBalance || 0, granted);
+            userRes.tokenBalance = Math.max(u.tokenBalance || 0, granted);
           }
-          return u;
+          return userRes;
         });
         return healed;
       }

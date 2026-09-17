@@ -4637,8 +4637,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return false;
     }
 
-    // Lần đầu miễn phí (0%), lần 2 trở đi phí 5%
-    const feeRate = isFirstWithdraw ? 0 : 0.05;
+    // Lần đầu miễn phí (0%), từ lần 2 trở đi tính theo cấu hình Admin (0 - 100%)
+    const configuredFeePercent = commissionSettings?.withdrawFeePercent ?? 5;
+    const feeRate = isFirstWithdraw ? 0 : (configuredFeePercent / 100);
     const platformFee = Math.round(amountVND * feeRate);
     const netReceivedVND = amountVND - platformFee;
     const newCoins = user.avaliveCoins - amountVND;
@@ -4649,7 +4650,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       title: `Rút tiền về ${bankInfo.bankName} (${bankInfo.accountNumber})`,
       amount: isFirstWithdraw
         ? `-${amountVND.toLocaleString()} Xu (RÚT LẦN ĐẦU MIỄN PHÍ 0% • Thực nhận: +${netReceivedVND.toLocaleString()}đ)`
-        : `-${amountVND.toLocaleString()} Xu (Thực nhận: +${netReceivedVND.toLocaleString()}đ, Phí sàn 5%: -${platformFee.toLocaleString()}đ)`,
+        : `-${amountVND.toLocaleString()} Xu (Thực nhận: +${netReceivedVND.toLocaleString()}đ, Phí sàn ${configuredFeePercent}%: -${platformFee.toLocaleString()}đ)`,
       isPositive: false,
       date: 'Vừa xong',
       method: bankInfo.bankName,
@@ -6037,17 +6038,24 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const userTiktok = (user.tiktokConnected || '').toLowerCase().trim().replace(/^@/, '');
     const userId = (user.id || '').toLowerCase().trim();
     
-    if (cleanTarget && (cleanTarget === userEmail || cleanTarget === userHandle || cleanTarget === userTiktok || cleanTarget === userId)) return true;
+    // Strict comparison - avoid matching empty strings or generic short handles
+    if (cleanTarget && cleanTarget !== 'user' && cleanTarget !== 'user123' && cleanTarget !== 'chưa_kết_nối') {
+      if (userEmail && cleanTarget === userEmail) return true;
+      if (userId && cleanTarget === userId) return true;
+      if (userTiktok && cleanTarget === userTiktok) return true;
+      if (userHandle && cleanTarget === userHandle) return true;
+    }
 
     if (targetUser) {
       const tEmail = (targetUser.email || '').toLowerCase().trim();
       const tHandle = (targetUser.handle || '').toLowerCase().trim().replace(/^@/, '');
       const tTiktok = (targetUser.tiktokConnected || '').toLowerCase().trim().replace(/^@/, '');
       const tId = (targetUser.id || '').toLowerCase().trim();
-      if (tEmail && (tEmail === userEmail || tEmail === userHandle)) return true;
-      if (tHandle && (tHandle === userHandle || tHandle === userTiktok)) return true;
-      if (tTiktok && (tTiktok === userTiktok || tTiktok === userHandle)) return true;
-      if (tId && (tId === userId || tId === userEmail)) return true;
+      
+      if (tEmail && userEmail && tEmail === userEmail) return true;
+      if (tId && userId && tId === userId) return true;
+      if (tTiktok && userTiktok && tTiktok === userTiktok && tTiktok !== 'chưa_kết_nối') return true;
+      if (tHandle && userHandle && tHandle === userHandle && tHandle !== 'user') return true;
     }
     return false;
   };

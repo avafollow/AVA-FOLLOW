@@ -279,7 +279,7 @@ export const ProfileWalletScreen: React.FC<{
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/60 border border-white/10 text-[11px] font-mono">
                     <span className="text-rose-400 font-bold">G</span>
                     <span className="text-slate-400">Tài khoản Google:</span>
-                    <strong className="text-cyan-300">{user.email || 'quocthiencr90@gmail.com'}</strong>
+                    <strong className="text-cyan-300">{user.email || 'Chưa liên kết'}</strong>
                     <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">✓ ĐÃ XÁC THỰC</span>
                   </div>
                 </div>

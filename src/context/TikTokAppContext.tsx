@@ -1057,7 +1057,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             
             const isMatch = (targetUserId && uId === targetUserId) ||
               (targetEmail && uEmail === targetEmail) ||
-              (targetHandle && uHandle === targetHandle);
+              (targetHandle && targetHandle.length > 2 && targetHandle !== 'user' && targetHandle !== 'thienvuaapp' && targetHandle !== 'chua_ket_noi' && uHandle === targetHandle);
 
             if (isMatch) {
               const newCoins = coinsBalance !== undefined ? coinsBalance : (amount !== undefined ? Math.max(0, u.coinsBalance + amount) : u.coinsBalance);

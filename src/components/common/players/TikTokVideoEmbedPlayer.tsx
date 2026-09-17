@@ -6,6 +6,7 @@ export interface TikTokVideoEmbedPlayerProps {
   videoId?: string;
   directUrl?: string;
   title?: string;
+  isMuted?: boolean;
   className?: string;
 }
 
@@ -13,7 +14,7 @@ export interface TikTokVideoEmbedPlayerProps {
  * Component chuyên biệt: Trình phát Video TikTok Embed chính thức từ TikTok
  * Hỗ trợ:
  * 1. Chỉ nhúng qua embed/v2 khi có videoId số hợp lệ (tránh lỗi refused to connect)
- * 2. Nhúng qua embed/v2 chính thức với autoplay=1&muted=0&lang=vi-VN
+ * 2. Nhúng qua embed/v2 chính thức với autoplay=1&muted=1&playsinline=1&lang=vi-VN (tương thích 100% mobile Safari & Chrome)
  * 3. Gửi lệnh Play & Unmute tức thì qua giao thức player.js và TikTok Native PostMessage
  * 4. Tự động fallback giao diện sạch sẽ kèm nút mở TikTok nếu không có ID video hoặc bị chặn nhúng
  */
@@ -21,17 +22,17 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   videoId,
   directUrl,
   title = 'TikTok Video',
+  isMuted = false,
   className = ''
 }) => {
   const effectiveId = videoId || (directUrl ? extractTikTokVideoId(directUrl) : null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const [hasStarted, setHasStarted] = useState<boolean>(false);
   const [hasError, setHasError] = useState<boolean>(false);
 
   // Chỉ cho phép nạp iframe nếu ID là dãy số hợp lệ từ 10-24 chữ số (chuẩn TikTok video id)
   const isValidNumericId = Boolean(effectiveId && /^\d{10,24}$/.test(effectiveId));
   const iframeSrc = isValidNumericId
-    ? `https://www.tiktok.com/embed/v2/${effectiveId}?lang=vi-VN&autoplay=1&muted=0`
+    ? `https://www.tiktok.com/embed/v2/${effectiveId}?lang=vi-VN&autoplay=1&muted=${isMuted ? 1 : 0}&playsinline=1`
     : null;
 
   // Gửi lệnh phát video và bật tiếng qua mọi giao thức hỗ trợ của TikTok Embed
@@ -42,45 +43,25 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
 
       // 1. Chuẩn Player.js (Được TikTok Web & Iframe Embed hỗ trợ)
       cw.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', event: 'command', method: 'play' }), '*');
-      cw.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', event: 'command', method: 'unmute' }), '*');
-      cw.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', event: 'command', method: 'setVolume', value: 100 }), '*');
+      cw.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', event: 'command', method: isMuted ? 'mute' : 'unmute' }), '*');
 
       // 2. Chuẩn Native TikTok Message
       cw.postMessage({ 'tiktok-embed': true, type: 'play' }, '*');
-      cw.postMessage({ 'tiktok-embed': true, type: 'unmute' }, '*');
+      cw.postMessage({ 'tiktok-embed': true, type: isMuted ? 'mute' : 'unmute' }, '*');
       cw.postMessage({ type: 'play' }, '*');
-      cw.postMessage({ type: 'unmute' }, '*');
-      cw.postMessage({ action: 'play' }, '*');
-      cw.postMessage({ method: 'play' }, '*');
-      cw.postMessage({ event: 'command', func: 'play' }, '*');
-
-      setHasStarted(true);
+      cw.postMessage({ type: isMuted ? 'mute' : 'unmute' }, '*');
     } catch (err) {}
-  }, []);
+  }, [isMuted]);
 
-  // Tự động kích hoạt phát video và âm thanh sau khi tải
+  // Tự động kích hoạt phát video sau khi tải
   useEffect(() => {
-    setHasStarted(false);
     setHasError(false);
     if (!iframeSrc) return;
-    const timers = [100, 300, 600, 1000, 1600, 2400].map(delay =>
+    const timers = [100, 400, 800, 1500].map(delay =>
       setTimeout(triggerPlayAndSound, delay)
     );
     return () => timers.forEach(t => clearTimeout(t));
   }, [iframeSrc, triggerPlayAndSound]);
-
-  // Kích hoạt phát video và âm thanh ngay khi người dùng chạm hoặc click vào màn hình
-  useEffect(() => {
-    const handleInteraction = () => {
-      triggerPlayAndSound();
-    };
-    window.addEventListener('click', handleInteraction, { passive: true, once: true });
-    window.addEventListener('touchstart', handleInteraction, { passive: true, once: true });
-    return () => {
-      window.removeEventListener('click', handleInteraction);
-      window.removeEventListener('touchstart', handleInteraction);
-    };
-  }, [triggerPlayAndSound]);
 
   // Nếu không có iframeSrc hợp lệ hoặc iframe bị lỗi từ chối kết nối -> Phát video nền sống động kèm thông tin kênh
   if (!iframeSrc || hasError) {
@@ -96,6 +77,7 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
             loop
             muted
             playsInline
+            {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
             className="w-full h-full object-cover opacity-60"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/40" />
@@ -156,25 +138,12 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
         key={`tt-embed-${effectiveId}`}
         src={iframeSrc}
         title={title}
-        allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
         onLoad={triggerPlayAndSound}
         onError={() => setHasError(true)}
         className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
       />
-
-      {/* Floating Interactive Quick Play/Unmute Button if browser blocked immediate autoplay */}
-      {!hasStarted && (
-        <button
-          type="button"
-          onClick={triggerPlayAndSound}
-          className="absolute inset-x-4 bottom-16 z-30 py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 text-white font-bold text-xs shadow-2xl flex items-center justify-center gap-2 border border-white/25 backdrop-blur-md animate-pulse hover:scale-105 active:scale-95 transition-all cursor-pointer"
-        >
-          <Play className="w-4 h-4 fill-white" />
-          <span>▶ PHÁT VIDEO & BẬT ÂM THANH NGAY</span>
-          <Volume2 className="w-4 h-4 text-emerald-300" />
-        </button>
-      )}
     </div>
   );
 };

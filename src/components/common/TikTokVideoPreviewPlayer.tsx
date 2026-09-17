@@ -68,11 +68,6 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
     setIsMuted(muted);
   }, [muted]);
 
-  // Action States (Không dùng số ảo - chỉ lưu trạng thái tương tác của người dùng)
-  const [isLiked, setIsLiked] = useState<boolean>(false);
-  const [isFollowed, setIsFollowed] = useState<boolean>(false);
-  const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
-
   // Phân loại nguồn phát chính xác
   const isYouTube = mediaInfo.isYouTube && Boolean(mediaInfo.youtubeId);
   const isFacebook = mediaInfo.isFacebook && Boolean(url);
@@ -115,28 +110,6 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
       if (document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
       }
-    }
-  };
-
-  const handleLike = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsLiked(prev => !prev);
-  };
-
-  const handleFollow = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsFollowed(prev => !prev);
-  };
-
-  const handleBookmark = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsBookmarked(prev => !prev);
-  };
-
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (navigator.clipboard && directUserUrl) {
-      navigator.clipboard.writeText(directUserUrl).catch(() => {});
     }
   };
 
@@ -293,87 +266,6 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               <ExternalLink className="w-4 h-4 text-white" />
             </button>
           </div>
-        </div>
-      )}
-
-      {/* 3. RIGHT ACTION BUTTONS (Hiển thị đầy đủ cho mọi nền tảng video TikTok, Facebook, YouTube) */}
-      {!effectiveIsLive && !mediaInfo.isLive && (
-        <div className="absolute right-3 bottom-20 z-20 flex flex-col items-center gap-3.5 pointer-events-auto">
-          {/* Creator Avatar & Follow Button */}
-          <div className="relative mb-1">
-            <div 
-              onClick={openUserMedia}
-              className="w-11 h-11 rounded-full border-2 border-white overflow-hidden bg-gradient-to-tr from-rose-500 to-purple-600 flex items-center justify-center text-white font-black text-sm shadow-xl cursor-pointer hover:scale-105 transition-transform"
-              title={`Xem kênh @${cleanHandle}`}
-            >
-              {cleanHandle.charAt(0).toUpperCase() || 'T'}
-            </div>
-            <button
-              type="button"
-              onClick={handleFollow}
-              className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-90 ${
-                isFollowed ? 'bg-emerald-500 text-white' : 'bg-[#FF0050] text-white hover:scale-110'
-              }`}
-              title={isFollowed ? 'Đã theo dõi' : 'Follow'}
-            >
-              {isFollowed ? <Check className="w-3 h-3 stroke-[3]" /> : <Plus className="w-3 h-3 stroke-[3]" />}
-            </button>
-          </div>
-
-          {/* Like Button */}
-          <button
-            type="button"
-            onClick={handleLike}
-            className="flex flex-col items-center group/btn cursor-pointer"
-            title="Thả tim"
-          >
-            <div className={`p-1.5 rounded-full transition-transform active:scale-75 ${isLiked ? 'text-[#FF0050]' : 'text-white hover:text-rose-400'}`}>
-              <Heart className={`w-7 h-7 drop-shadow-lg ${isLiked ? 'fill-[#FF0050] text-[#FF0050]' : ''}`} />
-            </div>
-            <span className="text-[10px] font-bold text-white drop-shadow-md font-mono">
-              {isLiked ? 'Đã thích' : 'Thích'}
-            </span>
-          </button>
-
-          {/* Comment Button */}
-          <div className="flex flex-col items-center text-white cursor-pointer hover:text-cyan-400 transition-colors" title="Bình luận">
-            <div className="p-1.5">
-              <MessageCircle className="w-7 h-7 drop-shadow-lg fill-white/20" />
-            </div>
-            <span className="text-[10px] font-bold text-white drop-shadow-md font-mono">
-              Bình luận
-            </span>
-          </div>
-
-          {/* Bookmark Button */}
-          <button
-            type="button"
-            onClick={handleBookmark}
-            className="flex flex-col items-center group/btn cursor-pointer"
-            title="Lưu video vào danh sách"
-          >
-            <div className={`p-1.5 rounded-full transition-transform active:scale-75 ${isBookmarked ? 'text-amber-400' : 'text-white hover:text-amber-300'}`}>
-              <Bookmark className={`w-7 h-7 drop-shadow-lg ${isBookmarked ? 'fill-amber-400' : ''}`} />
-            </div>
-            <span className="text-[10px] font-bold text-white drop-shadow-md font-mono">
-              {isBookmarked ? 'Đã lưu' : 'Lưu'}
-            </span>
-          </button>
-
-          {/* Share Button */}
-          <button
-            type="button"
-            onClick={handleShare}
-            className="flex flex-col items-center text-white hover:text-emerald-400 transition-colors cursor-pointer"
-            title="Chia sẻ"
-          >
-            <div className="p-1.5">
-              <Share2 className="w-7 h-7 drop-shadow-lg" />
-            </div>
-            <span className="text-[10px] font-bold text-white drop-shadow-md font-mono">
-              Chia sẻ
-            </span>
-          </button>
         </div>
       )}
 

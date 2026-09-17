@@ -1404,8 +1404,20 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // B. Kênh TikTok & Video TikTok: Phát video siêu tốc độ, mượt mà tức thì 0ms
+            // B. Kênh TikTok & Video TikTok: Phát video TikTok chính thức nếu có ID video
             if (itemMedia.isTikTok) {
+              if (itemMedia.videoId) {
+                return (
+                  <TikTokVideoEmbedPlayer
+                    key={currentItem.id + '_tt_' + itemMedia.videoId}
+                    videoId={itemMedia.videoId}
+                    directUrl={currentItem.targetUrl}
+                    title={currentItem.title}
+                    isMuted={isMuted}
+                  />
+                );
+              }
+
               const cleanHandle = (currentItem.channelHandle || itemMedia.handle || '@tiktok').replace(/^@+/, '');
               const localSamples = ['/videos/sample1.mp4', '/videos/sample2.mp4', '/videos/sample3.mp4'];
               const sampleSrc = (currentItem.videoUrl && !currentItem.videoUrl.includes('tiktok.com')) 

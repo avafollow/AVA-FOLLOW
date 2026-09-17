@@ -712,7 +712,18 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           !u.id.includes('demo') &&
           !['phuongbeauty.koc@gmail.com', 'thanhgrowth@tiktok.com', 'contact@zenskin.vn', 'long@agencyvip.com', 'demo@avalive.vn', 'nguyenvana@gmail.com', 'tranthib@gmail.com', 'lequangc@gmail.com'].includes(u.email?.toLowerCase?.() || '')
         );
-        return filtered;
+        const healed = filtered.map(u => {
+          const granted = u.grantedCoinsTotal || 0;
+          if (granted > 0 && (!u.coinsBalance || u.coinsBalance < granted)) {
+            return {
+              ...u,
+              coinsBalance: Math.max(u.coinsBalance || 0, granted),
+              tokenBalance: Math.max(u.tokenBalance || 0, granted)
+            };
+          }
+          return u;
+        });
+        return healed;
       }
     } catch {}
     return ADMIN_USERS_LIST;
@@ -6263,7 +6274,16 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ]);
 
       if (cloudRes.success && cloudRes.data) {
-        if (Array.isArray(cloudRes.data.adminUsers)) setAdminUsers(cloudRes.data.adminUsers);
+        if (Array.isArray(cloudRes.data.adminUsers)) {
+          const healed = cloudRes.data.adminUsers.map((u: AdminUserManagementItem) => {
+            const granted = u.grantedCoinsTotal || 0;
+            if (granted > 0 && (!u.coinsBalance || u.coinsBalance < granted)) {
+              return { ...u, coinsBalance: Math.max(u.coinsBalance || 0, granted), tokenBalance: Math.max(u.tokenBalance || 0, granted) };
+            }
+            return u;
+          });
+          setAdminUsers(healed);
+        }
         if (Array.isArray(cloudRes.data.campaigns)) setCampaigns(cloudRes.data.campaigns);
         if (cloudRes.data.adminData) setAdminData(cloudRes.data.adminData);
         if (cloudRes.data.affiliateData) setAffiliateData(cloudRes.data.affiliateData);
@@ -6276,7 +6296,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             if (p && (p.email || p.id)) {
               const key = p.email?.toLowerCase() || p.id;
               const local = map.get(key);
-              map.set(key, local ? { ...local, ...p } : p);
+              const merged = local ? { ...local, ...p } : p;
+              const granted = merged.grantedCoinsTotal || 0;
+              if (granted > 0 && (!merged.coinsBalance || merged.coinsBalance < granted)) {
+                merged.coinsBalance = Math.max(merged.coinsBalance || 0, granted);
+                merged.tokenBalance = Math.max(merged.tokenBalance || 0, granted);
+              }
+              map.set(key, merged);
             }
           });
           return Array.from(map.values());

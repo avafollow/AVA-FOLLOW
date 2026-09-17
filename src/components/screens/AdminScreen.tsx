@@ -1678,7 +1678,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       type="button"
                       onClick={() => {
                         const nextState = !activeGrantUser.hasAllPermissions;
-                        adminGrantAllPermissions(activeGrantUser.id, nextState);
+                        adminGrantAllPermissions(activeGrantUser.email || activeGrantUser.id, nextState);
                         setGrantSuccessNotice(
                           nextState
                             ? `👑 Đã cấp TOÀN QUYỀN HỆ THỐNG cho ${activeGrantUser.name}!`
@@ -1710,13 +1710,13 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-white uppercase font-mono flex items-center gap-2">
                       <Coins className="w-4 h-4 text-amber-400" />
-                      Cấp Xu Thưởng ({activeGrantUser.coinsBalance.toLocaleString()} Xu)
+                      Cấp / Trừ Xu Cho Tài Khoản ({activeGrantUser.coinsBalance.toLocaleString()} Xu)
                     </h4>
                     <button
                       type="button"
                       onClick={() => {
-                        if (confirm(`Đặt số dư Xu của ${activeGrantUser.name} về 0?`)) {
-                          adminUpdateUser(activeGrantUser.id, { coinsBalance: 0 });
+                        if (confirm(`Đặt số dư Xu của ${activeGrantUser.name} (${activeGrantUser.email}) về 0 Xu?`)) {
+                          adminUpdateUser(activeGrantUser.email || activeGrantUser.id, { coinsBalance: 0 });
                           setGrantSuccessNotice(`Đã đặt số dư của ${activeGrantUser.name} về 0 Xu!`);
                           setTimeout(() => setGrantSuccessNotice(null), 3000);
                         }
@@ -1731,7 +1731,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 text-[11px] font-mono">
                     <button
                       onClick={() => {
-                        adminAdjustUserCoins(activeGrantUser.id, 10000);
+                        adminAdjustUserCoins(activeGrantUser.email || activeGrantUser.id, 10000);
                         setGrantSuccessNotice(`Đã cộng +10,000 Xu cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
@@ -1741,7 +1741,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </button>
                     <button
                       onClick={() => {
-                        adminAdjustUserCoins(activeGrantUser.id, 50000);
+                        adminAdjustUserCoins(activeGrantUser.email || activeGrantUser.id, 50000);
                         setGrantSuccessNotice(`Đã cộng +50,000 Xu cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
@@ -1751,7 +1751,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </button>
                     <button
                       onClick={() => {
-                        adminAdjustUserCoins(activeGrantUser.id, 200000);
+                        adminAdjustUserCoins(activeGrantUser.email || activeGrantUser.id, 200000);
                         setGrantSuccessNotice(`Đã cộng +200,000 Xu cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
@@ -1761,7 +1761,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </button>
                     <button
                       onClick={() => {
-                        adminAdjustUserCoins(activeGrantUser.id, 500000);
+                        adminAdjustUserCoins(activeGrantUser.email || activeGrantUser.id, 500000);
                         setGrantSuccessNotice(`Đã cộng +500,000 Xu cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
@@ -1771,7 +1771,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </button>
                     <button
                       onClick={() => {
-                        adminAdjustUserCoins(activeGrantUser.id, 1000000);
+                        adminAdjustUserCoins(activeGrantUser.email || activeGrantUser.id, 1000000);
                         setGrantSuccessNotice(`Đã cộng +1,000,000 Xu cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
@@ -1781,7 +1781,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </button>
                     <button
                       onClick={() => {
-                        adminAdjustUserCoins(activeGrantUser.id, 5000000);
+                        adminAdjustUserCoins(activeGrantUser.email || activeGrantUser.id, 5000000);
                         setGrantSuccessNotice(`Đã cộng +5,000,000 Xu cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
@@ -1831,11 +1831,11 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                           const amt = parseInt(customCoinInput, 10);
                           if (!isNaN(amt)) {
                             if (coinActionType === 'add') {
-                              adminAdjustUserCoins(activeGrantUser.id, amt);
+                              adminAdjustUserCoins(activeGrantUser.email || activeGrantUser.id, amt);
                             } else if (coinActionType === 'subtract') {
-                              adminAdjustUserCoins(activeGrantUser.id, -Math.abs(amt));
+                              adminAdjustUserCoins(activeGrantUser.email || activeGrantUser.id, -Math.abs(amt));
                             } else {
-                              adminUpdateUser(activeGrantUser.id, { coinsBalance: Math.max(0, amt) });
+                              adminUpdateUser(activeGrantUser.email || activeGrantUser.id, { coinsBalance: Math.max(0, amt) });
                             }
                             setGrantSuccessNotice(`Đã cập nhật số dư Xu cho ${activeGrantUser.name}!`);
                             setTimeout(() => setGrantSuccessNotice(null), 3000);
@@ -1861,7 +1861,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <div className="grid grid-cols-4 gap-1.5 text-[11px] font-mono">
                     <button
                       onClick={() => {
-                        adminAdjustUserFollowers(activeGrantUser.id, 500);
+                        adminAdjustUserFollowers(activeGrantUser.email || activeGrantUser.id, 500);
                         setGrantSuccessNotice(`Đã bơm +500 Follower cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
@@ -1871,7 +1871,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </button>
                     <button
                       onClick={() => {
-                        adminAdjustUserFollowers(activeGrantUser.id, 1000);
+                        adminAdjustUserFollowers(activeGrantUser.email || activeGrantUser.id, 1000);
                         setGrantSuccessNotice(`Đã bơm +1,000 Follower cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
@@ -1881,7 +1881,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </button>
                     <button
                       onClick={() => {
-                        adminAdjustUserFollowers(activeGrantUser.id, 5000);
+                        adminAdjustUserFollowers(activeGrantUser.email || activeGrantUser.id, 5000);
                         setGrantSuccessNotice(`Đã bơm +5,000 Follower cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
@@ -1891,7 +1891,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </button>
                     <button
                       onClick={() => {
-                        adminAdjustUserFollowers(activeGrantUser.id, 10000);
+                        adminAdjustUserFollowers(activeGrantUser.email || activeGrantUser.id, 10000);
                         setGrantSuccessNotice(`Đã bơm +10,000 Follower cho ${activeGrantUser.name}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3000);
                       }}
@@ -1913,7 +1913,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       onClick={() => {
                         const amt = parseInt(customFollowerInput, 10);
                         if (!isNaN(amt)) {
-                          adminAdjustUserFollowers(activeGrantUser.id, amt);
+                          adminAdjustUserFollowers(activeGrantUser.email || activeGrantUser.id, amt);
                           setGrantSuccessNotice(`Đã bơm +${amt.toLocaleString()} Follower cho ${activeGrantUser.name}!`);
                           setTimeout(() => setGrantSuccessNotice(null), 3000);
                         }
@@ -1945,7 +1945,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                           key={tier.name}
                           type="button"
                           onClick={() => {
-                            adminChangeUserRank(activeGrantUser.id, tier.name);
+                            adminChangeUserRank(activeGrantUser.email || activeGrantUser.id, tier.name);
                             setGrantSuccessNotice(`Đã nâng hạng cho ${activeGrantUser.name} sang ${tier.name}!`);
                             setTimeout(() => setGrantSuccessNotice(null), 3000);
                           }}
@@ -2197,7 +2197,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     <button
                       onClick={() => {
                         if (!activeGrantUser) return;
-                        adminGrantPackage(activeGrantUser.id, pkg);
+                        adminGrantPackage(activeGrantUser.email || activeGrantUser.id, pkg);
                         setGrantSuccessNotice(`👑 Đã cấp thành công "${pkg.title}" cho tài khoản ${activeGrantUser.email}!`);
                         setTimeout(() => setGrantSuccessNotice(null), 3500);
                       }}
@@ -2695,7 +2695,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                         onClick={() => {
                           const currentCfg = getRankTierConfig(u.rankLevel);
                           const nextTier = TEN_TIERS_LIST[currentCfg.tierNumber % 10];
-                          adminChangeUserRank(u.id, nextTier.name);
+                          adminChangeUserRank(u.email || u.id, nextTier.name);
                         }}
                         title="Bấm để nâng lên cấp bậc tiếp theo (10 cấp bậc thăng tiến)"
                         className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors flex items-center gap-1 cursor-pointer"
@@ -2821,7 +2821,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                             if (amountStr) {
                               const amount = parseInt(amountStr, 10);
                               if (!isNaN(amount)) {
-                                adminAdjustUserCoins(u.id, amount);
+                                adminAdjustUserCoins(u.email || u.id, amount);
                               }
                             }
                           }}
@@ -2833,7 +2833,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
                         {/* Ban / Unban Toggle */}
                         <button
-                          onClick={() => adminToggleUserStatus(u.id)}
+                          onClick={() => adminToggleUserStatus(u.email || u.id)}
                           title={u.status === 'active' ? 'Khóa tài khoản' : 'Mở khóa'}
                           className={`p-1.5 rounded-lg text-[11px] border transition-all cursor-pointer ${
                             u.status === 'active'
@@ -4342,7 +4342,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     <button
                       key={pkg.id}
                       onClick={() => {
-                        adminGrantPackage(inspectedUser.id, pkg);
+                        adminGrantPackage(inspectedUser.email || inspectedUser.id, pkg);
                         setInspectedUser({
                           ...inspectedUser,
                           purchasedPackagesCount: (inspectedUser.purchasedPackagesCount || 0) + 1
@@ -4373,7 +4373,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        adminAdjustUserCoins(inspectedUser.id, 50000);
+                        adminAdjustUserCoins(inspectedUser.email || inspectedUser.id, 50000);
                         setInspectedUser({ ...inspectedUser, coinsBalance: inspectedUser.coinsBalance + 50000 });
                       }}
                       className="flex-1 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-[11px]"
@@ -4382,7 +4382,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </button>
                     <button
                       onClick={() => {
-                        adminAdjustUserCoins(inspectedUser.id, 200000);
+                        adminAdjustUserCoins(inspectedUser.email || inspectedUser.id, 200000);
                         setInspectedUser({ ...inspectedUser, coinsBalance: inspectedUser.coinsBalance + 200000 });
                       }}
                       className="flex-1 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-[11px]"
@@ -4400,7 +4400,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        adminAdjustUserFollowers(inspectedUser.id, 1000);
+                        adminAdjustUserFollowers(inspectedUser.email || inspectedUser.id, 1000);
                         setInspectedUser({ ...inspectedUser, tiktokFollowers: inspectedUser.tiktokFollowers + 1000 });
                       }}
                       className="flex-1 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-[11px]"
@@ -4409,7 +4409,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </button>
                     <button
                       onClick={() => {
-                        adminAdjustUserFollowers(inspectedUser.id, 5000);
+                        adminAdjustUserFollowers(inspectedUser.email || inspectedUser.id, 5000);
                         setInspectedUser({ ...inspectedUser, tiktokFollowers: inspectedUser.tiktokFollowers + 5000 });
                       }}
                       className="flex-1 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-[11px]"
@@ -6190,7 +6190,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 </button>
                 <button
                   onClick={() => {
-                    adminUpdateUser(editingUser.id, editingUser);
+                    adminUpdateUser(editingUser.email || editingUser.id, editingUser);
                     setEditUserModalOpen(false);
                     setEditingUser(null);
                   }}

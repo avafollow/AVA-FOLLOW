@@ -68,20 +68,16 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
     setIsMuted(muted);
   }, [muted]);
 
-  // TikTok Action States
+  // Action States (Không dùng số ảo - chỉ lưu trạng thái tương tác của người dùng)
   const [isLiked, setIsLiked] = useState<boolean>(false);
-  const [likesCount, setLikesCount] = useState<number>(128400);
   const [isFollowed, setIsFollowed] = useState<boolean>(false);
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
-  const [bookmarkCount, setBookmarkCount] = useState<number>(1280);
-  const [shareCount, setShareCount] = useState<number>(856);
-  const [commentCount] = useState<number>(3420);
 
   // Phân loại nguồn phát chính xác
   const isYouTube = mediaInfo.isYouTube && Boolean(mediaInfo.youtubeId);
   const isFacebook = mediaInfo.isFacebook && Boolean(url);
-  const hasTikTokVideoId = Boolean(mediaInfo.isTikTok && mediaInfo.videoId);
-  const isDirectVideo = mediaInfo.isDirectVideo || (!hasTikTokVideoId && !isYouTube && !isFacebook);
+  const isTikTok = mediaInfo.isTikTok;
+  const isDirectVideo = mediaInfo.isDirectVideo || (!isTikTok && !isYouTube && !isFacebook);
 
   useEffect(() => {
     setCurrentStream(url);
@@ -124,24 +120,21 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsLiked(!isLiked);
-    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+    setIsLiked(prev => !prev);
   };
 
   const handleFollow = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFollowed(!isFollowed);
+    setIsFollowed(prev => !prev);
   };
 
   const handleBookmark = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsBookmarked(!isBookmarked);
-    setBookmarkCount(prev => isBookmarked ? prev - 1 : prev + 1);
+    setIsBookmarked(prev => !prev);
   };
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setShareCount(prev => prev + 1);
     if (navigator.clipboard && directUserUrl) {
       navigator.clipboard.writeText(directUserUrl).catch(() => {});
     }
@@ -155,12 +148,6 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const handlePushToFeed = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     openFeedRunner(directUserUrl || channelHandle || 'all');
-  };
-
-  const formatCount = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
   };
 
   return (
@@ -207,15 +194,22 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             title={mediaInfo.title}
             isMuted={isMuted}
           />
-        ) : isFacebook && url && (url.includes('facebook.com/plugins') || url.includes('fb.watch')) ? (
+        ) : isFacebook && url ? (
           /* TAB 3: FACEBOOK VIDEO EMBED PLAYER */
           <FacebookEmbedPlayer
             url={url}
             title={mediaInfo.title}
             isMuted={isMuted}
           />
+        ) : mediaInfo.isTikTok && (mediaInfo.videoId || url.includes('tiktok.com')) ? (
+          /* TAB 4: TIKTOK VIDEO EMBED PLAYER (THẬT 100% TỪ LINK) */
+          <TikTokVideoEmbedPlayer
+            videoId={mediaInfo.videoId}
+            directUrl={url}
+            title={mediaInfo.title}
+          />
         ) : (
-          /* TAB 4: TRÌNH PHÁT VIDEO TIKTOK & ĐA NỀN TẢNG SIÊU TỐC ĐỘ 100% PHÁT TỨC THÌ */
+          /* TAB 5: TRÌNH PHÁT VIDEO TRỰC TIẾP */
           <DirectVideoPlayer
             src={mediaInfo.isDirectVideo && url ? url : HIGH_SPEED_CDN_VIDEOS.fyp[Math.abs((url || 'fyp').split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % HIGH_SPEED_CDN_VIDEOS.fyp.length]}
             autoPlay={autoPlay}
@@ -337,7 +331,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               <Heart className={`w-7 h-7 drop-shadow-lg ${isLiked ? 'fill-[#FF0050] text-[#FF0050]' : ''}`} />
             </div>
             <span className="text-[10px] font-bold text-white drop-shadow-md font-mono">
-              {formatCount(likesCount)}
+              {isLiked ? 'Đã thích' : 'Thích'}
             </span>
           </button>
 
@@ -347,7 +341,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               <MessageCircle className="w-7 h-7 drop-shadow-lg fill-white/20" />
             </div>
             <span className="text-[10px] font-bold text-white drop-shadow-md font-mono">
-              {formatCount(commentCount)}
+              Bình luận
             </span>
           </div>
 
@@ -362,7 +356,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               <Bookmark className={`w-7 h-7 drop-shadow-lg ${isBookmarked ? 'fill-amber-400' : ''}`} />
             </div>
             <span className="text-[10px] font-bold text-white drop-shadow-md font-mono">
-              {formatCount(bookmarkCount)}
+              {isBookmarked ? 'Đã lưu' : 'Lưu'}
             </span>
           </button>
 
@@ -377,7 +371,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               <Share2 className="w-7 h-7 drop-shadow-lg" />
             </div>
             <span className="text-[10px] font-bold text-white drop-shadow-md font-mono">
-              {formatCount(shareCount)}
+              Chia sẻ
             </span>
           </button>
         </div>

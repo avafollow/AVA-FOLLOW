@@ -278,6 +278,17 @@ export const CreateCampaignScreen: React.FC<{
     }
   };
 
+  // Đồng bộ hai chiều khi thay đổi handle kênh
+  const handleChannelHandleChange = (inputVal: string) => {
+    setChannelHandle(inputVal);
+    const clean = inputVal.trim().replace(/^@+/, '');
+    if (clean.length >= 2) {
+      if (!targetUrl || targetUrl.includes('tiktok.com/@') || targetUrl === 'https://www.tiktok.com/@vtv24news/video/7178345719323135259') {
+        setTargetUrl(`https://www.tiktok.com/@${clean}`);
+      }
+    }
+  };
+
   // Flexible Livestream Duration state (minutes: 1, 3, 10, 30, 60)
   const [livestreamMinutes, setLivestreamMinutes] = useState<number>(3);
   const activeLiveTier = FLEXIBLE_LIVESTREAM_TIERS.find(t => t.minutes === livestreamMinutes) || FLEXIBLE_LIVESTREAM_TIERS[1];
@@ -904,7 +915,7 @@ export const CreateCampaignScreen: React.FC<{
               <input
                 type="text"
                 value={channelHandle}
-                onChange={(e) => setChannelHandle(e.target.value)}
+                onChange={(e) => handleChannelHandleChange(e.target.value)}
                 placeholder="@username_chinh_thuc"
                 className="w-full bg-black/80 border-2 border-cyan-500/50 hover:border-cyan-400 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-500/20 rounded-2xl px-4 py-3.5 sm:py-4 text-white placeholder-slate-400 font-mono text-xs sm:text-sm font-bold transition-all shadow-inner"
                 required
@@ -1665,7 +1676,7 @@ export const CreateCampaignScreen: React.FC<{
               <input
                 type="text"
                 value={channelHandle}
-                onChange={(e) => setChannelHandle(e.target.value)}
+                onChange={(e) => handleChannelHandleChange(e.target.value)}
                 placeholder="@username"
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-rose-400 font-mono font-bold focus:outline-none focus:border-amber-500"
               />

@@ -2760,12 +2760,50 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </td>
                     <td className="p-3 font-mono text-slate-300">
                       {(() => {
-                        const paidCount = (u.orders || []).filter(o => o && !o.isAdminGrant && !o.id?.startsWith('mock_') && !o.id?.startsWith('demo_') && (o.status === 'processing' || o.status === 'running' || o.status === 'completed')).length || (u.purchasedPackagesCount && u.orders && u.orders.some(o => !o.isAdminGrant) ? u.purchasedPackagesCount : 0);
+                        const allOrders = (u.orders || []).filter(o => o && !o.id?.startsWith('mock_') && !o.id?.startsWith('demo_') && o.status !== 'refunded');
+                        const paidOrders = allOrders.filter(o => !o.isAdminGrant && !o.id?.startsWith('ord_grant_'));
+                        const grantedOrders = allOrders.filter(o => o.isAdminGrant || o.id?.startsWith('ord_grant_'));
+                        const paidCount = paidOrders.length;
+                        const grantedCount = grantedOrders.length || (u.grantedPackagesTotal || 0);
+
+                        if (paidCount === 0 && grantedCount === 0) {
+                          return (
+                            <div>
+                              <span className="text-slate-500 font-mono font-medium">0 Gói</span>
+                              <div className="text-[10px] text-slate-600 font-mono">Chưa có gói</div>
+                            </div>
+                          );
+                        }
+
+                        if (grantedCount > 0 && paidCount === 0) {
+                          return (
+                            <div>
+                              <span className="text-amber-400 font-bold font-mono">{grantedCount} Gói</span>
+                              <div className="text-[10px] text-amber-300/80 font-mono flex items-center gap-0.5">
+                                🎁 Admin Cấp
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        if (paidCount > 0 && grantedCount === 0) {
+                          const totalPaidNum = paidOrders.reduce((sum, o) => {
+                            const pStr = (o.price || '0').replace(/\D/g, '');
+                            return sum + (parseInt(pStr, 10) || 0);
+                          }, 0);
+                          return (
+                            <div>
+                              <span className="text-purple-300 font-bold font-mono">{paidCount} Gói (Mua)</span>
+                              <div className="text-[10px] text-emerald-400 font-mono">{totalPaidNum.toLocaleString()}đ Ký quỹ</div>
+                            </div>
+                          );
+                        }
+
                         return (
-                          <>
-                            <span className="text-purple-300 font-bold">{paidCount} Gói</span>
-                            <div className="text-[10px] text-slate-400">{paidCount > 0 ? (u.escrowLockedAmountVND || '0đ') : '0đ'} Ký quỹ</div>
-                          </>
+                          <div>
+                            <span className="text-purple-300 font-bold font-mono">{paidCount} Mua • <span className="text-amber-400">{grantedCount} Cấp</span></span>
+                            <div className="text-[10px] text-slate-400 font-mono">Tổng {paidCount + grantedCount} Gói</div>
+                          </div>
                         );
                       })()}
                     </td>

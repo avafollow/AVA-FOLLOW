@@ -772,6 +772,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       const existing = existingIdx >= 0 ? prev[existingIdx] : null;
 
+      const allUserOrders = (user.myOrders || existing?.orders || []).filter(o => o && !o.id?.startsWith('mock_') && !o.id?.startsWith('demo_') && o.status !== 'refunded');
+      const realPaidOrders = allUserOrders.filter(o => !o.isAdminGrant && !o.id?.startsWith('ord_grant_'));
+      const adminGrantedOrders = allUserOrders.filter(o => o.isAdminGrant || o.id?.startsWith('ord_grant_'));
+      const totalPaidEscrow = realPaidOrders.reduce((sum, o) => {
+        const pStr = (o.price || '0').replace(/\D/g, '');
+        return sum + (parseInt(pStr, 10) || 0);
+      }, 0);
+
       const userAdminItem: AdminUserManagementItem = {
         id: existing?.id || user.id || `usr_${userEmail.replace(/[^a-z0-9]/g, '_')}`,
         name: user.name,
@@ -789,20 +797,20 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         tokenBalance: user.avaliveCoins,
         completedTasksCount: user.completedTasksCount || existing?.completedTasksCount || 0,
         createdCampaignsCount: (campaigns || []).length,
-        purchasedPackagesCount: (user.myOrders || []).length,
-        escrowLockedAmountVND: `${(escrowBookings || []).reduce((acc, c) => acc + (parseInt(c.totalEscrowAmount.replace(/\D/g, '')) || 0), 0).toLocaleString()}đ`,
+        purchasedPackagesCount: realPaidOrders.length,
+        escrowLockedAmountVND: `${totalPaidEscrow.toLocaleString()}đ`,
         status: user.status === 'banned' ? 'banned' : (existing?.status || 'active'),
         hasAllPermissions: user.hasAllPermissions !== undefined ? user.hasAllPermissions : existing?.hasAllPermissions,
         isWhitelisted: user.isWhitelisted !== undefined ? user.isWhitelisted : existing?.isWhitelisted,
         grantedCoinsTotal: user.grantedCoinsTotal !== undefined ? user.grantedCoinsTotal : existing?.grantedCoinsTotal,
-        grantedPackagesTotal: user.grantedPackagesTotal !== undefined ? user.grantedPackagesTotal : existing?.grantedPackagesTotal,
+        grantedPackagesTotal: adminGrantedOrders.length,
         registrationSource: user.registrationSource || existing?.registrationSource || (user.referredBy ? 'link' : 'direct'),
         referredBy: user.referredBy || existing?.referredBy || (getReferralCookie() || undefined),
         firstTaskCompleted: (user.completedTasksCount || 0) > 0 || !!user.firstTaskCompleted || !!existing?.firstTaskCompleted,
         kycStatus: user.kycStatus || existing?.kycStatus || 'unverified',
         kycData: user.kycData || existing?.kycData,
         joinedDate: existing?.joinedDate || '2026-09-01',
-        orders: user.myOrders || existing?.orders || []
+        orders: allUserOrders
       };
 
       if (existingIdx >= 0) {
@@ -6465,12 +6473,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           targetQuantity: packageItem.targetQuantity,
           completedQuantity: 0,
           status: 'running',
-          createdAt: 'Vừa xong'
+          createdAt: 'Vừa xong',
+          isAdminGrant: true
         };
         createdOrder = newOrder;
         matchedUser = {
           ...u,
-          purchasedPackagesCount: (u.purchasedPackagesCount || 0) + 1,
           grantedPackagesTotal: (u.grantedPackagesTotal || 0) + 1,
           orders: [newOrder, ...(u.orders || [])]
         };
@@ -6489,7 +6497,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           targetQuantity: packageItem.targetQuantity,
           completedQuantity: 0,
           status: 'running',
-          createdAt: 'Vừa xong'
+          createdAt: 'Vừa xong',
+          isAdminGrant: true
         };
         createdOrder = newOrder;
         matchedUser = {
@@ -6507,7 +6516,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           tokenBalance: 50,
           completedTasksCount: 0,
           createdCampaignsCount: 0,
-          purchasedPackagesCount: 1,
+          purchasedPackagesCount: 0,
           grantedPackagesTotal: 1,
           escrowLockedAmountVND: '0đ',
           status: 'active',
@@ -6541,7 +6550,6 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
         const updated = {
           ...prev,
-          purchasedPackagesCount: (prev.purchasedPackagesCount || 0) + 1,
           grantedPackagesTotal: (prev.grantedPackagesTotal || 0) + 1,
           myOrders: [createdOrder!, ...(prev.myOrders || [])],
           transactions: [newTx, ...(prev.transactions || [])]

@@ -82,51 +82,66 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
     };
   }, [triggerPlayAndSound]);
 
-  // Nếu không có iframeSrc hợp lệ hoặc iframe bị lỗi từ chối kết nối
+  // Nếu không có iframeSrc hợp lệ hoặc iframe bị lỗi từ chối kết nối -> Phát video nền sống động kèm thông tin kênh
   if (!iframeSrc || hasError) {
     const handle = directUrl ? extractTikTokHandle(directUrl) : '@creator';
     const cleanHandle = handle.replace(/^@+/, '');
     return (
-      <div className={`relative w-full h-full bg-gradient-to-b from-slate-900 to-black flex flex-col items-center justify-center p-6 text-center space-y-4 rounded-3xl group select-none ${className}`}>
-        <div className="relative">
-          <div className="w-20 h-20 rounded-full border-2 border-rose-500 overflow-hidden shadow-2xl p-1 bg-gradient-to-tr from-rose-500 to-pink-500">
-            <img 
-              src={getTikTokAvatar(cleanHandle)} 
-              alt={cleanHandle}
-              onError={(e) => {
-                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=E11D48&color=fff&bold=true`;
-              }}
-              className="w-full h-full rounded-full object-cover"
-            />
+      <div className={`relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-3xl group select-none ${className}`}>
+        {/* Video nền chuyển động chân thật */}
+        <div className="absolute inset-0 z-0">
+          <video
+            src="/videos/sample1.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover opacity-60"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/40" />
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center space-y-3.5 max-w-xs">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-2 border-rose-500 overflow-hidden shadow-2xl p-0.5 bg-gradient-to-tr from-rose-500 to-pink-500">
+              <img 
+                src={getTikTokAvatar(cleanHandle)} 
+                alt={cleanHandle}
+                onError={(e) => {
+                  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=E11D48&color=fff&bold=true`;
+                }}
+                className="w-full h-full rounded-full object-cover"
+              />
+            </div>
+            <span className="absolute -bottom-1 -right-1 p-1 rounded-full bg-cyan-500 text-white shadow-md">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            </span>
           </div>
-          <span className="absolute -bottom-1 -right-1 p-1 rounded-full bg-cyan-500 text-white shadow-md">
-            <CheckCircle2 className="w-4 h-4" />
-          </span>
+
+          <div className="space-y-1">
+            <h4 className="text-white font-black text-sm font-display">@{cleanHandle}</h4>
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
+              ✓ Kênh TikTok Đang Chạy
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-300 font-mono leading-relaxed line-clamp-2">
+            {title}
+          </p>
+
+          {directUrl && (
+            <a
+              href={directUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-xs shadow-lg flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+            >
+              <span>Mở Kênh TikTok</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          )}
         </div>
-
-        <div className="space-y-1">
-          <h4 className="text-white font-black text-sm font-display">@{cleanHandle}</h4>
-          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
-            ✓ Kênh TikTok Đối Tác
-          </span>
-        </div>
-
-        <p className="text-xs text-slate-300 font-mono max-w-[260px] leading-relaxed">
-          {title}
-        </p>
-
-        {directUrl && (
-          <a
-            href={directUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-xs shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
-          >
-            <span>Mở Trực Tiếp Trên TikTok</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        )}
       </div>
     );
   }

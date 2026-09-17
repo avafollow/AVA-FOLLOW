@@ -156,6 +156,7 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
         loop
         muted={internalMuted}
         playsInline
+        {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
         preload="auto"
         onWaiting={handleVideoWaiting}
         onPlaying={handleVideoPlaying}

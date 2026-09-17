@@ -28,6 +28,12 @@ import {
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS } from '../../types';
 import { parseMediaUrl } from '../../data/videoSources';
+import {
+  TikTokVideoEmbedPlayer,
+  YouTubeEmbedPlayer,
+  FacebookEmbedPlayer,
+  DirectVideoPlayer
+} from '../common/players';
 
 export const TikTokTaskRunnerModal: React.FC = () => {
   const { 
@@ -366,46 +372,66 @@ export const TikTokTaskRunnerModal: React.FC = () => {
           {/* Vignette Gradients for authentic TikTok viewability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 pointer-events-none z-[1]" />
 
-          {/* Real Video Player or YouTube Embed */}
-          {isYouTube && mediaInfo?.youtubeId ? (
-            <iframe
-              key={runnerTask.id + '_yt_' + mediaInfo.youtubeId}
-              src={`https://www.youtube.com/embed/${mediaInfo.youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${mediaInfo.youtubeId}&modestbranding=1&rel=0`}
-              title={runnerTask.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full border-0 bg-black pointer-events-auto"
-            />
-          ) : (
-            <video
-              ref={(el) => {
-                videoRef.current = el;
-                if (el) {
-                  el.defaultMuted = true;
-                  el.muted = isMuted;
-                  el.playsInline = true;
-                  el.play().then(() => setIsPlaying(true)).catch(() => {
-                    el.muted = true;
-                    el.play().catch(() => {});
-                  });
-                }
-              }}
-              src={mediaInfo?.streamUrl || '/videos/sample2.mp4'}
-              autoPlay
-              loop
-              playsInline
-              muted={isMuted}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onError={() => {
-                if (videoRef.current && videoRef.current.src !== '/videos/sample2.mp4') {
-                  videoRef.current.src = '/videos/sample2.mp4';
-                  videoRef.current.play().catch(() => {});
-                }
-              }}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          )}
+          {/* Real Multi-Platform Video Player */}
+          {(() => {
+            if (isYouTube && mediaInfo?.youtubeId) {
+              return (
+                <YouTubeEmbedPlayer
+                  key={runnerTask.id + '_yt_' + mediaInfo.youtubeId}
+                  youtubeId={mediaInfo.youtubeId}
+                  title={runnerTask.title}
+                  isMuted={isMuted}
+                />
+              );
+            }
+
+            if (mediaInfo?.isFacebook) {
+              return (
+                <FacebookEmbedPlayer
+                  key={runnerTask.id + '_fb_' + encodeURIComponent(runnerTask.targetUrl)}
+                  url={runnerTask.targetUrl}
+                  title={runnerTask.title}
+                  isMuted={isMuted}
+                />
+              );
+            }
+
+            if (mediaInfo?.isTikTok) {
+              return (
+                <TikTokVideoEmbedPlayer
+                  key={runnerTask.id + '_tt_' + (mediaInfo.videoId || runnerTask.channelHandle || runnerTask.id)}
+                  videoId={mediaInfo.videoId}
+                  directUrl={runnerTask.targetUrl || runnerTask.videoPreviewUrl}
+                  title={runnerTask.title}
+                  isMuted={isMuted}
+                />
+              );
+            }
+
+            if (runnerTask.targetUrl?.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i) || runnerTask.videoPreviewUrl?.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i)) {
+              return (
+                <DirectVideoPlayer
+                  key={runnerTask.id + '_direct'}
+                  src={runnerTask.videoPreviewUrl || runnerTask.targetUrl}
+                  poster={runnerTask.channelAvatar}
+                  autoPlay
+                  isMuted={isMuted}
+                  isPlaying={isPlaying}
+                  onTogglePlay={togglePlay}
+                />
+              );
+            }
+
+            return (
+              <TikTokVideoEmbedPlayer
+                key={runnerTask.id + '_fallback_tt'}
+                videoId={mediaInfo?.videoId}
+                directUrl={runnerTask.targetUrl || runnerTask.videoPreviewUrl}
+                title={runnerTask.title}
+                isMuted={isMuted}
+              />
+            );
+          })()}
 
           {/* Floating Hearts Animation when double-tapping */}
           {floatingHearts.map(heart => (

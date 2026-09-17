@@ -174,7 +174,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             title={mediaInfo.title}
             isMuted={isMuted}
           />
-        ) : mediaInfo.isTikTok && (mediaInfo.videoId || url.includes('tiktok.com')) ? (
+        ) : mediaInfo.isTikTok || url.includes('tiktok.com') || (!isYouTube && !isFacebook && !isDirectVideo) ? (
           /* TAB 4: TIKTOK VIDEO EMBED PLAYER (THẬT 100% TỪ LINK) */
           <TikTokVideoEmbedPlayer
             videoId={mediaInfo.videoId}
@@ -185,7 +185,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         ) : (
           /* TAB 5: TRÌNH PHÁT VIDEO TRỰC TIẾP */
           <DirectVideoPlayer
-            src={mediaInfo.isDirectVideo && url ? url : HIGH_SPEED_CDN_VIDEOS.fyp[Math.abs((url || 'fyp').split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % HIGH_SPEED_CDN_VIDEOS.fyp.length]}
+            src={url}
             autoPlay={autoPlay}
             isMuted={isMuted}
             isPlaying={isPlaying}

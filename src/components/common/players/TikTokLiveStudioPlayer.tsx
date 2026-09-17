@@ -69,27 +69,42 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
       className={`relative w-full h-full bg-black flex flex-col justify-between p-4 overflow-hidden select-none cursor-pointer rounded-3xl ${className}`}
       onClick={onTogglePlay}
     >
-      {/* 1. Background Live Motion Video */}
-      <video
-        ref={videoRef}
-        src={streamUrl}
-        autoPlay
-        loop
-        muted={isMuted}
-        playsInline
-        {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
-        preload="auto"
-        onCanPlay={(e) => {
-          const v = e.currentTarget;
-          if (v.paused) {
-            v.play().catch(() => {
-              v.muted = true;
-              v.play().catch(() => {});
-            });
-          }
-        }}
-        className="absolute inset-0 w-full h-full object-cover opacity-90"
-      />
+      {/* 1. Background Live Motion Video or Studio Stage */}
+      {streamUrl && (streamUrl.endsWith('.mp4') || streamUrl.endsWith('.webm') || streamUrl.endsWith('.m3u8')) ? (
+        <video
+          ref={videoRef}
+          src={streamUrl}
+          autoPlay
+          loop
+          muted={isMuted}
+          playsInline
+          {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
+          preload="auto"
+          onCanPlay={(e) => {
+            const v = e.currentTarget;
+            if (v.paused) {
+              v.play().catch(() => {
+                v.muted = true;
+                v.play().catch(() => {});
+              });
+            }
+          }}
+          className="absolute inset-0 w-full h-full object-cover opacity-90"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A] via-[#090D16] to-[#050811]">
+          {/* Equalizer animation */}
+          <div className="absolute inset-x-0 bottom-24 flex items-end justify-center gap-1.5 opacity-30 pointer-events-none h-32">
+            {[20, 40, 65, 30, 85, 45, 90, 60, 35, 75, 95, 50, 25, 70, 80, 35].map((h, idx) => (
+              <div
+                key={idx}
+                className="w-2 bg-gradient-to-t from-rose-500 via-pink-500 to-amber-400 rounded-t-full animate-pulse"
+                style={{ height: `${h}%`, animationDelay: `${(idx * 0.12).toFixed(2)}s` }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 2. Visual Effects & Subtle Vignette */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />

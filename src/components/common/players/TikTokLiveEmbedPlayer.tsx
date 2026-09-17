@@ -210,13 +210,13 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         {/* Lớp che chân đáy loại bỏ hoàn toàn các icon quà tặng TikTok Web */}
         <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none z-10" />
 
-        {/* Fallback to TikTokLiveStudioPlayer with live background motion stream if iframe permissions blocked */}
+        {/* Fallback to TikTokLiveStudioPlayer with creator details if iframe permissions blocked */}
         {loadError && (
           <div className="absolute inset-0 z-20">
             <TikTokLiveStudioPlayer
               channelHandle={cleanHandle}
               channelName={channelName}
-              streamUrl="/videos/sample2.mp4"
+              streamUrl={targetUrl}
               viewersCount={viewersCount}
               isMuted={internalMuted}
               onToggleMute={handleToggleSound}

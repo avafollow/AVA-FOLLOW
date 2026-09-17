@@ -1404,54 +1404,41 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // B. Kênh TikTok & Video TikTok: Phát video TikTok chính thức nếu có ID video
+            // B. Kênh TikTok & Video TikTok: Phát video TikTok chính thức thật 100%
             if (itemMedia.isTikTok) {
-              if (itemMedia.videoId) {
-                return (
-                  <TikTokVideoEmbedPlayer
-                    key={currentItem.id + '_tt_' + itemMedia.videoId}
-                    videoId={itemMedia.videoId}
-                    directUrl={currentItem.targetUrl}
-                    title={currentItem.title}
-                    isMuted={isMuted}
-                  />
-                );
-              }
-
-              const cleanHandle = (currentItem.channelHandle || itemMedia.handle || '@tiktok').replace(/^@+/, '');
-              const localSamples = ['/videos/sample1.mp4', '/videos/sample2.mp4', '/videos/sample3.mp4'];
-              const sampleSrc = (currentItem.videoUrl && !currentItem.videoUrl.includes('tiktok.com')) 
-                ? currentItem.videoUrl 
-                : localSamples[Math.abs(cleanHandle.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % localSamples.length];
-
               return (
-                <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-                  <DirectVideoPlayer
-                    key={currentItem.id + '_video_bg'}
-                    src={sampleSrc}
-                    poster={currentItem.channelAvatar}
-                    autoPlay
-                    isMuted={isMuted}
-                    isPlaying={isPlaying}
-                    onTogglePlay={togglePlay}
-                  />
-                  {/* Subtle vignette overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/60 pointer-events-none" />
-                </div>
+                <TikTokVideoEmbedPlayer
+                  key={currentItem.id + '_tt_' + (itemMedia.videoId || currentItem.channelHandle || currentItem.id)}
+                  videoId={itemMedia.videoId}
+                  directUrl={currentItem.targetUrl || currentItem.videoUrl}
+                  title={currentItem.title}
+                  isMuted={isMuted}
+                />
               );
             }
 
-            // D. Fallback cuối cùng
-            const fallbackSrc = currentItem.videoUrl || itemMedia.streamUrl || '/videos/sample1.mp4';
+            // C. Fallback cuối cùng: Trình phát TikTok thật hoặc Direct
+            if (currentItem.targetUrl?.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i) || currentItem.videoUrl?.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i)) {
+              return (
+                <DirectVideoPlayer
+                  key={currentItem.id + '_fallback_direct'}
+                  src={currentItem.videoUrl || currentItem.targetUrl}
+                  poster={currentItem.channelAvatar}
+                  autoPlay
+                  isMuted={isMuted}
+                  isPlaying={isPlaying}
+                  onTogglePlay={togglePlay}
+                />
+              );
+            }
+
             return (
-              <DirectVideoPlayer
-                key={currentItem.id + '_fallback'}
-                src={fallbackSrc}
-                poster={currentItem.channelAvatar}
-                autoPlay
+              <TikTokVideoEmbedPlayer
+                key={currentItem.id + '_fallback_tt'}
+                videoId={itemMedia.videoId}
+                directUrl={currentItem.targetUrl || currentItem.videoUrl}
+                title={currentItem.title}
                 isMuted={isMuted}
-                isPlaying={isPlaying}
-                onTogglePlay={togglePlay}
               />
             );
           })()}

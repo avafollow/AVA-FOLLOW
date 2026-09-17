@@ -2757,12 +2757,9 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </td>
                     <td className="p-3 font-mono">
                       <div className="font-bold text-amber-400">{u.coinsBalance.toLocaleString()} Xu</div>
-                      {u.grantedCoinsTotal ? (
-                        <div className="text-[10px] text-cyan-400">Cấp: +{u.grantedCoinsTotal.toLocaleString()}</div>
-                      ) : null}
                     </td>
                     <td className="p-3 font-mono text-slate-300">
-                      <span className="text-purple-300 font-bold">{u.purchasedPackagesCount || (u.orders?.length) || 0} Gói</span>
+                      <span className="text-purple-300 font-bold">{(u.purchasedPackagesCount || u.orders?.length || 0)} Gói</span>
                       <div className="text-[10px] text-slate-400">{u.escrowLockedAmountVND || '0đ'} Ký quỹ</div>
                     </td>
                     <td className="p-3">

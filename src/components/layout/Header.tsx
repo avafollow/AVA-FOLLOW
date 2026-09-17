@@ -215,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      <div className="flex h-14 sm:h-16 items-center justify-between px-2.5 sm:px-6 max-w-full overflow-hidden gap-1.5 sm:gap-3">
+      <div className="flex h-14 sm:h-16 items-center justify-between px-2.5 sm:px-6 max-w-full overflow-visible relative gap-1.5 sm:gap-3">
         {/* Left: Brand Logo & Tagline */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <BrandLogo
@@ -438,82 +438,88 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Notification Dropdown Menu: Định vị chính xác, không tràn viền, có nút tắt đầy đủ */}
             {isNotificationsOpen && (
-              <div 
-                className="absolute right-0 top-full mt-2 w-[340px] sm:w-[390px] max-w-[92vw] bg-[#0D111E] border border-rose-500/50 rounded-3xl p-4 shadow-2xl shadow-black/90 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl flex flex-col max-h-[80vh]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Header with Title and Prominent Close Button */}
-                <div className="flex items-center justify-between pb-2.5 border-b border-white/10 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
-                      <Bell className="w-4 h-4 text-rose-400" />
+              <>
+                <div 
+                  className="fixed inset-0 z-[99990] bg-black/40 backdrop-blur-[2px]" 
+                  onClick={() => setIsNotificationsOpen(false)} 
+                />
+                <div 
+                  className="absolute right-0 top-full mt-2 w-[340px] sm:w-[390px] max-w-[92vw] bg-[#0D111E] border border-rose-500/50 rounded-3xl p-4 shadow-2xl shadow-black/90 space-y-3 z-[99999] animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl flex flex-col max-h-[80vh]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Header with Title and Prominent Close Button */}
+                  <div className="flex items-center justify-between pb-2.5 border-b border-white/10 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                        <Bell className="w-4 h-4 text-rose-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black text-white font-display">Thông Báo Hệ Thống</h3>
+                        <p className="text-[10px] text-slate-400 font-mono">Cập nhật Xu & chiến dịch Hot</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-black text-white font-display">Thông Báo Hệ Thống</h3>
-                      <p className="text-[10px] text-slate-400 font-mono">Cập nhật Xu & chiến dịch Hot</p>
+                    <div className="flex items-center gap-2">
+                      {userNotifications.length > 0 && (
+                        <button
+                          onClick={clearAllNotifications}
+                          className="text-[10px] font-mono text-cyan-400 hover:underline cursor-pointer px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10"
+                        >
+                          Đọc tất cả
+                        </button>
+                      )}
+                      {/* Nút X tắt thông báo */}
+                      <button 
+                        onClick={() => setIsNotificationsOpen(false)} 
+                        className="p-1.5 rounded-xl bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-white transition-all cursor-pointer flex items-center justify-center"
+                        title="Tắt thông báo"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {userNotifications.length > 0 && (
-                      <button
-                        onClick={clearAllNotifications}
-                        className="text-[10px] font-mono text-cyan-400 hover:underline cursor-pointer px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10"
-                      >
-                        Đọc tất cả
-                      </button>
+
+                  {/* Notifications List with scroll */}
+                  <div className="overflow-y-auto space-y-2 flex-1 pr-1">
+                    {userNotifications.length === 0 ? (
+                      <div className="p-8 text-center text-slate-400 text-xs font-mono">
+                        Chưa có thông báo mới nào.
+                      </div>
+                    ) : (
+                      userNotifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          onClick={() => markNotificationAsRead(notif.id)}
+                          className={`p-3 rounded-2xl border transition-all cursor-pointer space-y-1.5 ${
+                            notif.isRead 
+                              ? 'bg-black/30 border-white/5 opacity-75 hover:opacity-100 hover:border-white/20' 
+                              : 'bg-rose-950/25 border-rose-500/35 hover:border-rose-400 shadow-md shadow-rose-950/20'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="text-xs font-bold text-white leading-tight">{notif.title}</div>
+                            {!notif.isRead && (
+                              <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed">{notif.message}</p>
+                          <span className="text-[9px] font-mono text-slate-400 block">{notif.timestamp}</span>
+                        </div>
+                      ))
                     )}
-                    {/* Nút X tắt thông báo */}
-                    <button 
-                      onClick={() => setIsNotificationsOpen(false)} 
-                      className="p-1.5 rounded-xl bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-white transition-all cursor-pointer flex items-center justify-center"
-                      title="Tắt thông báo"
+                  </div>
+
+                  {/* Footer Action: Nút Tắt Bảng Thông Báo */}
+                  <div className="pt-2 border-t border-white/10 shrink-0">
+                    <button
+                      onClick={() => setIsNotificationsOpen(false)}
+                      className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3.5 h-3.5" />
+                      <span>Đóng Bảng Thông Báo</span>
                     </button>
                   </div>
                 </div>
-
-                {/* Notifications List with scroll */}
-                <div className="overflow-y-auto space-y-2 flex-1 pr-1">
-                  {userNotifications.length === 0 ? (
-                    <div className="p-8 text-center text-slate-400 text-xs font-mono">
-                      Chưa có thông báo mới nào.
-                    </div>
-                  ) : (
-                    userNotifications.map((notif) => (
-                      <div
-                        key={notif.id}
-                        onClick={() => markNotificationAsRead(notif.id)}
-                        className={`p-3 rounded-2xl border transition-all cursor-pointer space-y-1.5 ${
-                          notif.isRead 
-                            ? 'bg-black/30 border-white/5 opacity-75 hover:opacity-100 hover:border-white/20' 
-                            : 'bg-rose-950/25 border-rose-500/35 hover:border-rose-400 shadow-md shadow-rose-950/20'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="text-xs font-bold text-white leading-tight">{notif.title}</div>
-                          {!notif.isRead && (
-                            <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1" />
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-300 leading-relaxed">{notif.message}</p>
-                        <span className="text-[9px] font-mono text-slate-400 block">{notif.timestamp}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Footer Action: Nút Tắt Bảng Thông Báo */}
-                <div className="pt-2 border-t border-white/10 shrink-0">
-                  <button
-                    onClick={() => setIsNotificationsOpen(false)}
-                    className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    <span>Đóng Bảng Thông Báo</span>
-                  </button>
-                </div>
-              </div>
+              </>
             )}
           </div>
 
@@ -550,10 +556,15 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Profile Dropdown Menu */}
             {isProfileMenuOpen && (
-              <div 
-                className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-[#0D111E] border-2 border-rose-500/40 rounded-3xl shadow-2xl shadow-black/90 p-3 z-[99999] animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl space-y-2.5"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <>
+                <div 
+                  className="fixed inset-0 z-[99990] bg-black/40 backdrop-blur-[2px]" 
+                  onClick={() => setIsProfileMenuOpen(false)} 
+                />
+                <div 
+                  className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-[#0D111E] border-2 border-rose-500/50 rounded-3xl shadow-2xl shadow-black/90 p-3 z-[99999] animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl space-y-2.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
                 {/* User Info Header (Gmail Account) */}
                 <div className="p-3.5 rounded-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/10 space-y-2">
                   <div className="flex items-center gap-3">
@@ -706,7 +717,8 @@ export const Header: React.FC<HeaderProps> = ({
                   )}
                 </div>
               </div>
-            )}
+            </>
+          )}
           </div>
         </div>
       </div>

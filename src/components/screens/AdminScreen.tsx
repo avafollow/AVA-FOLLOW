@@ -2746,7 +2746,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       <div className="mt-1 text-[10px]">
                         {(u.completedTasksCount || 0) > 0 || u.firstTaskCompleted ? (
                           <span className="text-emerald-400 font-bold flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Đã làm ({u.completedTasksCount || 1} NV)
+                            <CheckCircle2 className="w-3 h-3" /> Đã làm ({u.completedTasksCount || 0} NV)
                           </span>
                         ) : (
                           <span className="text-amber-400 font-bold flex items-center gap-1">
@@ -2762,7 +2762,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       ) : null}
                     </td>
                     <td className="p-3 font-mono text-slate-300">
-                      <span className="text-purple-300 font-bold">{u.purchasedPackagesCount || (u.orders?.length) || 1} Gói</span>
+                      <span className="text-purple-300 font-bold">{u.purchasedPackagesCount || (u.orders?.length) || 0} Gói</span>
                       <div className="text-[10px] text-slate-400">{u.escrowLockedAmountVND || '0đ'} Ký quỹ</div>
                     </td>
                     <td className="p-3">
@@ -4323,7 +4323,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 <div className="p-3 bg-slate-800/60 rounded-2xl border border-slate-700/60">
                   <span className="text-[10px] text-slate-400 font-mono">Gói Đã Sở Hữu</span>
                   <div className="text-base font-black text-purple-400 font-mono">
-                    {inspectedUser.purchasedPackagesCount || 1} Gói
+                    {inspectedUser.purchasedPackagesCount || (inspectedUser.orders?.length) || 0} Gói
                   </div>
                 </div>
               </div>

@@ -2166,7 +2166,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const loginWithGoogle = (customEmail?: string) => {
-    const targetEmail = customEmail || 'quocthiencr90@gmail.com';
+    const targetEmail = (customEmail || 'quocthiencr90@gmail.com').toLowerCase().trim();
     const isAdmin = targetEmail === 'quocthiencr90@gmail.com';
 
     // 1. Kiểm tra giới hạn tối đa 5 tài khoản Gmail / 1 địa chỉ IP (Admin đặc cách)
@@ -2177,35 +2177,38 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       currentIpGmails = savedGmails ? JSON.parse(savedGmails) : [];
     } catch {}
 
-    if (!isAdmin && !currentIpGmails.includes(targetEmail.toLowerCase())) {
+    if (!isAdmin && !currentIpGmails.includes(targetEmail)) {
       if (currentIpGmails.length >= MAX_GMAIL_ACCOUNTS_PER_IP) {
         showToast(`⚠️ Địa chỉ IP (${clientIp}) đã đạt giới hạn tối đa ${MAX_GMAIL_ACCOUNTS_PER_IP} tài khoản Gmail theo chính sách bảo mật! Vui lòng sử dụng tài khoản đã tạo.`);
         return;
       }
-      currentIpGmails.push(targetEmail.toLowerCase());
+      currentIpGmails.push(targetEmail);
       try {
         localStorage.setItem(ipGmailListKey, JSON.stringify(currentIpGmails));
       } catch {}
     }
 
-    // Tra cứu trong danh sách adminUsers để kế thừa toàn bộ quyền, xu, cấp bậc và gói đã cấp
+    // Tra cứu trong danh sách adminUsers để lấy đúng số dư và quyền đã cấp
     const matchedAdminUser = adminUsers.find(
-      u => u.email.toLowerCase() === targetEmail.toLowerCase() || u.id === targetEmail
+      u => (u.email && u.email.toLowerCase().trim() === targetEmail) || (u.id && u.id.toLowerCase().trim() === targetEmail)
     );
 
-    const nextCoins = matchedAdminUser ? matchedAdminUser.coinsBalance : (isAdmin ? 100000000 : user.avaliveCoins);
-    const nextRank = matchedAdminUser?.rankLevel || (isAdmin ? 'Kim Cương' : (user.rankLevel || 'Đồng'));
-    const hasAll = isAdmin || !!matchedAdminUser?.hasAllPermissions || user.hasAllPermissions;
-    const isWhite = isAdmin || !!matchedAdminUser?.isWhitelisted || user.isWhitelisted;
-    const canRun = isAdmin || !!matchedAdminUser?.canRunAnyCampaign || user.canRunAnyCampaign;
-    const canFollow = isAdmin || !!matchedAdminUser?.canFollowCrossUnrestricted || user.canFollowCrossUnrestricted;
-    const connectedTiktok = matchedAdminUser?.tiktokConnected || user.tiktokConnected;
+    const nextCoins = matchedAdminUser ? matchedAdminUser.coinsBalance : (isAdmin ? 50000 : 5000);
+    const nextRank = matchedAdminUser?.rankLevel || (isAdmin ? 'Khởi Nghiệp Cấp 2' : 'Đồng');
+    const hasAll = isAdmin || !!matchedAdminUser?.hasAllPermissions;
+    const isWhite = isAdmin || !!matchedAdminUser?.isWhitelisted;
+    const canRun = isAdmin || !!matchedAdminUser?.canRunAnyCampaign;
+    const canFollow = isAdmin || !!matchedAdminUser?.canFollowCrossUnrestricted;
+    const connectedTiktok = matchedAdminUser?.tiktokConnected || '';
+
+    const cleanDefault = { ...USER_PROFILE_WALLET };
 
     const updatedUser: UserProfileWallet = {
-      ...user,
+      ...cleanDefault,
+      id: matchedAdminUser?.id || `usr_${targetEmail.replace(/[^a-z0-9]/g, '_')}`,
       email: targetEmail,
-      name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : (matchedAdminUser?.name || user.name || 'Người Dùng Google'),
-      role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : (user.role || 'Nhà Sáng Tạo AVA FOLLOW'),
+      name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : (matchedAdminUser?.name || targetEmail.split('@')[0]),
+      role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : 'Nhà Sáng Tạo AVA FOLLOW',
       isAdmin: isAdmin,
       rankLevel: nextRank,
       avaliveCoins: nextCoins,
@@ -2214,14 +2217,20 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       isWhitelisted: isWhite,
       canRunAnyCampaign: canRun,
       canFollowCrossUnrestricted: canFollow,
-      grantedCoinsTotal: matchedAdminUser?.grantedCoinsTotal || user.grantedCoinsTotal,
-      grantedPackagesTotal: matchedAdminUser?.grantedPackagesTotal || user.grantedPackagesTotal,
-      tiktokConnected: connectedTiktok || '',
-      tiktokFollowers: matchedAdminUser?.tiktokFollowers || user.tiktokFollowers,
+      grantedCoinsTotal: matchedAdminUser?.grantedCoinsTotal || 0,
+      grantedPackagesTotal: matchedAdminUser?.grantedPackagesTotal || (matchedAdminUser?.orders?.length || 0),
+      tiktokConnected: connectedTiktok,
+      tiktokFollowers: matchedAdminUser?.tiktokFollowers || 0,
       isTikTokVerified: !!connectedTiktok,
+      facebookConnected: matchedAdminUser?.facebookConnected || '',
+      youtubeConnected: matchedAdminUser?.youtubeConnected || '',
+      myOrders: matchedAdminUser?.orders || [],
+      completedTasksCount: matchedAdminUser?.completedTasksCount || 0,
+      kycStatus: (matchedAdminUser?.kycStatus || 'unverified') as KycStatus,
+      kycData: matchedAdminUser?.kycData,
       avatar: isAdmin 
         ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-        : (matchedAdminUser?.avatar || user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80')
+        : (matchedAdminUser?.avatar || cleanDefault.avatar)
     };
 
     setUser(updatedUser);
@@ -2234,14 +2243,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // Cập nhật ngay lập tức vào adminUsers theo thời gian thực (Real-time)
     setAdminUsers(prev => {
-      const idx = prev.findIndex(u => u.email.toLowerCase() === targetEmail.toLowerCase() || u.id === targetEmail);
+      const idx = prev.findIndex(u => (u.email && u.email.toLowerCase().trim() === targetEmail) || (u.id && u.id.toLowerCase().trim() === targetEmail));
       const userAdminItem: AdminUserManagementItem = {
-        id: matchedAdminUser?.id || `usr_${Date.now()}`,
+        id: matchedAdminUser?.id || updatedUser.id || `usr_${Date.now()}`,
         name: updatedUser.name,
-        handle: updatedUser.tiktokConnected || updatedUser.handle || '@user',
+        handle: updatedUser.tiktokConnected || updatedUser.handle || `@${targetEmail.split('@')[0]}`,
         avatar: updatedUser.avatar || '',
         email: targetEmail,
-        phone: '0988888888',
+        phone: matchedAdminUser?.phone || '0988888888',
         tiktokConnected: updatedUser.tiktokConnected || '',
         tiktokFollowers: updatedUser.tiktokFollowers || 0,
         isTikTokVerified: !!updatedUser.tiktokConnected,
@@ -2254,16 +2263,18 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         createdCampaignsCount: (campaigns || []).length,
         purchasedPackagesCount: (updatedUser.myOrders || []).length,
         escrowLockedAmountVND: '0đ',
-        status: 'active',
-        kycStatus: (matchedAdminUser?.kycStatus || user.kycStatus || 'unverified') as KycStatus,
+        status: matchedAdminUser?.status || 'active',
+        kycStatus: updatedUser.kycStatus,
+        kycData: updatedUser.kycData,
         hasAllPermissions: updatedUser.hasAllPermissions,
         isWhitelisted: updatedUser.isWhitelisted,
         grantedCoinsTotal: updatedUser.grantedCoinsTotal,
         grantedPackagesTotal: updatedUser.grantedPackagesTotal,
-        registrationSource: updatedUser.registrationSource || (updatedUser.referredBy ? 'link' : 'direct'),
-        referredBy: updatedUser.referredBy,
+        registrationSource: matchedAdminUser?.registrationSource || 'direct',
+        referredBy: matchedAdminUser?.referredBy,
         firstTaskCompleted: (updatedUser.completedTasksCount || 0) > 0,
-        joinedDate: matchedAdminUser?.joinedDate || 'Hôm nay'
+        joinedDate: matchedAdminUser?.joinedDate || 'Hôm nay',
+        orders: updatedUser.myOrders || []
       };
 
       let nextList = [...prev];
@@ -2284,21 +2295,22 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const activeRefSponsor = getReferralCookie() || 'THIENVUAAPP88';
     registerUserToSupabase({
       email: targetEmail,
-      name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : (matchedAdminUser?.name || 'Người Dùng Google'),
-      tiktokHandle: matchedAdminUser?.tiktokConnected || user.tiktokConnected,
+      name: updatedUser.name,
+      tiktokHandle: updatedUser.tiktokConnected,
       referredBy: activeRefSponsor
     });
 
     if (isAdmin) {
       showToast('👑 Chào mừng Admin Nguyễn Quốc Thiện! Toàn quyền quản trị hệ thống đã kích hoạt.');
     } else {
-      showToast('🚀 Đăng nhập Google 1 chạm thành công! Toàn bộ dữ liệu tài khoản đã được đồng bộ chuẩn xác.');
+      showToast('🚀 Đăng nhập Google thành công! Dữ liệu tài khoản đã được đồng bộ chuẩn xác.');
     }
   };
 
   const loginWithEmail = (email: string, name: string, handle?: string) => {
-    const formattedHandle = handle ? (handle.startsWith('@') ? handle : `@${handle}`) : user.tiktokConnected;
-    const isAdmin = email === 'quocthiencr90@gmail.com';
+    const cleanEmail = email.toLowerCase().trim();
+    const formattedHandle = handle ? (handle.startsWith('@') ? handle : `@${handle}`) : '';
+    const isAdmin = cleanEmail === 'quocthiencr90@gmail.com';
     const activeRefSponsor = getReferralCookie() || 'THIENVUAAPP88';
 
     // 1. Kiểm tra giới hạn tối đa 5 tài khoản Gmail / 1 địa chỉ IP
@@ -2309,90 +2321,98 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       currentIpGmails = savedGmails ? JSON.parse(savedGmails) : [];
     } catch {}
 
-    if (!isAdmin && !currentIpGmails.includes(email.toLowerCase())) {
+    if (!isAdmin && !currentIpGmails.includes(cleanEmail)) {
       if (currentIpGmails.length >= MAX_GMAIL_ACCOUNTS_PER_IP) {
         showToast(`⚠️ Địa chỉ IP (${clientIp}) đã đạt giới hạn tối đa ${MAX_GMAIL_ACCOUNTS_PER_IP} tài khoản Gmail theo chính sách bảo mật! Vui lòng sử dụng tài khoản đã đăng ký.`);
         return;
       }
-      currentIpGmails.push(email.toLowerCase());
+      currentIpGmails.push(cleanEmail);
       try {
         localStorage.setItem(ipGmailListKey, JSON.stringify(currentIpGmails));
       } catch {}
     }
 
     const matchedAdminUser = adminUsers.find(
-      u => u.email.toLowerCase() === email.toLowerCase() || u.id === email
+      u => (u.email && u.email.toLowerCase().trim() === cleanEmail) || (u.id && u.id.toLowerCase().trim() === cleanEmail)
     );
 
     const bonusWelcome = 5000;
-    const baseCoins = matchedAdminUser ? matchedAdminUser.coinsBalance : user.avaliveCoins;
-    const nextCoins = baseCoins + (user.isNewUserBonusClaimed ? 0 : bonusWelcome);
-    const nextRank = matchedAdminUser?.rankLevel || user.rankLevel || 'Đồng';
+    const baseCoins = matchedAdminUser ? matchedAdminUser.coinsBalance : bonusWelcome;
+    const nextRank = matchedAdminUser?.rankLevel || (isAdmin ? 'Khởi Nghiệp Cấp 2' : 'Đồng');
+
+    const cleanDefault = { ...USER_PROFILE_WALLET };
 
     const updatedUser: UserProfileWallet = {
-      ...user,
-      email: email,
-      name: name || matchedAdminUser?.name || user.name,
+      ...cleanDefault,
+      id: matchedAdminUser?.id || `usr_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`,
+      email: cleanEmail,
+      name: name || matchedAdminUser?.name || cleanEmail.split('@')[0],
       role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : 'Nhà Sáng Tạo AVA FOLLOW',
       isAdmin: isAdmin,
       tiktokConnected: formattedHandle || matchedAdminUser?.tiktokConnected || '',
-      tiktokHandle: formattedHandle || matchedAdminUser?.tiktokConnected || user.tiktokHandle,
-      tiktokProfileUrl: formattedHandle ? `https://www.tiktok.com/${formattedHandle}` : user.tiktokProfileUrl,
-      isTikTokVerified: !!formattedHandle,
+      tiktokHandle: formattedHandle || matchedAdminUser?.tiktokConnected || `@${cleanEmail.split('@')[0]}`,
+      tiktokProfileUrl: formattedHandle ? `https://www.tiktok.com/${formattedHandle}` : '',
+      isTikTokVerified: !!(formattedHandle || matchedAdminUser?.tiktokConnected),
       rankLevel: nextRank,
-      hasAllPermissions: isAdmin || !!matchedAdminUser?.hasAllPermissions || user.hasAllPermissions,
-      isWhitelisted: isAdmin || !!matchedAdminUser?.isWhitelisted || user.isWhitelisted,
-      canRunAnyCampaign: isAdmin || !!matchedAdminUser?.canRunAnyCampaign || user.canRunAnyCampaign,
-      canFollowCrossUnrestricted: isAdmin || !!matchedAdminUser?.canFollowCrossUnrestricted || user.canFollowCrossUnrestricted,
-      grantedCoinsTotal: matchedAdminUser?.grantedCoinsTotal || user.grantedCoinsTotal,
-      grantedPackagesTotal: matchedAdminUser?.grantedPackagesTotal || user.grantedPackagesTotal,
-      avaliveCoins: nextCoins,
-      coinsValueVND: `${nextCoins.toLocaleString()}đ`,
-      registrationSource: user.registrationSource || (activeRefSponsor ? 'link' : 'direct'),
-      referredBy: user.referredBy || activeRefSponsor,
-      isNewUserBonusClaimed: true
+      hasAllPermissions: isAdmin || !!matchedAdminUser?.hasAllPermissions,
+      isWhitelisted: isAdmin || !!matchedAdminUser?.isWhitelisted,
+      canRunAnyCampaign: isAdmin || !!matchedAdminUser?.canRunAnyCampaign,
+      canFollowCrossUnrestricted: isAdmin || !!matchedAdminUser?.canFollowCrossUnrestricted,
+      grantedCoinsTotal: matchedAdminUser?.grantedCoinsTotal || 0,
+      grantedPackagesTotal: matchedAdminUser?.grantedPackagesTotal || (matchedAdminUser?.orders?.length || 0),
+      avaliveCoins: baseCoins,
+      coinsValueVND: `${baseCoins.toLocaleString()}đ`,
+      registrationSource: matchedAdminUser?.registrationSource || (activeRefSponsor ? 'link' : 'direct'),
+      referredBy: matchedAdminUser?.referredBy || activeRefSponsor,
+      isNewUserBonusClaimed: true,
+      myOrders: matchedAdminUser?.orders || [],
+      completedTasksCount: matchedAdminUser?.completedTasksCount || 0,
+      kycStatus: (matchedAdminUser?.kycStatus || 'unverified') as KycStatus,
+      kycData: matchedAdminUser?.kycData
     };
 
     setUser(updatedUser);
     setIsAuthenticated(true);
     try {
       localStorage.setItem('tiktok_pro_auth', 'true');
-      localStorage.setItem('ava_user_email', email);
+      localStorage.setItem('ava_user_email', cleanEmail);
       localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
     } catch {}
 
     // Cập nhật ngay lập tức vào adminUsers theo thời gian thực (Real-time)
     setAdminUsers(prev => {
-      const idx = prev.findIndex(u => u.email.toLowerCase() === email.toLowerCase() || u.id === email);
+      const idx = prev.findIndex(u => (u.email && u.email.toLowerCase().trim() === cleanEmail) || (u.id && u.id.toLowerCase().trim() === cleanEmail));
       const userAdminItem: AdminUserManagementItem = {
-        id: matchedAdminUser?.id || `usr_${Date.now()}`,
+        id: matchedAdminUser?.id || updatedUser.id || `usr_${Date.now()}`,
         name: updatedUser.name,
-        handle: formattedHandle || '@user',
+        handle: formattedHandle || updatedUser.handle || `@${cleanEmail.split('@')[0]}`,
         avatar: updatedUser.avatar || '',
-        email: email,
-        phone: '0988888888',
-        tiktokConnected: formattedHandle || '',
+        email: cleanEmail,
+        phone: matchedAdminUser?.phone || '0988888888',
+        tiktokConnected: formattedHandle || matchedAdminUser?.tiktokConnected || '',
         tiktokFollowers: updatedUser.tiktokFollowers || 0,
-        isTikTokVerified: !!formattedHandle,
+        isTikTokVerified: !!(formattedHandle || matchedAdminUser?.tiktokConnected),
         facebookConnected: updatedUser.facebookConnected,
         youtubeConnected: updatedUser.youtubeConnected,
         rankLevel: nextRank,
-        coinsBalance: nextCoins,
-        tokenBalance: nextCoins,
+        coinsBalance: baseCoins,
+        tokenBalance: baseCoins,
         completedTasksCount: updatedUser.completedTasksCount || 0,
         createdCampaignsCount: (campaigns || []).length,
         purchasedPackagesCount: (updatedUser.myOrders || []).length,
         escrowLockedAmountVND: '0đ',
-        status: 'active',
-        kycStatus: (matchedAdminUser?.kycStatus || user.kycStatus || 'unverified') as KycStatus,
+        status: matchedAdminUser?.status || 'active',
+        kycStatus: updatedUser.kycStatus,
+        kycData: updatedUser.kycData,
         hasAllPermissions: updatedUser.hasAllPermissions,
         isWhitelisted: updatedUser.isWhitelisted,
         grantedCoinsTotal: updatedUser.grantedCoinsTotal,
         grantedPackagesTotal: updatedUser.grantedPackagesTotal,
-        registrationSource: updatedUser.registrationSource || (activeRefSponsor ? 'link' : 'direct'),
-        referredBy: updatedUser.referredBy || activeRefSponsor,
+        registrationSource: updatedUser.registrationSource,
+        referredBy: updatedUser.referredBy,
         firstTaskCompleted: (updatedUser.completedTasksCount || 0) > 0,
-        joinedDate: matchedAdminUser?.joinedDate || 'Hôm nay'
+        joinedDate: matchedAdminUser?.joinedDate || 'Hôm nay',
+        orders: updatedUser.myOrders || []
       };
 
       let nextList = [...prev];

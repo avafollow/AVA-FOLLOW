@@ -142,21 +142,26 @@ function AppContent() {
   // Ref tới phần tử nội dung cuộn chính
   const mainContentRef = React.useRef<HTMLElement>(null);
 
-  // Xử lý cuộn chuột mượt mà tại BẤT KỲ VỊ TRÍ NÀO trên màn hình máy tính (Header, Sidebar, Lề, Nền, Khung viền)
+  // Xử lý cuộn chuột mượt mà tại BẤT KỲ VỊ TRÍ NÀO trên màn hình máy tính (Header, Sidebar, Lề, Nền, Khung viền, Landing Page)
   useEffect(() => {
     const handleGlobalWheel = (e: WheelEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
       // Nếu đang hover bên trong một modal / dialog popup đang mở thì để modal tự cuộn
-      const activeModal = target.closest('[role="dialog"], .fixed.inset-0, .modal-scroll-container');
+      const activeModal = target.closest('[role="dialog"], .modal-scroll-container, .sepay-modal-scroll');
       if (activeModal) {
         return;
       }
 
-      // Nếu không hover trực tiếp trong thẻ main (ví dụ hover trên Header, Sidebar, lề ngoài, thanh điều hướng)
-      if (mainContentRef.current && !mainContentRef.current.contains(target)) {
-        mainContentRef.current.scrollTop += e.deltaY;
+      // Nếu đang ở Dashboard App thì cuộn mainContentRef
+      if (mainContentRef.current) {
+        if (!mainContentRef.current.contains(target)) {
+          mainContentRef.current.scrollTop += e.deltaY;
+        }
+      } else {
+        // Nếu đang ở Landing Page bên ngoài: cuộn cửa sổ window mượt mà ở bất kỳ vị trí con trỏ chuột nào
+        window.scrollBy({ top: e.deltaY, behavior: 'auto' });
       }
     };
 

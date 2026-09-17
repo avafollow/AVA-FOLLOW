@@ -348,6 +348,151 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* 2B. 2 ĐẠI LỘ TĂNG TRƯỞNG ĐỘT PHÁ: DOANH NGHIỆP BỨT PHÁ DOANH SỐ vs NGƯỜI DÙNG KIẾM TIỀN TẠI NHÀ */}
+      <section className="py-16 md:py-24 bg-gradient-to-b from-[#07090E] via-[#0E1325] to-[#07090E] border-y border-white/10 relative overflow-hidden">
+        {/* Glow ambient background */}
+        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-96 h-96 bg-rose-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12 relative z-10">
+          
+          <div className="text-center space-y-3 max-w-3xl mx-auto">
+            <span className="px-3.5 py-1 rounded-full bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-rose-500/20 text-white text-xs font-mono font-bold uppercase border border-white/20">
+              💎 2 TRỤ CỘT ĐỘT PHÁ • GIẢI PHÁP CHỐT SALE TOÀN DIỆN 💎
+            </span>
+            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white font-display">
+              Bạn Đang Tìm Kiếm Cơ Hội Nào Hôm Nay?
+            </h2>
+            <p className="text-xs sm:text-base text-slate-300 leading-relaxed">
+              Dù bạn là <strong className="text-cyan-300">Chủ Doanh Nghiệp</strong> cần bùng nổ doanh số hay <strong className="text-amber-300">Người Dùng Cá Nhân</strong> muốn kiếm tiền tại nhà chỉ với 1 chiếc điện thoại, AVA FOLLOW đều có giải pháp hoàn hảo cho bạn:
+            </p>
+          </div>
+
+          {/* 2 Huge Feature Cards with High-End Hover Zoom Animation */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            
+            {/* CARD 1: DÀNH CHO CHỦ DOANH NGHIỆP & CHỦ SHOP SME */}
+            <div className="group relative p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-[#0D1424] to-[#080D1A] border-2 border-cyan-500/40 hover:border-cyan-400 hover:shadow-[0_0_50px_rgba(6,182,212,0.3)] transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between space-y-6">
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <span className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-black uppercase tracking-wider flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4" />
+                    DÀNH CHO DOANH NGHIỆP &amp; CHỦ SHOP
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 text-[11px] font-mono font-bold border border-emerald-500/30">
+                    BÙNG NỔ DOANH SỐ
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-xl sm:text-2xl font-black text-white font-display group-hover:text-cyan-300 transition-colors">
+                    🏢 Khai Thác Sức Mạnh Cộng Đồng 168K+ Khách Hàng Thật
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Tiếp cận ngay lập tức hàng chục ngàn đến hàng triệu người dùng thật có sẵn mà không cần chi hàng trăm triệu tiền chạy Ads bị bóp reach hay mua bot ảo vô giá trị:
+                  </p>
+                </div>
+
+                <div className="space-y-3 font-mono text-xs text-slate-300">
+                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/5 group-hover:border-cyan-500/20 transition-all">
+                    <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-white">Thuê KOC / KOL Review Uy Tín (Két Ký Quỹ Escrow):</strong> Tiền cọc khóa an toàn tại sàn, chỉ giải ngân khi KOC bàn giao video đạt chuẩn cam kết.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/5 group-hover:border-cyan-500/20 transition-all">
+                    <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-white">Giữ Mắt Livestream Người Thật 3-5 Phút:</strong> Thả tim, comment hỏi giá, kích nổ tâm lý đám đông chốt hàng trăm đơn TikTok Shop và Fanpage.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/5 group-hover:border-cyan-500/20 transition-all">
+                    <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-white">Tăng Trưởng Đa Kênh 3 trong 1:</strong> Follow Fanpage SEO, View Reels 60s, Subscribers &amp; 4.000h xem YouTube Partner bền vững trọn đời.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-white/10 space-y-3">
+                <button
+                  onClick={openAuthModal}
+                  className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-black text-xs sm:text-sm font-display uppercase tracking-wider shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 group-hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                >
+                  <Rocket className="w-4 h-4 text-amber-300" />
+                  <span>TẠO CHIẾN DỊCH TĂNG TRƯỞNG DOANH NGHIỆP NGAY</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <div className="text-center text-[11px] font-mono text-slate-400">
+                  ⚡ Kích hoạt chỉ trong 1 phút • Bảo hành đối soát 100%
+                </div>
+              </div>
+            </div>
+
+            {/* CARD 2: DÀNH CHO NGƯỜI MUỐN KIẾM TIỀN TẠI NHÀ 0 ĐỒNG */}
+            <div className="group relative p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-[#1E0D1B] to-[#120815] border-2 border-rose-500/40 hover:border-rose-400 hover:shadow-[0_0_50px_rgba(244,63,94,0.3)] transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between space-y-6">
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <span className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-mono font-black uppercase tracking-wider flex items-center gap-1.5">
+                    <Smartphone className="w-4 h-4" />
+                    DÀNH CHO NGƯỜI KIẾM TIỀN TẠI NHÀ
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 text-[11px] font-mono font-bold border border-amber-500/30">
+                    VỐN 0 ĐỒNG
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-xl sm:text-2xl font-black text-white font-display group-hover:text-rose-300 transition-colors">
+                    📱 Kiếm Tiền Online Bất Cứ Khi Nào Bằng Điện Thoại
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Học sinh, sinh viên, mẹ bỉm sữa, dân văn phòng hay bất kỳ ai đều có thể tạo nguồn thu nhập 5 - 20 triệu/tháng tại nhà mà không cần vốn, không ôm hàng, không sợ lừa đảo:
+                  </p>
+                </div>
+
+                <div className="space-y-3 font-mono text-xs text-slate-300">
+                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/5 group-hover:border-rose-500/20 transition-all">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-white">Làm Nhiệm Vụ 15s Đơn Giản:</strong> Xem video, like, comment, follow, lướt live. Tiền Xu cộng thẳng vào ví ngay sau mỗi thao tác.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/5 group-hover:border-rose-500/20 transition-all">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-white">1 Xu = 1 VNĐ Rút Thẳng Về Ngân Hàng:</strong> Tỷ giá cố định minh bạch, rút tiền về MB Bank, Vietcombank, Techcombank, MoMo trong vài phút.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/5 group-hover:border-rose-500/20 transition-all">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-white">Hoa Hồng Tiếp Thị Liên Kết 35%:</strong> Chia sẻ link giới thiệu bạn bè cùng làm nhiệm vụ, nhận dòng tiền thụ động trọn đời cực khủng.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-white/10 space-y-3">
+                <button
+                  onClick={openAuthModal}
+                  className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 hover:from-rose-400 hover:to-purple-500 text-white font-black text-xs sm:text-sm font-display uppercase tracking-wider shadow-xl shadow-rose-500/25 flex items-center justify-center gap-2 group-hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                >
+                  <Flame className="w-4 h-4 text-amber-300 animate-bounce" />
+                  <span>BẮT ĐẦU LÀM NHIỆM VỤ KIẾM TIỀN NGAY</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <div className="text-center text-[11px] font-mono text-slate-400">
+                  🎁 Tặng ngay 5.000 Xu chào mừng thành viên mới
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* 3. TUYÊN NGÔN BẢO CHỨNG: "NGƯỜI THẬT KẾT NỐI NGƯỜI THẬT" (REAL HUMAN VS BOT MATRIX) */}
       <section id="human-network" className="py-16 md:py-24 bg-gradient-to-b from-[#07090E] via-[#0B0E1B] to-[#07090E] border-y border-white/10 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">

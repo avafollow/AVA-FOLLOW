@@ -569,10 +569,14 @@ export interface AdminUserManagementItem {
 
 // Cấu hình tỷ lệ hoa hồng & ăn chia toàn hệ thống
 export interface PlatformCommissionSettings {
-  affiliateRatePercent: number;      // Mặc định 25%
-  escrowFeePercent: number;          // Mặc định 20% (Phí dịch vụ trung gian bảo chứng Escrow KOC & Khách Hàng)
-  taskRewardPoolPercent: number;     // Mặc định 80% (ngân sách chia cho earners)
-  platformReservePercent: number;    // Mặc định 15% (quỹ đốt token & sàn)
+  affiliateRatePercent: number;      // Mặc định 25% (0-100%)
+  escrowFeePercent: number;          // Mặc định 20% (0-100%)
+  taskRewardPoolPercent: number;     // Mặc định 80% (0-100%)
+  platformReservePercent: number;    // Mặc định 15% (0-100%)
+  disbursementTime?: string;         // e.g. "10:00 Sáng Thứ Hai"
+  processingTime?: string;           // e.g. "Trong vòng 24 giờ"
+  minWithdrawAmount?: number;        // e.g. 200000
+  withdrawFeePercent?: number;       // e.g. 5
 }
 
 // Hồ sơ đăng ký KOC nhận booking

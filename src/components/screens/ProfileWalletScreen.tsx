@@ -284,15 +284,16 @@ export const ProfileWalletScreen: React.FC<{
                   </div>
                 </div>
 
-                {/* 2. TikTok Execution Channel */}
+                {/* 2. Social Execution Channels (TikTok, Facebook, YouTube) */}
                 <div className="flex items-center gap-2 flex-wrap">
+                  {/* TikTok */}
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/60 border border-rose-500/20 text-[11px] font-mono">
                     <span className="text-rose-400 font-bold">♪</span>
-                    <span className="text-slate-400">Kênh TikTok làm nhiệm vụ:</span>
+                    <span className="text-slate-400">TikTok:</span>
                     <strong className="text-rose-300">{user.tiktokConnected || '@chưa_kết_nối'}</strong>
                     {user.isTikTokVerified && (
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
-                        {(user.tiktokFollowers || 0).toLocaleString()} Followers
+                        {(user.tiktokFollowers || 0).toLocaleString()} FL
                       </span>
                     )}
                   </div>
@@ -304,15 +305,36 @@ export const ProfileWalletScreen: React.FC<{
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-[10px] text-rose-300 font-mono border border-rose-500/30 transition-colors"
                       title="Mở kênh TikTok"
                     >
-                      <span>Mở Kênh</span>
+                      <span>Mở</span>
                       <ExternalLink className="w-2.5 h-2.5" />
                     </a>
                   )}
+
+                  {/* Facebook */}
+                  {user.facebookConnected && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/60 border border-blue-500/20 text-[11px] font-mono">
+                      <span className="text-blue-400 font-bold">f</span>
+                      <span className="text-slate-400">FB:</span>
+                      <strong className="text-blue-300">{user.facebookConnected}</strong>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 font-bold">✓</span>
+                    </div>
+                  )}
+
+                  {/* YouTube */}
+                  {user.youtubeConnected && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/60 border border-red-500/20 text-[11px] font-mono">
+                      <span className="text-red-400 font-bold">▶</span>
+                      <span className="text-slate-400">YT:</span>
+                      <strong className="text-red-300">{user.youtubeConnected}</strong>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 font-bold">✓</span>
+                    </div>
+                  )}
+
                   <button
                     onClick={openConnect}
-                    className="px-2.5 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 font-mono transition-colors cursor-pointer"
+                    className="px-2.5 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 font-mono transition-colors cursor-pointer flex items-center gap-1"
                   >
-                    {user.isTikTokVerified ? 'Đổi Kênh' : 'Kết Nối Kênh (+5.000 Xu)'}
+                    <span>{user.isTikTokVerified ? 'Quản Lý MXH' : 'Kết Nối MXH (+5.000 Xu)'}</span>
                   </button>
                 </div>
               </div>

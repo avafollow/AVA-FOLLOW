@@ -354,10 +354,14 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const [pkgEditReviewCount, setPkgEditReviewCount] = useState<number>(100);
   const [pkgEditThumbnail, setPkgEditThumbnail] = useState<string>('https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=300&auto=format&fit=crop&q=80');
 
-  // Commission settings form states
-  const [affiliateRate, setAffiliateRate] = useState(commissionSettings.affiliateRatePercent);
-  const [escrowFee, setEscrowFee] = useState(commissionSettings.escrowFeePercent);
-  const [taskPoolRate, setTaskPoolRate] = useState(commissionSettings.taskRewardPoolPercent);
+  // Commission & Withdrawal settings form states (Tùy chỉnh 0-100% và toàn bộ lịch rút tiền)
+  const [affiliateRate, setAffiliateRate] = useState(commissionSettings.affiliateRatePercent ?? 25);
+  const [escrowFee, setEscrowFee] = useState(commissionSettings.escrowFeePercent ?? 20);
+  const [taskPoolRate, setTaskPoolRate] = useState(commissionSettings.taskRewardPoolPercent ?? 50);
+  const [disbursementTime, setDisbursementTime] = useState(commissionSettings.disbursementTime || '10:00 Sáng Thứ Hai');
+  const [processingTime, setProcessingTime] = useState(commissionSettings.processingTime || 'Trong vòng 24 giờ');
+  const [minWithdrawAmount, setMinWithdrawAmount] = useState(commissionSettings.minWithdrawAmount ?? 200000);
+  const [withdrawFeePercent, setWithdrawFeePercent] = useState(commissionSettings.withdrawFeePercent ?? 5);
   const [isSavedSettings, setIsSavedSettings] = useState(false);
 
 
@@ -477,10 +481,16 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     updateCommissionSettings({
       affiliateRatePercent: Number(affiliateRate),
       escrowFeePercent: Number(escrowFee),
-      taskRewardPoolPercent: Number(taskPoolRate)
+      taskRewardPoolPercent: Number(taskPoolRate),
+      platformReservePercent: Math.max(0, 100 - Number(taskPoolRate)),
+      disbursementTime,
+      processingTime,
+      minWithdrawAmount: Number(minWithdrawAmount),
+      withdrawFeePercent: Number(withdrawFeePercent)
     });
     setIsSavedSettings(true);
-    setTimeout(() => setIsSavedSettings(false), 2500);
+    showToast('✅ Đã lưu cấu hình mới và áp dụng toàn sàn thành công!');
+    setTimeout(() => setIsSavedSettings(false), 3000);
   };
 
   return (
@@ -3446,17 +3456,29 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
           <form onSubmit={handleSaveCommissionSettings} className="space-y-5">
             
+            {/* 1. HOA HỒNG AFFILIATE */}
             <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-bold text-white">
                   Tỷ Lệ Hoa Hồng Tiếp Thị Liên Kết (Affiliate Commission):
                 </label>
-                <span className="text-base font-black font-mono text-emerald-400">{affiliateRate}%</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={affiliateRate}
+                    onChange={(e) => setAffiliateRate(Math.min(100, Math.max(0, Number(e.target.value))))}
+                    className="w-16 bg-black/60 border border-emerald-500/40 rounded-lg px-2 py-0.5 text-emerald-400 font-mono font-black text-sm text-right focus:outline-none"
+                  />
+                  <span className="text-sm font-bold font-mono text-emerald-400">%</span>
+                </div>
               </div>
               <input
                 type="range"
-                min={5}
-                max={40}
+                min={0}
+                max={100}
                 step={1}
                 value={affiliateRate}
                 onChange={(e) => setAffiliateRate(Number(e.target.value))}
@@ -3467,17 +3489,29 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               </p>
             </div>
 
+            {/* 2. PHÍ KÝ QUỸ ESCROW */}
             <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-bold text-white">
                   Phí Dịch Vụ Sàn Ký Quỹ Booking Escrow (Platform Escrow Fee):
                 </label>
-                <span className="text-base font-black font-mono text-purple-400">{escrowFee}%</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    value={escrowFee}
+                    onChange={(e) => setEscrowFee(Math.min(100, Math.max(0, Number(e.target.value))))}
+                    className="w-16 bg-black/60 border border-purple-500/40 rounded-lg px-2 py-0.5 text-purple-400 font-mono font-black text-sm text-right focus:outline-none"
+                  />
+                  <span className="text-sm font-bold font-mono text-purple-400">%</span>
+                </div>
               </div>
               <input
                 type="range"
-                min={5}
-                max={30}
+                min={0}
+                max={100}
                 step={0.5}
                 value={escrowFee}
                 onChange={(e) => setEscrowFee(Number(e.target.value))}
@@ -3488,18 +3522,30 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               </p>
             </div>
 
+            {/* 3. NGÂN SÁCH TASK POOL */}
             <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-bold text-white">
                   Ngân Sách Chia Thưởng Cho Người Làm Nhiệm Vụ (Task Pool):
                 </label>
-                <span className="text-base font-black font-mono text-cyan-400">{taskPoolRate}%</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={taskPoolRate}
+                    onChange={(e) => setTaskPoolRate(Math.min(100, Math.max(0, Number(e.target.value))))}
+                    className="w-16 bg-black/60 border border-cyan-500/40 rounded-lg px-2 py-0.5 text-cyan-400 font-mono font-black text-sm text-right focus:outline-none"
+                  />
+                  <span className="text-sm font-bold font-mono text-cyan-400">%</span>
+                </div>
               </div>
               <input
                 type="range"
-                min={50}
-                max={90}
-                step={5}
+                min={0}
+                max={100}
+                step={1}
                 value={taskPoolRate}
                 onChange={(e) => setTaskPoolRate(Number(e.target.value))}
                 className="w-full accent-cyan-500 cursor-pointer"
@@ -3509,16 +3555,106 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               </p>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
+            {/* ========================================================================= */}
+            {/* 4. CẤU HÌNH LỊCH RÚT TIỀN ĐỊNH KỲ (ĐẦY ĐỦ 4 Ô TÙY CHỈNH DỄ DÀNG)         */}
+            {/* ========================================================================= */}
+            <div className="pt-4 border-t border-white/10 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white uppercase font-mono tracking-wider">
+                      Cấu Hình Lịch Rút Tiền Định Kỳ ({disbursementTime} • Min {Number(minWithdrawAmount).toLocaleString()}đ)
+                    </h4>
+                    <span className="text-xs text-slate-400">
+                      Tùy chỉnh toàn bộ lịch giải ngân, thời gian xử lý, hạn mức tối thiểu và phí rút tiền
+                    </span>
+                  </div>
+                </div>
+
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  LỊCH: {disbursementTime.toUpperCase()}
+                </span>
+              </div>
+
+              {/* 4 Editable Config Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
+                {/* Card 1: Thời gian giải ngân */}
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-2 hover:border-amber-500/40 transition-colors">
+                  <span className="text-slate-400 text-[10px] block font-bold uppercase tracking-wider">Thời Gian Giải Ngân:</span>
+                  <input
+                    type="text"
+                    value={disbursementTime}
+                    onChange={(e) => setDisbursementTime(e.target.value)}
+                    placeholder="VD: 10:00 Sáng Thứ Hai"
+                    className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-3 py-2 text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-400"
+                  />
+                  <p className="text-[10px] text-slate-500">Định kỳ giải ngân</p>
+                </div>
+
+                {/* Card 2: Thời gian xử lý */}
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-2 hover:border-emerald-500/40 transition-colors">
+                  <span className="text-slate-400 text-[10px] block font-bold uppercase tracking-wider">Thời Gian Xử Lý:</span>
+                  <input
+                    type="text"
+                    value={processingTime}
+                    onChange={(e) => setProcessingTime(e.target.value)}
+                    placeholder="VD: Trong vòng 24 giờ"
+                    className="w-full bg-slate-900 border border-emerald-500/30 rounded-xl px-3 py-2 text-xs font-bold text-emerald-400 focus:outline-none focus:border-emerald-400"
+                  />
+                  <p className="text-[10px] text-slate-500">Qua cổng Napas247</p>
+                </div>
+
+                {/* Card 3: Mức rút tối thiểu */}
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-2 hover:border-purple-500/40 transition-colors">
+                  <span className="text-slate-400 text-[10px] block font-bold uppercase tracking-wider">Mức Rút Tối Thiểu (VNĐ):</span>
+                  <input
+                    type="number"
+                    step={10000}
+                    min={10000}
+                    max={100000000}
+                    value={minWithdrawAmount}
+                    onChange={(e) => setMinWithdrawAmount(Math.max(10000, Number(e.target.value)))}
+                    className="w-full bg-slate-900 border border-purple-500/30 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-purple-400"
+                  />
+                  <p className="text-[10px] text-slate-500">≈ {Number(minWithdrawAmount).toLocaleString()} Xu</p>
+                </div>
+
+                {/* Card 4: Phí rút sàn */}
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-2 hover:border-neonGold/40 transition-colors">
+                  <span className="text-slate-400 text-[10px] block font-bold uppercase tracking-wider">Phí Rút Sàn (%):</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      value={withdrawFeePercent}
+                      onChange={(e) => setWithdrawFeePercent(Math.min(100, Math.max(0, Number(e.target.value))))}
+                      className="w-20 bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-2 text-xs font-bold text-amber-300 focus:outline-none focus:border-amber-400"
+                    />
+                    <span className="text-[11px] font-bold text-neonGold shrink-0">
+                      % (Nhận {100 - withdrawFeePercent}%)
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Bắt buộc xác thực KYC</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit button */}
+            <div className="flex items-center justify-between pt-3 border-t border-white/5">
               {isSavedSettings && (
-                <span className="text-xs text-emerald-400 flex items-center gap-1 font-bold">
-                  <CheckCircle2 className="w-4 h-4" /> Đã lưu cấu hình mới thành công!
+                <span className="text-xs text-emerald-400 flex items-center gap-1 font-bold animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4" /> Đã lưu cấu hình mới và áp dụng toàn sàn thành công!
                 </span>
               )}
               <div className="ml-auto">
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-900/30 transition-all"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
                 >
                   Lưu & Áp Dụng Toàn Sàn
                 </button>
@@ -3526,57 +3662,6 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             </div>
 
           </form>
-
-          {/* ========================================================================= */}
-          {/* ĐỒNG BỘ QUẢN TRỊ RÚT TIỀN: 10:00 SÁNG THỨ HAI • MIN 200,000đ • KYC CCCD  */}
-          {/* ========================================================================= */}
-          <div className="pt-6 border-t border-white/10 space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white uppercase font-mono tracking-wider">
-                    Cấu Hình Lịch Rút Tiền Định Kỳ (Thứ Hai 10:00 AM • Min 200,000đ)
-                  </h4>
-                  <span className="text-xs text-slate-400">
-                    Đồng bộ toàn bộ cổng rút tiền người dùng với hệ thống đối soát ngân hàng
-                  </span>
-                </div>
-              </div>
-
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                LỊCH: THỨ HAI 10:00 SÁNG
-              </span>
-            </div>
-
-            {/* 4 Config cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-1">
-                <span className="text-slate-400 text-[10px]">Thời Gian Giải Ngân:</span>
-                <div className="text-sm font-black text-amber-400">10:00 Sáng Thứ Hai</div>
-                <p className="text-[10px] text-slate-500">Định kỳ hàng tuần</p>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-1">
-                <span className="text-slate-400 text-[10px]">Thời Gian Xử Lý:</span>
-                <div className="text-sm font-black text-emerald-400">Trong vòng 24 giờ</div>
-                <p className="text-[10px] text-slate-500">Qua Napas247</p>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-1">
-                <span className="text-slate-400 text-[10px]">Mức Rút Tối Thiểu:</span>
-                <div className="text-sm font-black text-white">200,000 VNĐ</div>
-                <p className="text-[10px] text-slate-500">Tương đương 200,000 Xu</p>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-1">
-                <span className="text-slate-400 text-[10px]">Phí Rút Sàn:</span>
-                <div className="text-sm font-black text-neonGold">5% (Thực nhận 95%)</div>
-                <p className="text-[10px] text-slate-500">Bắt buộc KYC CCCD</p>
-              </div>
-            </div>
 
             {/* Admin Withdrawal Approval Queue Table */}
             <div className="space-y-3 pt-2">
@@ -3662,8 +3747,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* ========================================================================= */}
       {/* TAB: Quản Trị Tiếp Thị Liên Kết & Chống Spam Thưởng Giới Thiệu           */}

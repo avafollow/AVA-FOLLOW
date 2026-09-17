@@ -3,8 +3,12 @@ import { GrowthServiceItem, PlatformCommissionSettings } from "../types";
 export const PLATFORM_COMMISSION_DEFAULTS: PlatformCommissionSettings = {
   affiliateRatePercent: 25,
   escrowFeePercent: 20,
-  taskRewardPoolPercent: 80,
-  platformReservePercent: 15
+  taskRewardPoolPercent: 50,
+  platformReservePercent: 15,
+  disbursementTime: '10:00 Sáng Thứ Hai',
+  processingTime: 'Trong vòng 24 giờ',
+  minWithdrawAmount: 200000,
+  withdrawFeePercent: 5
 };
 
 export const COMPREHENSIVE_GROWTH_PACKAGES: GrowthServiceItem[] = [

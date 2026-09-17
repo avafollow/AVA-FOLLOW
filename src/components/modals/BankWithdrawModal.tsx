@@ -31,12 +31,12 @@ const VIETNAM_BANKS = [
 ];
 
 export const BankWithdrawModal: React.FC = () => {
-  const { user, isWithdrawOpen, closeWithdraw, withdraw, openKycModal } = useTikTokApp();
+  const { user, isWithdrawOpen, closeWithdraw, withdraw, openKycModal, commissionSettings } = useTikTokApp();
 
   const [bankName, setBankName] = useState<string>(user.bankInfo?.bankName || 'MB Bank (Ngân Hàng Quân Đội)');
   const [accountNumber, setAccountNumber] = useState<string>(user.bankInfo?.accountNumber || '');
   const [accountHolder, setAccountHolder] = useState<string>(user.bankInfo?.accountHolder || user.name.toUpperCase());
-  const [amountStr, setAmountStr] = useState<string>('200000');
+  const [amountStr, setAmountStr] = useState<string>(() => (commissionSettings?.minWithdrawAmount || 200000).toString());
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   if (!isWithdrawOpen) return null;
@@ -47,10 +47,13 @@ export const BankWithdrawModal: React.FC = () => {
   const isKycVerified = user.kycStatus === 'verified';
   const withdrawCount = user.withdrawCount || 0;
   const isFirstWithdraw = withdrawCount === 0;
-  const feePercent = isFirstWithdraw ? 0 : 5;
-  const feeAmount = isFirstWithdraw ? 0 : Math.round(amount * 0.05);
+  const configuredFeePercent = commissionSettings?.withdrawFeePercent ?? 5;
+  const feePercent = isFirstWithdraw ? 0 : configuredFeePercent;
+  const feeAmount = isFirstWithdraw ? 0 : Math.round(amount * (configuredFeePercent / 100));
   const netReceived = amount - feeAmount;
-  const MIN_WITHDRAW = 200000;
+  const MIN_WITHDRAW = commissionSettings?.minWithdrawAmount || 200000;
+  const disbursementTime = commissionSettings?.disbursementTime || '10:00 Sáng Thứ Hai';
+  const processingTime = commissionSettings?.processingTime || 'Trong vòng 24 giờ';
 
   const handleWithdraw = () => {
     // Rút tiền lần 2 trở đi BẮT BUỘC phải cập nhật thông tin hồ sơ KYC đầy đủ mới rút được tiền
@@ -197,10 +200,10 @@ export const BankWithdrawModal: React.FC = () => {
             </div>
             <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-0.5 font-mono">
               <li>Lần rút đầu tiên: <strong className="text-emerald-400">MIỄN PHÍ 0% PHÍ SÀN</strong>.</li>
-              <li>Từ lần thứ 2 trở đi: <strong className="text-amber-400">Phí xử lý 5%</strong> và <strong className="text-rose-400">Bắt buộc cập nhật KYC đầy đủ</strong>.</li>
+              <li>Từ lần thứ 2 trở đi: <strong className="text-amber-400">Phí xử lý {configuredFeePercent}%</strong> và <strong className="text-rose-400">Bắt buộc cập nhật KYC đầy đủ</strong>.</li>
               <li>Cơ chế bảo chứng: <strong className="text-emerald-300">Xu nhiệm vụ được bảo lưu 7 ngày</strong> chống gian lận &amp; hủy tương tác. Sau 7 ngày tự động mở khóa rút tiền mặt.</li>
-              <li>Lịch giải ngân: <strong className="text-white">10:00 Sáng Thứ Hai hàng tuần</strong> (xử lý giao dịch trong 24 giờ).</li>
-              <li>Số tiền rút tối thiểu: <strong className="text-white">200,000 VNĐ</strong> (200,000 Xu).</li>
+              <li>Lịch giải ngân: <strong className="text-white">{disbursementTime} hàng tuần</strong> ({processingTime}).</li>
+              <li>Số tiền rút tối thiểu: <strong className="text-white">{MIN_WITHDRAW.toLocaleString()} VNĐ</strong> ({MIN_WITHDRAW.toLocaleString()} Xu).</li>
             </ul>
           </div>
 
@@ -303,7 +306,7 @@ export const BankWithdrawModal: React.FC = () => {
               <div className="flex items-center justify-between">
                 <label className="text-slate-300 font-bold flex items-center gap-1.5">
                   <Wallet className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>Số tiền muốn rút (Tối thiểu 200,000đ)</span>
+                  <span>Số tiền muốn rút (Tối thiểu {MIN_WITHDRAW.toLocaleString()}đ)</span>
                 </label>
                 <button
                   type="button"
@@ -317,7 +320,7 @@ export const BankWithdrawModal: React.FC = () => {
                 type="number"
                 value={amountStr}
                 onChange={(e) => setAmountStr(e.target.value)}
-                placeholder="Tối thiểu 200,000đ"
+                placeholder={`Tối thiểu ${MIN_WITHDRAW.toLocaleString()}đ`}
                 className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-white font-mono text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
 
@@ -357,7 +360,7 @@ export const BankWithdrawModal: React.FC = () => {
                     </span>
                   ) : (
                     <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-mono font-bold">
-                      5%
+                      {configuredFeePercent}%
                     </span>
                   )}
                 </span>
@@ -396,13 +399,13 @@ export const BankWithdrawModal: React.FC = () => {
               <>
                 <Zap className="h-4 w-4 text-neonGold" />
                 <span>
-                  Tạo Lệnh Rút {amount >= MIN_WITHDRAW ? `(+${netReceived.toLocaleString()}đ)` : ''} • Thứ Hai 10:00 AM
+                  Tạo Lệnh Rút {amount >= MIN_WITHDRAW ? `(+${netReceived.toLocaleString()}đ)` : ''} • {disbursementTime}
                 </span>
               </>
             )}
           </button>
           <p className="text-[10px] text-center text-slate-500 font-mono">
-            Lịch giải ngân: 10:00 sáng Thứ Hai hàng tuần • Thời gian xử lý trong 24 giờ qua Napas247
+            Lịch giải ngân: {disbursementTime} hàng tuần • {processingTime} qua Napas247
           </p>
         </div>
       </div>

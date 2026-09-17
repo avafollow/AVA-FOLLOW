@@ -68,37 +68,56 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
     }
   }, [isMuted]);
 
-  // Xử lý tự động phát video ngay lập tức
+  // Xử lý tự động phát video ngay lập tức với cơ chế tương thích 100% Mobile (iOS/Android) & Desktop
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    video.muted = internalMuted;
     video.playsInline = true;
+    video.muted = internalMuted;
 
-    if (autoPlay || isPlaying) {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsBuffering(false);
-            setHasStartedPlaying(true);
-          })
-          .catch(() => {
-            // Trình duyệt chặn autoplay có tiếng -> chuyển sang muted và phát ngay
-            video.muted = true;
-            setInternalMuted(true);
-            video.play().then(() => {
+    const startPlay = () => {
+      if (autoPlay || isPlaying) {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
               setIsBuffering(false);
               setHasStartedPlaying(true);
-            }).catch(() => {
-              setIsBuffering(false);
+            })
+            .catch(() => {
+              // Mobile Safari chặn autoplay có tiếng -> ép muted và phát ngay
+              video.muted = true;
+              setInternalMuted(true);
+              video.play().then(() => {
+                setIsBuffering(false);
+                setHasStartedPlaying(true);
+              }).catch(() => {
+                setIsBuffering(false);
+              });
             });
-          });
+        }
+      } else {
+        video.pause();
       }
-    } else {
-      video.pause();
-    }
+    };
+
+    startPlay();
+
+    // Lắng nghe tương tác đầu tiên của người dùng trên điện thoại để kích hoạt play nếu bị trình duyệt chặn
+    const handleFirstUserInteraction = () => {
+      if (video.paused && (autoPlay || isPlaying)) {
+        video.play().catch(() => {});
+      }
+    };
+
+    window.addEventListener('touchstart', handleFirstUserInteraction, { passive: true, once: true });
+    window.addEventListener('click', handleFirstUserInteraction, { passive: true, once: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleFirstUserInteraction);
+      window.removeEventListener('click', handleFirstUserInteraction);
+    };
   }, [currentSrc, isPlaying, autoPlay]);
 
   // Tự động chuyển sang video CDN tiếp theo nếu video hiện tại bị lỗi

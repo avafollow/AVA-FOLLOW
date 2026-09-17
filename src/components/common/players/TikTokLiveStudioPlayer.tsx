@@ -77,6 +77,7 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
         loop
         muted={isMuted}
         playsInline
+        {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
         preload="auto"
         onCanPlay={(e) => {
           const v = e.currentTarget;

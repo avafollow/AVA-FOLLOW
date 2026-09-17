@@ -48,7 +48,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   isLive = false,
   className = '',
   autoPlay = true,
-  muted = false,
+  muted = true,
   badgeText,
   showControls = true,
   compact = false,

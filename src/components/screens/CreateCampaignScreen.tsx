@@ -954,7 +954,7 @@ export const CreateCampaignScreen: React.FC<{
                 className="w-full h-full"
                 badgeText={selectedTargets.livestream || targetUrl.includes('/live') ? 'LIVE' : 'FYP'}
                 autoPlay={true}
-                muted={false}
+                muted={true}
                 fullSize={true}
               />
             </div>
@@ -1694,7 +1694,7 @@ export const CreateCampaignScreen: React.FC<{
                 className="w-full h-full"
                 badgeText="MEGA LIVE"
                 autoPlay={true}
-                muted={false}
+                muted={true}
                 fullSize={true}
               />
             </div>

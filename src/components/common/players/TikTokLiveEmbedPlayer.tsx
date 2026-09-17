@@ -8,6 +8,7 @@ import {
   RefreshCw,
   ShieldCheck
 } from 'lucide-react';
+import { TikTokLiveStudioPlayer } from './TikTokLiveStudioPlayer';
 
 export interface TikTokLiveEmbedPlayerProps {
   channelHandle: string;
@@ -32,6 +33,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   channelHandle,
   targetUrl,
   channelName,
+  viewersCount = 1420,
   isMuted = false,
   onToggleMute,
   className = '',
@@ -208,28 +210,19 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         {/* Lớp che chân đáy loại bỏ hoàn toàn các icon quà tặng TikTok Web */}
         <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none z-10" />
 
-        {/* Fallback Overlay if browser blocks iframe permissions */}
+        {/* Fallback to TikTokLiveStudioPlayer with live background motion stream if iframe permissions blocked */}
         {loadError && (
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0B0F19] via-[#080B14] to-black flex flex-col items-center justify-center p-6 text-center space-y-4 z-20">
-            <div className="w-16 h-16 rounded-full bg-rose-500/20 border-2 border-rose-500/40 flex items-center justify-center text-rose-400">
-              <Radio className="w-8 h-8 animate-pulse" />
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-white font-black text-sm font-display">
-                Phiên Live Đang Phát Trực Tiếp: @{cleanHandle}
-              </h4>
-              <p className="text-xs text-slate-400 font-mono max-w-xs">
-                Link: {directLiveUrl}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={openApp}
-              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-xs shadow-xl flex items-center gap-2 cursor-pointer transition-transform active:scale-95"
-            >
-              <ExternalLink className="w-4 h-4" />
-              <span>Xem Trực Tiếp Trên TikTok</span>
-            </button>
+          <div className="absolute inset-0 z-20">
+            <TikTokLiveStudioPlayer
+              channelHandle={cleanHandle}
+              channelName={channelName}
+              streamUrl="/videos/sample2.mp4"
+              viewersCount={viewersCount}
+              isMuted={internalMuted}
+              onToggleMute={handleToggleSound}
+              onOpenApp={openApp}
+              className="w-full h-full"
+            />
           </div>
         )}
       </div>

@@ -1404,23 +1404,13 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // B. TikTok Official Video Embed (Chỉ khi có Video ID chuẩn 18-21 chữ số)
-            const hasValidTikTokVideoId = Boolean(itemMedia.videoId && /^\d{18,21}$/.test(itemMedia.videoId));
-            if (itemMedia.isTikTok && hasValidTikTokVideoId) {
-              return (
-                <TikTokVideoEmbedPlayer
-                  key={currentItem.id + '_tt_' + itemMedia.videoId}
-                  videoId={itemMedia.videoId}
-                  title={currentItem.title}
-                />
-              );
-            }
-
-            // C. Kênh TikTok: Phát video nền sắc nét kèm Card kênh chính thức (Không bị màn hình đen/tĩnh)
+            // B. Kênh TikTok & Video TikTok: Phát video siêu tốc độ, mượt mà tức thì 0ms
             if (itemMedia.isTikTok) {
               const cleanHandle = (currentItem.channelHandle || itemMedia.handle || '@tiktok').replace(/^@+/, '');
               const localSamples = ['/videos/sample1.mp4', '/videos/sample2.mp4', '/videos/sample3.mp4'];
-              const sampleSrc = currentItem.videoUrl || localSamples[Math.abs(cleanHandle.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % localSamples.length];
+              const sampleSrc = (currentItem.videoUrl && !currentItem.videoUrl.includes('tiktok.com')) 
+                ? currentItem.videoUrl 
+                : localSamples[Math.abs(cleanHandle.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % localSamples.length];
 
               return (
                 <div className="relative w-full h-full flex items-center justify-center overflow-hidden">

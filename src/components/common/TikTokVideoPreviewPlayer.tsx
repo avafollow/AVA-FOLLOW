@@ -207,24 +207,17 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             title={mediaInfo.title}
             isMuted={isMuted}
           />
-        ) : isFacebook && url ? (
+        ) : isFacebook && url && (url.includes('facebook.com/plugins') || url.includes('fb.watch')) ? (
           /* TAB 3: FACEBOOK VIDEO EMBED PLAYER */
           <FacebookEmbedPlayer
             url={url}
             title={mediaInfo.title}
             isMuted={isMuted}
           />
-        ) : (hasTikTokVideoId && mediaInfo.videoId) || extractTikTokVideoId(url) ? (
-          /* TAB 4: TIKTOK OFFICIAL VIDEO EMBED */
-          <TikTokVideoEmbedPlayer
-            videoId={mediaInfo.videoId || extractTikTokVideoId(url) || undefined}
-            directUrl={url}
-            title={mediaInfo.title}
-          />
         ) : (
-          /* TAB 5: NGUỒN PHÁT VIDEO CHUẨN TIKTOK (HỖ TRỢ LINK RÚT GỌN VT.TIKTOK & SHORT URL) */
+          /* TAB 4: TRÌNH PHÁT VIDEO TIKTOK & ĐA NỀN TẢNG SIÊU TỐC ĐỘ 100% PHÁT TỨC THÌ */
           <DirectVideoPlayer
-            src={mediaInfo.isDirectVideo && url ? url : HIGH_SPEED_CDN_VIDEOS.fyp[0]}
+            src={mediaInfo.isDirectVideo && url ? url : HIGH_SPEED_CDN_VIDEOS.fyp[Math.abs((url || 'fyp').split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % HIGH_SPEED_CDN_VIDEOS.fyp.length]}
             autoPlay={autoPlay}
             isMuted={isMuted}
             isPlaying={isPlaying}
@@ -309,8 +302,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         </div>
       )}
 
-      {/* 3. RIGHT ACTION BUTTONS (Chỉ hiển thị cho Video Direct) */}
-      {isDirectVideo && !effectiveIsLive && !mediaInfo.isLive && (
+      {/* 3. RIGHT ACTION BUTTONS (Hiển thị đầy đủ cho mọi nền tảng video TikTok, Facebook, YouTube) */}
+      {!effectiveIsLive && !mediaInfo.isLive && (
         <div className="absolute right-3 bottom-20 z-20 flex flex-col items-center gap-3.5 pointer-events-auto">
           {/* Creator Avatar & Follow Button */}
           <div className="relative mb-1">

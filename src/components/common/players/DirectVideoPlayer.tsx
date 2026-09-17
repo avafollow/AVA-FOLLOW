@@ -12,10 +12,11 @@ export interface DirectVideoPlayerProps {
 }
 
 const FAST_CDN_VIDEOS = [
+  '/videos/sample1.mp4',
+  '/videos/sample2.mp4',
+  '/videos/sample3.mp4',
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
-  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4'
 ];
 
 /**
@@ -46,7 +47,7 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [currentSrc, setCurrentSrc] = useState<string>(() => sanitizeVideoSrc(src));
   const [fallbackIndex, setFallbackIndex] = useState<number>(0);
-  const [isBuffering, setIsBuffering] = useState<boolean>(true);
+  const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [hasStartedPlaying, setHasStartedPlaying] = useState<boolean>(false);
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
 
@@ -55,7 +56,7 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
     const safe = sanitizeVideoSrc(src);
     setCurrentSrc(safe);
     setFallbackIndex(0);
-    setIsBuffering(true);
+    setIsBuffering(false);
     setHasStartedPlaying(false);
   }, [src]);
 

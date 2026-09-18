@@ -232,35 +232,43 @@ export const CreateCampaignScreen: React.FC<{
   const dynamicTargetLabels = getTargetLabels(campaignPlatform);
 
   // Xử lý thông minh khi người dùng dán link video TikTok, live hoặc ID kênh: phát live tức thì
+  // Xử lý thông minh khi người dùng dán link video TikTok, YouTube, Facebook, live hoặc ID kênh: phát tức thì
   const handleTargetUrlChange = (inputVal: string) => {
-    setTargetUrl(inputVal);
-    const trimmed = inputVal.trim();
-    if (!trimmed) return;
+    let cleanVal = (inputVal || '').trim();
+    
+    // Nếu người dùng dán đè lên chuỗi cũ (chứa nhiều http/https), chỉ lấy URL cuối cùng hợp lệ
+    if ((cleanVal.match(/https?:\/\//gi) || []).length > 1) {
+      const parts = cleanVal.split(/(?=https?:\/\/)/i);
+      cleanVal = parts[parts.length - 1].trim();
+    }
 
-    const lower = trimmed.toLowerCase();
+    setTargetUrl(cleanVal);
+    if (!cleanVal) return;
+
+    const lower = cleanVal.toLowerCase();
     if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
       setCampaignPlatform('youtube');
       showToast('🔴 Đã nhận diện đường link YouTube! Tự động chuyển chế độ YouTube.');
     } else if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.com')) {
       setCampaignPlatform('facebook');
       showToast('📘 Đã nhận diện đường link Facebook! Tự động chuyển chế độ Fanpage/Reels Facebook.');
-    } else if (lower.includes('tiktok.com')) {
+    } else if (lower.includes('tiktok.com') || lower.includes('vt.tiktok.com')) {
       setCampaignPlatform('tiktok');
       showToast('🎵 Đã nhận diện đường link TikTok! Tự động chuyển chế độ TikTok.');
     }
 
     // Trích xuất @handle từ URL nếu có
-    const match = trimmed.match(/@([a-zA-Z0-9_.-]+)/);
+    const match = cleanVal.match(/@([a-zA-Z0-9_.-]+)/);
     if (match && match[1]) {
       setChannelHandle(`@${match[1]}`);
-    } else if (trimmed.startsWith('@')) {
-      setChannelHandle(trimmed);
-    } else if (!trimmed.includes('http') && !trimmed.includes('/') && trimmed.length > 2) {
-      setChannelHandle(`@${trimmed}`);
+    } else if (cleanVal.startsWith('@')) {
+      setChannelHandle(cleanVal);
+    } else if (!cleanVal.includes('http') && !cleanVal.includes('/') && cleanVal.length > 2) {
+      setChannelHandle(`@${cleanVal}`);
     }
 
     // Tự động nhận diện link Live (TikTok / YouTube / Facebook Live) vs Video thường và phát tức thì
-    const isLiveUrl = trimmed.includes('/live') || trimmed.toLowerCase().includes('live');
+    const isLiveUrl = cleanVal.includes('/live') || cleanVal.toLowerCase().includes('live');
     if (isLiveUrl) {
       setSelectedTargets(prev => ({
         ...prev,
@@ -276,6 +284,20 @@ export const CreateCampaignScreen: React.FC<{
       }));
       showToast('🎬 Đã nhận diện đường link Video! Đang phát video tức thì...');
     }
+  };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+          handleTargetUrlChange(text.trim());
+          showToast('📋 Đã dán đường link từ bộ nhớ tạm thành công!');
+          return;
+        }
+      }
+    } catch {}
+    showToast('💡 Hãy bấm giữ ô nhập liệu và chọn Dán (Paste) nhé!');
   };
 
   // Cập nhật handle kênh chính xác
@@ -847,24 +869,38 @@ export const CreateCampaignScreen: React.FC<{
                   🔥 DÁN LINK TẠI ĐÂY
                 </span>
               </div>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <input
                   type="text"
                   value={targetUrl}
                   onChange={(e) => handleTargetUrlChange(e.target.value)}
-                  onPaste={(e) => {
-                    const text = e.clipboardData?.getData('text');
-                    if (text) {
-                      setTimeout(() => handleTargetUrlChange(text), 0);
-                    }
-                  }}
                   placeholder="👉 Dán link video TikTok, YouTube, Facebook hoặc phiên Live chính thức..."
-                  className="w-full bg-black/80 border-2 border-rose-500/70 hover:border-rose-400 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/20 rounded-2xl px-4 py-3.5 sm:py-4 text-white placeholder-slate-400 font-mono text-xs sm:text-sm font-bold transition-all shadow-inner"
+                  className="w-full bg-black/80 border-2 border-rose-500/70 hover:border-rose-400 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/20 rounded-2xl px-4 py-3.5 sm:py-4 pr-24 text-white placeholder-slate-400 font-mono text-xs sm:text-sm font-bold transition-all shadow-inner"
                   required
                 />
+                <div className="absolute right-2.5 flex items-center gap-1">
+                  {targetUrl && (
+                    <button
+                      type="button"
+                      onClick={() => handleTargetUrlChange('')}
+                      className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white text-xs font-bold transition-all cursor-pointer"
+                      title="Xóa link"
+                    >
+                      ✕
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handlePasteFromClipboard}
+                    className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-[11px] font-mono font-bold shadow-md cursor-pointer transition-all active:scale-95 flex items-center gap-1"
+                    title="Dán từ bộ nhớ tạm"
+                  >
+                    <span>📋 Dán</span>
+                  </button>
+                </div>
               </div>
               <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                <span className="text-[10px] text-slate-400 font-mono font-bold">Dán nhanh:</span>
+                <span className="text-[10px] text-slate-400 font-mono font-bold">Dán mẫu:</span>
                 <button
                   type="button"
                   onClick={() => handleTargetUrlChange('https://www.tiktok.com/@vtv24news/video/7178345719323135259')}

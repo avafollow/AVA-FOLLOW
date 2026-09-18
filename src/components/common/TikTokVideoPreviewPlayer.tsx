@@ -193,17 +193,6 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
           />
         )}
 
-        {/* Nút Nhắc Bật Âm Thanh Trên Thiết Bị Di Động */}
-        {isMuted && !effectiveIsLive && (
-          <button
-            type="button"
-            onClick={toggleMute}
-            className="absolute top-14 sm:top-16 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-black/80 hover:bg-black/95 text-white font-mono font-bold text-[10px] border border-white/20 shadow-2xl flex items-center gap-1.5 backdrop-blur-md active:scale-95 transition-all cursor-pointer animate-pulse"
-          >
-            <VolumeX className="w-3.5 h-3.5 text-amber-400" />
-            <span>Chạm để BẬT ÂM THANH 🔊</span>
-          </button>
-        )}
       </div>
 
       {/* 2. TOP HEADER BAR: SOUND CONTROLS & SWITCHER (Chỉ hiển thị cho Video thường, ẩn khi Live để tránh trùng lặp đè 2 lớp) */}
@@ -272,8 +261,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
 
       {/* 4. BOTTOM INFO & CHANNEL/FANPAGE BANNER (Hiển thị cho tất cả nền tảng: YouTube, Facebook, TikTok) */}
       {!effectiveIsLive && !mediaInfo.isLive && (
-        <div className="absolute bottom-3 left-3 right-3 z-30 pointer-events-auto">
-          <div className="p-2.5 rounded-2xl bg-black/85 backdrop-blur-md border border-white/20 shadow-2xl flex items-center justify-between gap-2.5">
+        <div className="absolute bottom-3 left-3 right-3 z-30 pointer-events-none">
+          <div className="p-2.5 rounded-2xl bg-black/85 backdrop-blur-md border border-white/20 shadow-2xl flex items-center justify-between gap-2.5 pointer-events-auto">
             <div 
               onClick={openUserMedia}
               className="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-90 transition-opacity"

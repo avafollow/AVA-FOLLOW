@@ -153,11 +153,12 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
         key={`tt-embed-${effectiveId}`}
         src={iframeSrc}
         title={title}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
         allowFullScreen
         onLoad={triggerPlayAndSound}
         onError={() => setHasError(true)}
         className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
+        style={{ width: '100%', height: '100%', border: 'none' }}
       />
     </div>
   );

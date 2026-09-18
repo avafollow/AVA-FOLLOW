@@ -296,21 +296,89 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     isBoosted: true
   } : null;
 
-  // CHỈ HIỂN THỊ 100% CHIẾN DỊCH THẬT ĐANG CHẠY (ĐÃ XÓA TOÀN BỘ VIDEO & LIVE DEMO ẢO)
-  const allFeedDeduplicated = deduplicateAndSortFeed([
+  // 2. Toàn bộ Nhiệm Vụ Thật Từ Tasks & Livestream Tasks (Đồng bộ tức thì lên Feed)
+  const tasksFeedItems: UnifiedFeedItem[] = (tasks || [])
+    .filter(t => t.status === 'open' && (t.remainingSlots || 0) > 0 && !userCompletedActions?.[t.id])
+    .map(t => {
+      const parsed = parseMediaUrl(t.targetUrl || t.videoPreviewUrl || '', t.channelHandle);
+      const isLive = t.type === 'livestream' || parsed.isLive;
+      return {
+        id: t.id,
+        kind: isLive ? 'livestream' : 'video',
+        title: t.title,
+        type: t.type,
+        requiresWatch: t.requiresWatch || isLive,
+        channelName: t.channelName || t.channelHandle,
+        channelHandle: t.channelHandle,
+        channelAvatar: t.channelAvatar || getTikTokAvatar(t.channelHandle),
+        targetUrl: t.targetUrl,
+        rewardCoins: t.rewardCoins,
+        videoUrl: t.videoPreviewUrl || parsed.streamUrl,
+        sampleComments: t.sampleComments || [
+          'Ủng hộ kênh bạn nhé ❤️',
+          'Nội dung rất hay và chất lượng!',
+          'Đã tương tác đầy đủ cho kênh!'
+        ],
+        guide: t.guide || 'Tương tác thật 100% để nhận Xu thưởng vào ví.',
+        campaignCategory: t.campaignCategory || 'partner',
+        partnerName: t.partnerName || 'Chiến Dịch Đối Tác',
+        partnerBadge: t.partnerBadge || (isLive ? '🔴 Live Thật' : 'Nhiệm Vụ Thật'),
+        totalSlots: t.totalSlots,
+        remainingSlots: t.remainingSlots,
+        isUrgent: t.isUrgent,
+        isBoosted: false
+      };
+    });
+
+  const liveTasksFeedItems: UnifiedFeedItem[] = (livestreamTasks || [])
+    .filter(l => l.status === 'live' && !l.isLocked)
+    .map(l => ({
+      id: l.id,
+      kind: 'livestream',
+      title: l.roomTitle || `🔴 LIVE STREAM: ${l.channelHandle}`,
+      type: 'livestream',
+      requiresWatch: true,
+      channelName: l.channelName || l.channelHandle,
+      channelHandle: l.channelHandle,
+      channelAvatar: l.channelAvatar || getTikTokAvatar(l.channelHandle),
+      targetUrl: l.targetUrl || `https://www.tiktok.com/@${(l.channelHandle || '').replace(/^@+/, '')}/live`,
+      rewardCoins: l.totalRewardCoins || 500,
+      videoUrl: l.targetUrl,
+      sampleComments: [
+        'Livestream cuốn quá bạn ơi!',
+        'Đã thả tim và ủng hộ phiên live ❤️',
+        'Chúc phiên live bùng nổ doanh số!'
+      ],
+      guide: `Xem phiên live ${l.targetMinutes || 3} phút để nhận +${(l.totalRewardCoins || 500).toLocaleString()} Xu.`,
+      currentViewers: l.currentViewers || 1420,
+      roomTitle: l.roomTitle,
+      targetMinutes: l.targetMinutes || 3,
+      campaignCategory: 'partner',
+      partnerName: l.channelName || l.channelHandle,
+      partnerBadge: '🔴 Live Thật 100%',
+      totalSlots: 1000,
+      remainingSlots: 999,
+      isUrgent: true,
+      isBoosted: true
+    }));
+
+  const allRawFeedItems: UnifiedFeedItem[] = [
     ...(customTestItem ? [customTestItem] : []),
-    ...createdCampaignFeedItems
-  ]);
+    ...createdCampaignFeedItems,
+    ...tasksFeedItems,
+    ...liveTasksFeedItems
+  ];
 
-  const missionsFeedDeduplicated = deduplicateAndSortFeed([
-    ...(customTestItem && customTestItem.kind === 'video' ? [customTestItem] : []),
-    ...createdCampaignFeedItems.filter(i => i.kind === 'video')
-  ]);
+  // CHỈ HIỂN THỊ 100% CHIẾN DỊCH & NHIỆM VỤ THẬT ĐANG CHẠY (ĐỒNG BỘ 100% TỪ MỌI NỀN TẢNG)
+  const allFeedDeduplicated = deduplicateAndSortFeed(allRawFeedItems);
 
-  const liveFeedDeduplicated = deduplicateAndSortFeed([
-    ...(customTestItem && customTestItem.kind === 'livestream' ? [customTestItem] : []),
-    ...createdCampaignFeedItems.filter(i => i.kind === 'livestream')
-  ]);
+  const missionsFeedDeduplicated = deduplicateAndSortFeed(
+    allRawFeedItems.filter(i => i.kind === 'video')
+  );
+
+  const liveFeedDeduplicated = deduplicateAndSortFeed(
+    allRawFeedItems.filter(i => i.kind === 'livestream')
+  );
 
   const partnerFeedDeduplicated = allFeedDeduplicated;
   const crossFeedDeduplicated = allFeedDeduplicated.filter(i => i.type === 'follow');

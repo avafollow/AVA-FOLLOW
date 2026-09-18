@@ -116,13 +116,13 @@ export function extractTikTokVideoId(url: string): string | null {
   }
   
   // 2. /video/12345... hoặc /v/12345... hoặc /embed/v2/12345... hoặc /embed/12345... hoặc /share/video/12345...
-  const match = clean.match(/\/(?:video|v|embed\/v2|embed|share\/video)\/(\d{10,24})/i);
+  const match = clean.match(/\/(?:video|v|embed\/v2|embed|player\/v1|share\/video)\/(\d{10,24})/i);
   if (match && match[1]) {
     return match[1];
   }
 
-  // 3. Query param ?item_id=123... hoặc ?video_id=123...
-  const paramMatch = clean.match(/[?&](?:item_id|video_id|mid)=(\d{10,24})/i);
+  // 3. Query param ?item_id=123... hoặc ?video_id=123... hoặc &id=123...
+  const paramMatch = clean.match(/[?&](?:item_id|video_id|mid|id)=(\d{10,24})/i);
   if (paramMatch && paramMatch[1]) {
     return paramMatch[1];
   }
@@ -133,9 +133,9 @@ export function extractTikTokVideoId(url: string): string | null {
     return matchAny[1];
   }
 
-  // 5. Chuỗi bất kỳ chứa dãy số 18-20 chữ số trong URL tiktok
+  // 5. Chuỗi bất kỳ chứa dãy số 12-24 chữ số trong URL tiktok
   if (clean.includes('tiktok.com')) {
-    const longDigits = clean.match(/(\d{18,21})/);
+    const longDigits = clean.match(/(\d{12,24})/);
     if (longDigits && longDigits[1]) {
       return longDigits[1];
     }
@@ -148,10 +148,13 @@ export function extractTikTokVideoId(url: string): string | null {
 export function extractYouTubeVideoId(url: string): string | null {
   if (!url) return null;
   const clean = url.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) return clean;
   const match = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|live\/))([a-zA-Z0-9_-]{11})/i);
   if (match && match[1]) return match[1];
   const paramMatch = clean.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
   if (paramMatch && paramMatch[1]) return paramMatch[1];
+  const shortMatch = clean.match(/shorts\/([a-zA-Z0-9_-]{11})/i);
+  if (shortMatch && shortMatch[1]) return shortMatch[1];
   return null;
 }
 

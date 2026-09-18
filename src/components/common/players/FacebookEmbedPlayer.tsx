@@ -25,9 +25,10 @@ export const FacebookEmbedPlayer: React.FC<FacebookEmbedPlayerProps> = ({
         key={`fb-embed-${encodeURIComponent(url)}`}
         src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=${isMuted ? 1 : 0}&allowfullscreen=true`}
         title={title}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allow="autoplay *; clipboard-write; encrypted-media *; picture-in-picture *; web-share; fullscreen"
         allowFullScreen
         className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
+        style={{ width: '100%', height: '100%', border: 'none' }}
       />
     </div>
   );

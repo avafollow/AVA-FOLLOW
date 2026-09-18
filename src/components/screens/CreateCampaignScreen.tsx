@@ -278,15 +278,9 @@ export const CreateCampaignScreen: React.FC<{
     }
   };
 
-  // Đồng bộ hai chiều khi thay đổi handle kênh
+  // Cập nhật handle kênh chính xác
   const handleChannelHandleChange = (inputVal: string) => {
     setChannelHandle(inputVal);
-    const clean = inputVal.trim().replace(/^@+/, '');
-    if (clean.length >= 2) {
-      if (!targetUrl || targetUrl.includes('tiktok.com/@') || targetUrl === 'https://www.tiktok.com/@vtv24news/video/7178345719323135259') {
-        setTargetUrl(`https://www.tiktok.com/@${clean}`);
-      }
-    }
   };
 
   // Flexible Livestream Duration state (minutes: 1, 3, 10, 30, 60)

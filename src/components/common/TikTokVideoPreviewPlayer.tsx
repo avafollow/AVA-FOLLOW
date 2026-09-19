@@ -126,7 +126,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full h-full min-h-[380px] sm:min-h-[480px] rounded-3xl overflow-hidden bg-black border border-white/20 shadow-2xl group select-none flex flex-col ${className}`}
+      className={`relative w-full h-full min-h-[500px] sm:min-h-[560px] rounded-3xl overflow-hidden bg-black border border-white/20 shadow-2xl group select-none flex flex-col ${className}`}
     >
       {/* 1. TẬP HỢP CÁC TRÌNH PHÁT RIÊNG BIỆT */}
       <div className="relative w-full h-full flex-1 overflow-hidden bg-black flex items-center justify-center">

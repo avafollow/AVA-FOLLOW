@@ -967,9 +967,9 @@ export const CreateCampaignScreen: React.FC<{
             </span>
           </div>
 
-          <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 bg-black/90 p-4 sm:p-6 rounded-3xl border border-white/15 shadow-2xl">
-            {/* Khung phát video to đúng kích thước chuẩn TikTok 9:16 trên mọi thiết bị */}
-            <div className="w-full max-w-[340px] h-[460px] sm:h-[560px] lg:h-[620px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-rose-500/40 relative bg-black">
+          <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 bg-black/90 p-3.5 sm:p-6 rounded-3xl border border-white/15 shadow-2xl">
+            {/* Khung phát video to đúng chuẩn kích thước 9:16 trên điện thoại di động & máy tính */}
+            <div className="w-full max-w-full sm:max-w-[380px] lg:max-w-[380px] aspect-[9/16] min-h-[520px] sm:min-h-[580px] lg:h-[640px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-rose-500/60 ring-4 ring-rose-500/15 relative bg-black transition-all">
               <TikTokVideoPreviewPlayer
                 key={`preview-${targetUrl}-${channelHandle}-${selectedTargets.livestream ? 'live' : 'vod'}`}
                 url={targetUrl}

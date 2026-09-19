@@ -39,7 +39,7 @@ import {
 import { CampaignItem, FLEXIBLE_LIVESTREAM_TIERS, MultiTargetConfig } from '../../types';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TikTokVideoPreviewPlayer } from '../common/TikTokVideoPreviewPlayer';
-import { getTikTokAvatar } from '../../data/videoSources';
+import { getTikTokAvatar, sanitizeMediaUrl, extractTikTokHandle } from '../../data/videoSources';
 
 interface TargetOptionDef {
   id: 'follow' | 'watch' | 'like' | 'comment' | 'share' | 'livestream' | 'booking_review';
@@ -234,33 +234,27 @@ export const CreateCampaignScreen: React.FC<{
   // Xử lý thông minh khi người dùng dán link video TikTok, live hoặc ID kênh: phát live tức thì
   // Xử lý thông minh khi người dùng dán link video TikTok, YouTube, Facebook, live hoặc ID kênh: phát tức thì
   const handleTargetUrlChange = (inputVal: string) => {
-    let cleanVal = (inputVal || '').trim();
+    const cleanVal = sanitizeMediaUrl(inputVal || '');
     
-    // Nếu người dùng dán đè lên chuỗi cũ (chứa nhiều http/https), chỉ lấy URL cuối cùng hợp lệ
-    if ((cleanVal.match(/https?:\/\//gi) || []).length > 1) {
-      const parts = cleanVal.split(/(?=https?:\/\/)/i);
-      cleanVal = parts[parts.length - 1].trim();
-    }
-
     setTargetUrl(cleanVal);
     if (!cleanVal) return;
 
     const lower = cleanVal.toLowerCase();
-    if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+    if (lower.includes('youtube.com') || lower.includes('youtu.be') || lower.includes('m.youtube.com')) {
       setCampaignPlatform('youtube');
       showToast('🔴 Đã nhận diện đường link YouTube! Tự động chuyển chế độ YouTube.');
-    } else if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.com')) {
+    } else if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.com') || lower.includes('fb.gg') || lower.includes('m.facebook.com')) {
       setCampaignPlatform('facebook');
       showToast('📘 Đã nhận diện đường link Facebook! Tự động chuyển chế độ Fanpage/Reels Facebook.');
-    } else if (lower.includes('tiktok.com') || lower.includes('vt.tiktok.com')) {
+    } else if (lower.includes('tiktok.com') || lower.includes('vt.tiktok.com') || lower.includes('vm.tiktok.com') || lower.includes('m.tiktok.com')) {
       setCampaignPlatform('tiktok');
       showToast('🎵 Đã nhận diện đường link TikTok! Tự động chuyển chế độ TikTok.');
     }
 
     // Trích xuất @handle từ URL nếu có
-    const match = cleanVal.match(/@([a-zA-Z0-9_.-]+)/);
-    if (match && match[1]) {
-      setChannelHandle(`@${match[1]}`);
+    const extractedHandle = extractTikTokHandle(cleanVal);
+    if (extractedHandle && extractedHandle !== '@creator_vietnam') {
+      setChannelHandle(extractedHandle);
     } else if (cleanVal.startsWith('@')) {
       setChannelHandle(cleanVal);
     } else if (!cleanVal.includes('http') && !cleanVal.includes('/') && cleanVal.length > 2) {

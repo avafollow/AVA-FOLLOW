@@ -44,21 +44,72 @@ export const HIGH_SPEED_CDN_VIDEOS = {
   ]
 };
 
-// Nhận diện nền tảng từ URL
-export function detectPlatform(url: string): 'tiktok' | 'facebook' | 'youtube' | 'direct' {
-  if (!url) return 'tiktok';
-  const clean = url.toLowerCase().trim();
-  if (clean.includes('youtube.com') || clean.includes('youtu.be')) return 'youtube';
-  if (clean.includes('facebook.com') || clean.includes('fb.watch') || clean.includes('fb.com')) return 'facebook';
-  if (clean.includes('tiktok.com') || clean.includes('vt.tiktok.com')) return 'tiktok';
-  if (/\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i.test(clean)) return 'direct';
+/**
+ * Làm sạch và chuẩn hóa đường link dán từ thiết bị di động / máy tính.
+ * Xử lý hoàn hảo các trường hợp:
+ * 1. Dán từ nút Share trên app điện thoại (kèm text giới thiệu phía trước/sau)
+ * 2. Dán đè lên URL cũ
+ * 3. Ký tự query parameters thừa
+ */
+export function sanitizeMediaUrl(rawInput: string): string {
+  if (!rawInput) return '';
+  let text = rawInput.trim();
+
+  // 1. Nếu chuỗi chứa URL http/https, trích xuất URL cuối cùng
+  const urlMatches = text.match(/https?:\/\/[^\s<>"'{}|\^~\[\]`]+/gi);
+  if (urlMatches && urlMatches.length > 0) {
+    text = urlMatches[urlMatches.length - 1].trim();
+  }
+
+  // 2. Loại bỏ dấu ngoặc đơn, chấm câu thừa ở đuôi URL
+  text = text.replace(/[\)\]\>\"\'\,\.\;\:\!\?]+$/, '');
+
+  return text;
+}
+
+// Nhận diện nền tảng từ URL (hỗ trợ đầy đủ link di động)
+export function detectPlatform(rawUrl: string): 'tiktok' | 'facebook' | 'youtube' | 'direct' {
+  if (!rawUrl) return 'tiktok';
+  const clean = sanitizeMediaUrl(rawUrl).toLowerCase();
+  
+  if (
+    clean.includes('youtube.com') || 
+    clean.includes('youtu.be') || 
+    clean.includes('m.youtube.com')
+  ) {
+    return 'youtube';
+  }
+
+  if (
+    clean.includes('facebook.com') || 
+    clean.includes('fb.watch') || 
+    clean.includes('fb.com') || 
+    clean.includes('fb.gg') ||
+    clean.includes('m.facebook.com')
+  ) {
+    return 'facebook';
+  }
+
+  if (
+    clean.includes('tiktok.com') || 
+    clean.includes('vt.tiktok.com') || 
+    clean.includes('vm.tiktok.com') ||
+    clean.includes('m.tiktok.com')
+  ) {
+    return 'tiktok';
+  }
+
+  if (/\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i.test(clean)) {
+    return 'direct';
+  }
+
   return 'tiktok';
 }
 
-// Hàm trích xuất @handle từ URL bất kỳ
+// Hàm trích xuất @handle từ URL bất kỳ (bao gồm link chia sẻ từ điện thoại)
 export function extractTikTokHandle(rawUrlOrHandle: string): string {
   if (!rawUrlOrHandle) return '@creator_vietnam';
-  const clean = rawUrlOrHandle.trim();
+  const clean = sanitizeMediaUrl(rawUrlOrHandle);
   
   if (clean.startsWith('http://') || clean.startsWith('https://')) {
     // 1. TikTok standard @username
@@ -67,11 +118,12 @@ export function extractTikTokHandle(rawUrlOrHandle: string): string {
       return `@${match[1]}`;
     }
 
-    // 2. TikTok short links (vt.tiktok.com or vm.tiktok.com)
-    if (clean.includes('vt.tiktok.com') || clean.includes('vm.tiktok.com')) {
-      const codeMatch = clean.match(/tiktok\.com\/([a-zA-Z0-9_\.\-]+)/i);
+    // 2. TikTok short links từ app điện thoại (vt.tiktok.com, vm.tiktok.com, tiktok.com/t)
+    if (clean.includes('vt.tiktok.com') || clean.includes('vm.tiktok.com') || clean.includes('tiktok.com/t/')) {
+      const codeMatch = clean.match(/tiktok\.com\/(?:t\/)?([a-zA-Z0-9_\.\-]+)/i);
       if (codeMatch && codeMatch[1]) {
-        return `@tiktok_${codeMatch[1].toLowerCase().replace(/[^a-z0-9_]/g, '')}`;
+        const tag = codeMatch[1].toLowerCase().replace(/[^a-z0-9_]/g, '');
+        return `@tiktok_${tag || 'creator'}`;
       }
       return '@creator_tiktok';
     }
@@ -82,15 +134,15 @@ export function extractTikTokHandle(rawUrlOrHandle: string): string {
       return `@${ytMatch[1]}`;
     }
 
-    // 4. YouTube channel / user
+    // 4. YouTube channel / user / c
     const ytChannelMatch = clean.match(/youtube\.com\/(?:c|channel|user)\/([a-zA-Z0-9_\.\-]+)/i);
     if (ytChannelMatch && ytChannelMatch[1]) {
       return `@${ytChannelMatch[1]}`;
     }
 
-    // 5. Facebook page / user
+    // 5. Facebook page / user / profile
     const fbMatch = clean.match(/facebook\.com\/([a-zA-Z0-9_\.\-]+)/i);
-    if (fbMatch && fbMatch[1] && !['watch', 'reel', 'videos', 'share', 'groups', 'stories', 'events', 'photo'].includes(fbMatch[1].toLowerCase())) {
+    if (fbMatch && fbMatch[1] && !['watch', 'reel', 'videos', 'share', 'groups', 'stories', 'events', 'photo', 'profile.php'].includes(fbMatch[1].toLowerCase())) {
       return `@${fbMatch[1]}`;
     }
 
@@ -99,23 +151,23 @@ export function extractTikTokHandle(rawUrlOrHandle: string): string {
 
   // Nếu đã có dạng @username
   if (clean.startsWith('@')) {
-    return clean.split(/[\/\?]/)[0];
+    return clean.split(/[\/\?\#]/)[0];
   }
 
   return `@${clean}`;
 }
 
-// Hàm trích xuất Video ID từ TikTok URL
-export function extractTikTokVideoId(url: string): string | null {
-  if (!url) return null;
-  const clean = url.trim();
+// Hàm trích xuất Video ID từ TikTok URL (hỗ trợ tất cả định dạng di động & máy tính)
+export function extractTikTokVideoId(rawUrl: string): string | null {
+  if (!rawUrl) return null;
+  const clean = sanitizeMediaUrl(rawUrl);
   
   // 1. Dạng số thuần túy (10-24 chữ số)
   if (/^\d{10,24}$/.test(clean)) {
     return clean;
   }
   
-  // 2. /video/12345... hoặc /v/12345... hoặc /embed/v2/12345... hoặc /embed/12345... hoặc /share/video/12345...
+  // 2. /video/12345... hoặc /v/12345... hoặc /embed/v2/12345... hoặc /share/video/12345...
   const match = clean.match(/\/(?:video|v|embed\/v2|embed|player\/v1|share\/video)\/(\d{10,24})/i);
   if (match && match[1]) {
     return match[1];
@@ -127,13 +179,19 @@ export function extractTikTokVideoId(url: string): string | null {
     return paramMatch[1];
   }
 
-  // 4. Fallback bất kỳ /video/ hoặc /v/ kèm chữ số
+  // 4. m.tiktok.com/v/12345.html
+  const mobileMatch = clean.match(/m\.tiktok\.com\/v\/(\d+)/i);
+  if (mobileMatch && mobileMatch[1]) {
+    return mobileMatch[1];
+  }
+
+  // 5. Fallback bất kỳ /video/ hoặc /v/ kèm chữ số
   const matchAny = clean.match(/\/(?:video|v)\/(\d+)/i);
   if (matchAny && matchAny[1] && matchAny[1].length >= 8) {
     return matchAny[1];
   }
 
-  // 5. Chuỗi bất kỳ chứa dãy số 12-24 chữ số trong URL tiktok
+  // 6. Chuỗi bất kỳ chứa dãy số 12-24 chữ số trong URL tiktok
   if (clean.includes('tiktok.com')) {
     const longDigits = clean.match(/(\d{12,24})/);
     if (longDigits && longDigits[1]) {
@@ -144,29 +202,38 @@ export function extractTikTokVideoId(url: string): string | null {
   return null;
 }
 
-// Hàm trích xuất Video ID từ YouTube URL (watch, shorts, live, youtu.be, embed)
-export function extractYouTubeVideoId(url: string): string | null {
-  if (!url) return null;
-  const clean = url.trim();
+// Hàm trích xuất Video ID từ YouTube URL (watch, shorts, live, youtu.be, embed, mobile)
+export function extractYouTubeVideoId(rawUrl: string): string | null {
+  if (!rawUrl) return null;
+  const clean = sanitizeMediaUrl(rawUrl);
+  
+  // 1. ID 11 ký tự thuần
   if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) return clean;
-  const match = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|live\/))([a-zA-Z0-9_-]{11})/i);
-  if (match && match[1]) return match[1];
-  const paramMatch = clean.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
-  if (paramMatch && paramMatch[1]) return paramMatch[1];
-  const shortMatch = clean.match(/shorts\/([a-zA-Z0-9_-]{11})/i);
-  if (shortMatch && shortMatch[1]) return shortMatch[1];
+  
+  // 2. youtu.be/ID (có thể có ?si=...)
+  const youtuBeMatch = clean.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i);
+  if (youtuBeMatch && youtuBeMatch[1]) return youtuBeMatch[1];
+  
+  // 3. /watch?v=ID hoặc ?v=ID hoặc &v=ID
+  const vMatch = clean.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
+  if (vMatch && vMatch[1]) return vMatch[1];
+
+  // 4. /shorts/ID, /live/ID, /embed/ID, /v/ID
+  const pathMatch = clean.match(/\/(?:shorts|live|embed|v)\/([a-zA-Z0-9_-]{11})/i);
+  if (pathMatch && pathMatch[1]) return pathMatch[1];
+
   return null;
 }
 
 // Phân tích toàn diện URL dán vào để trả về bộ thông tin stream & embed
 export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedMediaInfo {
-  const url = (inputUrl || '').trim();
+  const url = sanitizeMediaUrl(inputUrl || '');
   const handle = extractTikTokHandle(url) || defaultHandle || '@creator_vietnam';
   const cleanHandle = handle.replace(/^@+/, '');
 
   const isLive = /\/(live|livestream)($|\/|\?)/i.test(url) || /tiktok\.com\/@[\w\.-]+\/live/i.test(url) || /youtube\.com\/.*\/live/i.test(url);
   const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
-  const isFacebook = url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com');
+  const isFacebook = url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com') || url.includes('fb.gg');
   const isDirectVideo = /\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i.test(url);
   const isTikTok = !isYouTube && !isFacebook && !isDirectVideo;
 
@@ -269,4 +336,5 @@ export function getPlatformAvatar(platform: 'tiktok' | 'facebook' | 'youtube' | 
 export function getTikTokAvatar(handle?: string, fallback?: string): string {
   return getPlatformAvatar('tiktok', handle, fallback);
 }
+
 

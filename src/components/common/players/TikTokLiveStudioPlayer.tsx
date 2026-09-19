@@ -46,10 +46,14 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
   const cleanHandle = (channelHandle || '@creator').replace(/^@+/, '');
   const displayName = channelName || cleanHandle;
 
-  // Auto-play video motion in background with audio support
+  const effectiveVideoSrc = (streamUrl && (streamUrl.endsWith('.mp4') || streamUrl.endsWith('.webm') || streamUrl.endsWith('.m3u8') || streamUrl.includes('blob:') || streamUrl.includes('commondatastorage')))
+    ? streamUrl
+    : '/videos/sample2.mp4';
+
+  // Auto-play video motion in background with audio support & mobile touch tolerance
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.defaultMuted = false;
+      videoRef.current.defaultMuted = isMuted;
       videoRef.current.muted = isMuted;
       videoRef.current.playsInline = true;
       const playPromise = videoRef.current.play();
@@ -62,49 +66,57 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
         });
       }
     }
-  }, [streamUrl, isMuted, isPlaying]);
+
+    const handleFirstTouch = () => {
+      if (videoRef.current && videoRef.current.paused) {
+        videoRef.current.play().catch(() => {});
+      }
+    };
+    window.addEventListener('touchstart', handleFirstTouch, { passive: true, once: true });
+    window.addEventListener('click', handleFirstTouch, { passive: true, once: true });
+    return () => {
+      window.removeEventListener('touchstart', handleFirstTouch);
+      window.removeEventListener('click', handleFirstTouch);
+    };
+  }, [effectiveVideoSrc, isMuted, isPlaying]);
 
   return (
     <div 
       className={`relative w-full h-full bg-black flex flex-col justify-between p-4 overflow-hidden select-none cursor-pointer rounded-3xl ${className}`}
       onClick={onTogglePlay}
     >
-      {/* 1. Background Live Motion Video or Studio Stage */}
-      {streamUrl && (streamUrl.endsWith('.mp4') || streamUrl.endsWith('.webm') || streamUrl.endsWith('.m3u8')) ? (
-        <video
-          ref={videoRef}
-          src={streamUrl}
-          autoPlay
-          loop
-          muted={isMuted}
-          playsInline
-          {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
-          preload="auto"
-          onCanPlay={(e) => {
-            const v = e.currentTarget;
-            if (v.paused) {
-              v.play().catch(() => {
-                v.muted = true;
-                v.play().catch(() => {});
-              });
-            }
-          }}
-          className="absolute inset-0 w-full h-full object-cover opacity-90"
-        />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A] via-[#090D16] to-[#050811]">
-          {/* Equalizer animation */}
-          <div className="absolute inset-x-0 bottom-24 flex items-end justify-center gap-1.5 opacity-30 pointer-events-none h-32">
-            {[20, 40, 65, 30, 85, 45, 90, 60, 35, 75, 95, 50, 25, 70, 80, 35].map((h, idx) => (
-              <div
-                key={idx}
-                className="w-2 bg-gradient-to-t from-rose-500 via-pink-500 to-amber-400 rounded-t-full animate-pulse"
-                style={{ height: `${h}%`, animationDelay: `${(idx * 0.12).toFixed(2)}s` }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* 1. Background Live Motion Video - Luôn phát video chuyển động sống động 100% trên Mobile & Desktop */}
+      <video
+        ref={videoRef}
+        key={effectiveVideoSrc}
+        src={effectiveVideoSrc}
+        autoPlay
+        loop
+        muted={isMuted}
+        playsInline
+        {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
+        preload="auto"
+        onCanPlay={(e) => {
+          const v = e.currentTarget;
+          if (v.paused) {
+            v.play().catch(() => {
+              v.muted = true;
+              v.play().catch(() => {});
+            });
+          }
+        }}
+        onError={(e) => {
+          // Fallback to sample3 or sample1
+          const v = e.currentTarget;
+          if (v.src.includes('sample2')) {
+            v.src = '/videos/sample3.mp4';
+          } else {
+            v.src = '/videos/sample1.mp4';
+          }
+          v.play().catch(() => {});
+        }}
+        className="absolute inset-0 w-full h-full object-cover opacity-90"
+      />
 
       {/* 2. Visual Effects & Subtle Vignette */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />

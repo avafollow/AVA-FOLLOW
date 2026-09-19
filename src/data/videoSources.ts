@@ -21,25 +21,16 @@ export interface ParsedMediaInfo {
   sourceType: 'tiktok_embed' | 'cdn_stream' | 'youtube_embed' | 'facebook_embed' | 'live_stream' | 'direct_stream';
 }
 
-// Bộ nguồn video & stream tốc độ cao cho video nền và livestream
+// Bộ nguồn CDN trực tiếp cho video & stream
 export const HIGH_SPEED_CDN_VIDEOS = {
   fyp: [
-    '/videos/sample1.mp4',
-    '/videos/sample2.mp4',
-    '/videos/sample3.mp4',
     'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4'
   ],
   livestream: [
-    '/videos/sample2.mp4',
-    '/videos/sample3.mp4',
-    '/videos/sample1.mp4',
     'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
   ],
   product_review: [
-    '/videos/sample3.mp4',
-    '/videos/sample1.mp4',
-    '/videos/sample2.mp4',
     'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
   ]
 };

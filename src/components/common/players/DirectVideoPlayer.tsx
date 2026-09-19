@@ -11,28 +11,14 @@ export interface DirectVideoPlayerProps {
   className?: string;
 }
 
-const FAST_CDN_VIDEOS = [
-  '/videos/sample1.mp4',
-  '/videos/sample2.mp4',
-  '/videos/sample3.mp4',
-  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4'
-];
-
-/**
- * Tự động chuẩn hóa URL video:
- * Ưu tiên phát nguồn video trực tiếp mượt mà, hỗ trợ fallback CDN tốc độ cao
- */
-function sanitizeVideoSrc(rawSrc?: string): string {
-  if (!rawSrc) return FAST_CDN_VIDEOS[0];
-  if (
-    rawSrc.includes('test-videos.co.uk') || 
-    rawSrc.includes('interactive-examples.mdn') || 
-    rawSrc.includes('vjs.zencdn.net')
-  ) {
-    return FAST_CDN_VIDEOS[0];
-  }
-  return rawSrc;
+export interface DirectVideoPlayerProps {
+  src: string;
+  poster?: string;
+  autoPlay?: boolean;
+  isMuted?: boolean;
+  isPlaying?: boolean;
+  onTogglePlay?: () => void;
+  className?: string;
 }
 
 export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
@@ -45,17 +31,14 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
   className = ''
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [currentSrc, setCurrentSrc] = useState<string>(() => sanitizeVideoSrc(src));
-  const [fallbackIndex, setFallbackIndex] = useState<number>(0);
+  const [currentSrc, setCurrentSrc] = useState<string>(src || '');
   const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [hasStartedPlaying, setHasStartedPlaying] = useState<boolean>(false);
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
 
   // Cập nhật khi prop src thay đổi
   useEffect(() => {
-    const safe = sanitizeVideoSrc(src);
-    setCurrentSrc(safe);
-    setFallbackIndex(0);
+    setCurrentSrc(src || '');
     setIsBuffering(false);
     setHasStartedPlaying(false);
   }, [src]);
@@ -122,13 +105,7 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
 
   // Tự động chuyển sang video CDN tiếp theo nếu video hiện tại bị lỗi
   const handleVideoError = () => {
-    const nextIdx = fallbackIndex + 1;
-    if (nextIdx < FAST_CDN_VIDEOS.length) {
-      setFallbackIndex(nextIdx);
-      setCurrentSrc(FAST_CDN_VIDEOS[nextIdx]);
-    } else {
-      setCurrentSrc(FAST_CDN_VIDEOS[0]);
-    }
+    setIsBuffering(false);
   };
 
   const handleVideoWaiting = () => {

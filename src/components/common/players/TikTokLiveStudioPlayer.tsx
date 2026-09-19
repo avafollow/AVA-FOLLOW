@@ -46,13 +46,14 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
   const cleanHandle = (channelHandle || '@creator').replace(/^@+/, '');
   const displayName = channelName || cleanHandle;
 
-  const effectiveVideoSrc = (streamUrl && (streamUrl.endsWith('.mp4') || streamUrl.endsWith('.webm') || streamUrl.endsWith('.m3u8') || streamUrl.includes('blob:') || streamUrl.includes('commondatastorage')))
-    ? streamUrl
-    : '/videos/sample2.mp4';
+  const hasDirectStream = Boolean(
+    streamUrl && 
+    (streamUrl.endsWith('.mp4') || streamUrl.endsWith('.webm') || streamUrl.endsWith('.m3u8') || streamUrl.includes('blob:') || streamUrl.includes('commondatastorage'))
+  );
 
-  // Auto-play video motion in background with audio support & mobile touch tolerance
+  // Auto-play direct video stream if real stream URL is present
   useEffect(() => {
-    if (videoRef.current) {
+    if (hasDirectStream && videoRef.current) {
       videoRef.current.defaultMuted = isMuted;
       videoRef.current.muted = isMuted;
       videoRef.current.playsInline = true;
@@ -66,57 +67,34 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
         });
       }
     }
-
-    const handleFirstTouch = () => {
-      if (videoRef.current && videoRef.current.paused) {
-        videoRef.current.play().catch(() => {});
-      }
-    };
-    window.addEventListener('touchstart', handleFirstTouch, { passive: true, once: true });
-    window.addEventListener('click', handleFirstTouch, { passive: true, once: true });
-    return () => {
-      window.removeEventListener('touchstart', handleFirstTouch);
-      window.removeEventListener('click', handleFirstTouch);
-    };
-  }, [effectiveVideoSrc, isMuted, isPlaying]);
+  }, [hasDirectStream, isMuted, isPlaying]);
 
   return (
     <div 
       className={`relative w-full h-full bg-black flex flex-col justify-between p-4 overflow-hidden select-none cursor-pointer rounded-3xl ${className}`}
       onClick={onTogglePlay}
     >
-      {/* 1. Background Live Motion Video - Luôn phát video chuyển động sống động 100% trên Mobile & Desktop */}
-      <video
-        ref={videoRef}
-        key={effectiveVideoSrc}
-        src={effectiveVideoSrc}
-        autoPlay
-        loop
-        muted={isMuted}
-        playsInline
-        {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
-        preload="auto"
-        onCanPlay={(e) => {
-          const v = e.currentTarget;
-          if (v.paused) {
-            v.play().catch(() => {
-              v.muted = true;
-              v.play().catch(() => {});
-            });
-          }
-        }}
-        onError={(e) => {
-          // Fallback to sample3 or sample1
-          const v = e.currentTarget;
-          if (v.src.includes('sample2')) {
-            v.src = '/videos/sample3.mp4';
-          } else {
-            v.src = '/videos/sample1.mp4';
-          }
-          v.play().catch(() => {});
-        }}
-        className="absolute inset-0 w-full h-full object-cover opacity-90"
-      />
+      {/* 1. Direct Stream Video (Chỉ phát khi có link stream thật, tuyệt đối không phát video demo) */}
+      {hasDirectStream ? (
+        <video
+          ref={videoRef}
+          key={streamUrl}
+          src={streamUrl}
+          autoPlay
+          loop
+          muted={isMuted}
+          playsInline
+          {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
+          preload="auto"
+          className="absolute inset-0 w-full h-full object-cover opacity-90"
+        />
+      ) : (
+        /* Sân Khấu Live Studio Chuyên Nghiệp */
+        <div className="absolute inset-0 bg-gradient-to-b from-[#11051F] via-[#090D18] to-[#04060E]">
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-64 h-64 bg-rose-600/25 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-64 h-64 bg-purple-600/20 rounded-full blur-3xl" />
+        </div>
+      )}
 
       {/* 2. Visual Effects & Subtle Vignette */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />

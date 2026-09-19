@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { extractTikTokVideoId, extractTikTokHandle, getTikTokAvatar } from '../../../data/videoSources';
-import { Play, Pause, ExternalLink, CheckCircle2, Sparkles, Volume2, VolumeX } from 'lucide-react';
+import { Play, ExternalLink, CheckCircle2, Sparkles, Volume2, VolumeX, Loader2 } from 'lucide-react';
 
 export interface TikTokVideoEmbedPlayerProps {
   videoId?: string;
@@ -11,11 +11,11 @@ export interface TikTokVideoEmbedPlayerProps {
 }
 
 /**
- * Component chuyên biệt: Trình phát Video TikTok Embed & Motion Player chính thức
+ * Component chuyên biệt: Trình phát Video TikTok Embed chính thức từ TikTok
  * Hỗ trợ:
- * 1. Khi có numeric ID: Tải trực tiếp iframe TikTok embed/v2 chuẩn
- * 2. Khi là link chia sẻ di động (vt.tiktok.com, vm.tiktok.com, @channel): Phát trực tiếp luồng video HD siêu mượt kèm âm thanh, avatar thật và nút mở 1 chạm
- * 3. Tương thích 100% Mobile (iOS Safari / Android Chrome) & Desktop
+ * 1. Nhúng trực tiếp 100% video TikTok thật qua iframe embed/v2 của TikTok
+ * 2. Tự động phân giải link rút gọn di động (vt.tiktok.com, vm.tiktok.com)
+ * 3. Tuyệt đối KHÔNG phát video demo/mẫu chạy cảnh
  */
 export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   videoId,
@@ -25,10 +25,9 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   className = ''
 }) => {
   const [resolvedId, setResolvedId] = useState<string | null>(videoId || null);
+  const [isResolving, setIsResolving] = useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const fallbackVideoRef = useRef<HTMLVideoElement | null>(null);
   const [hasError, setHasError] = useState<boolean>(false);
-  const [isPlayingMotion, setIsPlayingMotion] = useState<boolean>(true);
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
 
   const effectiveId = resolvedId || videoId || (directUrl ? extractTikTokVideoId(directUrl) : null);
@@ -45,13 +44,38 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
     setInternalMuted(isMuted);
   }, [isMuted]);
 
-  // Tự động tìm kiếm video ID nếu là shortlink
+  // Tự động phân giải video ID nếu là shortlink (vt.tiktok.com, vm.tiktok.com)
   useEffect(() => {
-    if (!videoId && directUrl) {
-      const extracted = extractTikTokVideoId(directUrl);
-      if (extracted) {
-        setResolvedId(extracted);
-      }
+    if (videoId) {
+      setResolvedId(videoId);
+      return;
+    }
+
+    if (!directUrl) return;
+
+    const extracted = extractTikTokVideoId(directUrl);
+    if (extracted) {
+      setResolvedId(extracted);
+      return;
+    }
+
+    // Nếu là shortlink, thử gọi oEmbed để lấy video ID thật
+    if (directUrl.includes('vt.tiktok.com') || directUrl.includes('vm.tiktok.com') || directUrl.includes('tiktok.com/t')) {
+      setIsResolving(true);
+      fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(directUrl)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.html) {
+            const match = data.html.match(/data-video-id="(\d+)"/) || data.html.match(/\/video\/(\d+)/);
+            if (match && match[1]) {
+              setResolvedId(match[1]);
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          setIsResolving(false);
+        });
     }
   }, [directUrl, videoId]);
 
@@ -80,97 +104,19 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
     return () => timers.forEach(t => clearTimeout(t));
   }, [iframeSrc, triggerPlayAndSound]);
 
-  // Xử lý mobile touch để kích hoạt video
-  useEffect(() => {
-    if (fallbackVideoRef.current) {
-      fallbackVideoRef.current.muted = internalMuted;
-      fallbackVideoRef.current.playsInline = true;
-      fallbackVideoRef.current.play().catch(() => {
-        if (fallbackVideoRef.current) {
-          fallbackVideoRef.current.muted = true;
-          fallbackVideoRef.current.play().catch(() => {});
-        }
-      });
-    }
-
-    const handleFirstTouch = () => {
-      if (fallbackVideoRef.current && fallbackVideoRef.current.paused) {
-        fallbackVideoRef.current.play().catch(() => {});
-      }
-    };
-    window.addEventListener('touchstart', handleFirstTouch, { passive: true, once: true });
-    window.addEventListener('click', handleFirstTouch, { passive: true, once: true });
-    return () => {
-      window.removeEventListener('touchstart', handleFirstTouch);
-      window.removeEventListener('click', handleFirstTouch);
-    };
-  }, [internalMuted, iframeSrc]);
-
-  const toggleFallbackPlay = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (!fallbackVideoRef.current) return;
-    if (fallbackVideoRef.current.paused) {
-      fallbackVideoRef.current.play().then(() => setIsPlayingMotion(true)).catch(() => {});
-    } else {
-      fallbackVideoRef.current.pause();
-      setIsPlayingMotion(false);
-    }
-  };
-
   const toggleSound = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     const nextMuted = !internalMuted;
     setInternalMuted(nextMuted);
-    if (fallbackVideoRef.current) {
-      fallbackVideoRef.current.muted = nextMuted;
-    }
     triggerPlayAndSound();
   };
-
-  // Chọn nguồn video chuyển động HD
-  const motionVideoSrc = (directUrl && (directUrl.endsWith('.mp4') || directUrl.endsWith('.webm') || directUrl.endsWith('.m3u8') || directUrl.includes('blob:') || directUrl.includes('commondatastorage')))
-    ? directUrl
-    : '/videos/sample1.mp4';
 
   return (
     <div 
       className={`relative w-full h-full bg-black flex items-center justify-center overflow-hidden rounded-3xl group select-none ${className}`}
-      onClick={toggleFallbackPlay}
     >
-      {/* 1. NỀN VIDEO CHUYỂN ĐỘNG HD (LUÔN PHÁT 100% TRÊN MỌI THIẾT BỊ DI ĐỘNG & MÁY TÍNH) */}
-      <video
-        ref={fallbackVideoRef}
-        key={motionVideoSrc}
-        src={motionVideoSrc}
-        autoPlay
-        loop
-        muted={internalMuted}
-        playsInline
-        {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
-        preload="auto"
-        onCanPlay={(e) => {
-          const v = e.currentTarget;
-          if (v.paused) {
-            v.play().catch(() => {
-              v.muted = true;
-              v.play().catch(() => {});
-            });
-          }
-        }}
-        onError={(e) => {
-          const v = e.currentTarget;
-          if (v.src.includes('sample1')) {
-            v.src = '/videos/sample3.mp4';
-          } else {
-            v.src = '/videos/sample2.mp4';
-          }
-          v.play().catch(() => {});
-        }}
-        className={`absolute inset-0 w-full h-full object-cover z-0 ${iframeSrc && !hasError ? 'opacity-0' : 'opacity-100'}`}
-      />
-
-      {/* 2. NẾU CÓ NUMERIC ID: NHÚNG IFRAME TIKTOK CHÍNH THỨC */}
-      {iframeSrc && !hasError && (
+      {/* 1. NẾU CÓ NUMERIC ID: NHÚNG TRỰC TIẾP IFRAME TIKTOK THẬT 100% */}
+      {iframeSrc && !hasError ? (
         <iframe
           ref={iframeRef}
           key={`tt-embed-${effectiveId}`}
@@ -180,66 +126,31 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
           allowFullScreen
           onLoad={triggerPlayAndSound}
           onError={() => setHasError(true)}
-          className="relative z-10 w-full h-full border-0 bg-transparent pointer-events-auto rounded-3xl"
+          className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
           style={{ width: '100%', height: '100%', border: 'none' }}
         />
-      )}
-
-      {/* 3. LỚP OVERLAY TIKTOK CREATOR KHI PHÁT VIDEO CHUYỂN ĐỘNG (DÀNH CHO LINK DI ĐỘNG VT.TIKTOK.COM & SHORTLINKS) */}
-      {(!iframeSrc || hasError) && (
-        <>
-          {/* Vignette Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/85 pointer-events-none z-10" />
+      ) : (
+        /* 2. GIAO DIỆN KẾT NỐI KÊNH TIKTOK THẬT (KHÔNG DÙNG VIDEO DEMO) */
+        <div className="relative w-full h-full bg-[#0B0F19] flex flex-col items-center justify-center overflow-hidden rounded-3xl group select-none">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A] via-[#090D16] to-[#050811]" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-48 h-48 bg-rose-600/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-48 h-48 bg-cyan-600/20 rounded-full blur-3xl" />
 
           {/* Equalizer animation */}
-          <div className="absolute inset-x-0 bottom-24 flex items-end justify-center gap-1.5 opacity-30 pointer-events-none h-24 z-10">
-            {[18, 42, 60, 25, 80, 48, 85, 55, 30, 70, 90, 45, 20, 65, 75, 30].map((h, idx) => (
+          <div className="absolute inset-x-0 bottom-20 flex items-end justify-center gap-1 opacity-25 pointer-events-none h-24">
+            {[14, 28, 45, 20, 65, 38, 70, 48, 25, 55, 78, 35, 18, 50, 62, 25].map((h, idx) => (
               <div
                 key={idx}
-                className="w-1.5 bg-gradient-to-t from-rose-500 via-pink-500 to-cyan-400 rounded-t-full animate-pulse"
-                style={{ height: `${isPlayingMotion ? h : 15}%`, animationDelay: `${(idx * 0.1).toFixed(1)}s` }}
+                className="w-1.5 bg-gradient-to-t from-rose-500 to-cyan-400 rounded-t-full animate-pulse"
+                style={{ height: `${h}%`, animationDelay: `${(idx * 0.1).toFixed(1)}s` }}
               />
             ))}
           </div>
 
-          {/* Top Sound & Action Controls */}
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-2 pointer-events-auto">
-            <button
-              type="button"
-              onClick={toggleSound}
-              className="p-2 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/20 shadow-lg cursor-pointer transition-transform active:scale-90"
-              title={internalMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
-            >
-              {internalMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-            </button>
-            <a
-              href={finalOpenUrl}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="px-3 py-1.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-mono font-bold shadow-lg flex items-center gap-1 border border-rose-400/40 cursor-pointer active:scale-95 transition-all"
-            >
-              <span>Mở App TikTok</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-
-          {/* Center Play/Pause indicator when paused */}
-          {!isPlayingMotion && (
-            <div className="absolute z-20 flex flex-col items-center justify-center pointer-events-none">
-              <div className="p-4 rounded-full bg-rose-600/90 text-white shadow-2xl border-2 border-white/40 animate-pulse">
-                <Play className="w-8 h-8 fill-white ml-0.5" />
-              </div>
-            </div>
-          )}
-
-          {/* Bottom Creator Info Card */}
-          <div className="absolute left-4 bottom-5 right-4 z-20 flex items-center justify-between gap-3 pointer-events-auto">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div 
-                onClick={(e) => { e.stopPropagation(); window.open(finalOpenUrl, '_blank'); }}
-                className="w-10 h-10 rounded-full border-2 border-rose-500 overflow-hidden shadow-xl p-0.5 bg-gradient-to-tr from-rose-500 to-cyan-400 cursor-pointer shrink-0"
-              >
+          {/* Main Content */}
+          <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-xs w-full">
+            <div className="relative cursor-pointer" onClick={() => window.open(finalOpenUrl, '_blank')}>
+              <div className="w-20 h-20 rounded-full border-2 border-rose-500 overflow-hidden shadow-2xl p-0.5 bg-gradient-to-tr from-rose-500 via-purple-500 to-cyan-400">
                 <img 
                   src={getTikTokAvatar(cleanHandle)} 
                   alt={cleanHandle}
@@ -249,31 +160,50 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
                   className="w-full h-full rounded-full object-cover"
                 />
               </div>
+              <span className="absolute -bottom-1 -right-1 p-1 rounded-full bg-cyan-500 text-white shadow-md">
+                <CheckCircle2 className="w-4 h-4" />
+              </span>
+            </div>
 
-              <div className="min-w-0">
-                <div className="flex items-center gap-1">
-                  <span className="text-white font-bold text-xs truncate max-w-[140px] sm:max-w-[200px]">
-                    @{cleanHandle}
-                  </span>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                </div>
-                <div className="text-[10px] text-slate-300 font-mono truncate max-w-[180px] sm:max-w-xs">
-                  {title || `Video TikTok @${cleanHandle}`}
-                </div>
+            <div className="space-y-1">
+              <h4 className="text-white font-black text-base flex items-center justify-center gap-1.5 font-display">
+                <span>@{cleanHandle}</span>
+              </h4>
+              <div className="flex items-center justify-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-mono font-bold flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-rose-400" />
+                  <span>Kênh TikTok Thật</span>
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
+                  ✓ Đã Kết Nối
+                </span>
               </div>
             </div>
 
-            <a
-              href={finalOpenUrl}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 text-white font-bold text-[11px] font-mono shadow-lg flex items-center gap-1 shrink-0 cursor-pointer active:scale-95 transition-all"
-            >
-              <span>Follow</span>
-            </a>
+            <p className="text-xs text-slate-300 font-mono leading-relaxed line-clamp-2 px-2">
+              {title || `Video TikTok @${cleanHandle}`}
+            </p>
+
+            {isResolving ? (
+              <div className="flex items-center justify-center gap-2 text-rose-400 text-xs font-mono py-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Đang kết nối luồng video...</span>
+              </div>
+            ) : (
+              <a
+                href={finalOpenUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-rose-500 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-xs shadow-xl flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all border border-rose-400/30"
+              >
+                <Play className="w-4 h-4 fill-white" />
+                <span>Mở & Phát Video Trên TikTok</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

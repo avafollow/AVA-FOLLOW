@@ -162,32 +162,67 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
         className="absolute inset-0 w-full h-full object-cover z-0"
       />
 
-      {/* 2. Visual Effects & Subtle Dark Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/85 pointer-events-none z-[1]" />
-      <div className="absolute top-1/4 -right-12 w-48 h-48 bg-rose-600/15 rounded-full blur-3xl pointer-events-none z-[1]" />
+      {/* 2. Visual Effects: Subtle Top & Bottom Gradient Only (Center video remains 100% bright & clear) */}
+      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/80 via-black/30 to-transparent pointer-events-none z-[1]" />
+      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none z-[1]" />
 
-      {/* 3. Top Live Header & Action */}
-      <div className="relative z-10 flex items-center justify-between pt-2 px-1">
-        <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-rose-500/40 shadow-lg">
-          <div className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+      {/* 3. Top Live Header: Host Info Pill (Top Left) & Viewers / Sound (Top Right) */}
+      <div className="relative z-10 flex items-center justify-between pt-1.5 px-0.5 pointer-events-auto">
+        {/* Top Left: Host Profile Pill */}
+        <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md p-1 pr-2.5 rounded-full border border-white/20 shadow-xl">
+          <div className="relative">
+            {channelAvatar ? (
+              <img
+                src={channelAvatar}
+                alt={displayName}
+                className="w-8 h-8 rounded-full object-cover ring-1.5 ring-rose-500"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-rose-600 flex items-center justify-center text-white font-black text-xs">
+                {cleanHandle.charAt(0).toUpperCase() || 'L'}
+              </div>
+            )}
+            <span className="absolute -bottom-0.5 -right-0.5 px-1 py-0.2 rounded-full bg-rose-600 text-white font-mono text-[7px] font-black uppercase">
+              LIVE
+            </span>
           </div>
-          <span className="text-[10px] font-mono font-black text-white uppercase tracking-wider">
-            LIVE 🔴 TRỰC TIẾP
-          </span>
-          <span className="text-white/40">|</span>
-          <span className="text-[10px] font-mono font-bold text-rose-300 flex items-center gap-1">
-            <Users className="w-3 h-3 text-rose-400" />
-            <span>{viewersCount.toLocaleString()} mắt xem</span>
-          </span>
+
+          <div className="min-w-0 pr-1">
+            <div className="flex items-center gap-1">
+              <span className="text-white font-black text-xs truncate max-w-[100px] sm:max-w-[130px]">@{cleanHandle}</span>
+              <CheckCircle2 className="w-3 h-3 text-cyan-400 fill-cyan-400/20 shrink-0" />
+            </div>
+            <div className="text-[9px] text-rose-300 font-mono flex items-center gap-1 font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+              <span>Trực tiếp</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onOpenApp) onOpenApp();
+            }}
+            className="px-2 py-0.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-mono text-[9px] font-black uppercase tracking-wider transition-transform active:scale-95 shadow-sm shrink-0"
+          >
+            + Follow
+          </button>
         </div>
 
+        {/* Top Right: Viewers Count & Audio Controls */}
         <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-white/15 text-white shadow-lg">
+            <Users className="w-3.5 h-3.5 text-rose-400" />
+            <span className="text-[10px] font-mono font-black text-rose-200">
+              {viewersCount.toLocaleString()}
+            </span>
+          </div>
+
           <button
             type="button"
             onClick={handleSoundToggle}
-            className={`p-2 rounded-full backdrop-blur-md border shadow-lg cursor-pointer transition-transform active:scale-95 ${
+            className={`p-1.5 rounded-full backdrop-blur-md border shadow-lg cursor-pointer transition-transform active:scale-95 ${
               internalMuted 
                 ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' 
                 : 'bg-black/70 text-emerald-400 border-emerald-500/40'
@@ -201,95 +236,65 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onOpenApp(); }}
-              className="px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-[10px] font-mono font-bold border border-rose-400/40 shadow-lg flex items-center gap-1 cursor-pointer transition-transform active:scale-95 font-display"
-              title="Mở trực tiếp trên App TikTok để xem phòng live"
+              className="p-1.5 rounded-full bg-black/70 hover:bg-white/20 text-slate-300 hover:text-white backdrop-blur-md border border-white/15 shadow-lg transition-transform active:scale-95"
+              title="Mở trên TikTok"
             >
-              <span>Mở App TikTok</span>
-              <ExternalLink className="w-3 h-3" />
+              <ExternalLink className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
       </div>
 
-      {/* 4. Center Host Info & Audio Equalizer Waveform */}
-      <div className="relative z-10 flex flex-col items-center justify-center my-auto space-y-2 pointer-events-none">
-        <div className="relative">
-          <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-rose-500 via-amber-400 to-pink-500 animate-spin opacity-85 blur-[2px]" style={{ animationDuration: '5s' }} />
-          {channelAvatar ? (
-            <img
-              src={channelAvatar}
-              alt={displayName}
-              className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-white shadow-2xl"
-            />
-          ) : (
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black p-1 border-2 border-white shadow-2xl flex items-center justify-center text-white font-black text-xl">
-              {cleanHandle.charAt(0).toUpperCase() || 'L'}
-            </div>
-          )}
-          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.2 rounded-full bg-rose-600 text-white font-mono text-[8px] font-black uppercase tracking-wider shadow-lg border border-rose-300/40 animate-pulse">
-            ON AIR
-          </div>
-        </div>
-
-        <div className="text-center space-y-0.5">
-          <div className="flex items-center justify-center gap-1">
-            <span className="text-white font-black text-sm sm:text-base drop-shadow-md">@{cleanHandle}</span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400/20" />
-          </div>
-          <p className="text-[10px] sm:text-[11px] text-rose-300 font-mono font-bold flex items-center justify-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-            <span>Phiên Live Đang Phát Trực Tiếp</span>
-          </p>
-        </div>
-
-        {/* Dynamic Audio Equalizer Waveform */}
-        <div className="flex items-end justify-center gap-1 h-6 pt-1">
-          {[35, 70, 50, 85, 60, 75, 40, 95, 65, 80, 55, 90, 45, 70].map((h, i) => (
+      {/* 4. Center Stage: Pure Moving Live Stream Video with Floating Heart Reactions */}
+      <div className="relative flex-1 flex items-center justify-center my-auto pointer-events-none">
+        {/* Animated Sound Waveform Indicator */}
+        <div className="absolute top-2 left-2 flex items-end gap-1 h-4 opacity-70">
+          {[40, 75, 55, 90, 65, 80, 45].map((h, i) => (
             <div
               key={i}
-              className="w-1 bg-gradient-to-t from-rose-500 to-amber-400 rounded-full animate-pulse"
+              className="w-0.5 bg-rose-500 rounded-full animate-pulse"
               style={{ 
                 height: `${isPlaying ? h : 20}%`, 
-                animationDelay: `${i * 0.07}s`,
-                animationDuration: '0.7s'
+                animationDelay: `${i * 0.08}s`,
+                animationDuration: '0.6s'
               }}
             />
           ))}
         </div>
       </div>
 
-      {/* 5. Live Shopping Deal & Live Chat Ticker */}
+      {/* 5. Bottom Overlays: Live Shopping Bag, Live Chat Stream & Floating Hearts */}
       <div className="relative z-10 space-y-2 pointer-events-auto">
-        {/* Pinned TikTok Shop Bag */}
+        {/* Pinned TikTok Shop Deal Bag */}
         <div 
           onClick={(e) => {
             e.stopPropagation();
             if (onOpenApp) onOpenApp();
           }}
-          className="p-2.5 rounded-2xl bg-amber-400/95 hover:bg-amber-300 text-black flex items-center justify-between gap-2 shadow-xl cursor-pointer transition-transform active:scale-95"
+          className="p-2.5 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-black flex items-center justify-between gap-2 shadow-2xl cursor-pointer transition-transform active:scale-95"
         >
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-xl bg-black/10">
+            <div className="p-1.5 rounded-xl bg-black/15">
               <ShoppingBag className="w-4 h-4 text-black" />
             </div>
             <div className="text-left leading-tight">
-              <div className="text-[8px] uppercase font-mono font-bold text-black/70">TikTok Shop Giỏ Hàng</div>
-              <div className="text-[11px] font-extrabold text-black">Deal Đang Ghim Trong Live 🔥</div>
+              <div className="text-[8px] uppercase font-mono font-black text-black/70">TikTok Shop Giỏ Hàng</div>
+              <div className="text-[11px] font-black text-black">Deal Đang Ghim Trong Live 🔥</div>
             </div>
           </div>
-          <span className="px-2 py-1 rounded-lg bg-black text-amber-300 text-[10px] font-mono font-bold">
+          <span className="px-2.5 py-1 rounded-xl bg-black text-amber-300 text-[10px] font-mono font-black">
             Xem Deal
           </span>
         </div>
 
         {/* Rolling Live Chat Stream */}
-        <div className="space-y-1 max-h-16 overflow-hidden text-left pointer-events-none">
+        <div className="space-y-1 max-h-20 overflow-hidden text-left pointer-events-none">
           {[
-            'Chào cả nhà yêu, mọi người thả tim giúp shop nhé ❤️',
+            `Chào cả nhà yêu, thả tim giúp kênh @${cleanHandle} nhé ❤️`,
             'Đã chốt đơn combo khuyến mãi nhé chủ phòng 🔥',
-            'Chất lượng live siêu nét, xin chào @' + cleanHandle + ' !'
+            'Sản phẩm đẹp quá, xin giá trực tiếp ạ!'
           ].map((msg, i) => (
-            <div key={i} className="px-2.5 py-0.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/5 text-[9px] sm:text-[10px] text-white/90 leading-snug drop-shadow truncate">
+            <div key={i} className="px-2.5 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-[10px] text-white/95 leading-snug drop-shadow truncate">
               {msg}
             </div>
           ))}

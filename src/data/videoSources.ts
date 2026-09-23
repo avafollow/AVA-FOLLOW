@@ -222,7 +222,14 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
   const handle = extractTikTokHandle(url) || defaultHandle || '@creator_vietnam';
   const cleanHandle = handle.replace(/^@+/, '');
 
-  const isLive = /\/(live|livestream)($|\/|\?)/i.test(url) || /tiktok\.com\/@[\w\.-]+\/live/i.test(url) || /youtube\.com\/.*\/live/i.test(url);
+  const isLive = /\/(live|livestream)($|\/|\?)/i.test(url) || 
+    /tiktok\.com\/@[\w\.-]+\/live/i.test(url) || 
+    /tiktok\.com\/live/i.test(url) ||
+    /youtube\.com\/(?:.*\/live|live\/[\w\-]+)/i.test(url) ||
+    /facebook\.com\/.*\/live/i.test(url) ||
+    /fb\.watch\/.*live/i.test(url) ||
+    url.toLowerCase().includes('/live') ||
+    url.toLowerCase().includes('livestream');
   const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
   const isFacebook = url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com') || url.includes('fb.gg');
   const isDirectVideo = /\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i.test(url);

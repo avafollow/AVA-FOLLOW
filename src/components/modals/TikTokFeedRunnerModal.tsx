@@ -258,6 +258,10 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
 
     return unique.sort((a, b) => {
+      // 0. Test item xem thử luôn đứng TOP #1
+      if (a.id.startsWith('test_top1_') && !b.id.startsWith('test_top1_')) return -1;
+      if (!a.id.startsWith('test_top1_') && b.id.startsWith('test_top1_')) return 1;
+
       // 1. Ưu tiên hàng đầu cho các chiến dịch được đẩy TOP (isBoosted)
       if (a.isBoosted && !b.isBoosted) return -1;
       if (!a.isBoosted && b.isBoosted) return 1;

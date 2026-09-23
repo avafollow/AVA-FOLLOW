@@ -1217,10 +1217,11 @@ export interface SecurityLayerDef {
   icon: string;
 }
 
-// ===== BẢNG ĐIỆN LED CHẠY CHỮ TOÀN SÀN (Horizontal LED Marquee Ticker) =====
+export type MarqueeItemType = 'livestream' | 'campaign_video' | 'koc_booking' | 'news_update' | 'security_warning' | 'transaction_alert' | 'rank_up';
+
 export interface MarqueeTickerItem {
   id: string;
-  type: 'livestream' | 'campaign_video' | 'koc_booking';
+  type: MarqueeItemType;
   title: string;
   channelHandle: string;
   targetUrl: string;

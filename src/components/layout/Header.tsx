@@ -109,11 +109,39 @@ export const Header: React.FC<HeaderProps> = ({
         t.id === `live_bcast_${item.orderId}` || 
         t.targetUrl === item.targetUrl
       ) || livestreamTasks[0];
-      if (targetTask) openLiveRunner(targetTask);
+      if (targetTask) {
+        openLiveRunner(targetTask);
+      } else {
+        openLiveRunner({
+          id: item.id || `live_${Date.now()}`,
+          channelName: item.channelHandle || 'Phiên Live Hot',
+          channelHandle: item.channelHandle || '@creator_live',
+          channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          roomTitle: item.title,
+          currentViewers: 1850,
+          targetMinutes: 3,
+          rewardPerMinute: 400,
+          milestoneBonusCoins: 1200,
+          totalRewardCoins: 1200,
+          targetUrl: item.targetUrl || 'https://www.tiktok.com/@creator/live',
+          status: 'live',
+          category: 'TikTok Live Stream',
+          hostFollowers: '100K+ Followers',
+          requiredRank: 'Đồng',
+          isLocked: false,
+          dailyTierLevel: 1,
+          tags: ['Mắt Xem Thật', 'Live Hot']
+        });
+      }
+    } else if (item.type === 'security_warning') {
+      if (onNavigateToPolicyGuide) onNavigateToPolicyGuide();
+      else openPolicy();
+    } else if (item.type === 'transaction_alert' || item.type === 'rank_up') {
+      onNavigateToProfile();
     } else {
       const targetTask = tasks.find(t => t.id === item.id || t.targetUrl === item.targetUrl) || tasks[0];
       if (targetTask) openRunner(targetTask);
-      else openFeedRunner();
+      else openFeedRunner(item.targetUrl || item.channelHandle);
     }
   };
 
@@ -125,29 +153,35 @@ export const Header: React.FC<HeaderProps> = ({
     }`}>
       {/* BẢNG ĐIỆN LED CHẠY CHỮ TOÀN SÀN (Horizontal Smooth LED Marquee Ticker) */}
       {marqueeTickerList.length > 0 && (
-        <div className="bg-gradient-to-r from-rose-950 via-[#1A0B2E] to-slate-950 border-b border-rose-500/30 px-2 sm:px-5 py-2 sm:py-3 flex items-center justify-between gap-2 text-xs select-none overflow-hidden relative shadow-inner min-h-[40px] sm:min-h-[44px] max-w-full">
+        <div className="bg-gradient-to-r from-rose-950 via-[#1A0B2E] to-slate-950 border-b border-rose-500/30 px-2 sm:px-5 py-2 sm:py-2.5 flex items-center justify-between gap-2 text-xs select-none overflow-hidden relative shadow-inner min-h-[40px] sm:min-h-[44px] max-w-full">
           {/* Left badge */}
           <div className="flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-xl bg-rose-950/90 border border-rose-500/50 text-rose-200 font-mono text-xs font-black uppercase shadow-sm z-10">
             <span className="flex h-2.5 w-2.5 rounded-full bg-rose-500 animate-ping shrink-0" />
-            <span className="hidden sm:inline">BẢNG ĐIỆN LED</span>
+            <span className="hidden sm:inline">BẢNG TIN &amp; CẢNH BÁO</span>
             <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white font-mono text-[10px] shadow-sm shadow-rose-600/50 font-black">
               TOP {marqueeTickerList.length}
             </span>
           </div>
 
-          {/* Marquee track running right to left */}
+          {/* Marquee track running right to left nối liền nhau */}
           <div className="relative flex-1 overflow-hidden min-w-0 py-1">
             <div className="animate-led-marquee flex items-center gap-8 cursor-pointer">
               {[...marqueeTickerList, ...marqueeTickerList].map((item, idx) => (
                 <div 
                   key={`${item.id}_${idx}`}
                   onClick={() => handleMarqueeItemClick(item)}
-                  className="flex items-center gap-3 shrink-0 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/10 hover:border-rose-500/50 group/marquee"
+                  className="flex items-center gap-3 shrink-0 px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/10 hover:border-rose-500/50 group/marquee shadow-sm"
                 >
-                  <span className={`px-2.5 py-0.5 rounded-lg text-[11px] font-black tracking-wider uppercase font-mono shrink-0 shadow-sm ${
+                  <span className={`px-2.5 py-0.5 rounded-lg text-[10px] sm:text-[11px] font-black tracking-wider uppercase font-mono shrink-0 shadow-sm ${
                     item.type === 'livestream'
                       ? 'bg-rose-600 text-white shadow-rose-600/50'
-                      : 'bg-indigo-600 text-white shadow-indigo-600/50'
+                      : item.type === 'security_warning'
+                        ? 'bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white shadow-red-600/50'
+                        : item.type === 'transaction_alert'
+                          ? 'bg-emerald-600 text-white shadow-emerald-600/50'
+                          : item.type === 'rank_up'
+                            ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-amber-500/50'
+                            : 'bg-indigo-600 text-white shadow-indigo-600/50'
                   }`}>
                     {item.badgeText || (item.type === 'livestream' ? '🔴 TRỰC TIẾP' : '🎬 HOT')}
                   </span>

@@ -114,6 +114,22 @@ import {
   SECURITY_AUDIT_LOGS 
 } from '../data/securityLayersData';
 import { parseMediaUrl } from '../data/videoSources';
+import { 
+  ImmediateFraudAlertModal, 
+  FraudAlertData 
+} from '../components/common/ImmediateFraudAlertModal';
+import {
+  isWelcomeBonusEverClaimed,
+  recordPermanentBinding,
+  isAffiliateSponsorPaid,
+  getFollowedChannelsByUser,
+  isChannelAlreadyFollowedByUser,
+  recordChannelFollow,
+  isTaskActionAlreadyClaimed,
+  recordTaskActionClaimed,
+  applyFraudPenalty,
+  getTrustProfile
+} from '../services/antiFraudEngine';
 
 interface TaskActionDetails {
   followed: boolean;
@@ -420,6 +436,8 @@ interface TikTokAppContextType {
 
   // Lịch sử nhiệm vụ đã làm & Chống trùng lặp (Bảo vệ quyền lợi chủ shop)
   userCompletedActions: Record<string, UserTaskActionHistory>;
+  isChannelFollowed: (channelHandle: string) => boolean;
+  triggerImmediateFraudAlert: (alertData: Omit<FraudAlertData, 'isOpen'>) => void;
 
   // Thông báo thời gian thực về tài khoản người dùng
   userNotifications: UserNotificationItem[];
@@ -1702,6 +1720,36 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // User Completed Actions Map (Chống trùng lặp & bảo vệ ngân sách chủ shop)
   const [userCompletedActions, setUserCompletedActions] = useState<Record<string, UserTaskActionHistory>>(INITIAL_USER_COMPLETED_ACTIONS);
+
+  // Immediate Fraud Alert Modal State
+  const [fraudAlertModalData, setFraudAlertModalData] = useState<FraudAlertData | null>(null);
+
+  const triggerImmediateFraudAlert = (alertData: Omit<FraudAlertData, 'isOpen'>) => {
+    const userIdentifier = user.id || user.name || 'current_user';
+    // Phạt điểm uy tín trực tiếp
+    applyFraudPenalty(userIdentifier, alertData.penaltyPoints ? alertData.penaltyPoints * 2 : 40, [alertData.anomalyType || 'IMMEDIATE_FRAUD_ALERT'], alertData.reason);
+    
+    setFraudAlertModalData({
+      isOpen: true,
+      ...alertData
+    });
+  };
+
+  const closeFraudAlertModal = () => {
+    setFraudAlertModalData(null);
+  };
+
+  const isChannelFollowed = (channelHandle: string): boolean => {
+    if (!channelHandle) return false;
+    const userIdentifier = user.id || user.name || 'current_user';
+    const cleanTarget = channelHandle.toLowerCase().replace(/^@+/, '').trim();
+    // 1. Kiểm tra trong sổ cái bất biến followed channels
+    if (isChannelAlreadyFollowedByUser(userIdentifier, cleanTarget)) return true;
+    // 2. Kiểm tra trong userCompletedActions
+    return Object.values(userCompletedActions || {}).some(
+      act => act.followed && act.channelHandle && act.channelHandle.toLowerCase().replace(/^@+/, '').trim() === cleanTarget
+    );
+  };
 
   // In-App Notifications for all accounts
   const [userNotifications, setUserNotifications] = useState<UserNotificationItem[]>(INITIAL_USER_NOTIFICATIONS);
@@ -3206,6 +3254,36 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return 0;
     }
 
+    const userIdentifier = user.id || user.name || 'current_user';
+    const taskObj = tasks.find(t => t.id === taskId) || livestreamTasks.find(l => l.id === taskId);
+    const targetChannelHandle = taskObj?.channelHandle || '';
+
+    // 1. Kiểm tra quy tắc 1 lần duy nhất: Kênh đã follow trên toàn hệ thống chưa
+    if (actionType === 'follow' && targetChannelHandle) {
+      if (isChannelFollowed(targetChannelHandle)) {
+        triggerImmediateFraudAlert({
+          title: 'TỪ CHỐI NHẬN XU TRÙNG LẶP',
+          reason: `Bạn đã từng Follow kênh ${targetChannelHandle} trước đây rồi. Theo quy tắc chống gian lận, mỗi kênh chỉ được nhận Xu Follow đúng 1 lần duy nhất trong đời!`,
+          anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
+          channelHandle: targetChannelHandle,
+          penaltyPoints: 10
+        });
+        return 0;
+      }
+    }
+
+    // 2. Kiểm tra trong sổ cái bất biến đã nhận Xu action này chưa
+    if (isTaskActionAlreadyClaimed(userIdentifier, taskId, actionType)) {
+      triggerImmediateFraudAlert({
+        title: 'TỪ CHỐI NHẬN XU TRÙNG LẶP',
+        reason: `Bạn đã hoàn thành và nhận Xu cho hành động "${actionType}" ở nhiệm vụ này rồi. Nghiêm cấm nhận Xu lặp lại!`,
+        anomalyType: 'DUPLICATE_TASK_ACTION',
+        channelHandle: targetChannelHandle,
+        penaltyPoints: 5
+      });
+      return 0;
+    }
+
     // Kiểm tra lịch sử người dùng đã làm hành động này trên kênh chưa (Chống trùng lặp & bảo vệ ngân sách chủ shop)
     const existingHistory = userCompletedActions[taskId];
     if (existingHistory) {
@@ -3397,6 +3475,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       };
     });
+
+    // Lưu vào Sổ Cái Bất Biến Chống Trùng Lặp Toàn Sàn
+    if (actionType === 'follow' && targetChannelHandle) {
+      recordChannelFollow(userIdentifier, targetChannelHandle);
+    }
+    recordTaskActionClaimed(userIdentifier, taskId, actionType);
 
     // Cập nhật tiến độ hoàn thành nhiệm vụ & trừ slot của người tạo chiến dịch
     setTasks(prev => prev.map(t => {
@@ -4387,7 +4471,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     let addedWelcomeBonus = 0;
     let newTransactions = [...user.transactions];
 
-    if (!user.isNewUserBonusClaimed) {
+    // Kiểm tra xem Email hoặc TikTok này đã từng nhận thưởng chào mừng chưa (Chống hủy rồi liên kết lại để lặp bonus)
+    const isBonusEverClaimed = isWelcomeBonusEverClaimed(userEmail, cleanHandle);
+
+    if (!user.isNewUserBonusClaimed && !isBonusEverClaimed) {
       addedWelcomeBonus = 5000;
       const welcomeTx: TransactionRecord = {
         id: `tx_welcome_${Date.now()}`,
@@ -4399,7 +4486,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         status: 'success'
       };
       newTransactions = [welcomeTx, ...newTransactions];
+    } else if (!user.isNewUserBonusClaimed && isBonusEverClaimed) {
+      showToast(`⚠️ Kênh ${cleanHandle} hoặc Gmail ${userEmail} đã từng nhận thưởng liên kết trước đó. Mỗi tài khoản chỉ nhận 1 lần duy nhất.`);
     }
+
+    recordPermanentBinding(userEmail, cleanHandle, true, false, user.referredBy);
 
     const nextCoins = user.avaliveCoins + addedWelcomeBonus;
 
@@ -7388,10 +7479,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         closeFraudAppealModal,
         submitFraudAppeal,
         reviewFraudAppeal,
-        recordAuditTrailItem
+        recordAuditTrailItem,
+        // Chống gian lận cấp cao & deduplication
+        isChannelFollowed,
+        triggerImmediateFraudAlert
       }}
     >
       {children}
+      <ImmediateFraudAlertModal data={fraudAlertModalData} onClose={closeFraudAlertModal} />
     </TikTokAppContext.Provider>
   );
 };

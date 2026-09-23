@@ -62,7 +62,10 @@ export const LivestreamRunnerModal: React.FC = () => {
     interactWithLiveBroadcast,
     showToast,
     openConnect,
-    user 
+    user,
+    isChannelFollowed,
+    triggerImmediateFraudAlert,
+    claimTaskAction
   } = useTikTokApp();
 
   const quota = getUserLiveQuota();
@@ -102,9 +105,31 @@ export const LivestreamRunnerModal: React.FC = () => {
   };
 
   // Idempotent rewards for live actions
+  const [claimedFollowReward, setClaimedFollowReward] = useState<boolean>(false);
   const [claimedHeartReward, setClaimedHeartReward] = useState<boolean>(false);
   const [claimedCommentReward, setClaimedCommentReward] = useState<boolean>(false);
   const [claimedShareReward, setClaimedShareReward] = useState<boolean>(false);
+
+  const handleLiveFollow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!activeLiveTask?.channelHandle) return;
+    if (isChannelFollowed(activeLiveTask.channelHandle) || claimedFollowReward) {
+      triggerImmediateFraudAlert({
+        title: 'TỪ CHỐI FOLLOW TRÙNG LẶP',
+        reason: `Bạn đã từng Follow kênh ${activeLiveTask.channelHandle} trên hệ thống rồi. Mỗi kênh chỉ được nhận thưởng follow 1 lần duy nhất trong đời!`,
+        anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
+        channelHandle: activeLiveTask.channelHandle,
+        penaltyPoints: 10
+      });
+      return;
+    }
+    const reward = claimTaskAction(activeLiveTask.id, 'follow');
+    if (reward > 0) {
+      setClaimedFollowReward(true);
+      syncTikTokFollow(activeLiveTask.channelHandle, user.tiktokConnected || user.email || '@user');
+      showToast(`✅ Đã Follow kênh live ${activeLiveTask.channelHandle}! (+${reward} Xu)`);
+    }
+  };
 
   const [heartsBurst, setHeartsBurst] = useState<{ id: number; x: number; color: string }[]>([]);
   const [chatMessages, setChatMessages] = useState<string[]>([]);
@@ -718,6 +743,18 @@ export const LivestreamRunnerModal: React.FC = () => {
                 </span>
               </div>
             </div>
+            {/* Nút Follow Kênh Live (1 Lần Duy Nhất) */}
+            <button
+              type="button"
+              onClick={handleLiveFollow}
+              className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold transition-all cursor-pointer shadow ${
+                claimedFollowReward || isChannelFollowed(activeLiveTask.channelHandle)
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                  : 'bg-rose-600 hover:bg-rose-500 text-white animate-pulse'
+              }`}
+            >
+              {claimedFollowReward || isChannelFollowed(activeLiveTask.channelHandle) ? '✓ Follow' : '+ Follow (+200)'}
+            </button>
           </div>
 
           {/* Unified Controls: Bật/Tắt Âm Thanh & Nút Đóng */}

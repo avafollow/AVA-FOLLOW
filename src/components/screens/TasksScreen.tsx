@@ -87,7 +87,9 @@ export const TasksScreen: React.FC<{
     growthServices,
     campaigns,
     tasksActiveTab,
-    setTasksActiveTab
+    setTasksActiveTab,
+    isChannelFollowed,
+    triggerImmediateFraudAlert
   } = useTikTokApp();
 
   // 5 TAB CHỨC NĂNG DẠNG LƯỚI HÀNG TRÊN CÙNG
@@ -189,6 +191,17 @@ export const TasksScreen: React.FC<{
       setActiveTab("missions");
       return;
     }
+    if (item.type === 'follow' && isChannelFollowed(item.channelHandle)) {
+      triggerImmediateFraudAlert({
+        title: 'TỪ CHỐI FOLLOW TRÙNG LẶP',
+        reason: `Bạn đã từng Follow kênh ${item.channelHandle} trên hệ thống rồi. Mỗi kênh chỉ được nhận thưởng follow 1 lần duy nhất trong đời!`,
+        anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
+        channelHandle: item.channelHandle,
+        penaltyPoints: 10
+      });
+      return;
+    }
+
     if (crossFollowUsedCount >= currentTierQuota.dailyLimit) {
       showToast(`⚠️ KỊCH TRẦN HẠN MỨC: Bạn đã dùng ${currentTierQuota.dailyLimit}/${currentTierQuota.dailyLimit} lượt của Hạng ${user.rankLevel}! Hãy mua thêm hạn mức (+20 lượt = ${currentTierQuota.extraExpansionCostXu.toLocaleString()} Xu) để cày tiếp.`);
       return;
@@ -221,7 +234,10 @@ export const TasksScreen: React.FC<{
 
   // Filtered & Sorted Partner Campaigns (Ẩn các nhiệm vụ đã hoàn thành hoặc hết suất)
   const filteredPartnerTasks = tasks
-    .filter(t => t.campaignCategory === "partner" && t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !userCompletedActions?.[t.id])
+    .filter(t => {
+      if (t.type === 'follow' && isChannelFollowed(t.channelHandle)) return false;
+      return t.campaignCategory === "partner" && t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !userCompletedActions?.[t.id];
+    })
     .filter(t => {
       if (enterpriseFilter === "targeted" && t.audienceTargeting?.mode !== "niche_targeted") return false;
       if (enterpriseFilter !== "all" && enterpriseFilter !== "targeted" && t.type !== enterpriseFilter) return false;
@@ -278,7 +294,10 @@ export const TasksScreen: React.FC<{
 
   // Video Campaigns (all tasks with watch type or with videos, chưa làm và còn hiệu lực)
   const videoCampaignTasks = tasks
-    .filter(t => t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !userCompletedActions?.[t.id])
+    .filter(t => {
+      if (t.type === 'follow' && isChannelFollowed(t.channelHandle)) return false;
+      return t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !userCompletedActions?.[t.id];
+    })
     .filter(t => t.type === "watch" || t.videoPreviewUrl || t.campaignCategory === "partner");
 
   // Map user created campaigns to feed cards (Tự động ẩn 100% khi đã làm xong hoặc hết suất/kết thúc)
@@ -287,6 +306,7 @@ export const TasksScreen: React.FC<{
       if (c.status === 'completed') return false;
       if ((c.completedQuantity || 0) >= (c.targetQuantity || 100)) return false;
       if (userCompletedActions?.[c.id]) return false;
+      if ((c.type === 'follow' || (c.title || '').toLowerCase().includes('follow')) && isChannelFollowed(c.channelHandle)) return false;
       return true;
     })
     .map(c => {
@@ -375,7 +395,10 @@ export const TasksScreen: React.FC<{
 
   // Map task items to feed cards (Tự động ẩn khi hết suất hoặc đã hoàn thành)
   const missionFeedCards = tasks
-    .filter(t => t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !userCompletedActions?.[t.id])
+    .filter(t => {
+      if (t.type === 'follow' && isChannelFollowed(t.channelHandle)) return false;
+      return t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !userCompletedActions?.[t.id];
+    })
     .map(t => ({
       id: t.id,
       category: (t.campaignCategory === 'partner' ? 'partner' : 'missions') as 'partner' | 'missions',

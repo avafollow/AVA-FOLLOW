@@ -1128,3 +1128,156 @@ export function getTrustScoreBadge(score: number): { label: string; colorClass: 
   return { label: 'Bị Khóa', colorClass: 'red', emoji: '🚫' };
 }
 
+// ─────────────────────────────────────────────────────────────
+// 15. PERMANENT BINDING & AFFILIATE 1-TIME REGISTRY (CHỐNG TRỤC LỢI)
+// ─────────────────────────────────────────────────────────────
+
+const PERMANENT_AFFILIATE_REGISTRATIONS_KEY = 'ava_permanent_affiliate_and_tiktok_bindings_2026';
+const FOLLOWED_CHANNELS_LEDGER_KEY = (user: string) => `ava_followed_channels_${user.replace(/^@+/, '').toLowerCase()}`;
+const TASK_COMPLETION_LEDGER_KEY = (user: string) => `ava_task_completion_ledger_${user.replace(/^@+/, '').toLowerCase()}`;
+
+interface PermanentBindingRecord {
+  email: string;
+  tiktokHandle: string;
+  deviceFingerprint: string;
+  welcomeBonusClaimed: boolean;
+  affiliateSponsorPaid: boolean;
+  sponsorRef?: string;
+  boundAt: string;
+}
+
+export function getPermanentBindings(): PermanentBindingRecord[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(PERMANENT_AFFILIATE_REGISTRATIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+export function isWelcomeBonusEverClaimed(email: string, tiktokHandle: string): boolean {
+  if (typeof window === 'undefined') return false;
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanTikTok = (tiktokHandle || '').toLowerCase().replace(/^@+/, '').trim();
+  const bindings = getPermanentBindings();
+  
+  return bindings.some(b => 
+    (cleanEmail && b.email.toLowerCase() === cleanEmail && b.welcomeBonusClaimed) ||
+    (cleanTikTok && b.tiktokHandle.toLowerCase().replace(/^@+/, '') === cleanTikTok && b.welcomeBonusClaimed)
+  );
+}
+
+export function isAffiliateSponsorPaid(newUserEmail: string, newTikTokHandle: string): boolean {
+  if (typeof window === 'undefined') return false;
+  const cleanEmail = (newUserEmail || '').toLowerCase().trim();
+  const cleanTikTok = (newTikTokHandle || '').toLowerCase().replace(/^@+/, '').trim();
+  const bindings = getPermanentBindings();
+
+  return bindings.some(b => 
+    (cleanEmail && b.email.toLowerCase() === cleanEmail && b.affiliateSponsorPaid) ||
+    (cleanTikTok && b.tiktokHandle.toLowerCase().replace(/^@+/, '') === cleanTikTok && b.affiliateSponsorPaid)
+  );
+}
+
+export function recordPermanentBinding(
+  email: string, 
+  tiktokHandle: string, 
+  welcomeBonusClaimed: boolean,
+  affiliateSponsorPaid: boolean = false,
+  sponsorRef?: string
+): void {
+  if (typeof window === 'undefined') return;
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanTikTok = (tiktokHandle || '').toLowerCase().replace(/^@+/, '').trim();
+  const current = getPermanentBindings();
+
+  const existingIdx = current.findIndex(b => 
+    (cleanEmail && b.email.toLowerCase() === cleanEmail) ||
+    (cleanTikTok && b.tiktokHandle.toLowerCase().replace(/^@+/, '') === cleanTikTok)
+  );
+
+  const fp = getDeviceFingerprint();
+  const now = new Date().toISOString();
+
+  if (existingIdx >= 0) {
+    current[existingIdx] = {
+      ...current[existingIdx],
+      email: cleanEmail || current[existingIdx].email,
+      tiktokHandle: cleanTikTok || current[existingIdx].tiktokHandle,
+      welcomeBonusClaimed: current[existingIdx].welcomeBonusClaimed || welcomeBonusClaimed,
+      affiliateSponsorPaid: current[existingIdx].affiliateSponsorPaid || affiliateSponsorPaid,
+      sponsorRef: sponsorRef || current[existingIdx].sponsorRef
+    };
+  } else {
+    current.push({
+      email: cleanEmail,
+      tiktokHandle: cleanTikTok,
+      deviceFingerprint: fp,
+      welcomeBonusClaimed,
+      affiliateSponsorPaid,
+      sponsorRef,
+      boundAt: now
+    });
+  }
+
+  try {
+    localStorage.setItem(PERMANENT_AFFILIATE_REGISTRATIONS_KEY, JSON.stringify(current));
+  } catch {}
+}
+
+// ─────────────────────────────────────────────────────────────
+// 16. SINGLE-EXECUTION CHANNELS & TASKS DEDUPLICATION LEDGER
+// ─────────────────────────────────────────────────────────────
+
+export function getFollowedChannelsByUser(userHandle: string): string[] {
+  if (typeof window === 'undefined' || !userHandle) return [];
+  try {
+    const raw = localStorage.getItem(FOLLOWED_CHANNELS_LEDGER_KEY(userHandle));
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+export function isChannelAlreadyFollowedByUser(userHandle: string, channelHandle: string): boolean {
+  if (!userHandle || !channelHandle) return false;
+  const cleanTarget = channelHandle.toLowerCase().replace(/^@+/, '').trim();
+  const list = getFollowedChannelsByUser(userHandle);
+  return list.map(h => h.toLowerCase().replace(/^@+/, '').trim()).includes(cleanTarget);
+}
+
+export function recordChannelFollow(userHandle: string, channelHandle: string): void {
+  if (typeof window === 'undefined' || !userHandle || !channelHandle) return;
+  const cleanTarget = channelHandle.toLowerCase().replace(/^@+/, '').trim();
+  const current = getFollowedChannelsByUser(userHandle);
+  if (!current.map(h => h.toLowerCase().replace(/^@+/, '').trim()).includes(cleanTarget)) {
+    const updated = [...current, `@${cleanTarget}`];
+    try {
+      localStorage.setItem(FOLLOWED_CHANNELS_LEDGER_KEY(userHandle), JSON.stringify(updated));
+    } catch {}
+  }
+}
+
+export function isTaskActionAlreadyClaimed(userHandle: string, taskId: string, actionType: string): boolean {
+  if (typeof window === 'undefined' || !userHandle || !taskId) return false;
+  try {
+    const raw = localStorage.getItem(TASK_COMPLETION_LEDGER_KEY(userHandle));
+    if (!raw) return false;
+    const ledger: Record<string, string[]> = JSON.parse(raw);
+    const actions = ledger[taskId] || [];
+    return actions.includes(actionType);
+  } catch { return false; }
+}
+
+export function recordTaskActionClaimed(userHandle: string, taskId: string, actionType: string): void {
+  if (typeof window === 'undefined' || !userHandle || !taskId) return;
+  try {
+    const key = TASK_COMPLETION_LEDGER_KEY(userHandle);
+    const raw = localStorage.getItem(key);
+    const ledger: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+    const actions = ledger[taskId] || [];
+    if (!actions.includes(actionType)) {
+      ledger[taskId] = [...actions, actionType];
+      localStorage.setItem(key, JSON.stringify(ledger));
+    }
+  } catch {}
+}
+
+

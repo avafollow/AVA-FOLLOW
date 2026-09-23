@@ -45,7 +45,9 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     openShareModal, 
     openFeedRunner,
     userCompletedActions,
-    showToast
+    showToast,
+    isChannelFollowed,
+    triggerImmediateFraudAlert
   } = useTikTokApp();
 
   const previousCompletion = runnerTask ? userCompletedActions[runnerTask.id] : undefined;
@@ -199,9 +201,21 @@ export const TikTokTaskRunnerModal: React.FC = () => {
   // Single-action handlers with 1-time-only strict enforcement
   const handleFollowAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (isChannelFollowed(runnerTask.channelHandle)) {
+      triggerImmediateFraudAlert({
+        title: 'TỪ CHỐI FOLLOW TRÙNG LẶP',
+        reason: `Bạn đã từng Follow kênh ${runnerTask.channelHandle} trên hệ thống rồi. Mỗi kênh chỉ được nhận thưởng follow 1 lần duy nhất trong đời để bảo vệ ngân sách nhà sáng tạo!`,
+        anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
+        channelHandle: runnerTask.channelHandle,
+        penaltyPoints: 10
+      });
+      return;
+    }
     if (!claimedActions.follow) {
-      claimTaskAction(runnerTask.id, 'follow');
-      setClaimedActions(prev => ({ ...prev, follow: true }));
+      const earned = claimTaskAction(runnerTask.id, 'follow');
+      if (earned > 0) {
+        setClaimedActions(prev => ({ ...prev, follow: true }));
+      }
     }
   };
 

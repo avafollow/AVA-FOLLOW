@@ -111,7 +111,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     feedRunnerTargetId,
     userMissions,
     openFraudAppealModal,
-    openConnect
+    openConnect,
+    isChannelFollowed,
+    triggerImmediateFraudAlert
   } = useTikTokApp();
 
   const [filterMode, setFilterMode] = useState<'all' | 'missions' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
@@ -745,6 +747,17 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       return;
     }
 
+    if (isChannelFollowed(currentItem.channelHandle)) {
+      triggerImmediateFraudAlert({
+        title: 'TỪ CHỐI FOLLOW TRÙNG LẶP',
+        reason: `Bạn đã từng Follow kênh ${currentItem.channelHandle} trên hệ thống rồi. Quy tắc bảo vệ ngân sách nhà sáng tạo quy định mỗi kênh chỉ được nhận thưởng 1 lần duy nhất!`,
+        anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
+        channelHandle: currentItem.channelHandle,
+        penaltyPoints: 10
+      });
+      return;
+    }
+
     const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
     const realTikTokChannelUrl = currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com/@')
       ? currentItem.targetUrl
@@ -878,9 +891,16 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     const fraudCheck = checkFraudProof(proof);
 
     if (!fraudCheck.allowed) {
-      // Gian lận phát hiện → từ chối, trừ điểm tin cậy
+      // Gian lận phát hiện → từ chối, trừ điểm tin cậy & hiển thị cảnh báo ngay lập tức
       if (fraudCheck.flags.length > 0 && !fraudCheck.waitMoreMs) {
         applyFraudPenalty(userHandle, fraudCheck.fraudScore, fraudCheck.flags);
+        triggerImmediateFraudAlert({
+          title: 'CẢNH BÁO PHÁT HIỆN GIAN LẬN',
+          reason: fraudCheck.reason || 'Hệ thống phát hiện bạn vừa chuyển tab hoặc không thực hiện thao tác tương tác thực tế trên TikTok.',
+          anomalyType: 'TAB_SWITCH_BOUNCE',
+          channelHandle: currentItem.channelHandle,
+          penaltyPoints: fraudCheck.fraudScore || 15
+        });
       }
       setInModalAlert({
         message: fraudCheck.reason,

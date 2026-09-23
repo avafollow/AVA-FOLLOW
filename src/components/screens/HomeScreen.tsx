@@ -73,7 +73,8 @@ export const HomeScreen: React.FC<{
     openShareModal,
     openConnect,
     refreshAllData,
-    userCompletedActions
+    userCompletedActions,
+    isChannelFollowed
   } = useTikTokApp();
 
   const [isKocModalOpen, setIsKocModalOpen] = useState(false);
@@ -562,7 +563,13 @@ export const HomeScreen: React.FC<{
         {(() => {
           // 1. Genuine Active Campaigns (Tự động loại bỏ khi hết hiệu lực, hoàn thành hoặc user đã làm xong)
           const activeCampaigns = (campaigns || []).filter(
-            c => c.status !== 'completed' && c.status !== 'paused' && (c.completedQuantity || 0) < (c.targetQuantity || 100) && !userCompletedActions?.[c.id]
+            c => {
+              if (c.status === 'completed' || c.status === 'paused') return false;
+              if ((c.completedQuantity || 0) >= (c.targetQuantity || 100)) return false;
+              if (userCompletedActions?.[c.id]) return false;
+              if ((c.type === 'follow' || (c.title || '').toLowerCase().includes('follow')) && isChannelFollowed(c.channelHandle)) return false;
+              return true;
+            }
           );
 
           const activeVideoCampaigns = activeCampaigns.filter(c => {
@@ -585,7 +592,10 @@ export const HomeScreen: React.FC<{
                 isBoosted: c.isBoosted,
                 remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0))
               }))
-            : tasks.filter(t => t.status !== 'completed' && (t.type === 'watch' || t.videoPreviewUrl || t.campaignCategory === 'partner') && !userCompletedActions?.[t.id]).slice(0, 6).map(t => ({
+            : tasks.filter(t => {
+                if (t.type === 'follow' && isChannelFollowed(t.channelHandle)) return false;
+                return t.status !== 'completed' && (t.type === 'watch' || t.videoPreviewUrl || t.campaignCategory === 'partner') && !userCompletedActions?.[t.id];
+              }).slice(0, 6).map(t => ({
                 id: t.id,
                 title: t.title,
                 channelName: t.channelName,

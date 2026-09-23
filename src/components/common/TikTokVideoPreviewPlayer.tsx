@@ -56,7 +56,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
 }) => {
   const { openFeedRunner } = useTikTokApp();
   const mediaInfo: ParsedMediaInfo = parseMediaUrl(url, channelHandle);
-  const effectiveIsLive = isLive || mediaInfo.isLive;
+  const effectiveIsLive = isLive || mediaInfo.isLive || (Boolean(url) && (url.toLowerCase().includes('live') || url.toLowerCase().includes('livestream')));
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState<boolean>(autoPlay);
@@ -152,7 +152,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             /* TAB 1C: TIKTOK LIVE PLAYER */
             <TikTokLiveEmbedPlayer
               channelHandle={cleanHandle}
-              targetUrl={directUserUrl}
+              targetUrl={mediaInfo.streamUrl || directUserUrl}
               channelName={mediaInfo.title}
               viewersCount={1420}
               isMuted={isMuted}

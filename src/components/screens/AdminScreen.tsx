@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShieldCheck, 
   Flame, 
@@ -74,11 +74,19 @@ import {
   TikTokSyncLog 
 } from '../../services/tiktokActionSync';
 import { 
+  AVA_60_ANTI_FRAUD_STRATEGIES,
   AVA_20_ANTI_FRAUD_STRATEGIES, 
   getImmutableFraudLedger, 
   deleteFraudIncidentAsSuperAdmin, 
   generateLegalEscalationDossier,
-  HONEYPOT_TASKS
+  HONEYPOT_TASKS,
+  isUserNextTasksLocked,
+  clearCascadingTaskLockout,
+  clearUserViolationCount,
+  restoreUserTrustProfile,
+  getTrustProfile,
+  getViolationCount,
+  getPenaltyTierForLevel
 } from '../../services/antiFraudEngine';
 import { 
   getGeminiApiKey, 
@@ -161,15 +169,17 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     campaignAuditTrail
   } = useTikTokApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'grant_permissions' | 'software_apps' | 'users' | 'referrals' | 'kyc' | 'token_ledger' | 'settings' | 'escrow' | 'campaigns' | 'missions' | 'staff_roles' | 'security_7layers' | 'appeals_audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'grant_permissions' | 'software_apps' | 'users' | 'locked_users' | 'referrals' | 'kyc' | 'token_ledger' | 'settings' | 'escrow' | 'campaigns' | 'missions' | 'staff_roles' | 'security_7layers' | 'appeals_audit'>('overview');
   const [appealsSubTab, setAppealsSubTab] = useState<'pending' | 'all' | 'audit_trail'>('pending');
   const [reviewNoteInput, setReviewNoteInput] = useState<string>('');
   const [selectedAppealForReview, setSelectedAppealForReview] = useState<string | null>(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userRankFilter, setUserRankFilter] = useState('all');
+  const [lockedUserSearchQuery, setLockedUserSearchQuery] = useState('');
+  const [lockedViolationLevelFilter, setLockedViolationLevelFilter] = useState<'all' | '1' | '2' | '3' | '4'>('all');
   const [inspectedPeriod, setInspectedPeriod] = useState<'day' | 'week' | 'month'>('day');
 
-  // Anti-Fraud 20-Layer Sentinel State
+  // Anti-Fraud Sentinel State
   const [fraudLedger, setFraudLedger] = useState<FraudIncidentLog[]>(() => getImmutableFraudLedger());
   const [fraudFilterSeverity, setFraudFilterSeverity] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
   const [selectedDossier, setSelectedDossier] = useState<FraudIncidentLog | null>(null);
@@ -179,6 +189,89 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const [deletingIncidentId, setDeletingIncidentId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [fraudNotificationMsg, setFraudNotificationMsg] = useState<string | null>(null);
+
+  // Danh sách toàn bộ tài khoản bị khóa / vi phạm
+  const lockedUsersList: AdminUserManagementItem[] = useMemo(() => {
+    return adminUsers.filter((u: AdminUserManagementItem) => {
+      const isStatusLocked = u.status === 'banned' || (u.status as string) === 'locked' || Boolean((u as any).isLocked) || Boolean((u as any).isBanned);
+      const lockout = isUserNextTasksLocked(u.tiktokConnected || u.email || u.id);
+      const trust = getTrustProfile(u.tiktokConnected || u.email || u.id);
+      const violationCount = getViolationCount(u.tiktokConnected || u.email || u.id);
+      return isStatusLocked || lockout.isLocked || trust.isBlocked || trust.isFrozenWallet || violationCount > 0;
+    });
+  }, [adminUsers]);
+
+  const filteredLockedUsers: AdminUserManagementItem[] = useMemo(() => {
+    return lockedUsersList.filter((u: AdminUserManagementItem) => {
+      const query = lockedUserSearchQuery.toLowerCase().trim();
+      const matchesQuery = !query || 
+        (u.name && u.name.toLowerCase().includes(query)) ||
+        (u.email && u.email.toLowerCase().includes(query)) ||
+        (u.tiktokConnected && u.tiktokConnected.toLowerCase().includes(query)) ||
+        (u.handle && u.handle.toLowerCase().includes(query));
+
+      if (!matchesQuery) return false;
+
+      if (lockedViolationLevelFilter !== 'all') {
+        const vCount = getViolationCount(u.tiktokConnected || u.email || u.id);
+        const lockout = isUserNextTasksLocked(u.tiktokConnected || u.email || u.id);
+        const effectiveLevel = lockout.violationLevel || vCount || (u.status === 'banned' ? 4 : 1);
+        return String(effectiveLevel) === lockedViolationLevelFilter;
+      }
+
+      return true;
+    });
+  }, [lockedUsersList, lockedUserSearchQuery, lockedViolationLevelFilter]);
+
+  const handleUnlockUserDirectly = (u: AdminUserManagementItem) => {
+    const targetKey = u.tiktokConnected || u.email || u.id;
+    restoreUserTrustProfile(targetKey);
+    if (u.email) restoreUserTrustProfile(u.email);
+    if (u.id) restoreUserTrustProfile(u.id);
+
+    clearCascadingTaskLockout(targetKey);
+    if (u.email) clearCascadingTaskLockout(u.email);
+    if (u.id) clearCascadingTaskLockout(u.id);
+
+    clearUserViolationCount(targetKey);
+    if (u.email) clearUserViolationCount(u.email);
+    if (u.id) clearUserViolationCount(u.id);
+
+    if (u.status !== 'active') {
+      adminToggleUserStatus(u.email || u.id);
+    } else {
+      adminUpdateUser(u.id, {
+        status: 'active'
+      });
+    }
+
+    showToast(`✅ Đã mở khóa thành công tài khoản ${u.name || u.email}! Đã phục hồi 100 điểm tín nhiệm và gỡ bỏ toàn bộ hạn chế.`);
+  };
+
+  const handleBulkUnlockAll = () => {
+    if (lockedUsersList.length === 0) {
+      showToast('Không có tài khoản nào đang bị khóa!');
+      return;
+    }
+    if (window.confirm(`Bạn có chắc chắn muốn mở khóa toàn bộ ${lockedUsersList.length} tài khoản vi phạm?`)) {
+      lockedUsersList.forEach((u: AdminUserManagementItem) => {
+        const targetKey = u.tiktokConnected || u.email || u.id;
+        restoreUserTrustProfile(targetKey);
+        if (u.email) restoreUserTrustProfile(u.email);
+        if (u.id) restoreUserTrustProfile(u.id);
+        clearCascadingTaskLockout(targetKey);
+        if (u.email) clearCascadingTaskLockout(u.email);
+        if (u.id) clearCascadingTaskLockout(u.id);
+        clearUserViolationCount(targetKey);
+        if (u.email) clearUserViolationCount(u.email);
+        if (u.id) clearUserViolationCount(u.id);
+        if (u.status !== 'active') {
+          adminToggleUserStatus(u.email || u.id);
+        }
+      });
+      showToast(`✅ Đã mở khóa thành công toàn bộ ${lockedUsersList.length} tài khoản!`);
+    }
+  };
 
   // Hàm trích xuất an toàn số nguyên từ chuỗi tiền tệ (tránh lỗi nối chuỗi tạo số ảo)
   const parseNumericAmount = (amountVal: string | number | undefined): number => {
@@ -701,6 +794,27 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               }
             },
             {
+              id: 'locked_users',
+              label: 'Tài Khoản Bị Khóa',
+              subLabel: 'Mở Khóa & Chế Tài',
+              icon: UserX,
+              badge: `${lockedUsersList.length} Bị Khóa`,
+              border: 'border-red-500/50',
+              activeBg: 'bg-gradient-to-r from-red-700 via-rose-600 to-amber-600 text-white shadow-lg shadow-red-950/50 ring-2 ring-red-400',
+              iconColor: 'text-red-400',
+              guide: {
+                title: 'Trung Tâm Quản Trị Tài Khoản Bị Khóa & Vi Phạm',
+                description: 'Tập trung toàn bộ danh sách tài khoản bị khóa tạm thời, khóa vĩnh viễn, hoặc vi phạm chính sách. Cho phép mở khóa 1 chạm, bồi hoàn/phạt Xu, nâng VIP, cấp gói dịch vụ và xóa vĩnh viễn.',
+                steps: [
+                  'Xem lý do và cấp độ vi phạm (Cấp 1 -> Cấp 4)',
+                  'Bấm ⚡ Mở Khóa Ngay để giải phóng tài khoản, phục hồi 100 điểm tín nhiệm',
+                  'Cộng / Trừ Xu bồi thường hoặc phạt tài khoản',
+                  'Cấp gói tăng trưởng hoặc nâng hạng VIP miễn phí',
+                  'Xóa vĩnh viễn tài khoản nếu vi phạm nghiêm trọng'
+                ]
+              }
+            },
+            {
               id: 'referrals',
               label: 'Tiếp Thị & Ref',
               subLabel: 'Hoa Hồng Đa Tầng',
@@ -822,15 +936,15 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             },
             {
               id: 'security_7layers',
-              label: 'Radar 20 Lớp Anti-Fraud',
+              label: 'Radar 60 Lớp Anti-Fraud',
               subLabel: 'AVA Sentinel & Pháp Chế',
               icon: ShieldCheck,
-              badge: '20/20 Lớp',
+              badge: '60/60 Lớp',
               border: 'border-rose-500/40',
               activeBg: 'bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white shadow-lg shadow-rose-900/40 ring-2 ring-rose-400',
               iconColor: 'text-rose-400',
               guide: {
-                title: 'Trung Tâm Radar An Ninh & Pháp Chế 20 Lớp',
+                title: 'Trung Tâm Radar An Ninh & Pháp Chế 60 Lớp',
                 description: 'Giám sát gian lận realtime, phát hiện botnet, đóng băng ví ký quỹ 7 ngày và tự động trích xuất hồ sơ chuyển sang Cơ quan Pháp chế.',
                 steps: ['Theo dõi các tài khoản có điểm gian lận cao', 'Đóng băng ví hoặc khóa tài khoản vi phạm', 'Trích xuất hồ sơ pháp chế theo Nghị định 15/2020/NĐ-CP']
               }
@@ -2936,6 +3050,327 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: Quản Trị Toàn Quyền Tài Khoản Bị Khóa & Chế Tài Vi Phạm             */}
+      {/* ========================================================================= */}
+      {activeTab === 'locked_users' && (
+        <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-5 shadow-xl animate-in fade-in duration-200">
+          {/* Header Banner */}
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-red-950/70 via-slate-900 to-rose-950/50 border border-red-500/40 space-y-4 shadow-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 text-xs font-mono font-bold">
+                  <UserX className="w-4 h-4 text-red-400" />
+                  <span>TRUNG TÂM QUẢN TRỊ TÀI KHOẢN BỊ KHÓA &amp; CHẾ TÀI PHÁP CHẾ (AVA SENTINEL 2026)</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white font-display">
+                  Quản Lý, Mở Khóa 1 Chạm &amp; Phục Hồi Toàn Quyền Thành Viên Bị Khóa
+                </h3>
+                <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
+                  Tập hợp tất cả các tài khoản vi phạm chính sách hoặc bị khóa do gian lận (thoát tab, click ảo, botnet, hết thời gian hạn ngạch). 
+                  Quản trị viên có toàn quyền <strong>Mở khóa 1 chạm</strong> (phục hồi 100 điểm uy tín), <strong>Cấp gói miễn phí</strong>, <strong>Cộng/Trừ Xu</strong> hoặc <strong>Xóa vĩnh viễn</strong>.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handleBulkUnlockAll}
+                  disabled={lockedUsersList.length === 0}
+                  className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold font-mono flex items-center gap-2 shadow-lg shadow-emerald-950/40 transition-all cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 fill-white text-white" />
+                  <span>MỞ KHÓA TẤT CẢ ({lockedUsersList.length})</span>
+                </button>
+                <FeatureGuideTooltip
+                  title="Trung Tâm Quản Trị Tài Khoản Bị Khóa"
+                  description="Cho phép Admin can thiệp giải phóng tài khoản ngay lập tức mà không cần người dùng đợi hết thời gian khóa tạm thời."
+                  steps={[
+                    "Mở Khóa Ngay: Khôi phục điểm tín nhiệm về 100 và mở khóa toàn bộ chuỗi nhiệm vụ",
+                    "Cộng/Trừ Xu: Điều chỉnh số dư Xu xử phạt hoặc đền bù kỹ thuật",
+                    "Cấp Gói: Tặng gói dịch vụ tăng trưởng cho tài khoản",
+                    "Xóa Vĩnh Viễn: Loại bỏ hoàn toàn khỏi sổ cái"
+                  ]}
+                  badge="Toàn Quyền Quản Trị"
+                  placement="bottom"
+                />
+              </div>
+            </div>
+
+            {/* 4 Stats Chips */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-white/10">
+              <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 block">Tổng Tài Khoản Bị Khóa</span>
+                <div className="text-lg font-black text-red-400 font-mono">{lockedUsersList.length} Tài Khoản</div>
+                <span className="text-[10px] text-slate-500 font-mono">Đang chịu chế tài</span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 block">Khóa Cấp 1 (60 Phút)</span>
+                <div className="text-lg font-black text-amber-400 font-mono">
+                  {lockedUsersList.filter((u: AdminUserManagementItem) => {
+                    const l = isUserNextTasksLocked(u.tiktokConnected || u.email || u.id);
+                    const v = getViolationCount(u.tiktokConnected || u.email || u.id);
+                    return (l.violationLevel === 1 || v === 1) && u.status !== 'banned';
+                  }).length} User
+                </div>
+                <span className="text-[10px] text-amber-300 font-mono">Cảnh cáo lần 1</span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 block">Khóa Cấp 2 &amp; 3 (24h - 3 Ngày)</span>
+                <div className="text-lg font-black text-rose-400 font-mono">
+                  {lockedUsersList.filter((u: AdminUserManagementItem) => {
+                    const l = isUserNextTasksLocked(u.tiktokConnected || u.email || u.id);
+                    const v = getViolationCount(u.tiktokConnected || u.email || u.id);
+                    return (l.violationLevel === 2 || l.violationLevel === 3 || v === 2 || v === 3) && u.status !== 'banned';
+                  }).length} User
+                </div>
+                <span className="text-[10px] text-rose-300 font-mono">Khóa rút tiền &amp; phạt Xu</span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 block">Khóa Cấp 4 (Vĩnh Viễn)</span>
+                <div className="text-lg font-black text-red-500 font-mono">
+                  {lockedUsersList.filter((u: AdminUserManagementItem) => {
+                    const l = isUserNextTasksLocked(u.tiktokConnected || u.email || u.id);
+                    const v = getViolationCount(u.tiktokConnected || u.email || u.id);
+                    return l.isPermanentBan || v >= 4 || u.status === 'banned';
+                  }).length} User
+                </div>
+                <span className="text-[10px] text-red-400 font-mono">Cấm truy cập vĩnh viễn</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Tìm Gmail, tên, @handle bị khóa..."
+                  value={lockedUserSearchQuery}
+                  onChange={(e) => setLockedUserSearchQuery(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-red-500 w-64"
+                />
+              </div>
+
+              <select
+                value={lockedViolationLevelFilter}
+                onChange={(e) => setLockedViolationLevelFilter(e.target.value as any)}
+                className="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-red-500"
+              >
+                <option value="all">Tất cả mức độ vi phạm</option>
+                <option value="1">⚠️ Cấp 1 (Khóa 60 phút)</option>
+                <option value="2">🚫 Cấp 2 (Khóa 24h &amp; Phạt 10k Xu)</option>
+                <option value="3">🛑 Cấp 3 (Khóa 3 Ngày &amp; Khóa Rút)</option>
+                <option value="4">⛔ Cấp 4 (Khóa Vĩnh Viễn)</option>
+              </select>
+            </div>
+
+            <div className="text-xs text-slate-400 font-mono">
+              Hiển thị: <strong className="text-white">{filteredLockedUsers.length}</strong> / {lockedUsersList.length} tài khoản bị khóa
+            </div>
+          </div>
+
+          {/* Locked Users Table */}
+          {filteredLockedUsers.length === 0 ? (
+            <div className="p-8 rounded-3xl bg-emerald-950/20 border border-emerald-500/30 text-center space-y-2">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-xl font-bold">
+                🎉
+              </div>
+              <h4 className="text-sm font-bold text-white">Không có tài khoản nào bị khóa trong danh mục này!</h4>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Tất cả thành viên đang hoạt động bình thường, không có lệnh khóa hoặc vi phạm chính sách nào đang treo.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-white/5 text-slate-400 font-mono uppercase text-[10px]">
+                  <tr>
+                    <th className="p-3">Tài Khoản Bị Khóa (Gmail / Tên)</th>
+                    <th className="p-3">Kênh Mạng Xã Hội</th>
+                    <th className="p-3">Mức Độ Vi Phạm &amp; Chế Tài</th>
+                    <th className="p-3">Lý Do Vi Phạm &amp; Thời Hạn Khóa</th>
+                    <th className="p-3">Số Dư Xu / Tín Nhiệm</th>
+                    <th className="p-3 text-right">Toàn Quyền Quản Trị</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-slate-300">
+                  {filteredLockedUsers.map((u: AdminUserManagementItem) => {
+                    const lockout = isUserNextTasksLocked(u.tiktokConnected || u.email || u.id);
+                    const trust = getTrustProfile(u.tiktokConnected || u.email || u.id);
+                    const violationCount = getViolationCount(u.tiktokConnected || u.email || u.id);
+                    const effectiveLevel = lockout.violationLevel || violationCount || (u.status === 'banned' ? 4 : 1);
+                    const tier = getPenaltyTierForLevel(effectiveLevel);
+
+                    return (
+                      <tr key={u.id} className="hover:bg-white/[0.03] transition-colors">
+                        <td className="p-3">
+                          <div 
+                            onClick={() => setInspectedUser(u)}
+                            className="flex items-center gap-2.5 cursor-pointer group"
+                          >
+                            <img 
+                              src={u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80'} 
+                              alt={u.name} 
+                              className="w-8 h-8 rounded-full border border-red-500/50 object-cover group-hover:ring-2 group-hover:ring-red-400 shrink-0" 
+                            />
+                            <div>
+                              <div className="font-bold text-white text-xs group-hover:text-red-300 flex items-center gap-1.5 flex-wrap">
+                                <span>{u.name}</span>
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 border border-red-500/40 font-mono font-bold">
+                                  {u.status === 'banned' ? '⛔ KHÓA VĨNH VIỄN' : '⚠️ BỊ KHÓA'}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-cyan-400 font-mono underline decoration-cyan-500/40">{u.email}</div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="p-3 font-mono text-[11px] space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] px-1 py-0.2 rounded bg-black/60 border border-rose-500/30 text-rose-400 font-bold">TT</span>
+                            <span className="text-white font-semibold">{u.tiktokConnected || '@chưa_kết_nối'}</span>
+                            {u.tiktokConnected && (
+                              <span className="text-[10px] text-emerald-400 font-bold">({(u.tiktokFollowers || 0).toLocaleString()} flw)</span>
+                            )}
+                          </div>
+                          {(u.facebookConnected || u.youtubeConnected) && (
+                            <div className="flex items-center gap-2 text-[10px] pt-0.5">
+                              {u.facebookConnected && <span className="text-blue-400 font-mono">FB: {u.facebookConnected}</span>}
+                              {u.youtubeConnected && <span className="text-rose-400 font-mono">YT: {u.youtubeConnected}</span>}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="p-3 font-mono">
+                          <div className="space-y-1">
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                              effectiveLevel >= 4
+                                ? 'bg-red-500/30 text-red-300 border border-red-500/50'
+                                : effectiveLevel === 3
+                                ? 'bg-rose-500/25 text-rose-300 border border-rose-500/40'
+                                : effectiveLevel === 2
+                                ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40'
+                                : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                            }`}>
+                              CẤP #{effectiveLevel} ({tier.durationLabel})
+                            </span>
+                            {tier.fineCoins > 0 && (
+                              <div className="text-[10px] text-rose-400 font-bold">
+                                Phạt -{tier.fineCoins.toLocaleString()} Xu
+                              </div>
+                            )}
+                            {tier.isWithdrawLocked && (
+                              <div className="text-[9px] text-red-400 font-bold">
+                                🔒 Đang khóa rút tiền
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="p-3 text-[11px] space-y-1 max-w-xs">
+                          <div className="text-slate-300 font-medium line-clamp-2">
+                            {lockout.reason || 'Vi phạm chính sách làm nhiệm vụ / Gian lận rời tab'}
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-400">
+                            {lockout.isPermanentBan || effectiveLevel >= 4 || u.status === 'banned' ? (
+                              <span className="text-red-400 font-bold">● Khóa vĩnh viễn</span>
+                            ) : lockout.lockedUntil ? (
+                              <span className="text-amber-400 font-bold">
+                                ⏳ Hết hạn: {new Date(lockout.lockedUntil).toLocaleTimeString('vi-VN')} ({new Date(lockout.lockedUntil).toLocaleDateString('vi-VN')})
+                              </span>
+                            ) : (
+                              <span className="text-yellow-400 font-bold">● Tạm dừng tác vụ</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="p-3 font-mono">
+                          <div className="font-bold text-amber-400">{u.coinsBalance.toLocaleString()} Xu</div>
+                          <div className="text-[10px] text-slate-400">
+                            Tín nhiệm: <span className={trust.trustScore < 60 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>{trust.trustScore}/100</span>
+                          </div>
+                        </td>
+
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                            {/* 1-Click Instant Unlock */}
+                            <button
+                              onClick={() => handleUnlockUserDirectly(u)}
+                              title="Mở khóa tài khoản ngay lập tức (Gỡ bỏ mọi hạn chế & hồi 100 điểm tín nhiệm)"
+                              className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[11px] font-mono flex items-center gap-1 shadow-md transition-all cursor-pointer"
+                            >
+                              <Zap className="w-3.5 h-3.5 fill-white text-white" />
+                              <span>Mở Khóa</span>
+                            </button>
+
+                            {/* Cộng/Trừ Xu */}
+                            <button
+                              onClick={() => {
+                                const amountStr = prompt(`Cộng / trừ Xu cho ${u.name} (VD: 50000 hoặc -10000):`);
+                                if (amountStr) {
+                                  const amount = parseInt(amountStr, 10);
+                                  if (!isNaN(amount)) {
+                                    adminAdjustUserCoins(u.email || u.id, amount);
+                                  }
+                                }
+                              }}
+                              title="Cộng / Trừ Xu"
+                              className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] cursor-pointer"
+                            >
+                              <Coins className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Cấp Gói */}
+                            <button
+                              onClick={() => setInspectedUser(u)}
+                              title="Cấp Gói Dịch Vụ Miễn Phí"
+                              className="p-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 text-[11px] cursor-pointer"
+                            >
+                              <Gift className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Nâng Hạng VIP */}
+                            <button
+                              onClick={() => {
+                                const currentCfg = getRankTierConfig(u.rankLevel);
+                                const nextTier = TEN_TIERS_LIST[currentCfg.tierNumber % 10];
+                                adminChangeUserRank(u.email || u.id, nextTier.name);
+                              }}
+                              title="Nâng hạng VIP"
+                              className="p-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30 text-[11px] cursor-pointer"
+                            >
+                              <Trophy className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Xóa vĩnh viễn */}
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản ${u.name} (${u.email}) khỏi hệ thống?`)) {
+                                  adminDeleteUser(u.id);
+                                }
+                              }}
+                              title="Xóa vĩnh viễn tài khoản"
+                              className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 text-[11px] cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -5910,20 +6345,20 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             </div>
           </div>
 
-          {/* GRID 20 CHIẾN LƯỢC BẢO MẬT & PHÒNG THỦ CHỦ ĐỘNG */}
+          {/* GRID 60 CHIẾN LƯỢC BẢO MẬT & PHÒNG THỦ CHỦ ĐỘNG */}
           <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-black text-white font-mono uppercase flex items-center gap-2">
-                <Layers className="w-4 h-4 text-emerald-400" /> Ma Trận 20 Lớp Phòng Thủ AVA Sentinel 2026
+                <Layers className="w-4 h-4 text-emerald-400" /> Ma Trận 60 Lớp Phòng Thủ AVA Sentinel &amp; Pháp Chế 2026
               </h4>
               <span className="text-xs font-mono text-emerald-400 font-bold flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                20/20 Lớp Trực Tuyến
+                60/60 Lớp Trực Tuyến
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {AVA_20_ANTI_FRAUD_STRATEGIES.map((strat) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[700px] overflow-y-auto pr-2">
+              {AVA_60_ANTI_FRAUD_STRATEGIES.map((strat) => (
                 <div
                   key={strat.id}
                   className="p-4 rounded-2xl bg-black/40 border border-white/10 hover:border-rose-500/40 transition-all space-y-2.5 flex flex-col justify-between"

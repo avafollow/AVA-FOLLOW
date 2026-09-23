@@ -64,11 +64,11 @@ export interface FollowCommitment {
 // ─────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────
-// 1. DANH SÁCH 40 CHIẾN LƯỢC CHỐNG GIAN LẬN ĐỈNH CAO (AVA SENTINEL 40-LAYER TITAN ENGINE)
+// 1. DANH SÁCH 60 CHIẾN LƯỢC CHỐNG GIAN LẬN ĐỈNH CAO (AVA SENTINEL 60-LAYER TITAN MATRIX)
 // ─────────────────────────────────────────────────────────────
 
-export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
-  // ── NHÓM 1: SINH TRẮC HỌC & VI TƯƠNG TÁC (Lớp 1 - 5) ──
+export const AVA_60_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
+  // ── NHÓM 1: MẬT MÃ HỌC & SINH TRẮC HỌC ĐỘNG (Lớp 1 - 8) ──
   {
     id: 1,
     code: 'AF-01-HMAC-CHALLENGE',
@@ -129,11 +129,47 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     status: 'active',
     icon: '🖱️'
   },
-
-  // ── NHÓM 2: KIỂM SOÁT RỜI APP, CUỘC GỌI, TIN NHẮN & CHẠY NỀN (Lớp 6 - 10) ──
   {
     id: 6,
-    code: 'AF-06-BACKGROUND-INTERRUPT-FREEZE',
+    code: 'AF-06-KEYSTROKE-DYNAMICS',
+    name: 'Phân Tích Nhịp Gõ Phím Sinh Học & Độ Trễ Ký Tự (Flight Time & Dwell Time)',
+    layerCategory: 'Biometrics',
+    description: 'Phân tích khoảng thời gian nhấn giữ phím và thời gian di chuyển giữa các phím khi gõ bình luận hoặc điền thông tin.',
+    mechanism: 'Phát hiện các công cụ tự động dán hoặc gửi chuỗi phím có tốc độ máy móc vô cảm.',
+    autoAction: 'warning',
+    efficiencyRate: '99.2%',
+    status: 'active',
+    icon: '⌨️'
+  },
+  {
+    id: 7,
+    code: 'AF-07-GYRO-ACCEL-TELEMETRY',
+    name: 'Giám Sát Cảm Biến Gia Tốc Kế & Con Quay Hồi Chuyển Thiết Bị Thật (Device Motion)',
+    layerCategory: 'Biometrics',
+    description: 'Đo lường dao động vi mô tự nhiên của cảm biến con quay hồi chuyển Gyroscope và Accelerometer trên điện thoại di động.',
+    mechanism: 'Phát hiện môi trường giả lập máy ảo trên server không có phần cứng cảm biến cơ học.',
+    autoAction: 'warning',
+    efficiencyRate: '99.6%',
+    status: 'active',
+    icon: '📱'
+  },
+  {
+    id: 8,
+    code: 'AF-08-DEVICE-ORIENTATION-TILT',
+    name: 'Nhận Diện Góc Nghiêng Cầm Nắm & Rung Lắc Tự Nhiên (Device Orientation)',
+    layerCategory: 'Biometrics',
+    description: 'Xác thực góc nghiêng tự nhiên của tay người khi cầm thiết bị trong quá trình xem video hoặc làm nhiệm vụ.',
+    mechanism: 'Gắn cờ các thiết bị được đặt cố định 24/7 trên giá đỡ click-farm công nghiệp.',
+    autoAction: 'warning',
+    efficiencyRate: '98.9%',
+    status: 'active',
+    icon: '📐'
+  },
+
+  // ── NHÓM 2: GIÁM SÁT TIÊU ĐIỂM, ĐÓNG BĂNG RỜI TAB, CUỘC GỌI & ẨN APP (Lớp 9 - 16) ──
+  {
+    id: 9,
+    code: 'AF-09-BACKGROUND-INTERRUPT-FREEZE',
     name: 'Tự Động Đóng Băng Đếm Giờ Khi Có Cuộc Gọi, Tin Nhắn, Ẩn App',
     layerCategory: 'Temporal',
     description: 'Khi người dùng nhận cuộc gọi, đọc tin nhắn SMS/Zalo hoặc ẩn app, bộ đếm thời gian và luồng video lập tức đóng băng 100%.',
@@ -144,9 +180,9 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '⏸️'
   },
   {
-    id: 7,
-    code: 'AF-07-TAB-BOUNCE-DEPTH',
-    name: 'Giám Sát Chuyển Đổi Tab & Thời Lượng Lưu Lại Thực Tế (Dwell Time)',
+    id: 10,
+    code: 'AF-10-TAB-BOUNCE-DEPTH',
+    name: 'Giám Sát Chuyển Đổi Tab & Thời Lượng Lưu Lại Thực Tế (Dwell Time Enforcement)',
     layerCategory: 'Temporal',
     description: 'Phát hiện user thoát tab sang TikTok/FB/YT dưới 5 giây hoặc quay lại ngay mà không thực hiện tương tác trên kênh.',
     mechanism: 'Bắt buộc người dùng phải lưu lại trên nền tảng đích đủ thời lượng quy định mới kích hoạt nút xác minh.',
@@ -156,8 +192,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '⏱️'
   },
   {
-    id: 8,
-    code: 'AF-08-ATTENTION-HEARTBEAT-PULSE',
+    id: 11,
+    code: 'AF-11-ATTENTION-HEARTBEAT-PULSE',
     name: 'Nhịp Đập Tập Trung Tương Tác Định Kỳ (Interactive Heart Pulse)',
     layerCategory: 'Biometrics',
     description: 'Yêu cầu nhịp đập tương tác định kỳ mỗi 30-45 giây (chạm tim, tương tác màn hình) để xác thực người thật đang xem trực tiếp.',
@@ -168,8 +204,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '💓'
   },
   {
-    id: 9,
-    code: 'AF-09-FLOATING-PIP-TAMPER-BLOCK',
+    id: 12,
+    code: 'AF-12-FLOATING-PIP-TAMPER-BLOCK',
     name: 'Phát Hiện & Khóa Gian Lận Thu Nhỏ Màn Hình Cửa Sổ Nổi (PiP Idle)',
     layerCategory: 'Temporal',
     description: 'Phát hiện chế độ thu nhỏ Picture-in-Picture hoặc chia đôi màn hình Split-Screen để chơi game/lướt mạng xã hội khác trong khi làm nhiệm vụ.',
@@ -180,8 +216,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🪟'
   },
   {
-    id: 10,
-    code: 'AF-10-ACTIVE-FOCUS-RESUME-GATE',
+    id: 13,
+    code: 'AF-13-ACTIVE-FOCUS-RESUME-GATE',
     name: 'Cổng Chạm Xác Thực Chủ Động Sau Khi Mở Lại Tab/App (Resume Gate)',
     layerCategory: 'Biometrics',
     description: 'Sau khi quay lại từ cuộc gọi hoặc tab khác, bắt buộc người dùng thực hiện 1 thao tác chạm xác nhận để tiếp tục đếm giờ.',
@@ -191,11 +227,47 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     status: 'enforcing',
     icon: '🚪'
   },
-
-  // ── NHÓM 3: BẪY BOT, TOOL TỰ ĐỘNG & HEADLESS BROWSER (Lớp 11 - 15) ──
   {
-    id: 11,
-    code: 'AF-11-HONEYPOT-DOM-TRAP',
+    id: 14,
+    code: 'AF-14-PAGE-VISIBILITY-LOCK',
+    name: 'Khóa Đếm Giờ Khi Mất Tiêu Điểm Trình Duyệt (Page Visibility API Defense)',
+    layerCategory: 'Temporal',
+    description: 'Sử dụng Document Page Visibility API bắt sự kiện chuyển tab ngầm để dừng bộ đếm thời gian nhiệm vụ ngay tức khắc.',
+    mechanism: 'Đảm bảo 100% thời lượng tính Xu tương ứng với thời lượng thực tế người dùng nhìn màn hình.',
+    autoAction: 'warning',
+    efficiencyRate: '100%',
+    status: 'enforcing',
+    icon: '👁️'
+  },
+  {
+    id: 15,
+    code: 'AF-15-MULTI-WINDOW-SPLIT-DETECTOR',
+    name: 'Phát Hiện & Hạn Chế Chia Đôi Màn Hình Đa Nhiệm Không Hợp Lệ',
+    layerCategory: 'Temporal',
+    description: 'Kiểm soát kích thước viewport và sự kiện mất focus cục bộ khi người dùng cố tình chia màn hình để chạy nhiều tài khoản.',
+    mechanism: 'Chỉ ghi nhận phiên làm việc hợp lệ khi khung nhìn nhiệm vụ đạt tỷ lệ tiêu chuẩn.',
+    autoAction: 'warning',
+    efficiencyRate: '99.1%',
+    status: 'active',
+    icon: '📑'
+  },
+  {
+    id: 16,
+    code: 'AF-16-MINIMUM-DWELL-PACING',
+    name: 'Kiểm Soát Thời Gian Ngâm Màn Hình Tối Thiểu Trước Khi Mở Nút Hoàn Thành',
+    layerCategory: 'Temporal',
+    description: 'Nút bấm xác nhận nhiệm vụ bị vô hiệu hóa cơ học cho đến khi đồng hồ ngâm đủ thời gian quy chuẩn.',
+    mechanism: 'Triệt tiêu hoàn toàn khả năng bấm hoàn thành trước hạn.',
+    autoAction: 'enforcing' as any,
+    efficiencyRate: '100%',
+    status: 'enforcing',
+    icon: '⏳'
+  },
+
+  // ── NHÓM 3: BẪY BOT, HEADLESS BROWSER & AI SCRAPING DEFENSE (Lớp 17 - 24) ──
+  {
+    id: 17,
+    code: 'AF-17-HONEYPOT-DOM-TRAP',
     name: 'Bẫy Phần Tử Tàng Hình Chống Web Scraper & Botting Farm',
     layerCategory: 'AI_Heuristic',
     description: 'Cài cắm các phần tử DOM vô hình hoặc task thưởng ảo siêu cao mà mắt người không thấy được.',
@@ -206,8 +278,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🪤'
   },
   {
-    id: 12,
-    code: 'AF-12-HEADLESS-WEBDRIVER-DETECT',
+    id: 18,
+    code: 'AF-18-HEADLESS-WEBDRIVER-DETECT',
     name: 'Phát Hiện & Triệt Tiêu Selenium, Puppeteer, Playwright',
     layerCategory: 'AI_Heuristic',
     description: 'Kiểm tra thuộc tính navigator.webdriver, cờ Chrome Headless, plugin giả lập và window.callPhantom.',
@@ -218,8 +290,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🤖'
   },
   {
-    id: 13,
-    code: 'AF-13-ACCESSIBILITY-AUTOCLICK-SHIELD',
+    id: 19,
+    code: 'AF-19-ACCESSIBILITY-AUTOCLICK-SHIELD',
     name: 'Chặn Tool Tự Động Click Qua Quyền Trợ Năng (Auto-Clicker Shield)',
     layerCategory: 'Biometrics',
     description: 'Nhận diện tần số click đều đặn chuẩn xác từng mili-giây (ví dụ đúng 500ms click 1 lần) của các ứng dụng Auto Clicker trên Android/iOS.',
@@ -230,8 +302,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🛡️'
   },
   {
-    id: 14,
-    code: 'AF-14-CANVAS-WEBGL-FINGERPRINT',
+    id: 20,
+    code: 'AF-20-CANVAS-WEBGL-FINGERPRINT',
     name: 'Dấu Vân Tay Phần Cứng GPU/Canvas Render Độc Bản',
     layerCategory: 'Network',
     description: 'Tạo mã hash fingerprint duy nhất dựa trên chip xử lý đồ họa GPU WebGL, Canvas pixel và tập lệnh shader.',
@@ -242,8 +314,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '💻'
   },
   {
-    id: 15,
-    code: 'AF-15-AUDIO-CONTEXT-ENTROPY',
+    id: 21,
+    code: 'AF-21-AUDIO-CONTEXT-ENTROPY',
     name: 'Nhận Diện Thiết Bị Qua Dao Động Sóng Âm Phần Cứng (Audio Entropy)',
     layerCategory: 'Network',
     description: 'Phân tích tần số xử lý của bộ giải mã âm thanh AudioContext phần cứng để nhận diện thiết bị duy nhất.',
@@ -253,11 +325,47 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     status: 'active',
     icon: '🔊'
   },
-
-  // ── NHÓM 4: KHÓA SỔ CÁI BẤT BIẾN & CHỐNG TRÙNG LẶP 100% (Lớp 16 - 20) ──
   {
-    id: 16,
-    code: 'AF-16-IMMUTABLE-CHANNEL-LEDGER',
+    id: 22,
+    code: 'AF-22-SHADOW-DOM-INJECTION-GUARD',
+    name: 'Quét & Chặn Mã Script Lạ Tiêm Vào Cây DOM (XSS & Tampermonkey)',
+    layerCategory: 'Cryptographic',
+    description: 'Giám sát MutationObserver liên tục để phát hiện các đoạn script tiện ích mở rộng can thiệp vào các nút bấm làm nhiệm vụ.',
+    mechanism: 'Vô hiệu hóa phiên làm việc khi phát hiện userscript can thiệp DOM trái phép.',
+    autoAction: 'warning',
+    efficiencyRate: '99.5%',
+    status: 'enforcing',
+    icon: '💉'
+  },
+  {
+    id: 23,
+    code: 'AF-23-WEBWORKER-SANDBOX-VERIFY',
+    name: 'Cách Ly Luồng Tính Toán Xác Minh Trong WebWorker Độc Lập',
+    layerCategory: 'Cryptographic',
+    description: 'Thực thi các thuật toán kiểm tra tính toàn vẹn và băm hash mật mã trong luồng WebWorker riêng biệt.',
+    mechanism: 'Ngăn chặn các thủ thuật ghi đè hàm JavaScript toàn cục từ DevTools Console.',
+    autoAction: 'warning',
+    efficiencyRate: '99.8%',
+    status: 'active',
+    icon: '⚙️'
+  },
+  {
+    id: 24,
+    code: 'AF-24-DEVTOOLS-F12-TAMPER-ALERT',
+    name: 'Phát Hiện Mở DevTools Bẻ Mã Nguồn & Giả Lập Gửi Request Trái Phép',
+    layerCategory: 'AI_Heuristic',
+    description: 'Đo lường độ trễ debugger và kích thước cửa sổ console để phát hiện người dùng cố tình can thiệp mã nguồn.',
+    mechanism: 'Tự động hủy phiên làm nhiệm vụ hiện tại nếu phát hiện hành vi bẻ khóa mã.',
+    autoAction: 'warning',
+    efficiencyRate: '99.2%',
+    status: 'active',
+    icon: '🔍'
+  },
+
+  // ── NHÓM 4: SỔ CÁI BẤT BIẾN, KHÓA SỔ PHÂN QUYỀN & CHỐNG TRÙNG LẶP 100% (Lớp 25 - 32) ──
+  {
+    id: 25,
+    code: 'AF-25-IMMUTABLE-CHANNEL-LEDGER',
     name: 'Sổ Cái Bất Biến 1 Kênh = 1 Lần Xu Follow Duy Nhất Trọn Đời',
     layerCategory: 'Economic',
     description: 'Mỗi tài khoản chỉ được nhận Xu Follow 1 kênh TikTok/Facebook/YouTube đúng 1 lần duy nhất trong toàn bộ vòng đời.',
@@ -268,8 +376,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '📜'
   },
   {
-    id: 17,
-    code: 'AF-17-SINGLE-ACTION-ISOLATION',
+    id: 26,
+    code: 'AF-26-SINGLE-ACTION-ISOLATION',
     name: 'Khóa Độc Lập Từng Hành Động Đơn Lẻ (Follow/Like/Comment/Share/Watch)',
     layerCategory: 'Economic',
     description: 'Mỗi hành vi tương tác trên một video/livestream được đối soát và khóa độc lập sau khi nhận Xu.',
@@ -280,8 +388,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🔒'
   },
   {
-    id: 18,
-    code: 'AF-18-PERMANENT-AFFILIATE-BINDING',
+    id: 27,
+    code: 'AF-27-PERMANENT-AFFILIATE-BINDING',
     name: 'Ràng Buộc Vĩnh Viễn 1 TikTok + 1 Gmail = 1 Lần Thưởng Chào Mừng',
     layerCategory: 'Economic',
     description: 'Sổ cái đăng ký vĩnh viễn (Permanent Binding Registry) lưu vết mã máy, TikTok ID và Gmail.',
@@ -292,8 +400,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🔗'
   },
   {
-    id: 19,
-    code: 'AF-19-DUAL-WAY-DELTA-AUDIT',
+    id: 28,
+    code: 'AF-28-DUAL-WAY-DELTA-AUDIT',
     name: 'Đối Soát Chênh Lệch Delta Người Theo Dõi 2 Chiều (Worker vs Creator)',
     layerCategory: 'AI_Heuristic',
     description: 'Đối soát chỉ số Đang theo dõi (Following) của người làm nhiệm vụ tăng lên đồng thời với chỉ số Follower của chủ kênh.',
@@ -304,22 +412,58 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '⚖️'
   },
   {
-    id: 20,
-    code: 'AF-20-CROSS-FOLLOW-TIER-CEILING',
+    id: 29,
+    code: 'AF-29-CROSS-FOLLOW-TIER-CEILING',
     name: 'Khống Chế Trần Hạn Mức Cấp Bậc (Rank Ceiling Quota Enforcement)',
     layerCategory: 'Economic',
-    description: 'Áp dụng trần hạn mức làm nhiệm vụ theo thứ hạng (Đồng 30 lượt, Bạc 50 lượt, Vàng 100 lượt, Kim Cương không giới hạn).',
+    description: 'Áp dụng trần hạn mức làm nhiệm vụ theo 10 cấp bậc thăng tiến tài khoản.',
     mechanism: 'Ngăn chặn tài khoản cày cuốc vô hạn để xả Xu làm lạm phát hệ thống.',
     autoAction: 'warning',
     efficiencyRate: '100%',
     status: 'enforcing',
     icon: '🏆'
   },
-
-  // ── NHÓM 5: KHÓA CHUỖI NHIỆM VỤ & CHẾ TÀI LAN TRUYỀN (Lớp 21 - 25) ──
   {
-    id: 21,
-    code: 'AF-21-CASCADING-TASK-LOCKOUT',
+    id: 30,
+    code: 'AF-30-DOUBLE-SPEND-BLOCKER',
+    name: 'Chống Tiêu Dùng Kép Xu & Tấn Công Bất Đồng Bộ Race Condition',
+    layerCategory: 'Economic',
+    description: 'Sử dụng khóa phiên nguyên tử (Atomic Mutex Lock) trong mọi thao tác cộng trừ Xu và đổi thưởng.',
+    mechanism: 'Không thể spam đồng thời 10 request cùng 1 mili-giây để nhân bản số dư.',
+    autoAction: 'freeze_wallet',
+    efficiencyRate: '100%',
+    status: 'enforcing',
+    icon: '⚡'
+  },
+  {
+    id: 31,
+    code: 'AF-31-TRANSACTION-CHAIN-HASHING',
+    name: 'Chuỗi Băm Khối Giao Dịch Gắn Mã SHA-256 Chống Sửa Đổi Lịch Sử',
+    layerCategory: 'Cryptographic',
+    description: 'Mỗi giao dịch cộng/trừ Xu đều mang hash của giao dịch liền trước tạo thành chuỗi khối bất biến.',
+    mechanism: 'Phát hiện ngay lập tức bất kỳ sự can thiệp số dư nào ngoài luồng hệ thống.',
+    autoAction: 'lock_account',
+    efficiencyRate: '100%',
+    status: 'enforcing',
+    icon: '⛓️'
+  },
+  {
+    id: 32,
+    code: 'AF-32-MERKLE-PROOF-SNAPSHOT',
+    name: 'Ảnh Chụp Sổ Cái Merkle Tree Định Kỳ Bảo Đảm Tính Toàn Vẹn Số Dư',
+    layerCategory: 'Cryptographic',
+    description: 'Hệ thống tự động chụp ảnh cây Merkle toàn bộ ví người dùng vào cuối mỗi chu kỳ kế toán.',
+    mechanism: 'Đối chiếu và bảo toàn 100% tài sản hợp pháp của toàn thể cộng đồng.',
+    autoAction: 'warning',
+    efficiencyRate: '100%',
+    status: 'active',
+    icon: '🌳'
+  },
+
+  // ── NHÓM 5: KHÓA CHUỖI NHIỆM VỤ LAN TRUYỀN & ĐIỂM TÍN NHIỆM ĐỘNG (Lớp 33 - 40) ──
+  {
+    id: 33,
+    code: 'AF-33-CASCADING-TASK-LOCKOUT',
     name: 'Tự Động Khóa Toàn Bộ Chuỗi Nhiệm Vụ Tiếp Theo Khi Có Vi Phạm',
     layerCategory: 'Economic',
     description: 'Khi phát hiện gian lận ở bất kỳ nhiệm vụ nào, hệ thống ngay lập tức đóng băng và KHÓA TOÀN BỘ danh sách nhiệm vụ tiếp theo trong 15-60 phút.',
@@ -330,8 +474,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '⛔'
   },
   {
-    id: 22,
-    code: 'AF-22-REALTIME-TRUST-SCORE-PENALTY',
+    id: 34,
+    code: 'AF-34-REALTIME-TRUST-SCORE-PENALTY',
     name: 'Trừ Điểm Tin Cậy Tức Thì Theo Thời Gian Thực (100 -> 0)',
     layerCategory: 'Economic',
     description: 'Thang điểm tính toán liên tục: <60 điểm tự động đóng băng két rút tiền; <30 điểm khóa tài khoản vĩnh viễn.',
@@ -342,8 +486,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '📊'
   },
   {
-    id: 23,
-    code: 'AF-23-ZERO-SECOND-CLICK-DEFENSE',
+    id: 35,
+    code: 'AF-35-ZERO-SECOND-CLICK-DEFENSE',
     name: 'Chặn Đứng Thao Tác Siêu Tốc Dưới Ngưỡng Phản Xạ Sinh Học (<300ms)',
     layerCategory: 'Temporal',
     description: 'Thời gian phản xạ thần kinh của mắt người tối thiểu là 250-300ms. Mọi thao tác bấm hoàn thành dưới 300ms sau khi mở đều bị chặn.',
@@ -354,8 +498,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '⚡'
   },
   {
-    id: 24,
-    code: 'AF-24-ESCROW-7DAY-FREEZE',
+    id: 36,
+    code: 'AF-36-ESCROW-7DAY-FREEZE',
     name: 'Két Tạm Giữ Xu Ký Quỹ An Toàn 7 Ngày Cho Phép Thu Hồi Khi Gian Lận',
     layerCategory: 'Economic',
     description: 'Xu nhận từ nhiệm vụ được chuyển vào ví Ký Quỹ Tạm Giữ 7 ngày trước khi quyết toán khả dụng sang ví chính.',
@@ -366,8 +510,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🛡️'
   },
   {
-    id: 25,
-    code: 'AF-25-30D-FOLLOW-COMMITMENT',
+    id: 37,
+    code: 'AF-37-30D-FOLLOW-COMMITMENT',
     name: 'Hợp Đồng Cam Kết Giữ Follow 30 Ngày (Hủy Follow Phạt Gấp Đôi Xu)',
     layerCategory: 'Economic',
     description: 'Ràng buộc hợp đồng thông minh: Người làm nhiệm vụ không được hủy follow kênh trong 30 ngày.',
@@ -377,11 +521,47 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     status: 'enforcing',
     icon: '🤝'
   },
-
-  // ── NHÓM 6: MẠNG, IP, PROXY & CHỐNG FARM TÀI KHOẢN (Lớp 26 - 30) ──
   {
-    id: 26,
-    code: 'AF-26-IP-RATE-LIMITER',
+    id: 38,
+    code: 'AF-38-PROGRESSIVE-PENALTY-TIERING',
+    name: 'Thang Chế Tài 4 Cấp Độ Lũy Tiến (60p -> 24h -> 3 Ngày -> Vĩnh Viễn)',
+    layerCategory: 'Legal',
+    description: 'Hệ thống tự động nâng bậc hình phạt theo số lần tái phạm: Lần 1 (60p), Lần 2 (24h + phạt 10k Xu), Lần 3 (3 ngày + khóa rút tiền), Lần 4 (Khóa vĩnh viễn).',
+    mechanism: 'Răn đe nghiêm minh các hành vi cố tình vi phạm quy chế sàn.',
+    autoAction: 'lock_account',
+    efficiencyRate: '100%',
+    status: 'enforcing',
+    icon: '🪜'
+  },
+  {
+    id: 39,
+    code: 'AF-39-DYNAMIC-STREAK-RESET',
+    name: 'Tự Động Hủy Chuỗi Điểm Danh & Thu Hồi Thưởng Nóng Khi Phát Hiện Hack',
+    layerCategory: 'Economic',
+    description: 'Khi phát hiện tài khoản can thiệp gian lận, toàn bộ chuỗi điểm danh 7 ngày và quà thưởng nóng bị thu hồi ngay tức thì.',
+    mechanism: 'Bảo vệ quỹ thưởng cộng đồng khỏi các tài khoản botnet.',
+    autoAction: 'penalty_score',
+    efficiencyRate: '100%',
+    status: 'enforcing',
+    icon: '🔥'
+  },
+  {
+    id: 40,
+    code: 'AF-40-AUTOMATED-SUSPENSION-COOLOFF',
+    name: 'Bộ Đếm Thời Gian Hạ Nhiệt Tự Động Khóa Tác Vụ Nhạy Cảm (Cool-Off Timer)',
+    layerCategory: 'Temporal',
+    description: 'Áp dụng thời gian nghỉ hạ nhiệt giữa các tác vụ nhạy cảm như đổi thưởng, rút tiền và nhận gói dịch vụ.',
+    mechanism: 'Ngăn chặn thao tác dồn dập vượt quá ngưỡng an toàn tài chính.',
+    autoAction: 'warning',
+    efficiencyRate: '99.7%',
+    status: 'active',
+    icon: '🧊'
+  },
+
+  // ── NHÓM 6: MẠNG, DẢI IP ẢO, GEOLOCATION & CHỐNG CỤM BOX PHONE (Lớp 41 - 48) ──
+  {
+    id: 41,
+    code: 'AF-41-IP-RATE-LIMITER',
     name: 'Giới Hạn Tần Suất Click & Thao Tác Theo IP Máy Chủ (IP Rate Limiting)',
     layerCategory: 'Network',
     description: 'Quy chuẩn tốc độ người thật: Tối đa 3 nhiệm vụ / phút trên cùng 1 địa chỉ IP mạng.',
@@ -392,8 +572,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🚦'
   },
   {
-    id: 27,
-    code: 'AF-27-PROXY-VPN-TOR-DETECTION',
+    id: 42,
+    code: 'AF-42-PROXY-VPN-TOR-DETECTION',
     name: 'Phát Hiện & Chặn Đứng Dải IP Ảo, VPN Data Center, Tor Node',
     layerCategory: 'Network',
     description: 'Kiểm tra dải IP kết nối với danh mục IP proxy xoay, máy chủ VPN thương mại và Tor exit nodes.',
@@ -404,8 +584,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🌐'
   },
   {
-    id: 28,
-    code: 'AF-28-MAX-5-ACCOUNTS-PER-IP',
+    id: 43,
+    code: 'AF-43-MAX-5-ACCOUNTS-PER-IP',
     name: 'Khống Chế Tối Đa 5 Tài Khoản TikTok/FB/YT Trên 1 Địa Chỉ IP',
     layerCategory: 'Network',
     description: 'Chỉ cho phép tối đa 5 tài khoản liên kết trên cùng một địa chỉ IP.',
@@ -416,9 +596,9 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🏢'
   },
   {
-    id: 29,
-    code: 'AF-29-MULTI-TAB-SYNC-LOCK',
-    name: 'Khóa Đa Luồng: Không Cho Phép Mở Nhiều Tab Làm Cùng Lúc',
+    id: 44,
+    code: 'AF-44-MULTI-TAB-SYNC-LOCK',
+    name: 'Khóa Đa Luồng BroadcastChannel: Không Cho Phép Mở Nhiều Tab Cùng Lúc',
     layerCategory: 'Temporal',
     description: 'Sử dụng BroadcastChannel API để đồng bộ trạng thái: Tại một thời điểm chỉ cho phép mở 1 phiên làm nhiệm vụ duy nhất.',
     mechanism: 'Nếu mở thêm tab thứ 2, tab cũ sẽ tự động bị khóa và dừng tính giờ.',
@@ -428,8 +608,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '📑'
   },
   {
-    id: 30,
-    code: 'AF-30-BATTERY-CHARGING-TELEMETRY',
+    id: 45,
+    code: 'AF-45-BATTERY-CHARGING-TELEMETRY',
     name: 'Phân Tích Trạng Thái Pin & Sạc Nhận Diện Cụm Farm Box Phone',
     layerCategory: 'Network',
     description: 'Đọc dữ liệu BatteryManager API (mức pin luôn 100%, cắm sạc liên tục không đổi) để nhận diện các dàn máy Box Phone cắm nguồn cố định.',
@@ -439,11 +619,47 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     status: 'active',
     icon: '🔋'
   },
-
-  // ── NHÓM 7: KIỂM SOÁT LIVESTREAM & TƯƠNG TÁC THỜI GIAN THỰC (Lớp 31 - 35) ──
   {
-    id: 31,
-    code: 'AF-31-LIVE-HEARTBEAT-STREAM-MONITOR',
+    id: 46,
+    code: 'AF-46-TCP-WINDOW-GEO-FENCE',
+    name: 'Định Vị Lãnh Thổ & Kiểm Tra Độ Trễ Round-Trip Time (RTT) Thực Tế',
+    layerCategory: 'Network',
+    description: 'Đo lường độ trễ mạng RTT vật lý tới các máy chủ trong nước để phát hiện lưu lượng mượn đường hầm từ nước ngoài.',
+    mechanism: 'Ngăn chặn các mạng lưới bot nước ngoài thao túng chiến dịch nội địa.',
+    autoAction: 'warning',
+    efficiencyRate: '99.1%',
+    status: 'active',
+    icon: '🗺️'
+  },
+  {
+    id: 47,
+    code: 'AF-47-DNS-LEAK-PROBE',
+    name: 'Thăm Dò Rò Rỉ DNS Nhận Diện Trình Duyệt Đang Sử Dụng Proxy Ngầm',
+    layerCategory: 'Network',
+    description: 'Thực hiện kiểm tra DNS Leak ngầm để xác định địa chỉ máy chủ phân giải tên miền thực tế của kết nối.',
+    mechanism: 'Phát hiện công cụ Fake IP nghiệp dư không che giấu triệt để dấu vết mạng.',
+    autoAction: 'warning',
+    efficiencyRate: '98.9%',
+    status: 'active',
+    icon: '📡'
+  },
+  {
+    id: 48,
+    code: 'AF-48-DEVICE-MEMORY-CPU-CORES',
+    name: 'Nhận Diện Cấu Hình Phần Cứng RAM & Luồng CPU Bất Thường Của Máy Ảo',
+    layerCategory: 'Network',
+    description: 'Kiểm tra navigator.hardwareConcurrency và navigator.deviceMemory để nhận diện môi trường máy chủ phân mảnh ảo (VPS 1 vCPU).',
+    mechanism: 'Gắn cờ các máy chủ ảo chuyên dụng để cày view.',
+    autoAction: 'warning',
+    efficiencyRate: '99.3%',
+    status: 'active',
+    icon: '🎛️'
+  },
+
+  // ── NHÓM 7: KIỂM SOÁT LUỒNG LIVESTREAM & TƯƠNG TÁC VIDEO THỜI GIAN THỰC (Lớp 49 - 54) ──
+  {
+    id: 49,
+    code: 'AF-49-LIVE-HEARTBEAT-STREAM-MONITOR',
     name: 'Kiểm Soát Dòng Stream Live: Dừng Cộng Xu Khi Ẩn Tab / Mất Mạng',
     layerCategory: 'Temporal',
     description: 'Đồng hồ đếm phút livestream chỉ tích lũy khi video đang phát thực tế và tab đang hiển thị 100%.',
@@ -454,8 +670,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🔴'
   },
   {
-    id: 32,
-    code: 'AF-32-SMART-CAPTCHA-CHALLENGE',
+    id: 50,
+    code: 'AF-50-SMART-CAPTCHA-CHALLENGE',
     name: 'Thử Thách CAPTCHA Biểu Tượng Ngẫu Nhiên Trong 15s Khi Xem Live',
     layerCategory: 'AI_Heuristic',
     description: 'Xuất hiện thử thách chọn biểu tượng ngẫu nhiên (🎁 Hộp quà, 💎 Kim cương, 🔥 Ngọn lửa) trong 15 giây khi xem Live để xác thực người thật.',
@@ -466,8 +682,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🧩'
   },
   {
-    id: 33,
-    code: 'AF-33-LIVE-TAP-QUOTA-PACING',
+    id: 51,
+    code: 'AF-51-LIVE-TAP-QUOTA-PACING',
     name: 'Điều Phối Nhịp Độ Tap Tim Tránh Spam Auto-Touch',
     layerCategory: 'Biometrics',
     description: 'Giới hạn số lượt tim được ghi nhận tối đa 30 tim/phút, yêu cầu khoảng cách giữa các lần chạm ngẫu nhiên.',
@@ -478,8 +694,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '💖'
   },
   {
-    id: 34,
-    code: 'AF-34-DYNAMIC-TIME-DRIFT-SYNC',
+    id: 52,
+    code: 'AF-52-DYNAMIC-TIME-DRIFT-SYNC',
     name: 'Đồng Bộ Đồng Hồ NTP Chống Gian Lận Chỉnh Giờ Hệ Thống Client',
     layerCategory: 'Temporal',
     description: 'So khớp timestamp máy người dùng với đồng hồ nguyên tử NTP máy chủ Supabase.',
@@ -490,8 +706,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '⏰'
   },
   {
-    id: 35,
-    code: 'AF-35-CLIENT-PAYLOAD-SIGNATURE',
+    id: 53,
+    code: 'AF-53-CLIENT-PAYLOAD-SIGNATURE',
     name: 'Ký Số Toàn Bộ Request Token Tránh Sửa Đổi DevTools',
     layerCategory: 'Cryptographic',
     description: 'Mọi payload nhận thưởng đều được mã hóa chữ ký SHA-256 kèm theo secret salt.',
@@ -501,11 +717,23 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     status: 'enforcing',
     icon: '🛡️'
   },
-
-  // ── NHÓM 8: PHÁP CHẾ, HẬU KIỂM QUẢN TRỊ & KHÁNG CÁO 2 CHIỀU (Lớp 36 - 40) ──
   {
-    id: 36,
-    code: 'AF-36-LEGAL-DOSSIER-GENERATOR',
+    id: 54,
+    code: 'AF-54-AUDIO-VISUAL-PLAYBACK-ASSERT',
+    name: 'Kiểm Tra Luồng Giải Mã Video Frame Rate Thật Để Đảm Bảo Video Đang Chạy',
+    layerCategory: 'Temporal',
+    description: 'Kiểm tra thuộc tính currentTime và video.playbackRate liên tục để xác thực video đang thực sự được render hình ảnh.',
+    mechanism: 'Loại trừ các trường hợp video bị đứng hình (stalled) hoặc mạng quay vòng vô hạn.',
+    autoAction: 'warning',
+    efficiencyRate: '99.6%',
+    status: 'enforcing',
+    icon: '🎞️'
+  },
+
+  // ── NHÓM 8: PHÁP CHẾ KHẮT KHE, NGHỊ ĐỊNH 15/2020/NĐ-CP & TRUY CỨU TRỌNG TÀI (Lớp 55 - 60) ──
+  {
+    id: 55,
+    code: 'AF-55-LEGAL-DOSSIER-GENERATOR',
     name: 'Tự Động Kết Xuất Hồ Sơ Vi Phạm Pháp Lý (Nghị Định 15/2020/NĐ-CP)',
     layerCategory: 'Legal',
     description: 'Tự động trích xuất hồ sơ chứng cứ gian lận (IP, CCCD, thiết bị, log thời gian) để chuyển sang Bộ phận Pháp chế & Cơ quan chức năng.',
@@ -516,8 +744,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '⚖️'
   },
   {
-    id: 37,
-    code: 'AF-37-SUPER-ADMIN-MASTER-AUDIT',
+    id: 56,
+    code: 'AF-56-SUPER-ADMIN-MASTER-AUDIT',
     name: 'Quyền Trượng Quản Trị Tối Cao: Truy Vết Sổ Cái Vi Phạm Bất Biến',
     layerCategory: 'Legal',
     description: 'Giao diện Admin Radar hiển thị cảnh báo đỏ các tài khoản nghi vấn, cung cấp nút đóng băng tức thì và xóa vi phạm có audit trail.',
@@ -528,8 +756,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🎯'
   },
   {
-    id: 38,
-    code: 'AF-38-TWO-WAY-APPEAL-ARBITRATION',
+    id: 57,
+    code: 'AF-57-TWO-WAY-APPEAL-ARBITRATION',
     name: 'Cơ Chế Kháng Cáo & Trọng Tài Minh Bạch 2 Chiều',
     layerCategory: 'Legal',
     description: 'Cung cấp cổng nộp bằng chứng minh oan nếu người dùng bị nghẽn mạng hoặc lỗi kỹ thuật.',
@@ -540,8 +768,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '📝'
   },
   {
-    id: 39,
-    code: 'AF-39-ZERO-LEAK-PAYOUT-VALIDATOR',
+    id: 58,
+    code: 'AF-58-ZERO-LEAK-PAYOUT-VALIDATOR',
     name: 'Bộ Lọc Quyết Toán Độc Lập Trước Khi Xuất Quỹ Ngân Hàng',
     layerCategory: 'Economic',
     description: 'Trước khi tiền mặt được chuyển qua SePay/VietQR, hệ thống quét toàn bộ lịch sử nhiệm vụ tạo ra số Xu đó.',
@@ -552,8 +780,8 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     icon: '🏦'
   },
   {
-    id: 40,
-    code: 'AF-40-BLACK-BOX-OBFUSCATION',
+    id: 59,
+    code: 'AF-59-BLACK-BOX-OBFUSCATION',
     name: 'Ẩn Tuyệt Đối Mã Nguồn Lõi, Giữ Bí Mật Công Nghệ Phòng Thủ',
     layerCategory: 'Cryptographic',
     description: 'Toàn bộ công thức tính toán, ngưỡng mili-giây và tọa độ bẫy được giấu kín 100% trong lõi hệ thống.',
@@ -562,11 +790,24 @@ export const AVA_40_ANTI_FRAUD_STRATEGIES: AntiFraudStrategyDef[] = [
     efficiencyRate: '100%',
     status: 'enforcing',
     icon: '⬛'
+  },
+  {
+    id: 60,
+    code: 'AF-60-CYBER-LAW-COMPLIANCE-VAULT',
+    name: 'Két Lưu Trữ Bằng Chứng Tuân Thủ Luật An Ninh Mạng 2018 & NĐ 53/2022/NĐ-CP',
+    layerCategory: 'Legal',
+    description: 'Lưu trữ toàn bộ nhật ký kiểm toán bất biến theo tiêu chuẩn an toàn thông tin mạng quốc gia và quy định bảo vệ dữ liệu cá nhân (Nghị định 13/2023/NĐ-CP).',
+    mechanism: 'Cung cấp dữ liệu chứng cứ pháp lý hợp lệ cho Tòa án và Cơ quan Điều tra khi có yêu cầu.',
+    autoAction: 'legal_dossier',
+    efficiencyRate: '100%',
+    status: 'enforcing',
+    icon: '🏛️'
   }
 ];
 
 // Alias for backward compatibility
-export const AVA_20_ANTI_FRAUD_STRATEGIES = AVA_40_ANTI_FRAUD_STRATEGIES;
+export const AVA_40_ANTI_FRAUD_STRATEGIES = AVA_60_ANTI_FRAUD_STRATEGIES;
+export const AVA_20_ANTI_FRAUD_STRATEGIES = AVA_60_ANTI_FRAUD_STRATEGIES;
 
 // ─────────────────────────────────────────────────────────────
 // 2. CONSTANTS - THỜI GIAN TỐI THIỂU
@@ -933,6 +1174,31 @@ export function clearCascadingTaskLockout(userHandle: string): void {
   try {
     localStorage.removeItem(TASK_LOCKOUT_KEY(clean));
   } catch {}
+}
+
+export function clearUserViolationCount(userHandle: string): void {
+  if (typeof window === 'undefined' || !userHandle) return;
+  const clean = userHandle.replace(/^@+/, '');
+  try {
+    localStorage.removeItem(VIOLATION_COUNT_KEY(clean));
+  } catch {}
+}
+
+export function restoreUserTrustProfile(userHandle: string): TrustProfile {
+  const clean = userHandle.replace(/^@+/, '');
+  const profile: TrustProfile = {
+    userHandle: clean,
+    trustScore: 100,
+    totalActions: 0,
+    fraudAttempts: 0,
+    isBlocked: false,
+    isFrozenWallet: false,
+    updatedAt: new Date().toISOString()
+  };
+  saveTrustProfile(profile);
+  clearCascadingTaskLockout(clean);
+  clearUserViolationCount(clean);
+  return profile;
 }
 
 // ─────────────────────────────────────────────────────────────

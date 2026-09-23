@@ -7,7 +7,7 @@ import {
   CheckCircle2, 
   BookOpen
 } from 'lucide-react';
-import { AVA_20_ANTI_FRAUD_STRATEGIES } from '../../services/antiFraudEngine';
+import { AVA_60_ANTI_FRAUD_STRATEGIES } from '../../services/antiFraudEngine';
 
 interface AntiFraudMarqueeTickerProps {
   onOpenLegalModal?: () => void;
@@ -135,10 +135,10 @@ export const AntiFraudMarqueeTicker: React.FC<AntiFraudMarqueeTickerProps> = ({
               <div className="space-y-2 pt-2">
                 <h4 className="font-bold text-white text-xs uppercase tracking-wide flex items-center gap-1.5 font-display">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Hệ Thống Phòng Thủ Ngầm Đang Hoạt Động (20 Lớp AVA Sentinel)</span>
+                  <span>Hệ Thống Phòng Thủ Ngầm Đang Hoạt Động (60 Lớp AVA Sentinel)</span>
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                  {AVA_20_ANTI_FRAUD_STRATEGIES.map(s => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] max-h-60 overflow-y-auto pr-1">
+                  {AVA_60_ANTI_FRAUD_STRATEGIES.map(s => (
                     <div key={s.id} className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-start gap-2">
                       <span className="text-base shrink-0">{s.icon}</span>
                       <div className="min-w-0 flex-1">

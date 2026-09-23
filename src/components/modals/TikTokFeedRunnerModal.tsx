@@ -110,7 +110,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     feedRunnerFilter,
     feedRunnerTargetId,
     userMissions,
-    openFraudAppealModal
+    openFraudAppealModal,
+    openConnect
   } = useTikTokApp();
 
   const [filterMode, setFilterMode] = useState<'all' | 'missions' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
@@ -733,9 +734,10 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       return;
     }
 
-    if (!user.tiktokConnected) {
-      const handleToLink = currentItem.channelHandle.startsWith('@') ? currentItem.channelHandle : `@${currentItem.channelHandle}`;
-      connectTikTok(handleToLink);
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok của bạn để nhận Xu nhiệm vụ!');
+      openConnect();
+      return;
     }
 
     if (currentClaimed.follow) {
@@ -793,6 +795,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const handleLikeAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (syncingAction) return;
+
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾN NỐI TIKTOK: Vui lòng kết nối kênh TikTok của bạn để nhận Xu nhiệm vụ!');
+      openConnect();
+      return;
+    }
 
     const userHandle = user.tiktokConnected || user.email || '@user';
     const blockStatus = isUserBlocked(userHandle);
@@ -957,6 +965,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     if (!text) return;
     if (syncingAction) return;
 
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok của bạn để nhận Xu nhiệm vụ!');
+      openConnect();
+      return;
+    }
+
     const userHandle = user.tiktokConnected || user.email || '@user';
     const blockStatus = isUserBlocked(userHandle);
     if (blockStatus.blocked) {
@@ -1015,6 +1029,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   // 1-CLICK CHIA SẺ THẬT - WEB SHARE API + MỞ FACEBOOK/TIKTOK + XÁC MINH ANTI-FRAUD
   const handleShareAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
+
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok của bạn để nhận Xu nhiệm vụ!');
+      openConnect();
+      return;
+    }
 
     const userHandle = user.tiktokConnected || user.email || '@user';
     const blockStatus = isUserBlocked(userHandle);
@@ -1101,12 +1121,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     >
       {/* Phone Simulation Container: Vừa vặn chuẩn xác tỷ lệ điện thoại di động & tablet */}
       <div 
-        className="relative w-full h-[100dvh] sm:h-[92vh] sm:max-h-[820px] sm:max-w-[390px] sm:aspect-[9/16] sm:rounded-3xl bg-black border-0 sm:border border-white/20 shadow-2xl overflow-hidden flex flex-col mx-auto pb-safe"
+        className="relative w-full h-[100dvh] sm:h-[92vh] sm:max-h-[820px] sm:max-w-[390px] sm:aspect-[9/16] sm:rounded-3xl bg-black border-0 sm:border border-white/20 shadow-2xl overflow-hidden flex flex-col mx-auto pb-[max(env(safe-area-inset-bottom,0px),0.75rem)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Realtime TikTok Safe Sync Floating Badge */}
         {syncingAction && (
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 rounded-full bg-black/90 border border-cyan-400 text-cyan-300 text-[11px] font-mono font-bold flex items-center gap-2 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in duration-150">
+          <div className="absolute top-[max(env(safe-area-inset-top,0px),4rem)] left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 rounded-full bg-black/90 border border-cyan-400 text-cyan-300 text-[11px] font-mono font-bold flex items-center gap-2 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in duration-150">
             <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400 shrink-0" />
             <span>Đang đồng bộ {syncingAction === 'follow' ? 'Follow kênh' : syncingAction === 'like' ? 'Thả tim' : syncingAction === 'comment' ? 'Bình luận' : 'Chia sẻ'} TikTok...</span>
           </div>
@@ -1114,7 +1134,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
         {/* In-Modal Alert Notification (Hiển thị to rõ ngay trên điện thoại) */}
         {inModalAlert && (
-          <div className="absolute top-14 inset-x-3 z-50 p-3 rounded-2xl bg-black/95 border border-emerald-500/80 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-2.5 animate-in slide-in-from-top-3 duration-200 pointer-events-auto">
+          <div className="absolute top-[max(env(safe-area-inset-top,0px),3.5rem)] inset-x-3 z-50 p-3 rounded-2xl bg-black/95 border border-emerald-500/80 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-2.5 animate-in slide-in-from-top-3 duration-200 pointer-events-auto">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="p-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0">
                 <CheckCircle2 className="w-4 h-4" />
@@ -1135,7 +1155,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
         {/* ===== PENDING VERIFICATION BANNER - Xác Minh Tương Tác Thật TikTok ===== */}
         {pendingVerification && (
-          <div className="absolute inset-x-0 bottom-0 z-[60] animate-in slide-in-from-bottom duration-300 pointer-events-auto">
+          <div className="absolute inset-x-0 bottom-0 z-[60] animate-in slide-in-from-bottom duration-300 pointer-events-auto pb-[max(env(safe-area-inset-bottom,0px),0.5rem)]">
             <div className="mx-2 mb-2 p-4 rounded-3xl bg-gradient-to-b from-[#0E1322] to-[#06080F] border border-amber-400/60 shadow-2xl backdrop-blur-xl space-y-3">
               {/* Header */}
               <div className="flex items-center gap-2">
@@ -1225,8 +1245,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           </div>
         )}
 
-        {/* Top Header Floating Controls */}
-        <div className="absolute top-0 inset-x-0 z-30 p-2.5 sm:p-3 bg-gradient-to-b from-black/95 via-black/80 to-transparent space-y-2">
+        {/* Top Header Floating Controls (Safe Area Notch / Dynamic Island) */}
+        <div className="absolute top-0 inset-x-0 z-30 pt-[max(env(safe-area-inset-top,0px),0.75rem)] px-2.5 pb-2.5 sm:p-3 bg-gradient-to-b from-black/95 via-black/80 to-transparent space-y-2">
           {/* Top Row: Clean Minimal Header (Mute Toggle & Close) */}
           <div className="flex items-center justify-between gap-2 px-1">
             <div className="flex items-center gap-2">

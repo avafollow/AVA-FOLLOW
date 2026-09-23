@@ -61,6 +61,7 @@ export const LivestreamRunnerModal: React.FC = () => {
     getUserLiveQuota,
     interactWithLiveBroadcast,
     showToast,
+    openConnect,
     user 
   } = useTikTokApp();
 
@@ -694,8 +695,8 @@ export const LivestreamRunnerModal: React.FC = () => {
           )}
         </div>
 
-        {/* UNIFIED SINGLE TOP HEADER OVERLAY: DUY NHẤT 1 THANH, KHÔNG TRÙNG LẶP */}
-        <div className="absolute top-0 inset-x-0 z-30 bg-gradient-to-b from-black/90 via-black/40 to-transparent p-2 flex items-center justify-between gap-1.5 pointer-events-none">
+        {/* UNIFIED SINGLE TOP HEADER OVERLAY: Safe Area Notch / Dynamic Island */}
+        <div className="absolute top-0 inset-x-0 z-30 bg-gradient-to-b from-black/90 via-black/40 to-transparent pt-[max(env(safe-area-inset-top,0px),0.75rem)] px-2 pb-2 flex items-center justify-between gap-1.5 pointer-events-none">
           {/* Avatar & Channel Info */}
           <div className="flex items-center gap-1.5 min-w-0 bg-black/75 backdrop-blur-md px-2 py-1 rounded-full border border-white/15 pointer-events-auto">
             <img

@@ -848,6 +848,10 @@ export interface TransactionRecord {
   amount: string;
   isPositive: boolean;
   date: string;
+  exactTime?: string;
+  balanceAfter?: number;
+  missionType?: string;
+  missionName?: string;
   method?: string;
   status?: 'success' | 'pending' | 'rejected';
 }

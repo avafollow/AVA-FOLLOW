@@ -83,6 +83,7 @@ export const TasksScreen: React.FC<{
     openDeposit,
     openShareModal,
     openOrderModal,
+    openConnect,
     growthServices,
     campaigns,
     tasksActiveTab,
@@ -132,6 +133,11 @@ export const TasksScreen: React.FC<{
   const isDailyMissionsCompleted = dailyMissions.length > 0 ? (dailyDoneCount >= dailyMissions.length) : true;
 
   const handleOpenFeedRunner = (initialTaskId?: string) => {
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast(`⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi làm nhiệm vụ kiếm Xu!`);
+      openConnect();
+      return;
+    }
     if (!isDailyMissionsCompleted) {
       showToast(`🔒 BẮT BUỘC HOÀN THÀNH NHIỆM VỤ NGÀY: Bạn còn ${dailyMissions.length - dailyDoneCount} nhiệm vụ ngày chưa hoàn thành! Hãy hoàn thành ở Tab 'Làm Nhiệm Vụ' trước.`);
       setActiveTab("missions");
@@ -141,6 +147,11 @@ export const TasksScreen: React.FC<{
   };
 
   const handleOpenRunner = (task: TikTokTaskItem) => {
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast(`⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi làm nhiệm vụ kiếm Xu!`);
+      openConnect();
+      return;
+    }
     if (!isDailyMissionsCompleted) {
       showToast(`🔒 BẮT BUỘC HOÀN THÀNH NHIỆM VỤ NGÀY: Bạn còn ${dailyMissions.length - dailyDoneCount} nhiệm vụ ngày chưa hoàn thành! Hãy hoàn thành ở Tab 'Làm Nhiệm Vụ' trước.`);
       setActiveTab("missions");
@@ -150,6 +161,11 @@ export const TasksScreen: React.FC<{
   };
 
   const handleOpenLiveRunner = (live: LivestreamTaskItem) => {
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast(`⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi xem livestream nhận Xu!`);
+      openConnect();
+      return;
+    }
     if (!isDailyMissionsCompleted) {
       showToast(`🔒 BẮT BUỘC HOÀN THÀNH NHIỆM VỤ NGÀY: Bạn còn ${dailyMissions.length - dailyDoneCount} nhiệm vụ ngày chưa hoàn thành! Hãy hoàn thành ở Tab 'Làm Nhiệm Vụ' trước.`);
       setActiveTab("missions");
@@ -163,6 +179,11 @@ export const TasksScreen: React.FC<{
 
   // Execute Cross Follow Action
   const handleExecuteCrossFollow = (item: CrossFollowItem) => {
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast(`⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi tham gia Follow chéo!`);
+      openConnect();
+      return;
+    }
     if (!isDailyMissionsCompleted) {
       showToast(`🔒 BẮT BUỘC HOÀN THÀNH NHIỆM VỤ NGÀY: Bạn còn ${dailyMissions.length - dailyDoneCount} nhiệm vụ ngày chưa hoàn thành! Hãy hoàn thành ở Tab 'Làm Nhiệm Vụ' trước.`);
       setActiveTab("missions");

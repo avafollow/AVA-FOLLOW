@@ -1489,13 +1489,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const reward = mission.rewardXu;
     const newCoins = user.avaliveCoins + reward;
+    const now = new Date();
+    const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
     const newTx: TransactionRecord = {
       id: `tx_mission_${Date.now()}`,
       type: 'earn',
       title: `Thưởng Hoàn Thành Nhiệm Vụ Sàn: ${mission.title}`,
       amount: `+${reward.toLocaleString()} Xu`,
       isPositive: true,
-      date: 'Vừa xong',
+      date: exactTime,
+      exactTime,
+      balanceAfter: newCoins,
+      missionType: mission.type,
+      missionName: mission.title,
+      method: 'Nhiệm Vụ Tuần',
       status: 'success'
     };
 
@@ -1553,6 +1561,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // Cộng Xu & Vòng Quay May Mắn vào tài khoản và ghi sổ giao dịch
     const newCoins = user.avaliveCoins + totalReward;
+    const now = new Date();
+    const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
     const categoryLabels = {
       daily: 'Chuỗi Nhiệm Vụ Ngày',
       weekly: 'Chuỗi Nhiệm Vụ Tuần',
@@ -1566,7 +1577,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       title: `Nhận Trọn Bộ Quỹ Thưởng ${catLabel} (${tierCfg.badge} • 100% Hoàn Tất)`,
       amount: `+${totalReward.toLocaleString()} Xu & +${spinsBonus} Vòng Quay May Mắn`,
       isPositive: true,
-      date: 'Vừa xong',
+      date: exactTime,
+      exactTime,
+      balanceAfter: newCoins,
+      missionType: category,
+      missionName: catLabel,
+      method: 'Quỹ Thưởng Chuỗi',
       status: 'success'
     };
 
@@ -1639,13 +1655,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     if (reward > 0) {
       const newCoins = user.avaliveCoins + reward;
+      const now = new Date();
+      const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
       const newTx: TransactionRecord = {
         id: `tx_streak_${Date.now()}`,
         type: 'earn',
         title: `Phần thưởng Streak: ${label}`,
         amount: `+${reward.toLocaleString()} Xu`,
         isPositive: true,
-        date: 'Vừa xong',
+        date: exactTime,
+        exactTime,
+        balanceAfter: newCoins,
+        missionType: 'streak',
+        missionName: label,
+        method: 'Thưởng Điểm Danh',
         status: 'success'
       };
 
@@ -2828,6 +2852,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Complete task
   const completeTask = (taskId: string, actions: TaskActionDetails) => {
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi làm nhiệm vụ kiếm Xu!');
+      openConnect();
+      return { coinsEarned: 0, vndEarned: 0 };
+    }
+
     const task = tasks.find(t => t.id === taskId);
     if (!task) return { coinsEarned: 0, vndEarned: 0 };
 
@@ -2885,16 +2915,6 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newCoins = user.avaliveCoins + totalCoins + rankUpBonusCoins;
     const newFollowers = (user.tiktokFollowers || 0) + rankUpBonusFollowers;
 
-    const newTx: TransactionRecord = {
-      id: `tx_${Date.now()}`,
-      type: 'earn',
-      title: `Thưởng hoàn thành nhiệm vụ ${task.channelHandle}`,
-      amount: `+${totalCoins.toLocaleString()} Xu (+${totalVND.toLocaleString()}đ)`,
-      isPositive: true,
-      date: 'Vừa xong',
-      status: 'success'
-    };
-
     // Thưởng làm đủ 100% nhiệm vụ ngày
     let dailyFullBonusCoins = 0;
     if (newDailyCompleted === user.dailyTasksLimit) {
@@ -2912,10 +2932,29 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
     }
 
+    const finalBalance = newCoins + dailyFullBonusCoins;
+    const now = new Date();
+    const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
+    const newTx: TransactionRecord = {
+      id: `tx_${Date.now()}`,
+      type: 'earn',
+      title: `Thưởng hoàn thành nhiệm vụ ${task.channelHandle}`,
+      amount: `+${totalCoins.toLocaleString()} Xu (+${totalVND.toLocaleString()}đ)`,
+      isPositive: true,
+      date: exactTime,
+      exactTime,
+      balanceAfter: finalBalance,
+      missionType: task.type || 'follow',
+      missionName: task.title,
+      method: 'Nhiệm Vụ TikTok',
+      status: 'success'
+    };
+
     setUser(prev => ({
       ...prev,
-      avaliveCoins: newCoins + dailyFullBonusCoins,
-      coinsValueVND: `${(newCoins + dailyFullBonusCoins).toLocaleString()}đ`,
+      avaliveCoins: finalBalance,
+      coinsValueVND: `${finalBalance.toLocaleString()}đ`,
       completedTasksCount: newCompletedCount,
       dailyTasksCompleted: newDailyCompleted,
       tiktokFollowers: newFollowers,
@@ -2949,32 +2988,34 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setUserCompletedActions(prev => {
       const current = prev[taskId] || {
         taskId,
-        taskTitle: task.title,
-        channelName: task.channelName,
         channelHandle: task.channelHandle,
-        channelAvatar: task.channelAvatar,
+        followed: false,
+        liked: false,
+        commented: false,
+        shared: false,
         viewed: true,
-        followed: actions.followed || false,
-        liked: actions.liked || false,
-        commented: actions.commented || false,
-        shared: actions.shared || false,
-        totalCoinsEarned: 0,
         completedAt: 'Vừa xong'
       };
       return {
         ...prev,
         [taskId]: {
           ...current,
+          followed: current.followed || !!actions.followed,
+          liked: current.liked || !!actions.liked,
+          commented: current.commented || !!actions.commented,
+          shared: current.shared || !!actions.shared,
           viewed: true,
-          followed: actions.followed ? true : current.followed,
-          liked: actions.liked ? true : current.liked,
-          commented: actions.commented ? true : current.commented,
-          shared: actions.shared ? true : current.shared,
-          totalCoinsEarned: current.totalCoinsEarned + totalCoins,
           completedAt: 'Vừa xong'
         }
       };
     });
+
+    // Record Mission Progress vào Hệ Thống Nhiệm Vụ Tuần (Weekly Missions System)
+    if (actions.followed) recordMissionProgress('follow', 1);
+    if (actions.liked) recordMissionProgress('like', 1);
+    if (actions.commented) recordMissionProgress('comment', 1);
+    if (actions.shared) recordMissionProgress('share', 1);
+    recordMissionProgress('watch', 1);
 
     broadcastRealtimeEvent('TASK_COMPLETED', { taskId, userId: user.id });
     showToast(`+${totalCoins.toLocaleString()} Xu! Đã cộng vào ví.`);
@@ -3006,6 +3047,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Watch livestream per minute (Tính theo hệ số cấp bậc)
   const watchLivestreamMinute = (taskId: string) => {
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng liên kết kênh TikTok của bạn trước khi xem livestream nhận Xu!');
+      openConnect();
+      return;
+    }
+
     const live = livestreamTasks.find(l => l.id === taskId);
     if (!live) return;
 
@@ -3013,6 +3060,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const baseReward = live.rewardPerMinute || 300;
     const reward = Math.round(baseReward * quota.multiplier);
     const newCoins = user.avaliveCoins + reward;
+    const now = new Date();
+    const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 
     const newTx: TransactionRecord = {
       id: `tx_live_${Date.now()}`,
@@ -3020,7 +3069,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       title: `Thưởng xem Livestream ${live.channelHandle} (1 phút • x${quota.multiplier})`,
       amount: `+${reward.toLocaleString()} Xu`,
       isPositive: true,
-      date: 'Vừa xong',
+      date: exactTime,
+      exactTime,
+      balanceAfter: newCoins,
+      missionType: 'livestream',
+      missionName: live.roomTitle || live.channelName,
+      method: 'Xem Livestream',
       status: 'success'
     };
 
@@ -3052,6 +3106,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     tapsCount: number,
     passedCaptcha: boolean
   ) => {
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng liên kết kênh TikTok của bạn trước khi nhận thưởng phiên live!');
+      openConnect();
+      return { coinsEarned: 0, milestoneBonus: 0 };
+    }
+
     const live = livestreamTasks.find(l => l.id === taskId);
     if (!live) return { coinsEarned: 0, milestoneBonus: 0 };
 
@@ -3062,6 +3122,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const totalBonus = milestoneBonus + captchaBonus;
 
     const newCoins = user.avaliveCoins + totalBonus;
+    const now = new Date();
+    const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 
     const newTx: TransactionRecord = {
       id: `tx_live_comp_${Date.now()}`,
@@ -3069,7 +3131,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       title: `Thưởng Mốc xem phòng Live ${live.channelHandle} (${minutesWatched}p • Thưởng Mốc + Anti-bot)`,
       amount: `+${totalBonus.toLocaleString()} Xu`,
       isPositive: true,
-      date: 'Vừa xong',
+      date: exactTime,
+      exactTime,
+      balanceAfter: newCoins,
+      missionType: 'livestream',
+      missionName: live.roomTitle || live.channelName,
+      method: 'Xem Livestream',
       status: 'success'
     };
 
@@ -3081,7 +3148,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       channelAvatar: live.channelAvatar,
       minutesWatched,
       coinsEarned: totalBonus + Math.round((live.rewardPerMinute || 300) * minutesWatched * quota.multiplier),
-      timestamp: 'Vừa xong',
+      timestamp: exactTime,
       verifiedHuman: passedCaptcha && tapsCount >= 20,
       tapsCount
     };
@@ -3133,6 +3200,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // 1. Tính điểm từng hành động đơn lẻ (Chính sách chuẩn xác 100% - Mỗi hành động tính 1 lượt duy nhất chống trùng lặp)
   const claimTaskAction = (taskId: string, actionType: 'follow' | 'like' | 'comment' | 'share' | 'bookmark' | 'watch') => {
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi làm nhiệm vụ nhận Xu!');
+      openConnect();
+      return 0;
+    }
+
     // Kiểm tra lịch sử người dùng đã làm hành động này trên kênh chưa (Chống trùng lặp & bảo vệ ngân sách chủ shop)
     const existingHistory = userCompletedActions[taskId];
     if (existingHistory) {
@@ -3188,6 +3261,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const quota = getUserLiveQuota();
     const finalReward = Math.round(baseReward * quota.multiplier);
     const newCoins = user.avaliveCoins + finalReward;
+    const now = new Date();
+    const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 
     const newTx: TransactionRecord = {
       id: `tx_act_${Date.now()}`,
@@ -3195,7 +3270,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       title: `${label} (Tính 1 lượt • x${quota.multiplier})`,
       amount: `+${finalReward.toLocaleString()} Xu`,
       isPositive: true,
-      date: 'Vừa xong',
+      date: exactTime,
+      exactTime,
+      balanceAfter: newCoins,
+      missionType: actionType,
+      missionName: label,
+      method: 'Nhiệm Vụ TikTok',
       status: 'success'
     };
 
@@ -4105,13 +4185,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return false;
     }
     const newCoins = user.avaliveCoins - SPIN_COST;
+    const now = new Date();
+    const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
     const feeTx: TransactionRecord = {
       id: `tx_spin_fee_${Date.now()}`,
       type: 'spend',
       title: 'Chi phí tham gia Vòng Quay May Mắn (-1,000 Xu)',
       amount: '-1,000 Xu',
       isPositive: false,
-      date: 'Vừa xong',
+      date: exactTime,
+      exactTime,
+      balanceAfter: newCoins,
+      missionType: 'wheel',
+      missionName: 'Quay Thưởng May Mắn',
+      method: 'Vòng Quay May Mắn',
       status: 'success'
     };
     setUser(prev => ({
@@ -4141,6 +4229,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Trao quà nổ thưởng 100% tự động theo đúng tỷ lệ:
   // 500 Xu (40%), 1.000 Xu (35%), 2.000 Xu (15%), Gói 50 Follow = 5.000 Xu (10%)
   const awardLuckyWheelPrize = (prizeIdx: number) => {
+    const now = new Date();
+    const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
     if (prizeIdx === 3) {
       // Gói Follow: Tổng quà là 5.000 Xu, từ Xu đổi thành 50 Follower thật (100 Xu/follow)
       const prizeXu = 5000;
@@ -4154,7 +4245,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         title: 'Jackpot Vòng Quay: +5,000 Xu (Đổi Gói 50 Follow Thật)',
         amount: '+5,000 Xu & +50 Follow',
         isPositive: true,
-        date: 'Vừa xong',
+        date: exactTime,
+        exactTime,
+        balanceAfter: newCoins,
+        missionType: 'wheel',
+        missionName: 'Jackpot Vòng Quay May Mắn',
+        method: 'Vòng Quay May Mắn',
         status: 'success'
       };
 
@@ -4191,7 +4287,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         title: `Trúng thưởng Vòng Quay May Mắn (+${coinsWon.toLocaleString()} Xu)${isBreakEven ? ' [Hoàn vốn 1.000 Xu]' : isProfit ? ' [Lãi x2 vốn]' : ''}`,
         amount: `+${coinsWon.toLocaleString()} Xu`,
         isPositive: true,
-        date: 'Vừa xong',
+        date: exactTime,
+        exactTime,
+        balanceAfter: newCoins,
+        missionType: 'wheel',
+        missionName: `Vòng Quay May Mắn (${coinsWon.toLocaleString()} Xu)`,
+        method: 'Vòng Quay May Mắn',
         status: 'success'
       };
 
@@ -6926,18 +7027,26 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     if (claimed) {
+      const nextCoins = user.avaliveCoins + REFERRAL_BONUS_COINS;
+      const now = new Date();
+      const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
       const newTx: TransactionRecord = {
         id: `tx_ref_${Date.now()}`,
         type: 'earn',
         title: `Nhận thưởng Xu giới thiệu bạn bè hoàn thành nhiệm vụ`,
         amount: `+${REFERRAL_BONUS_COINS.toLocaleString()} Xu (+${REFERRAL_BONUS_COINS.toLocaleString()}đ)`,
         isPositive: true,
-        date: 'Vừa xong',
+        date: exactTime,
+        exactTime,
+        balanceAfter: nextCoins,
+        missionType: 'referral',
+        missionName: 'Thưởng Giới Thiệu Bạn Bè',
+        method: 'Tiếp Thị Liên Kết',
         status: 'success'
       };
 
       setUser(prev => {
-        const nextCoins = prev.avaliveCoins + REFERRAL_BONUS_COINS;
         return {
           ...prev,
           avaliveCoins: nextCoins,

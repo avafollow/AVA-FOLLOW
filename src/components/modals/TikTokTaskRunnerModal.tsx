@@ -264,11 +264,11 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-200">
       {/* SMARTPHONE FRAME CONTAINER (CHÂN THỰC 100% GIAO DIỆN TIKTOK) */}
       <div 
-        className="relative w-full max-w-[420px] h-[96vh] max-h-[860px] rounded-[36px] sm:rounded-[42px] bg-black border-2 border-white/20 shadow-[0_0_60px_rgba(255,0,80,0.35)] overflow-hidden flex flex-col"
+        className="relative w-full max-w-[420px] h-[96vh] max-h-[860px] rounded-[36px] sm:rounded-[42px] bg-black border-2 border-white/20 shadow-[0_0_60px_rgba(255,0,80,0.35)] overflow-hidden flex flex-col pb-[max(env(safe-area-inset-bottom,0px),0.75rem)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* IPHONE DYNAMIC ISLAND / STATUS BAR NOTCH */}
-        <div className="absolute top-0 inset-x-0 z-40 h-7 flex items-center justify-between px-6 pt-1 text-[11px] font-mono text-white/80 select-none pointer-events-none">
+        <div className="absolute top-0 inset-x-0 z-40 pt-[max(env(safe-area-inset-top,0px),0.25rem)] px-6 flex items-center justify-between text-[11px] font-mono text-white/80 select-none pointer-events-none">
           <span className="font-bold">21:30</span>
           <div className="w-20 h-4 rounded-full bg-black/90 border border-white/10 shadow-inner flex items-center justify-center">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse mr-1.5" />
@@ -281,7 +281,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
         </div>
 
         {/* TIKTOK HEADER BAR (TABS: ĐANG FOLLOW | DÀNH CHO BẠN) */}
-        <div className="absolute top-7 inset-x-0 z-30 px-4 py-2 flex items-center justify-between select-none bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+        <div className="absolute top-[max(env(safe-area-inset-top,0px),1.75rem)] inset-x-0 z-30 px-4 py-2 flex items-center justify-between select-none bg-gradient-to-b from-black/80 via-black/40 to-transparent">
           {/* Left: Lướt Feed */}
           <div className="flex items-center gap-1.5">
             <button

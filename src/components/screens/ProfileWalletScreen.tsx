@@ -97,6 +97,7 @@ export const ProfileWalletScreen: React.FC<{
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState<'kyc_profile' | 'packages' | 'software' | 'escrow' | 'affiliate' | 'transactions' | 'bank' | 'activity' | 'fraud_appeals' | 'legal_compliance'>('kyc_profile');
   const [txFilterTab, setTxFilterTab] = useState<'balance' | 'tiktok_sync'>('balance');
+  const [txCategoryFilter, setTxCategoryFilter] = useState<'all' | 'tasks' | 'live' | 'wheel' | 'referral' | 'other'>('all');
   const [activityPeriod, setActivityPeriod] = useState<'day' | 'week' | 'month'>('day');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copiedRef, setCopiedRef] = useState(false);
@@ -1856,121 +1857,309 @@ export const ProfileWalletScreen: React.FC<{
       {/* TAB 5: Lịch sử biến động số dư & Đồng bộ TikTok */}
       {activeProfileTab === 'transactions' && (() => {
         const syncLogs = getTikTokSyncLogs();
+
+        // Lọc giao dịch theo danh mục
+        const filteredTransactions = user.transactions.filter(tx => {
+          if (txCategoryFilter === 'all') return true;
+          if (txCategoryFilter === 'tasks') {
+            return tx.method === 'Nhiệm Vụ TikTok' || ['follow', 'like', 'comment', 'share', 'watch'].includes(tx.missionType || '') || tx.title.toLowerCase().includes('nhiệm vụ');
+          }
+          if (txCategoryFilter === 'live') {
+            return tx.method === 'Xem Livestream' || tx.missionType === 'livestream' || tx.title.toLowerCase().includes('live');
+          }
+          if (txCategoryFilter === 'wheel') {
+            return tx.type === 'wheel' || tx.method === 'Vòng Quay May Mắn' || tx.title.toLowerCase().includes('vòng quay') || tx.missionType === 'wheel';
+          }
+          if (txCategoryFilter === 'referral') {
+            return tx.missionType === 'referral' || tx.method === 'Tiếp Thị Liên Kết' || tx.title.toLowerCase().includes('giới thiệu');
+          }
+          if (txCategoryFilter === 'other') {
+            return ['deposit', 'withdraw', 'spend', 'burn', 'admin_grant', 'escrow_lock', 'escrow_payout'].includes(tx.type);
+          }
+          return true;
+        });
+
+        // Thống kê doanh thu theo nguồn
+        const totalEarnedCoins = user.transactions
+          .filter(t => t.isPositive)
+          .reduce((sum, t) => {
+            const num = parseInt(t.amount.replace(/[^0-9]/g, '')) || 0;
+            return sum + num;
+          }, 0);
+
+        const taskCoins = user.transactions
+          .filter(t => t.isPositive && (t.method === 'Nhiệm Vụ TikTok' || ['follow', 'like', 'comment', 'share', 'watch'].includes(t.missionType || '')))
+          .reduce((sum, t) => sum + (parseInt(t.amount.replace(/[^0-9]/g, '')) || 0), 0);
+
+        const liveCoins = user.transactions
+          .filter(t => t.isPositive && (t.method === 'Xem Livestream' || t.missionType === 'livestream'))
+          .reduce((sum, t) => sum + (parseInt(t.amount.replace(/[^0-9]/g, '')) || 0), 0);
+
+        const wheelRefCoins = user.transactions
+          .filter(t => t.isPositive && (t.type === 'wheel' || t.missionType === 'referral' || t.method === 'Tiếp Thị Liên Kết'))
+          .reduce((sum, t) => sum + (parseInt(t.amount.replace(/[^0-9]/g, '')) || 0), 0);
+
         return (
-          <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-rose-500" />
-                <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">
-                  Lịch Sử Giao Dịch & Đồng Bộ
-                </h3>
+          <div className="space-y-6">
+            {/* 4 THỐNG KÊ DOANH THU & NGUỒN TIỀN TỔNG HỢP */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="p-4 rounded-3xl bg-[#0D111E] border border-cyan-500/30 space-y-1 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Số Dư Hiện Tại</span>
+                  <Wallet className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-cyan-400 font-mono">
+                  {user.avaliveCoins.toLocaleString()} <span className="text-xs">Xu</span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">≈ {user.coinsValueVND}</div>
               </div>
 
-              {/* Sub-tabs: Biến động số dư vs Nhật ký đồng bộ TikTok */}
-              <div className="flex rounded-xl bg-black/60 p-1 border border-white/10 gap-1 text-xs font-mono">
-                <button
-                  type="button"
-                  onClick={() => setTxFilterTab('balance')}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                    txFilterTab === 'balance'
-                      ? 'bg-rose-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Biến Động Số Dư
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTxFilterTab('tiktok_sync')}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    txFilterTab === 'tiktok_sync'
-                      ? 'bg-cyan-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <span>Đồng Bộ TikTok</span>
-                  <span className="px-1.5 py-0.2 rounded-full bg-cyan-400/30 text-white text-[10px]">
-                    {syncLogs.length}
-                  </span>
-                </button>
+              <div className="p-4 rounded-3xl bg-[#0D111E] border border-emerald-500/30 space-y-1 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Từ Nhiệm Vụ TikTok</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
+                  +{taskCoins.toLocaleString()} <span className="text-xs">Xu</span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">{user.completedTasksCount || 0} nhiệm vụ đã xong</div>
+              </div>
+
+              <div className="p-4 rounded-3xl bg-[#0D111E] border border-rose-500/30 space-y-1 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Từ Xem Livestream</span>
+                  <Radio className="w-4 h-4 text-rose-500 animate-pulse" />
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-rose-400 font-mono">
+                  +{liveCoins.toLocaleString()} <span className="text-xs">Xu</span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">Mắt xem &amp; thưởng mốc</div>
+              </div>
+
+              <div className="p-4 rounded-3xl bg-[#0D111E] border border-amber-500/30 space-y-1 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Vòng Quay &amp; Giới Thiệu</span>
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-neonGold font-mono">
+                  +{wheelRefCoins.toLocaleString()} <span className="text-xs">Xu</span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">Hoa hồng &amp; may mắn</div>
               </div>
             </div>
 
-            {txFilterTab === 'balance' ? (
-              <div className="space-y-2.5 max-h-[380px] overflow-y-auto">
-                {user.transactions.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between gap-3 text-xs"
+            {/* BẢNG SỔ CÁI BIẾN ĐỘNG SỐ DƯ & ĐỒNG BỘ */}
+            <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-rose-500" />
+                  <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">
+                    Sổ Cái Giao Dịch &amp; Đối Soát Doanh Thu
+                  </h3>
+                </div>
+
+                {/* Sub-tabs: Biến động số dư vs Nhật ký đồng bộ TikTok */}
+                <div className="flex rounded-xl bg-black/60 p-1 border border-white/10 gap-1 text-xs font-mono">
+                  <button
+                    type="button"
+                    onClick={() => setTxFilterTab('balance')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                      txFilterTab === 'balance'
+                        ? 'bg-rose-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl ${
-                        tx.isPositive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
-                      }`}>
-                        {tx.isPositive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownLeft className="h-4 w-4" />}
-                      </div>
-                      <div>
-                        <div className="font-bold text-white leading-snug">{tx.title}</div>
-                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                          {tx.date} {tx.method ? `• ${tx.method}` : ''}
+                    Biến Động Số Dư ({user.transactions.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTxFilterTab('tiktok_sync')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      txFilterTab === 'tiktok_sync'
+                        ? 'bg-cyan-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>Đồng Bộ TikTok</span>
+                    <span className="px-1.5 py-0.2 rounded-full bg-cyan-400/30 text-white text-[10px]">
+                      {syncLogs.length}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* BỘ LỌC DANH MỤC GIAO DỊCH */}
+              {txFilterTab === 'balance' && (
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs font-mono">
+                  <button
+                    onClick={() => setTxCategoryFilter('all')}
+                    className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      txCategoryFilter === 'all'
+                        ? 'bg-white/20 text-white border border-white/30'
+                        : 'bg-black/40 text-slate-400 hover:text-white border border-white/5'
+                    }`}
+                  >
+                    Tất Cả ({user.transactions.length})
+                  </button>
+                  <button
+                    onClick={() => setTxCategoryFilter('tasks')}
+                    className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      txCategoryFilter === 'tasks'
+                        ? 'bg-emerald-600 text-white shadow'
+                        : 'bg-black/40 text-slate-400 hover:text-white border border-white/5'
+                    }`}
+                  >
+                    🎯 Nhiệm Vụ TikTok
+                  </button>
+                  <button
+                    onClick={() => setTxCategoryFilter('live')}
+                    className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      txCategoryFilter === 'live'
+                        ? 'bg-rose-600 text-white shadow'
+                        : 'bg-black/40 text-slate-400 hover:text-white border border-white/5'
+                    }`}
+                  >
+                    🔴 Livestream
+                  </button>
+                  <button
+                    onClick={() => setTxCategoryFilter('wheel')}
+                    className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      txCategoryFilter === 'wheel'
+                        ? 'bg-amber-600 text-white shadow'
+                        : 'bg-black/40 text-slate-400 hover:text-white border border-white/5'
+                    }`}
+                  >
+                    🎡 Vòng Quay
+                  </button>
+                  <button
+                    onClick={() => setTxCategoryFilter('referral')}
+                    className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      txCategoryFilter === 'referral'
+                        ? 'bg-purple-600 text-white shadow'
+                        : 'bg-black/40 text-slate-400 hover:text-white border border-white/5'
+                    }`}
+                  >
+                    👥 Giới Thiệu
+                  </button>
+                  <button
+                    onClick={() => setTxCategoryFilter('other')}
+                    className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      txCategoryFilter === 'other'
+                        ? 'bg-blue-600 text-white shadow'
+                        : 'bg-black/40 text-slate-400 hover:text-white border border-white/5'
+                    }`}
+                  >
+                    💳 Nạp / Rút / Khác
+                  </button>
+                </div>
+              )}
+
+              {txFilterTab === 'balance' ? (
+                <div className="space-y-2.5 max-h-[480px] overflow-y-auto">
+                  {filteredTransactions.length === 0 ? (
+                    <div className="text-center py-12 text-slate-500 text-xs font-mono">
+                      Không có giao dịch nào trong danh mục này.
+                    </div>
+                  ) : (
+                    filteredTransactions.map((tx) => (
+                      <div
+                        key={tx.id}
+                        className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between gap-3 text-xs hover:border-white/20 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className={`p-2.5 rounded-2xl shrink-0 ${
+                            tx.isPositive ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                          }`}>
+                            {tx.isPositive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownLeft className="h-4 w-4" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-white leading-snug truncate flex items-center gap-2">
+                              <span>{tx.title}</span>
+                              {tx.missionType && (
+                                <span className="px-1.5 py-0.2 rounded bg-white/10 text-cyan-300 font-mono text-[9px] uppercase">
+                                  {tx.missionType}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-2 flex-wrap">
+                              <span>{tx.exactTime || tx.date}</span>
+                              {tx.method && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-slate-300">{tx.method}</span>
+                                </>
+                              )}
+                              {tx.balanceAfter !== undefined && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-cyan-400">Số dư sau GD: {tx.balanceAfter.toLocaleString()} Xu</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <div className={`font-mono font-black text-sm ${
+                            tx.isPositive ? 'text-emerald-400' : 'text-rose-400'
+                          }`}>
+                            {tx.amount}
+                          </div>
+                          <div className="text-[9px] text-emerald-400 font-mono">
+                            {tx.status === 'success' ? 'Thành công ✓' : tx.status}
+                          </div>
                         </div>
                       </div>
+                    ))
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-[480px] overflow-y-auto">
+                  {syncLogs.length === 0 ? (
+                    <div className="text-center py-10 text-slate-500 text-xs font-mono">
+                      Chưa có nhật ký đồng bộ tương tác TikTok nào. Hãy lướt video và làm nhiệm vụ để kiếm Xu!
                     </div>
-
-                    <div className={`font-mono font-black text-sm shrink-0 ${
-                      tx.isPositive ? 'text-emerald-400' : 'text-rose-400'
-                    }`}>
-                      {tx.amount}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2.5 max-h-[380px] overflow-y-auto">
-                {syncLogs.length === 0 ? (
-                  <div className="text-center py-10 text-slate-500 text-xs font-mono">
-                    Chưa có nhật ký đồng bộ tương tác TikTok nào. Hãy lướt video và làm nhiệm vụ để kiếm Xu!
-                  </div>
-                ) : (
-                  syncLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between gap-3 text-xs font-mono"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
-                          log.actionType === 'follow' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-                          log.actionType === 'like' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30' :
-                          log.actionType === 'comment' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                          log.actionType === 'share' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                          'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        }`}>
-                          {log.actionType.toUpperCase()}
-                        </span>
-                        <div>
-                          <div className="font-bold text-white flex items-center gap-1.5">
-                            <span>Mục tiêu: {log.targetHandle}</span>
-                            <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                              Đã xác thực ✓
-                            </span>
-                          </div>
-                          <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
-                            <span>Hash: {log.txHash}</span>
-                            <span>•</span>
-                            <span>{new Date(log.createdAt).toLocaleString('vi-VN')}</span>
+                  ) : (
+                    syncLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between gap-3 text-xs font-mono"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                            log.actionType === 'follow' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                            log.actionType === 'like' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30' :
+                            log.actionType === 'comment' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                            log.actionType === 'share' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                            'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          }`}>
+                            {log.actionType.toUpperCase()}
+                          </span>
+                          <div>
+                            <div className="font-bold text-white flex items-center gap-1.5">
+                              <span>Mục tiêu: {log.targetHandle}</span>
+                              <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                Đã xác thực ✓
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
+                              <span>Hash: {log.txHash}</span>
+                              <span>•</span>
+                              <span>{new Date(log.createdAt).toLocaleString('vi-VN')}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="text-right shrink-0">
-                        <div className="text-emerald-400 font-black text-sm">+{log.coinsEarned} Xu</div>
-                        <div className="text-[9px] text-slate-500 font-mono">Đã cộng vào ví</div>
+                        <div className="text-right shrink-0">
+                          <div className="text-emerald-400 font-black text-sm">+{log.coinsEarned} Xu</div>
+                          <div className="text-[9px] text-slate-500 font-mono">Đã cộng vào ví</div>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         );
       })()}

@@ -143,7 +143,9 @@ export const CreateCampaignScreen: React.FC<{
     marqueeTickerList,
     openFeedRunner,
     openLiveRunner,
-    livestreamTasks
+    livestreamTasks,
+    openMarqueeBoostModal,
+    openMarqueeHistoryModal
   } = useTikTokApp();
 
   // Tab: Standard vs Mega Live & Product Launch
@@ -599,7 +601,25 @@ export const CreateCampaignScreen: React.FC<{
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={openMarqueeBoostModal}
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 hover:opacity-95 text-white font-extrabold text-xs transition-all shadow-md shadow-rose-600/20 flex items-center gap-1.5"
+            title="Đẩy phiên live hoặc chiến dịch của bạn lên Bảng Điện LED toàn sàn (100.000 Xu)"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            <span>Mua Bảng Điện LED (100K Xu)</span>
+          </button>
+          <button
+            type="button"
+            onClick={openMarqueeHistoryModal}
+            className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white font-bold text-xs transition-all flex items-center gap-1.5"
+            title="Xem Lịch Sử Các Phiên Bảng Điện LED Đã Kết Thúc"
+          >
+            <Clock className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Lịch Sử Bảng Điện</span>
+          </button>
           <button
             type="button"
             onClick={openDeposit}

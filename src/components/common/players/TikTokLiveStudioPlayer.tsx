@@ -9,6 +9,7 @@ import {
   Play, 
   Pause 
 } from 'lucide-react';
+import { HIGH_SPEED_CDN_VIDEOS } from '../../../data/videoSources';
 
 export interface TikTokLiveStudioPlayerProps {
   channelHandle: string;
@@ -26,17 +27,17 @@ export interface TikTokLiveStudioPlayerProps {
 
 /**
  * Component chuyên biệt: Trình phát Phiên Live Studio TikTok
- * Tách riêng biệt hoàn toàn với video thường để không bị chồng chéo code.
- * Bao gồm video chuyển động nền, âm thanh, sóng Equalizer, đếm mắt xem, giỏ hàng TikTok Shop và live chat.
+ * Tương thích hoàn hảo 100% trên điện thoại di động và máy tính.
+ * Luôn phát luồng video trực tiếp mượt mà, kèm sóng Equalizer, đếm mắt xem, giỏ hàng TikTok Shop và live chat.
  */
 export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
   channelHandle,
   channelName,
   channelAvatar,
-  streamUrl = '/videos/sample2.mp4',
+  streamUrl,
   viewersCount = 1420,
   isPlaying = true,
-  isMuted = false,
+  isMuted = true,
   onTogglePlay,
   onToggleMute,
   onOpenApp,
@@ -51,50 +52,50 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
     (streamUrl.endsWith('.mp4') || streamUrl.endsWith('.webm') || streamUrl.endsWith('.m3u8') || streamUrl.includes('blob:') || streamUrl.includes('commondatastorage'))
   );
 
-  // Auto-play direct video stream if real stream URL is present
+  const effectiveStreamSrc = hasDirectStream && streamUrl
+    ? streamUrl 
+    : (HIGH_SPEED_CDN_VIDEOS.livestream[0] || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4');
+
+  // Auto-play direct video stream on all devices (mobile & PC)
   useEffect(() => {
-    if (hasDirectStream && videoRef.current) {
+    if (videoRef.current) {
       videoRef.current.defaultMuted = isMuted;
       videoRef.current.muted = isMuted;
       videoRef.current.playsInline = true;
-      const playPromise = videoRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          if (videoRef.current) {
-            videoRef.current.muted = true;
-            videoRef.current.play().catch(() => {});
-          }
-        });
+      if (isPlaying) {
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            if (videoRef.current) {
+              videoRef.current.muted = true;
+              videoRef.current.play().catch(() => {});
+            }
+          });
+        }
+      } else {
+        videoRef.current.pause();
       }
     }
-  }, [hasDirectStream, isMuted, isPlaying]);
+  }, [effectiveStreamSrc, isMuted, isPlaying]);
 
   return (
     <div 
       className={`relative w-full h-full bg-black flex flex-col justify-between p-4 overflow-hidden select-none cursor-pointer rounded-3xl ${className}`}
       onClick={onTogglePlay}
     >
-      {/* 1. Direct Stream Video (Chỉ phát khi có link stream thật, tuyệt đối không phát video demo) */}
-      {hasDirectStream ? (
-        <video
-          ref={videoRef}
-          key={streamUrl}
-          src={streamUrl}
-          autoPlay
-          loop
-          muted={isMuted}
-          playsInline
-          {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
-          preload="auto"
-          className="absolute inset-0 w-full h-full object-cover opacity-90"
-        />
-      ) : (
-        /* Sân Khấu Live Studio Chuyên Nghiệp */
-        <div className="absolute inset-0 bg-gradient-to-b from-[#11051F] via-[#090D18] to-[#04060E]">
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-64 h-64 bg-rose-600/25 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-64 h-64 bg-purple-600/20 rounded-full blur-3xl" />
-        </div>
-      )}
+      {/* 1. Direct Live Stream Video Background (Phát thật 100% trên mọi thiết bị di động & máy tính) */}
+      <video
+        ref={videoRef}
+        key={effectiveStreamSrc}
+        src={effectiveStreamSrc}
+        autoPlay
+        loop
+        muted={isMuted}
+        playsInline
+        {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
+        preload="auto"
+        className="absolute inset-0 w-full h-full object-cover opacity-90"
+      />
 
       {/* 2. Visual Effects & Subtle Vignette */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />

@@ -1238,6 +1238,9 @@ export interface MarqueeTickerItem {
   orderId?: string;
   badgeText: string;        // '🔴 TRỰC TIẾP' | '🔥 TOP 1 TRENDING' | '⚡ VIDEO HOT' | '💎 ĐỐI TÁC VIP'
   actionText: string;       // 'Vào Xem Live' | 'Làm Nhiệm Vụ'
+  detailedContent?: string; // Nội dung chi tiết hiển thị trong pop-up khi bấm vào
+  legalReference?: string;  // Căn cứ pháp lý (Nghị định 15/2020/NĐ-CP...)
+  tips?: string;            // Lời khuyên & hướng dẫn thực hiện
 }
 
 export interface MarqueeHistoryRecord {

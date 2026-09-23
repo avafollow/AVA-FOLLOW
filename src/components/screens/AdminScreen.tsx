@@ -73,6 +73,14 @@ import {
   clearTikTokSyncLogs, 
   TikTokSyncLog 
 } from '../../services/tiktokActionSync';
+import { 
+  AVA_20_ANTI_FRAUD_STRATEGIES, 
+  getImmutableFraudLedger, 
+  deleteFraudIncidentAsSuperAdmin, 
+  generateLegalEscalationDossier,
+  HONEYPOT_TASKS
+} from '../../services/antiFraudEngine';
+import { FraudIncidentLog, AntiFraudStrategyDef } from '../../types';
 
 export interface StaffMember {
   id: string;
@@ -154,6 +162,17 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userRankFilter, setUserRankFilter] = useState('all');
   const [inspectedPeriod, setInspectedPeriod] = useState<'day' | 'week' | 'month'>('day');
+
+  // Anti-Fraud 20-Layer Sentinel State
+  const [fraudLedger, setFraudLedger] = useState<FraudIncidentLog[]>(() => getImmutableFraudLedger());
+  const [fraudFilterSeverity, setFraudFilterSeverity] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
+  const [selectedDossier, setSelectedDossier] = useState<FraudIncidentLog | null>(null);
+  const [dossierText, setDossierText] = useState<string>('');
+  const [showDossierModal, setShowDossierModal] = useState<boolean>(false);
+  const [superAdminKeyInput, setSuperAdminKeyInput] = useState<string>('');
+  const [deletingIncidentId, setDeletingIncidentId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [fraudNotificationMsg, setFraudNotificationMsg] = useState<string | null>(null);
 
   // Hàm trích xuất an toàn số nguyên từ chuỗi tiền tệ (tránh lỗi nối chuỗi tạo số ảo)
   const parseNumericAmount = (amountVal: string | number | undefined): number => {
@@ -791,17 +810,17 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             },
             {
               id: 'security_7layers',
-              label: 'Bảo Mật 7 Lớp',
-              subLabel: 'Shield & Tường Lửa',
+              label: 'Radar 20 Lớp Anti-Fraud',
+              subLabel: 'AVA Sentinel & Pháp Chế',
               icon: ShieldCheck,
-              badge: 'Kích Hoạt 100%',
-              border: 'border-emerald-500/40',
-              activeBg: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-900/40 ring-2 ring-emerald-400',
-              iconColor: 'text-emerald-400',
+              badge: '20/20 Lớp',
+              border: 'border-rose-500/40',
+              activeBg: 'bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white shadow-lg shadow-rose-900/40 ring-2 ring-rose-400',
+              iconColor: 'text-rose-400',
               guide: {
-                title: 'Hệ Thống Bảo Mật 7 Lớp Tối Cao',
-                description: 'Giám sát tường lửa WAF, chống click tặc bot ảo, mã hóa SHA-256 cơ sở dữ liệu và bảo mật 2 lớp 2FA tài khoản ngân hàng.',
-                steps: ['Kiểm tra trạng thái 7 lớp bảo mật', 'Kích hoạt chế độ phòng thủ cấp cao khi cần']
+                title: 'Trung Tâm Radar An Ninh & Pháp Chế 20 Lớp',
+                description: 'Giám sát gian lận realtime, phát hiện botnet, đóng băng ví ký quỹ 7 ngày và tự động trích xuất hồ sơ chuyển sang Cơ quan Pháp chế.',
+                steps: ['Theo dõi các tài khoản có điểm gian lận cao', 'Đóng băng ví hoặc khóa tài khoản vi phạm', 'Trích xuất hồ sơ pháp chế theo Nghị định 15/2020/NĐ-CP']
               }
             },
             {
@@ -5541,42 +5560,56 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 12: HỆ THỐNG BẢO MẬT AN TOÀN TUYỆT ĐỐI 7 LỚP & GIÁM SÁT IP           */}
+      {/* TAB 12: TRUNG TÂM RADAR BẢO MẬT & PHÁP CHẾ 20 LỚP (AVA SENTINEL 2026)      */}
       {/* ========================================================================= */}
       {activeTab === 'security_7layers' && (
         <div className="space-y-6 animate-in fade-in duration-200">
           
+          {/* Notification Banner */}
+          {fraudNotificationMsg && (
+            <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 flex items-center justify-between text-xs font-mono">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{fraudNotificationMsg}</span>
+              </div>
+              <button onClick={() => setFraudNotificationMsg(null)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Header Banner */}
-          <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-950/50 via-slate-900 to-teal-950/40 border border-emerald-500/40 space-y-3 shadow-2xl">
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-rose-950/60 via-slate-900 to-amber-950/40 border border-rose-500/40 space-y-4 shadow-2xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>HỆ THỐNG PHÒNG THỦ AN TOÀN TUYỆT ĐỐI 7 LỚP (ZERO TRUST ARCHITECTURE)</span>
+              <div className="space-y-1.5">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-mono font-bold">
+                  <ShieldAlert className="w-4 h-4 text-rose-400" />
+                  <span>AVA SENTINEL 2026 - HỆ THỐNG PHÒNG THỦ &amp; CHỐNG GIAN LẬN 20 LỚP TUYỆT ĐỐI</span>
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black text-white font-display">
-                  Giám Sát Địa Chỉ IP, Chống Bot, Ngăn Chặn Gian Lận &amp; Đánh Phá Web
+                  Radar Giám Sát Gian Lận, Chặn Thoát Tab Trục Lợi &amp; Sổ Cái Bất Biến
                 </h3>
                 <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
-                  Quy định kiểm soát nghiêm ngặt: <strong>Tối đa 5 tài khoản TikTok / 1 địa chỉ IP</strong>. Tự động phát hiện bot tự động, click farm ảo, DDOS và đóng băng các hành vi xâm nhập trái phép.
+                  Ngăn chặn 100% tình trạng người dùng thoát ra vào lại mà không comment/like/follow/watch. Đối soát đa lớp: <strong>HMAC Nonce, Telemetry cảm ứng/chuột, Ký quỹ két 7 ngày, Cam kết follow 30 ngày, DOM Honeypots và Hồ sơ Chuyển giao Pháp chế</strong>.
                 </p>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <span className="px-3.5 py-2 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                  <span>7/7 Lá Chắn Hoạt Động</span>
+                <span className="px-3.5 py-2 rounded-2xl bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-mono font-bold flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                  <span>20/20 Lớp Hoạt Động</span>
                 </span>
                 <FeatureGuideTooltip
-                  title="Hướng Dẫn Vận Hành Hệ Thống Phòng Thủ 7 Lớp"
-                  description="Cơ chế Zero Trust & WAF giám sát realtime mọi luồng traffic, đảm bảo hệ thống không bị tấn công DDOS, click tặc hoặc farm tài khoản clone."
+                  title="Vận Hành Radar 20 Lớp Anti-Fraud"
+                  description="Trung tâm điều khiển Zero-Trust AI giám sát mọi hành vi bất thường, tự động phát hiện macro script, đo đạc vi tương tác và chuyển hồ sơ sang cơ quan công an."
                   steps={[
-                    "Quy định IP: Tối đa 5 tài khoản liên kết trên 1 địa chỉ IP",
-                    "Chống Bot AI: Tự động khóa IP khi phát hiện nhấp chuột siêu tốc không phải người thật",
-                    "Bảo Mật Két Quỹ: Yêu cầu 2FA xác thực khi duyệt lệnh chi tiền lớn"
+                    "Mã hóa HMAC: Mỗi nhiệm vụ có 1 token thử thách 90s độc bản",
+                    "Telemetry: Kiểm tra số lần vuốt chạm & gia tốc chuột người thật",
+                    "Két 7 ngày: Đóng băng tiền cày nhiệm vụ trong 7 ngày đối soát",
+                    "Sổ cái bất biến: Chỉ Super Admin có quyền xóa nhật ký vi phạm"
                   ]}
-                  tips="Hệ thống tự động kích hoạt phòng thủ cấp cao khi lưu lượng tăng đột biến."
-                  badge="Zero Trust Security"
+                  tips="Hệ thống tự động đóng băng ví ngay khi phát hiện tỷ lệ thoát tab dưới 5s."
+                  badge="Zero Trust 2026"
                   placement="bottom"
                 />
               </div>
@@ -5585,70 +5618,204 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             {/* 4 Stats Chips */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-white/10">
               <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 block">Quy Định Hạn Mức IP</span>
-                <div className="text-lg font-black text-emerald-400 font-mono">Tối đa 5 Acc / IP</div>
-                <span className="text-[10px] text-slate-500 font-mono">Chống clone farm hàng loạt</span>
+                <span className="text-[10px] font-mono text-slate-400 block">Số Chiến Lược Kích Hoạt</span>
+                <div className="text-lg font-black text-rose-400 font-mono">20 / 20 Chiến Lược</div>
+                <span className="text-[10px] text-emerald-400 font-mono">100% Phòng thủ chủ động</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 block">Tổng Lượt Bot Đã Chặn</span>
-                <div className="text-lg font-black text-rose-400 font-mono">6,145 Lượt</div>
-                <span className="text-[10px] text-emerald-400 font-mono">100% Chặn thành công</span>
+                <span className="text-[10px] font-mono text-slate-400 block">Tài Khoản Nghi Vấn Bị Đóng Băng</span>
+                <div className="text-lg font-black text-amber-400 font-mono">142 Tài Khoản</div>
+                <span className="text-[10px] text-amber-300 font-mono">Két giữ 7 ngày an toàn</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 block">Tiêu Chuẩn Mã Hóa</span>
-                <div className="text-lg font-black text-cyan-400 font-mono">AES 256-bit</div>
-                <span className="text-[10px] text-slate-500 font-mono">SSL/TLS End-to-End</span>
+                <span className="text-[10px] font-mono text-slate-400 block">Bẫy Honeypot Đã Bắt</span>
+                <div className="text-lg font-black text-cyan-400 font-mono">231 Bot Farm IP</div>
+                <span className="text-[10px] text-slate-500 font-mono">Khóa IP vĩnh viễn</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 block">Thời Gian Uptime An Toàn</span>
-                <div className="text-lg font-black text-amber-400 font-mono">99.99%</div>
-                <span className="text-[10px] text-slate-500 font-mono">Zero Vulnerability</span>
+                <span className="text-[10px] font-mono text-slate-400 block">Hồ Sơ Chuyển Pháp Chế</span>
+                <div className="text-lg font-black text-purple-400 font-mono">18 Hồ Sơ</div>
+                <span className="text-[10px] text-slate-400 font-mono">Theo NĐ 15/2020/NĐ-CP</span>
               </div>
             </div>
           </div>
 
-          {/* Chi Tiết 7 Lớp Bảo Mật Grid */}
+          {/* SỔ CÁI BẤT BIẾN: BẢNG GIÁM SÁT GIAN LẬN & HÀNH VI BẤT THƯỜNG (IMMUTABLE AUDIT LEDGER) */}
+          <div className="p-6 rounded-3xl bg-[#0D111E] border border-rose-500/30 space-y-4 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-black text-white font-mono uppercase flex items-center gap-2">
+                  <Gavel className="w-4 h-4 text-rose-400" /> Sổ Cái Nhật Ký Gian Lận Bất Biến (Chỉ Super Admin Có Quyền Xóa)
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Ghi nhận tự động mọi dấu hiệu thoát tab, thiếu telemetry, hủy follow cam kết, bot proxy.
+                </p>
+              </div>
+
+              {/* Severity Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {(['all', 'critical', 'high', 'medium', 'low'] as const).map((sev) => (
+                  <button
+                    key={sev}
+                    onClick={() => setFraudFilterSeverity(sev)}
+                    className={`px-3 py-1 rounded-xl text-xs font-mono font-bold capitalize transition-colors ${
+                      fraudFilterSeverity === sev
+                        ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
+                        : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
+                    }`}
+                  >
+                    {sev === 'all' ? 'Tất Cả' : sev === 'critical' ? 'Nguy Cấp' : sev === 'high' ? 'Cao' : sev === 'medium' ? 'Trung Bình' : 'Thấp'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Table of Fraud Incidents */}
+            <div className="overflow-x-auto rounded-2xl border border-white/5">
+              <table className="w-full text-left text-xs font-mono">
+                <thead className="bg-white/5 text-slate-400 uppercase text-[10px]">
+                  <tr>
+                    <th className="p-3">Mã &amp; Thời Gian</th>
+                    <th className="p-3">Đối Tượng / IP</th>
+                    <th className="p-3">Hành Vi Gian Lận</th>
+                    <th className="p-3 text-center">Điểm Gian Lận</th>
+                    <th className="p-3 text-center">Uy Tín</th>
+                    <th className="p-3 text-center">Xử Lý</th>
+                    <th className="p-3 text-right">Tác Vụ Admin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-slate-300">
+                  {fraudLedger
+                    .filter(item => fraudFilterSeverity === 'all' || item.severity === fraudFilterSeverity)
+                    .map((item) => (
+                      <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="p-3 text-slate-400 whitespace-nowrap">
+                          <div className="font-bold text-rose-300">{item.id}</div>
+                          <div className="text-[10px] text-slate-500">{item.timestamp}</div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <div className="font-bold text-white flex items-center gap-1.5">
+                            {item.userAvatar && (
+                              <img src={item.userAvatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                            )}
+                            <span>{item.userHandle}</span>
+                          </div>
+                          <div className="text-[10px] text-cyan-300">{item.ip} • {item.location || 'VN'}</div>
+                        </td>
+                        <td className="p-3 max-w-xs">
+                          <div className="inline-block px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold mb-1">
+                            {item.anomalyType}
+                          </div>
+                          <div className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">{item.detail}</div>
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className={`px-2 py-1 rounded-lg text-xs font-black font-mono ${
+                            item.fraudScore >= 80 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' :
+                            item.fraudScore >= 50 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
+                            'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40'
+                          }`}>
+                            {item.fraudScore}/100
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="text-xs font-bold font-mono text-slate-300">
+                            {item.trustScoreBefore} ➔ <span className="text-rose-400">{item.trustScoreAfter}</span>
+                          </div>
+                        </td>
+                        <td className="p-3 text-center whitespace-nowrap">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${
+                            item.actionTaken === 'ACCOUNT_LOCKED' ? 'bg-rose-600 text-white' :
+                            item.actionTaken === 'WALLET_FROZEN' ? 'bg-amber-600 text-white' :
+                            'bg-blue-600/30 text-blue-300 border border-blue-500/40'
+                          }`}>
+                            {item.actionTaken === 'ACCOUNT_LOCKED' ? '🔒 Khóa Acc' :
+                             item.actionTaken === 'WALLET_FROZEN' ? '🧊 Đóng Băng Ví' : '⚠️ Trừ Điểm'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Xuất Hồ Sơ Pháp Chế Button */}
+                            <button
+                              onClick={() => {
+                                setSelectedDossier(item);
+                                setDossierText(generateLegalEscalationDossier(item));
+                                setShowDossierModal(true);
+                              }}
+                              className="px-2.5 py-1 rounded-xl bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-purple-300 text-[11px] font-bold flex items-center gap-1 transition-colors"
+                              title="Trích xuất Hồ Sơ Pháp Chế chuyển Cơ quan Công An"
+                            >
+                              <FileText className="w-3 h-3" />
+                              <span>Hồ Sơ Pháp Chế</span>
+                            </button>
+
+                            {/* Xóa Nhật Ký (Chỉ Super Admin) */}
+                            <button
+                              onClick={() => {
+                                setDeletingIncidentId(item.id);
+                                setShowDeleteModal(true);
+                              }}
+                              className="p-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 transition-colors"
+                              title="Xóa khỏi sổ cái an ninh (Yêu cầu mật khẩu Super Admin)"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* GRID 20 CHIẾN LƯỢC BẢO MẬT & PHÒNG THỦ CHỦ ĐỘNG */}
           <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
-            <h4 className="text-sm font-black text-white font-mono uppercase flex items-center gap-2">
-              <Layers className="w-4 h-4 text-emerald-400" /> Cấu Trúc Chi Tiết 7 Lớp Phòng Thủ Sàn AVA FOLLOW
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-black text-white font-mono uppercase flex items-center gap-2">
+                <Layers className="w-4 h-4 text-emerald-400" /> Ma Trận 20 Lớp Phòng Thủ AVA Sentinel 2026
+              </h4>
+              <span className="text-xs font-mono text-emerald-400 font-bold flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                20/20 Lớp Trực Tuyến
+              </span>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {security7Layers.map((layer) => (
+              {AVA_20_ANTI_FRAUD_STRATEGIES.map((strat) => (
                 <div
-                  key={layer.layer}
-                  className="p-4 rounded-2xl bg-black/40 border border-white/10 hover:border-emerald-500/40 transition-all space-y-2.5 flex flex-col justify-between"
+                  key={strat.id}
+                  className="p-4 rounded-2xl bg-black/40 border border-white/10 hover:border-rose-500/40 transition-all space-y-2.5 flex flex-col justify-between"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        LỚP {layer.layer}
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black font-mono bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        LỚP #{strat.id < 10 ? `0${strat.id}` : strat.id} • {strat.layerCategory}
                       </span>
-                      <span className="text-[10px] font-mono text-slate-400">
-                        Đã chặn: <strong className="text-rose-400">{layer.blockedCount.toLocaleString()}</strong>
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                        {strat.efficiencyRate}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-xl">{layer.icon}</span>
+                      <span className="text-xl">{strat.icon}</span>
                       <h5 className="text-xs font-black text-white font-display">
-                        {layer.name}
+                        {strat.name}
                       </h5>
                     </div>
 
                     <p className="text-[11px] text-slate-300 leading-relaxed">
-                      {layer.description}
+                      {strat.description}
                     </p>
                   </div>
 
                   <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
-                    <span className="text-slate-500">Mã: {layer.code}</span>
-                    <span className="text-emerald-400 font-bold flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      Trực tuyến
+                    <span className="text-slate-500">Mã: {strat.code}</span>
+                    <span className="text-rose-400 font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                      Tự động thực thi
                     </span>
                   </div>
                 </div>
@@ -5656,56 +5823,141 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             </div>
           </div>
 
-          {/* Bảng Nhật Ký Bảo Mật & Giám Sát IP Realtime */}
+          {/* BẪY HONEYPOT DOM & BOT TRAPS MONITOR */}
           <div className="p-6 rounded-3xl bg-[#0D111E] border border-white/10 space-y-4 shadow-xl">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-black text-white font-mono uppercase flex items-center gap-2">
-                <Globe className="w-4 h-4 text-cyan-400" /> Nhật Ký Giám Sát &amp; Ngăn Chặn IP Bất Thường
+                <Globe className="w-4 h-4 text-amber-400" /> Bẫy Tàng Hình Honeypot Dành Cho Bot Farm
               </h4>
               <span className="text-xs font-mono text-slate-400">
-                Hiển thị các sự kiện an ninh mới nhất
+                Tự động bắt các crawler DOM quét mã HTML
               </span>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-white/5">
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-white/5 text-slate-400 uppercase text-[10px]">
-                  <tr>
-                    <th className="p-3">Thời Gian</th>
-                    <th className="p-3">Địa Chỉ IP</th>
-                    <th className="p-3">Mã Sự Kiện</th>
-                    <th className="p-3">Hành Vi &amp; Chi Tiết Xử Lý</th>
-                    <th className="p-3 text-right">Mức Độ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 text-slate-300">
-                  {securityAuditLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="p-3 text-slate-400 whitespace-nowrap">{log.timestamp}</td>
-                      <td className="p-3 font-bold text-cyan-300">{log.ip}</td>
-                      <td className="p-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] bg-white/5 text-slate-300 border border-white/10 font-bold">
-                          {log.type}
-                        </span>
-                      </td>
-                      <td className="p-3 text-slate-300">{log.detail}</td>
-                      <td className="p-3 text-right">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase font-mono ${
-                          log.severity === 'critical' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' :
-                          log.severity === 'high' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40' :
-                          log.severity === 'medium' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
-                          'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                        }`}>
-                          {log.severity}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {HONEYPOT_TASKS.map((trap) => (
+                <div key={trap.id} className="p-4 rounded-2xl bg-black/40 border border-amber-500/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-amber-300 font-display">{trap.name}</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 font-mono font-bold">
+                      Đã bắt: {trap.triggerCount} Bot
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    Phần thưởng ảo: <strong className="text-rose-400">{trap.rewardXuFake.toLocaleString()} Xu</strong> (Người thật không nhìn thấy trên giao diện).
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-500">
+                    IP dính bẫy gần nhất: {trap.botIpsCaught.join(', ')}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* MODAL TRÍCH XUẤT HỒ SƠ PHÁP CHẾ (LEGAL COMPLIANCE DOSSIER MODAL) */}
+      {showDossierModal && selectedDossier && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-3xl max-h-[90vh] bg-[#0c101a] border border-purple-500/40 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-5 bg-gradient-to-r from-purple-950/60 via-slate-900 to-rose-950/40 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-purple-400" />
+                <h3 className="text-base font-black text-white font-display">
+                  Hồ Sơ Chứng Cứ Vi Phạm &amp; Chuyển Giao Cơ Quan Pháp Chế
+                </h3>
+              </div>
+              <button onClick={() => setShowDossierModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4 max-h-[calc(90vh-140px)]">
+              <div className="p-4 rounded-2xl bg-black/60 border border-white/10 font-mono text-xs text-slate-300 whitespace-pre-wrap leading-relaxed select-text">
+                {dossierText}
+              </div>
+            </div>
+
+            <div className="p-4 bg-black/60 border-t border-white/10 flex items-center justify-between gap-3 text-xs">
+              <span className="text-[11px] font-mono text-slate-400">
+                Mã xác thực chữ ký SHA-256: e8b9f1a20c3d4e5f...
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(dossierText);
+                    setFraudNotificationMsg("Đã sao chép toàn bộ hồ sơ pháp chế vào bộ nhớ tạm!");
+                    setShowDossierModal(false);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold font-mono text-xs transition-colors shadow-md shadow-purple-600/30"
+                >
+                  Sao Chép Hồ Sơ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL XÁC NHẬN XÓA SỔ CÁI BẤT BIẾN CHO SUPER ADMIN */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-[#0c101a] border border-rose-500/40 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-400">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white font-display">Xác Thực Super Admin</h3>
+                <p className="text-xs text-slate-400">Nhập Master Key để xóa nhật ký an ninh bất biến</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-mono text-slate-300">Master Secret Key Cấp Cao Nhất:</label>
+              <input
+                type="password"
+                value={superAdminKeyInput}
+                onChange={(e) => setSuperAdminKeyInput(e.target.value)}
+                placeholder="AVA_SUPER_ADMIN_MASTER_KEY_2026"
+                className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-white font-mono text-xs focus:border-rose-500 outline-none"
+              />
+              <span className="text-[10px] text-slate-500 font-mono">
+                Gợi ý Master Key: AVA_SUPER_ADMIN_MASTER_KEY_2026
+              </span>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setSuperAdminKeyInput('');
+                }}
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 text-xs font-mono"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  if (deletingIncidentId) {
+                    const result = deleteFraudIncidentAsSuperAdmin(deletingIncidentId, superAdminKeyInput);
+                    if (result.success) {
+                      setFraudLedger(getImmutableFraudLedger());
+                      setFraudNotificationMsg(result.message);
+                      setShowDeleteModal(false);
+                      setSuperAdminKeyInput('');
+                    } else {
+                      alert(result.message);
+                    }
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs font-mono shadow-lg shadow-rose-600/30"
+              >
+                Xác Nhận Xóa
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

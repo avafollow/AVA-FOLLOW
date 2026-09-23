@@ -29,6 +29,7 @@ import {
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
 import { BrandLogo } from '../common/BrandLogo';
+import { AntiFraudMarqueeTicker } from '../common/AntiFraudMarqueeTicker';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -214,6 +215,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       )}
+
+      {/* THANH CHỮ CẢNH BÁO BẢO MẬT 20 LỚP & CHẾ TÀI PHÁP CHẾ (ANTI-FRAUD RUNNING MARQUEE) */}
+      <AntiFraudMarqueeTicker />
 
       <div className="flex h-14 sm:h-16 items-center justify-between px-2.5 sm:px-6 max-w-full overflow-visible relative gap-1.5 sm:gap-3">
         {/* Left: Brand Logo & Tagline */}

@@ -1323,3 +1323,88 @@ export interface CampaignAuditTrailItem {
   notes?: string;
 }
 
+// ===== HỆ THỐNG 20 CHIẾN LƯỢC CHỐNG GIAN LẬN TOÀN DIỆN (AVA SENTINEL 20-LAYER ANTI-FRAUD) =====
+export type FraudRiskSeverity = 'low' | 'medium' | 'high' | 'critical' | 'blacklisted';
+
+export type FraudAnomalyType = 
+  | 'TAB_BOUNCE_NO_ACTION'           // Thoát ra vào lại dưới 5s không thao tác
+  | 'ZERO_TELEMETRY_CLICK'           // Không có chuyển động chuột, vuốt chạm người thật
+  | 'CLIPBOARD_NONCE_MISMATCH'       // Không copy hoặc sai mã băm Challenge Nonce
+  | 'DYNAMIC_HASHTAG_MISSING'        // Thiếu hashtag định danh phiên comment
+  | 'SPEED_RUNNER_BURST'             // Làm >3 nhiệm vụ / phút (vượt ngưỡng sinh học người)
+  | 'MULTI_ACC_DEVICE_COLLISION'     // 1 thiết bị/IP vượt quá hạn mức tài khoản
+  | 'HONEYPOT_TRAP_TRIGGERED'        // Bấm vào task bẫy dành riêng cho bot/crawler
+  | 'UNFOLLOW_BREACH_30D'            // Hủy follow trước 30 ngày cam kết
+  | 'CANVAS_BOT_FINGERPRINT'         // Phát hiện headless browser / Puppeteer / Playwright
+  | 'SIMULATED_SCREENSHOT_REJECT'    // Ảnh chụp màn hình trùng lặp hoặc giả mạo
+  | 'MICRO_INTERACTION_ANOMALY'      // Tốc độ phản xạ < 200ms vô lý
+  | 'ESCROW_CHARGEBACK_DISPUTE'      // Tranh chấp rút xu khi đang giữ trong két 7 ngày
+  | 'IP_PROXY_TOR_DETECTED'          // Dùng Proxy/VPN/Tor để spam nhiệm vụ
+  | 'TOKEN_TAMPERING_ATTEMPT'        // Sửa đổi payload hoặc số dư client-side
+  | 'LIVE_HEARTBEAT_FROZEN';         // Tab livestream bị ẩn hoặc pause video
+
+export interface AntiFraudStrategyDef {
+  id: number;
+  code: string;
+  name: string;
+  layerCategory: 'Biometrics' | 'Cryptographic' | 'Network' | 'Temporal' | 'Economic' | 'AI_Heuristic' | 'Legal';
+  description: string;
+  mechanism: string;
+  autoAction: 'warning' | 'penalty_score' | 'freeze_wallet' | 'lock_account' | 'legal_dossier';
+  efficiencyRate: string;
+  status: 'active' | 'enforcing' | 'standby';
+  icon: string;
+}
+
+export interface AntiFraudTelemetry {
+  touchCount: number;
+  mouseDistancePx: number;
+  scrollCount: number;
+  keyStrokeCount: number;
+  reactionTimeMs: number;
+  canvasHash: string;
+  webglRenderer: string;
+  screenResolution: string;
+  deviceFingerprint: string;
+  ipAddress: string;
+  userAgent: string;
+  batteryLevel?: number;
+  isHeadless: boolean;
+}
+
+export interface FraudIncidentLog {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userHandle: string;
+  userEmail: string;
+  userAvatar?: string;
+  anomalyType: FraudAnomalyType;
+  severity: FraudRiskSeverity;
+  fraudScore: number;
+  trustScoreBefore: number;
+  trustScoreAfter: number;
+  taskId?: string;
+  taskTitle?: string;
+  actionType?: string;
+  detail: string;
+  telemetrySnapshot?: Partial<AntiFraudTelemetry>;
+  actionTaken: 'FLAGGED' | 'SCORE_DEDUCTED' | 'WALLET_FROZEN' | 'ACCOUNT_LOCKED' | 'LEGAL_ESCALATED';
+  evidenceUrls?: string[];
+  isImmutable: boolean;           // Không thể xóa trừ Super Admin
+  ip: string;
+  location?: string;
+  dossierCode?: string;           // Mã hồ sơ pháp chế nếu chuyển sang cơ quan chức năng
+}
+
+export interface HoneypotTrapItem {
+  id: string;
+  name: string;
+  type: 'hidden_button' | 'fake_high_reward_task' | 'invisible_dom_link' | 'zero_sec_confirm';
+  rewardXuFake: number;
+  triggerCount: number;
+  lastTriggeredAt?: string;
+  botIpsCaught: string[];
+}
+
+

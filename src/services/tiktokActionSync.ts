@@ -145,8 +145,17 @@ export const syncTikTokFollow = async (
   userTikTokHandle: string,
   onSuccess?: () => void
 ): Promise<SyncActionResult> => {
+  // 0. Bắt buộc tài khoản TikTok phải được liên kết chuẩn xác
+  if (!userTikTokHandle || userTikTokHandle === '@chưa_kết_nối' || userTikTokHandle === '@user' || !userTikTokHandle.trim() || userTikTokHandle.includes('chưa_kết_nối')) {
+    return {
+      success: false,
+      message: '⚠️ Tài khoản TikTok chưa được liên kết hoặc sai lệch với thông tin tài khoản đăng ký! Vui lòng liên kết tài khoản TikTok chính xác trước khi nhận Xu.',
+      coinsEarned: 0
+    };
+  }
+
   const cleanTarget = targetHandle.replace(/^@+/, '');
-  const cleanUser = (userTikTokHandle || '@user').replace(/^@+/, '');
+  const cleanUser = userTikTokHandle.replace(/^@+/, '');
 
   // 1. Kiểm tra Cooldown chống spam
   if (!checkCooldown(cleanUser, 'follow', 1800)) {
@@ -236,8 +245,17 @@ export const syncTikTokLike = async (
   userTikTokHandle: string,
   onSuccess?: () => void
 ): Promise<SyncActionResult> => {
+  // 0. Bắt buộc tài khoản TikTok phải được liên kết chuẩn xác
+  if (!userTikTokHandle || userTikTokHandle === '@chưa_kết_nối' || userTikTokHandle === '@user' || !userTikTokHandle.trim() || userTikTokHandle.includes('chưa_kết_nối')) {
+    return {
+      success: false,
+      message: '⚠️ Tài khoản TikTok chưa được liên kết hoặc sai lệch với thông tin tài khoản đăng ký! Vui lòng liên kết tài khoản TikTok chính xác trước khi nhận Xu.',
+      coinsEarned: 0
+    };
+  }
+
   const cleanTarget = (targetIdOrUrl || 'video_item').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
-  const cleanUser = (userTikTokHandle || '@user').replace(/^@+/, '');
+  const cleanUser = userTikTokHandle.replace(/^@+/, '');
 
   if (!checkCooldown(cleanUser, 'like', 1200)) {
     return {
@@ -322,8 +340,17 @@ export const syncTikTokComment = async (
   userTikTokHandle: string,
   onSuccess?: () => void
 ): Promise<SyncActionResult> => {
+  // 0. Bắt buộc tài khoản TikTok phải được liên kết chuẩn xác
+  if (!userTikTokHandle || userTikTokHandle === '@chưa_kết_nối' || userTikTokHandle === '@user' || !userTikTokHandle.trim() || userTikTokHandle.includes('chưa_kết_nối')) {
+    return {
+      success: false,
+      message: '⚠️ Tài khoản TikTok chưa được liên kết hoặc sai lệch với thông tin tài khoản đăng ký! Vui lòng liên kết tài khoản TikTok chính xác trước khi nhận Xu.',
+      coinsEarned: 0
+    };
+  }
+
   const cleanTarget = (targetIdOrUrl || 'video_item').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
-  const cleanUser = (userTikTokHandle || '@user').replace(/^@+/, '');
+  const cleanUser = userTikTokHandle.replace(/^@+/, '');
   const trimmedComment = (commentText || '').trim();
 
   // Kiểm duyệt nội dung bình luận (Anti-Spam Filter)
@@ -416,6 +443,14 @@ export const syncShareToFacebook = (
   userTikTokHandle = '@creator',
   onSuccess?: () => void
 ): SyncActionResult => {
+  if (!userTikTokHandle || userTikTokHandle === '@chưa_kết_nối' || userTikTokHandle === '@user' || !userTikTokHandle.trim() || userTikTokHandle.includes('chưa_kết_nối')) {
+    return {
+      success: false,
+      message: '⚠️ Tài khoản TikTok chưa được liên kết hoặc sai lệch với thông tin tài khoản đăng ký! Vui lòng liên kết tài khoản TikTok chính xác.',
+      coinsEarned: 0
+    };
+  }
+
   const cleanHandle = channelHandle.replace(/^@+/, '');
   const cleanUser = userTikTokHandle.replace(/^@+/, '');
   const urlToShare = targetUrl.startsWith('http') ? targetUrl : `https://www.tiktok.com/@${cleanHandle}`;
@@ -485,7 +520,15 @@ export const syncTikTokWatchReward = async (
   userTikTokHandle: string,
   earnedCoins = 200
 ): Promise<SyncActionResult> => {
-  const cleanUser = (userTikTokHandle || '@user').replace(/^@+/, '');
+  if (!userTikTokHandle || userTikTokHandle === '@chưa_kết_nối' || userTikTokHandle === '@user' || !userTikTokHandle.trim() || userTikTokHandle.includes('chưa_kết_nối')) {
+    return {
+      success: false,
+      message: '⚠️ Tài khoản TikTok chưa được liên kết hoặc sai lệch với thông tin tài khoản đăng ký!',
+      coinsEarned: 0
+    };
+  }
+
+  const cleanUser = userTikTokHandle.replace(/^@+/, '');
   const txHash = generateTxHash(kind === 'livestream' ? 'watch_live' : 'watch_video', cleanUser, taskId);
 
   try {

@@ -1041,6 +1041,7 @@ export interface UserProfileWallet {
   isNewUserBonusClaimed?: boolean;
   withdrawCount?: number; // Số lần đã rút tiền (Lần 1 miễn phí, lần 2 trở đi phí 5% & bắt buộc KYC)
   avaliveCoins: number;
+  totalEarnedCoins?: number;
   coinsValueVND: string;
   tokenBalance: number;
   usdtBalance: number;

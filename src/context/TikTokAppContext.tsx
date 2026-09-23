@@ -1729,8 +1729,24 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Platform Boost Revenue & Campaign Priority (100% Real Time)
   const [platformBoostRevenue, setPlatformBoostRevenue] = useState<number>(0);
 
-  // User Completed Actions Map (Chống trùng lặp & bảo vệ ngân sách chủ shop)
-  const [userCompletedActions, setUserCompletedActions] = useState<Record<string, UserTaskActionHistory>>(INITIAL_USER_COMPLETED_ACTIONS);
+  // User Completed Actions Map (Chống trùng lặp & bảo vệ ngân sách chủ shop - Lưu trữ vĩnh viễn)
+  const [userCompletedActions, setUserCompletedActions] = useState<Record<string, UserTaskActionHistory>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('ava_user_completed_actions');
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return INITIAL_USER_COMPLETED_ACTIONS;
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_user_completed_actions', JSON.stringify(userCompletedActions));
+      }
+    } catch {}
+  }, [userCompletedActions]);
 
   // Immediate Fraud Alert Modal State
   const [fraudAlertModalData, setFraudAlertModalData] = useState<FraudAlertData | null>(null);
@@ -3442,6 +3458,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const updatedUser: UserProfileWallet = {
       ...user,
       avaliveCoins: newCoins,
+      totalEarnedCoins: (user.totalEarnedCoins || 0) + finalReward,
       coinsValueVND: `${newCoins.toLocaleString()}đ`,
       completedTasksCount: nextCompletedTasks,
       firstTaskCompleted: true,
@@ -3452,6 +3469,25 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       if (typeof window !== 'undefined') {
         localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
+        
+        // Ghi sổ cái nhật ký lịch sử nhiệm vụ chi tiết và vĩnh viễn (Detailed & Permanent Task Ledger)
+        const histRaw = localStorage.getItem('ava_task_history_logs');
+        const histList = histRaw ? JSON.parse(histRaw) : [];
+        const newHistItem = {
+          id: `hist_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          taskId,
+          taskTitle: (taskObj && 'title' in taskObj ? taskObj.title : (taskObj ? taskObj.channelName : label)) || label,
+          channelHandle: targetChannelHandle,
+          actionType,
+          actionLabel: label,
+          coinsEarned: finalReward,
+          amountVND: finalReward * 10,
+          txHash: newTx.id,
+          timestamp: exactTime,
+          userHandle: user.tiktokConnected,
+          status: 'success'
+        };
+        localStorage.setItem('ava_task_history_logs', JSON.stringify([newHistItem, ...histList].slice(0, 300)));
       }
     } catch {}
 

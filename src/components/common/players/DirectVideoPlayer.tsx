@@ -11,16 +11,6 @@ export interface DirectVideoPlayerProps {
   className?: string;
 }
 
-export interface DirectVideoPlayerProps {
-  src: string;
-  poster?: string;
-  autoPlay?: boolean;
-  isMuted?: boolean;
-  isPlaying?: boolean;
-  onTogglePlay?: () => void;
-  className?: string;
-}
-
 export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
   src,
   poster,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldAlert, 
   AlertTriangle, 
@@ -9,7 +9,9 @@ import {
   CheckCircle2, 
   Flame, 
   ShieldCheck,
-  Scale
+  Scale,
+  Clock,
+  Timer
 } from 'lucide-react';
 
 export interface FraudAlertData {
@@ -21,6 +23,9 @@ export interface FraudAlertData {
   trustScoreAfter?: number;
   taskId?: string;
   channelHandle?: string;
+  lockedUntil?: string;
+  durationMinutes?: number;
+  violationLevel?: number;
 }
 
 interface ImmediateFraudAlertModalProps {
@@ -32,12 +37,44 @@ export const ImmediateFraudAlertModal: React.FC<ImmediateFraudAlertModalProps> =
   data,
   onClose
 }) => {
+  const [remainingMs, setRemainingMs] = useState<number>(() => {
+    if (!data?.lockedUntil) return 0;
+    return Math.max(0, new Date(data.lockedUntil).getTime() - Date.now());
+  });
+
+  useEffect(() => {
+    if (!data?.lockedUntil) return;
+    const tick = () => {
+      const diff = Math.max(0, new Date(data.lockedUntil!).getTime() - Date.now());
+      setRemainingMs(diff);
+      if (diff <= 0) {
+        onClose();
+      }
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [data?.lockedUntil, onClose]);
+
   if (!data || !data.isOpen) return null;
+
+  const formatTime = (ms: number) => {
+    const totalSec = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSec / 3600);
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
+    if (hours > 0) {
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
+
+  const isLevel2 = Boolean(data.violationLevel && data.violationLevel >= 2) || (data.durationMinutes && data.durationMinutes >= 1440);
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-5 bg-black/90 backdrop-blur-xl animate-in fade-in duration-200 select-none">
       <div 
-        className="relative w-full max-w-lg bg-[#0f070b] border-2 border-rose-500/80 rounded-3xl p-6 sm:p-7 shadow-[0_0_60px_rgba(244,63,94,0.35)] flex flex-col space-y-5 animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-lg bg-[#0f070b] border-2 border-rose-500/80 rounded-3xl p-6 sm:p-7 shadow-[0_0_60px_rgba(244,63,94,0.35)] flex flex-col space-y-4 sm:space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Pulsing Siren Icon Header */}
@@ -58,6 +95,28 @@ export const ImmediateFraudAlertModal: React.FC<ImmediateFraudAlertModalProps> =
             </h3>
           </div>
         </div>
+
+        {/* Real-time Countdown Timer Box */}
+        {data.lockedUntil && remainingMs > 0 && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/80 via-rose-950/80 to-purple-950/80 border-2 border-rose-500/60 flex flex-col items-center justify-center text-center space-y-2 shadow-inner">
+            <span className="px-3 py-1 rounded-full bg-rose-500/30 text-rose-300 font-mono text-[10px] font-bold border border-rose-500/40 uppercase tracking-widest flex items-center gap-1.5 shadow">
+              <Timer className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+              <span>
+                {isLevel2 
+                  ? '🚫 VI PHẠM LẦN 2 (TÁI PHẠM): KHÓA TÍNH NĂNG 24 GIỜ' 
+                  : '⚠️ VI PHẠM LẦN 1: TẠM KHÓA NHIỆM VỤ 60 PHÚT'}
+              </span>
+            </span>
+
+            <div className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-rose-400 to-red-400 font-mono tracking-wider animate-pulse drop-shadow-md">
+              {formatTime(remainingMs)}
+            </div>
+
+            <p className="text-[11px] text-slate-300 font-mono">
+              Hệ thống sẽ tự động mở khóa hoàn toàn khi đồng hồ đếm ngược về 00:00:00
+            </p>
+          </div>
+        )}
 
         {/* Warning Reason Box */}
         <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 space-y-2.5">
@@ -82,7 +141,7 @@ export const ImmediateFraudAlertModal: React.FC<ImmediateFraudAlertModalProps> =
           <div className="p-3 rounded-2xl bg-black/60 border border-rose-500/30 space-y-1">
             <span className="text-[10px] text-slate-400 block uppercase">Phạt Điểm Uy Tín</span>
             <div className="text-lg font-black text-rose-400">
-              -{data.penaltyPoints || 20} Điểm
+              -{data.penaltyPoints || (isLevel2 ? 40 : 20)} Điểm
             </div>
             <span className="text-[9px] text-slate-500">Giảm trực tiếp vào hồ sơ</span>
           </div>
@@ -90,9 +149,9 @@ export const ImmediateFraudAlertModal: React.FC<ImmediateFraudAlertModalProps> =
           <div className="p-3 rounded-2xl bg-black/60 border border-white/10 space-y-1">
             <span className="text-[10px] text-slate-400 block uppercase">Chế Tài Thực Thi</span>
             <div className="text-sm font-black text-amber-400 truncate">
-              Đóng Băng Két 7 Ngày
+              {isLevel2 ? 'Khóa Toàn Diện 24h' : 'Khóa Chuỗi 60 Phút'}
             </div>
-            <span className="text-[9px] text-slate-500">Thu hồi toàn bộ Xu ảo</span>
+            <span className="text-[9px] text-slate-500">Thu hồi toàn bộ Xu vi phạm</span>
           </div>
         </div>
 
@@ -101,7 +160,7 @@ export const ImmediateFraudAlertModal: React.FC<ImmediateFraudAlertModalProps> =
           <Gavel className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <div>
             <strong className="text-white">Quy Định Nghiêm Ngặt:</strong>
-            Mỗi nhiệm vụ và kênh chỉ được thực hiện và nhận thưởng duy nhất 1 lần. Mọi hành vi cố tình thoát ra vào lại mà không comment/like/follow thật sẽ bị khóa vĩnh viễn tài khoản và chuyển hồ sơ pháp chế theo Nghị định 15/2020/NĐ-CP.
+            Mỗi nhiệm vụ và kênh chỉ được thực hiện và nhận thưởng duy nhất 1 lần. Mọi hành vi cố tình gian lận không làm thật sẽ bị nâng mức chế tài từ 60 phút lên 24 giờ và chuyển hồ sơ pháp chế theo Nghị định 15/2020/NĐ-CP.
           </div>
         </div>
 
@@ -109,7 +168,7 @@ export const ImmediateFraudAlertModal: React.FC<ImmediateFraudAlertModalProps> =
         <div className="pt-1">
           <button
             onClick={onClose}
-            className="w-full py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs sm:text-sm font-mono uppercase tracking-wider shadow-lg shadow-rose-600/40 transition-all active:scale-98 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs sm:text-sm font-mono uppercase tracking-wider shadow-lg shadow-rose-600/40 transition-all active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>TÔI ĐÃ HIỂU &amp; CAM KẾT KHÔNG GIAN LẬN</span>
             <ArrowRight className="w-4 h-4" />
@@ -119,3 +178,4 @@ export const ImmediateFraudAlertModal: React.FC<ImmediateFraudAlertModalProps> =
     </div>
   );
 };
+

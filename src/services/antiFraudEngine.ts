@@ -774,9 +774,32 @@ export interface TaskLockoutStatus {
   lockedUntil?: string;
   durationMinutes?: number;
   fraudAnomaly?: FraudAnomalyType;
+  violationLevel?: number; // 1 = 60 phút, 2+ = 24 giờ (1440 phút)
 }
 
 const TASK_LOCKOUT_KEY = (user: string) => `ava_task_lockout_${user.replace(/^@+/, '')}`;
+const VIOLATION_COUNT_KEY = (user: string) => `ava_violation_count_${user.replace(/^@+/, '')}`;
+
+export function getViolationCount(userHandle: string): number {
+  if (typeof window === 'undefined' || !userHandle) return 0;
+  const clean = userHandle.replace(/^@+/, '');
+  try {
+    const raw = localStorage.getItem(VIOLATION_COUNT_KEY(clean));
+    return raw ? parseInt(raw, 10) || 0 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function incrementViolationCount(userHandle: string): number {
+  if (typeof window === 'undefined' || !userHandle) return 1;
+  const clean = userHandle.replace(/^@+/, '');
+  const count = getViolationCount(clean) + 1;
+  try {
+    localStorage.setItem(VIOLATION_COUNT_KEY(clean), String(count));
+  } catch {}
+  return count;
+}
 
 export function isUserNextTasksLocked(userHandle: string): TaskLockoutStatus {
   if (typeof window === 'undefined' || !userHandle) return { isLocked: false };
@@ -799,17 +822,25 @@ export function isUserNextTasksLocked(userHandle: string): TaskLockoutStatus {
 export function triggerCascadingTaskLockout(
   userHandle: string,
   reason: string,
-  durationMinutes: number = 30,
+  explicitDurationMinutes?: number,
   anomaly: FraudAnomalyType = 'CASCADING_TASK_LOCKOUT'
 ): TaskLockoutStatus {
   const clean = userHandle.replace(/^@+/, '');
+  const violationLevel = incrementViolationCount(clean);
+  
+  // Quy tắc lũy tiến chuẩn xác: Vi phạm lần 1 = 60 phút (1 tiếng), Vi phạm lần 2+ = 24 giờ (1440 phút)
+  const durationMinutes = explicitDurationMinutes !== undefined 
+    ? explicitDurationMinutes 
+    : (violationLevel === 1 ? 60 : 1440);
+
   const lockedUntil = new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
   const status: TaskLockoutStatus = {
     isLocked: true,
     reason,
     lockedUntil,
     durationMinutes,
-    fraudAnomaly: anomaly
+    fraudAnomaly: anomaly,
+    violationLevel
   };
   if (typeof window !== 'undefined') {
     try {

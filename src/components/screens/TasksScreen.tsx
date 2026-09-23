@@ -564,14 +564,30 @@ export const TasksScreen: React.FC<{
       {/* 2. THANH KẾT NỐI TÀI KHOẢN (TIKTOK, FACEBOOK & YOUTUBE) MỞ TRỰC TIẾP KÊNH THẬT */}
       {/* ========================================================================= */}
       {(() => {
+        const isTikTokConnected = Boolean(user.tiktokConnected && user.tiktokConnected.trim() && user.tiktokConnected !== '@chưa_kết_nối' && user.tiktokConnected !== 'Chưa kết nối');
         const cleanTikTokHandle = (user.tiktokConnected || '').replace(/^@+/, '').replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, '').split('?')[0].split('/')[0];
         const tiktokChannelUrl = user.tiktokProfileUrl || `https://www.tiktok.com/@${cleanTikTokHandle || 'user'}`;
 
+        const isFacebookConnected = Boolean(user.facebookConnected && user.facebookConnected.trim() && user.facebookConnected !== 'Chưa kết nối');
         const cleanFacebook = (user.facebookConnected || '').replace(/^(https?:\/\/)?(www\.)?facebook\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
         const facebookUrl = user.facebookProfileUrl || (user.facebookConnected?.startsWith('http') ? user.facebookConnected : `https://www.facebook.com/${cleanFacebook || 'user'}`);
 
+        const isYoutubeConnected = Boolean(user.youtubeConnected && user.youtubeConnected.trim() && user.youtubeConnected !== 'Chưa kết nối');
         const cleanYoutube = (user.youtubeConnected || '').replace(/^(https?:\/\/)?(www\.)?youtube\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
         const youtubeUrl = user.youtubeProfileUrl || `https://www.youtube.com/@${cleanYoutube || 'user'}`;
+
+        const formatFollowerBadge = (num: number, unit = 'fl'): string => {
+          if (!num || num <= 0) return `0 ${unit}`;
+          if (num >= 1_000_000) {
+            const val = (num / 1_000_000).toFixed(2).replace(/\.?0+$/, '');
+            return `${val}M ${unit}`;
+          }
+          if (num >= 10_000) {
+            const val = (num / 1_000).toFixed(1).replace(/\.?0+$/, '');
+            return `${val}K ${unit}`;
+          }
+          return `${num.toLocaleString('vi-VN')} ${unit}`;
+        };
 
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -597,10 +613,14 @@ export const TasksScreen: React.FC<{
                         <Lock className="w-3 h-3 text-emerald-400" />
                         ĐÃ DUYỆT KYC
                       </span>
-                    ) : (
+                    ) : isTikTokConnected ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                         ĐÃ KẾT NỐI
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-400 font-bold">
+                        CHƯA KẾT NỐI
                       </span>
                     )}
                   </div>
@@ -630,19 +650,22 @@ export const TasksScreen: React.FC<{
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                       <a
                         href={tiktokChannelUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs font-black text-white hover:text-rose-400 transition-colors truncate max-w-[110px] sm:max-w-[150px] cursor-pointer"
-                        title={`Mở https://tiktok.com/@${cleanTikTokHandle}`}
+                        className="text-xs font-black text-white hover:text-rose-400 transition-colors truncate cursor-pointer max-w-[120px] sm:max-w-[150px]"
+                        title={isTikTokConnected ? `Mở https://tiktok.com/@${cleanTikTokHandle}` : 'Chưa kết nối'}
                       >
-                        {user.tiktokConnected || "Chưa kết nối"}
+                        {isTikTokConnected ? user.tiktokConnected : "Chưa kết nối"}
                       </a>
-                      <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />
-                      <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
-                        ({(user.tiktokFollowers || 0).toLocaleString()} fl)
+                      {isTikTokConnected && <CheckCircle2 className="w-3 h-3 text-cyan-400 shrink-0" />}
+                      <span 
+                        className="px-1.5 py-0.2 rounded-full bg-rose-500/15 border border-rose-500/30 text-[10px] text-rose-300 font-mono whitespace-nowrap shrink-0"
+                        title={`${(user.tiktokFollowers || 0).toLocaleString('vi-VN')} người theo dõi`}
+                      >
+                        {formatFollowerBadge(user.tiktokFollowers || 0, 'fl')}
                       </span>
                       {user.kycStatus !== 'verified' && (
                         <button
@@ -650,7 +673,7 @@ export const TasksScreen: React.FC<{
                             setTempTikTokHandle(user.tiktokConnected || "");
                             setEditingTikTok(true);
                           }}
-                          className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                          className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer shrink-0"
                           title="Đổi tên kênh TikTok"
                         >
                           <Edit3 className="w-3 h-3" />
@@ -660,19 +683,19 @@ export const TasksScreen: React.FC<{
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0 ml-2">
                 {user.kycStatus !== 'verified' ? (
                   <button
                     onClick={() => {
                       setTempTikTokHandle(user.tiktokConnected || "");
                       setEditingTikTok(true);
                     }}
-                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10"
+                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10 whitespace-nowrap"
                   >
-                    Đổi Kênh
+                    {isTikTokConnected ? 'Đổi Kênh' : '+ Nối Kênh'}
                   </button>
                 ) : (
-                  <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1">
+                  <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1 whitespace-nowrap">
                     <Lock className="w-3 h-3 text-emerald-400" />
                     Cố Định
                   </span>
@@ -681,7 +704,7 @@ export const TasksScreen: React.FC<{
                   href={tiktokChannelUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0"
                   title="Mở trực tiếp kênh TikTok"
                 >
                   <ExternalLink className="w-3 h-3" />
@@ -704,10 +727,21 @@ export const TasksScreen: React.FC<{
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-mono font-bold text-blue-300 uppercase">FACEBOOK:</span>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      SẴN SÀNG
-                    </span>
+                    {user.kycStatus === 'verified' ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
+                        <Lock className="w-3 h-3 text-emerald-400" />
+                        ĐÃ DUYỆT KYC
+                      </span>
+                    ) : isFacebookConnected ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        ĐÃ KẾT NỐI
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-400 font-bold">
+                        CHƯA KẾT NỐI
+                      </span>
+                    )}
                   </div>
                   {editingFacebook && user.kycStatus !== 'verified' ? (
                     <div className="flex items-center gap-1 mt-0.5">
@@ -735,19 +769,22 @@ export const TasksScreen: React.FC<{
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                       <a
                         href={facebookUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs font-black text-white hover:text-blue-400 transition-colors truncate max-w-[110px] sm:max-w-[150px] cursor-pointer"
-                        title={`Mở ${facebookUrl}`}
+                        className="text-xs font-black text-white hover:text-blue-400 transition-colors truncate cursor-pointer max-w-[120px] sm:max-w-[150px]"
+                        title={isFacebookConnected ? `Mở ${facebookUrl}` : 'Chưa kết nối'}
                       >
-                        {user.facebookConnected || "Chưa kết nối"}
+                        {isFacebookConnected ? user.facebookConnected : "Chưa kết nối"}
                       </a>
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
-                      <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
-                        ({(user.facebookFollowers || 0).toLocaleString()} fl)
+                      {isFacebookConnected && <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />}
+                      <span 
+                        className="px-1.5 py-0.2 rounded-full bg-blue-500/15 border border-blue-500/30 text-[10px] text-blue-300 font-mono whitespace-nowrap shrink-0"
+                        title={`${(user.facebookFollowers || 0).toLocaleString('vi-VN')} người theo dõi`}
+                      >
+                        {formatFollowerBadge(user.facebookFollowers || 0, 'fl')}
                       </span>
                       {user.kycStatus !== 'verified' && (
                         <button
@@ -755,7 +792,7 @@ export const TasksScreen: React.FC<{
                             setTempFacebookUrl(user.facebookConnected || "");
                             setEditingFacebook(true);
                           }}
-                          className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                          className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer shrink-0"
                           title="Đổi nick Facebook"
                         >
                           <Edit3 className="w-3 h-3" />
@@ -765,19 +802,19 @@ export const TasksScreen: React.FC<{
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0 ml-2">
                 {user.kycStatus !== 'verified' ? (
                   <button
                     onClick={() => {
                       setTempFacebookUrl(user.facebookConnected || "");
                       setEditingFacebook(true);
                     }}
-                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10"
+                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10 whitespace-nowrap"
                   >
-                    Đổi Nick
+                    {isFacebookConnected ? 'Đổi Nick' : '+ Kết Nối'}
                   </button>
                 ) : (
-                  <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1">
+                  <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1 whitespace-nowrap">
                     <Lock className="w-3 h-3 text-emerald-400" />
                     Cố Định
                   </span>
@@ -786,7 +823,7 @@ export const TasksScreen: React.FC<{
                   href={facebookUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0"
                   title="Mở trực tiếp Facebook"
                 >
                   <ExternalLink className="w-3 h-3" />
@@ -811,10 +848,21 @@ export const TasksScreen: React.FC<{
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-mono font-bold text-red-300 uppercase">YOUTUBE / GOOGLE:</span>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      SẴN SÀNG
-                    </span>
+                    {user.kycStatus === 'verified' ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
+                        <Lock className="w-3 h-3 text-emerald-400" />
+                        ĐÃ DUYỆT KYC
+                      </span>
+                    ) : isYoutubeConnected ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        ĐÃ KẾT NỐI
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-400 font-bold">
+                        CHƯA KẾT NỐI
+                      </span>
+                    )}
                   </div>
                   {editingYoutube && user.kycStatus !== 'verified' ? (
                     <div className="flex items-center gap-1 mt-0.5">
@@ -842,19 +890,22 @@ export const TasksScreen: React.FC<{
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                       <a
                         href={youtubeUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs font-black text-white hover:text-red-400 transition-colors truncate max-w-[110px] sm:max-w-[150px] cursor-pointer"
-                        title={`Mở ${youtubeUrl}`}
+                        className="text-xs font-black text-white hover:text-red-400 transition-colors truncate cursor-pointer max-w-[120px] sm:max-w-[150px]"
+                        title={isYoutubeConnected ? `Mở ${youtubeUrl}` : 'Chưa kết nối'}
                       >
-                        {user.youtubeConnected || "Chưa kết nối"}
+                        {isYoutubeConnected ? user.youtubeConnected : "Chưa kết nối"}
                       </a>
-                      <CheckCircle2 className="w-3 h-3 text-red-400 shrink-0" />
-                      <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
-                        ({(user.youtubeSubscribers || 0).toLocaleString()} subs)
+                      {isYoutubeConnected && <CheckCircle2 className="w-3 h-3 text-red-400 shrink-0" />}
+                      <span 
+                        className="px-1.5 py-0.2 rounded-full bg-red-500/15 border border-red-500/30 text-[10px] text-red-300 font-mono whitespace-nowrap shrink-0"
+                        title={`${(user.youtubeSubscribers || 0).toLocaleString('vi-VN')} người đăng ký`}
+                      >
+                        {formatFollowerBadge(user.youtubeSubscribers || 0, 'subs')}
                       </span>
                       {user.kycStatus !== 'verified' && (
                         <button
@@ -862,7 +913,7 @@ export const TasksScreen: React.FC<{
                             setTempYoutubeUrl(user.youtubeConnected || "");
                             setEditingYoutube(true);
                           }}
-                          className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-red-300 transition-colors cursor-pointer"
+                          className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-red-300 transition-colors cursor-pointer shrink-0"
                           title="Đổi kênh YouTube"
                         >
                           <Edit3 className="w-3 h-3" />
@@ -872,19 +923,19 @@ export const TasksScreen: React.FC<{
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0 ml-2">
                 {user.kycStatus !== 'verified' ? (
                   <button
                     onClick={() => {
                       setTempYoutubeUrl(user.youtubeConnected || "");
                       setEditingYoutube(true);
                     }}
-                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10"
+                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10 whitespace-nowrap"
                   >
-                    Đổi Nick
+                    {isYoutubeConnected ? 'Đổi Nick' : '+ Kết Nối'}
                   </button>
                 ) : (
-                  <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1">
+                  <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1 whitespace-nowrap">
                     <Lock className="w-3 h-3 text-emerald-400" />
                     Cố Định
                   </span>
@@ -893,8 +944,8 @@ export const TasksScreen: React.FC<{
                   href={youtubeUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-                  title="Mở trực tiếp kênh YouTube"
+                  className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0"
+                  title="Mở trực tiếp YouTube"
                 >
                   <ExternalLink className="w-3 h-3" />
                 </a>

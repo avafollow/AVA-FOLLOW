@@ -50,6 +50,7 @@ import { PwaInstallGuideModal } from './components/modals/PwaInstallGuideModal';
 import { FraudAppealModal } from './components/modals/FraudAppealModal';
 import { RecentUserJoinNotification } from './components/common/RecentUserJoinNotification';
 import { ZaloCommunityFloatingButton } from './components/common/ZaloCommunityFloatingButton';
+import { AntiFraudMarqueeTicker } from './components/common/AntiFraudMarqueeTicker';
 
 import { CheckCircle2, ArrowLeft } from 'lucide-react';
 
@@ -408,6 +409,9 @@ function AppContent() {
           </ScreenErrorBoundary>
         </main>
       </div>
+
+      {/* THANH CHỮ CẢNH BÁO BẢO MẬT & CHẾ TÀI PHÁP CHẾ (CHẠY TỪ TỪ Ở ĐÁY MÀN HÌNH) */}
+      <AntiFraudMarqueeTicker onOpenLegalModal={() => setCurrentScreen('profile_wallet')} />
 
       {/* Mobile Bottom Navigation Bar (Phone First) */}
       <MobileNav

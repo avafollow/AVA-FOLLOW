@@ -543,14 +543,39 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
   }, [currentItem?.id, currentItem?.targetUrl]);
 
+  const [isTabInactive, setIsTabInactive] = useState<boolean>(false);
+
+  // Lắng nghe trạng thái Tab để đóng băng bộ đếm ngay khi user chuyển sang ứng dụng khác
+  useEffect(() => {
+    if (!isFeedRunnerOpen) return;
+    const handleVisibilityChange = () => {
+      const isHidden = typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()));
+      setIsTabInactive(isHidden);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
+  }, [isFeedRunnerOpen]);
+
   // Main timer countdown (chỉ đếm ngược khi có gói xem video / livestream - ĐÓNG BĂNG 100% KHI ẨN TAB HOẶC RỜI APP)
   useEffect(() => {
     if (!isFeedRunnerOpen || !isWatchRequired || timeLeft <= 0 || !isPlaying) return;
     const timer = setInterval(() => {
       // Đóng băng đếm ngược ngay lập tức nếu tab bị ẩn, chuyển tab, nhận cuộc gọi, đọc tin nhắn hoặc chuyển ứng dụng khác
-      if (typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()))) {
+      const isHidden = typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()));
+      if (isHidden) {
+        setIsTabInactive(true);
         return;
       }
+      setIsTabInactive(false);
+
       setTimeLeft(prev => {
         if (prev <= 1) { clearInterval(timer); return 0; }
         return prev - 1;
@@ -1409,6 +1434,21 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Floating Inactive Tab Pause Alert Banner */}
+        {isTabInactive && (
+          <div className="absolute top-28 inset-x-3 z-40 p-3 rounded-2xl bg-amber-950/95 border-2 border-amber-500 shadow-2xl flex items-center gap-3 animate-pulse pointer-events-auto backdrop-blur-xl">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 shrink-0">
+              <Clock className="w-5 h-5 animate-spin" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-white font-black text-xs">⏸️ BỘ ĐẾM TẠM DỪNG (BẠN ĐÃ RỜI ỨNG DỤNG)</div>
+              <div className="text-[10px] text-amber-200 mt-0.5 leading-tight">
+                Thời gian làm nhiệm vụ chỉ được tính khi bạn mở trực tiếp trên màn hình. Hãy giữ ứng dụng mở để tiếp tục đếm giờ nhận Xu!
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Video / Live Stream Stage */}
         <div 

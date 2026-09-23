@@ -246,15 +246,39 @@ export const LivestreamRunnerModal: React.FC = () => {
     }
   };
 
+  const [isTabInactive, setIsTabInactive] = useState<boolean>(false);
+
+  // Lắng nghe trạng thái Tab / Ẩn ứng dụng để tạm dừng bộ đếm ngay lập tức
+  useEffect(() => {
+    if (!isLiveRunnerOpen) return;
+    const handleVisibilityChange = () => {
+      const isHidden = typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()));
+      setIsTabInactive(isHidden);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
+  }, [isLiveRunnerOpen]);
+
   // Main tick loop (ĐÓNG BĂNG 100% KHI ẨN TAB HOẶC RỜI ỨNG DỤNG)
   useEffect(() => {
     if (!isLiveRunnerOpen || !activeLiveTask || isCompletedMission) return;
 
     const timer = setInterval(() => {
       // Đóng băng toàn bộ đồng hồ live nếu user chuyển ứng dụng / ẩn màn hình / nhận cuộc gọi
-      if (typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()))) {
+      const isHidden = typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()));
+      if (isHidden) {
+        setIsTabInactive(true);
         return;
       }
+      setIsTabInactive(false);
 
       if (showCaptcha) {
         setCaptchaSecondsLeft(prev => {
@@ -412,6 +436,21 @@ export const LivestreamRunnerModal: React.FC = () => {
             <ChevronDown className="h-5 w-5" />
           </button>
         </div>
+
+        {/* Floating Inactive Tab Pause Alert Banner */}
+        {isTabInactive && (
+          <div className="absolute top-20 inset-x-3 z-40 p-3 rounded-2xl bg-amber-950/95 border-2 border-amber-500 shadow-2xl flex items-center gap-3 animate-pulse pointer-events-auto backdrop-blur-xl">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 shrink-0">
+              <Clock className="w-5 h-5 animate-spin" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-white font-black text-xs">⏸️ BỘ ĐẾM LIVE TẠM DỪNG (RỜI TAB)</div>
+              <div className="text-[10px] text-amber-200 mt-0.5 leading-tight">
+                Thời gian xem live chỉ được tính khi bạn mở trực tiếp trên màn hình. Hãy giữ màn hình mở để tiếp tục tích lũy phút nhận Xu!
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* FULL-BLEED REAL LIVE VIDEO STREAM (CHẠY FULL TOÀN BỘ KHUNG 9:16 NHƯ ẢNH 2) */}
         <div 

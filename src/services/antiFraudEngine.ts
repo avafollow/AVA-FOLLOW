@@ -774,11 +774,78 @@ export interface TaskLockoutStatus {
   lockedUntil?: string;
   durationMinutes?: number;
   fraudAnomaly?: FraudAnomalyType;
-  violationLevel?: number; // 1 = 60 phút, 2+ = 24 giờ (1440 phút)
+  violationLevel?: number; // 1 = 60 phút, 2 = 24 giờ, 3 = 3 ngày + khóa rút tiền, 4 = Khóa vĩnh viễn
+  fineCoins?: number; // Xu bị phạt trừ thêm
+  isWithdrawLocked?: boolean;
+  isPermanentBan?: boolean;
 }
 
 const TASK_LOCKOUT_KEY = (user: string) => `ava_task_lockout_${user.replace(/^@+/, '')}`;
 const VIOLATION_COUNT_KEY = (user: string) => `ava_violation_count_${user.replace(/^@+/, '')}`;
+
+export interface ViolationPenaltyTier {
+  level: number;
+  durationMinutes: number;
+  durationLabel: string;
+  fineCoins: number;
+  trustScorePenalty: number;
+  isWithdrawLocked: boolean;
+  isPermanentBan: boolean;
+  title: string;
+  badgeLabel: string;
+}
+
+export function getPenaltyTierForLevel(level: number): ViolationPenaltyTier {
+  if (level <= 1) {
+    return {
+      level: 1,
+      durationMinutes: 60,
+      durationLabel: '60 Phút (1 Giờ)',
+      fineCoins: 0,
+      trustScorePenalty: 20,
+      isWithdrawLocked: false,
+      isPermanentBan: false,
+      title: '⚠️ VI PHẠM LẦN 1: TẠM KHÓA NHIỆM VỤ 60 PHÚT',
+      badgeLabel: 'CẢNH CÁO MỨC 1 (60 PHÚT)'
+    };
+  } else if (level === 2) {
+    return {
+      level: 2,
+      durationMinutes: 1440,
+      durationLabel: '24 Giờ (1 Ngày)',
+      fineCoins: 10000,
+      trustScorePenalty: 40,
+      isWithdrawLocked: false,
+      isPermanentBan: false,
+      title: '🚫 VI PHẠM LẦN 2 (TÁI PHẠM): KHÓA TÍNH NĂNG 24H & PHẠT 10.000 XU',
+      badgeLabel: 'CHẾ TÀI MỨC 2 (24H - PHẠT 10K XU)'
+    };
+  } else if (level === 3) {
+    return {
+      level: 3,
+      durationMinutes: 4320, // 3 ngày
+      durationLabel: '3 Ngày (72 Giờ)',
+      fineCoins: 50000,
+      trustScorePenalty: 60,
+      isWithdrawLocked: true,
+      isPermanentBan: false,
+      title: '🛑 VI PHẠM LẦN 3: ĐÓNG BĂNG 3 NGÀY, KHÓA RÚT TIỀN & PHẠT 50.000 XU',
+      badgeLabel: 'CHẾ TÀI MỨC 3 (3 NGÀY - KHÓA RÚT TIỀN)'
+    };
+  } else {
+    return {
+      level: 4,
+      durationMinutes: 525600, // 1 năm / vĩnh viễn
+      durationLabel: 'Vĩnh Viễn',
+      fineCoins: 100000,
+      trustScorePenalty: 100,
+      isWithdrawLocked: true,
+      isPermanentBan: true,
+      title: '⛔ VI PHẠM LẦN 4: KHÓA VĨNH VIỄN TÀI KHOẢN & TỊCH THU SỐ DƯ',
+      badgeLabel: 'CHẾ TÀI MỨC 4 (KHÓA VĨNH VIỄN)'
+    };
+  }
+}
 
 export function getViolationCount(userHandle: string): number {
   if (typeof window === 'undefined' || !userHandle) return 0;
@@ -809,6 +876,12 @@ export function isUserNextTasksLocked(userHandle: string): TaskLockoutStatus {
     if (!raw) return { isLocked: false };
     const data: TaskLockoutStatus = JSON.parse(raw);
     if (!data.isLocked) return { isLocked: false };
+    
+    // Nếu là khóa vĩnh viễn
+    if (data.isPermanentBan) {
+      return data;
+    }
+    
     if (data.lockedUntil && Date.now() > new Date(data.lockedUntil).getTime()) {
       clearCascadingTaskLockout(clean);
       return { isLocked: false };
@@ -827,11 +900,12 @@ export function triggerCascadingTaskLockout(
 ): TaskLockoutStatus {
   const clean = userHandle.replace(/^@+/, '');
   const violationLevel = incrementViolationCount(clean);
+  const tier = getPenaltyTierForLevel(violationLevel);
   
-  // Quy tắc lũy tiến chuẩn xác: Vi phạm lần 1 = 60 phút (1 tiếng), Vi phạm lần 2+ = 24 giờ (1440 phút)
+  // Áp dụng thời gian theo cấp độ lũy tiến
   const durationMinutes = explicitDurationMinutes !== undefined 
     ? explicitDurationMinutes 
-    : (violationLevel === 1 ? 60 : 1440);
+    : tier.durationMinutes;
 
   const lockedUntil = new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
   const status: TaskLockoutStatus = {
@@ -840,7 +914,10 @@ export function triggerCascadingTaskLockout(
     lockedUntil,
     durationMinutes,
     fraudAnomaly: anomaly,
-    violationLevel
+    violationLevel,
+    fineCoins: tier.fineCoins,
+    isWithdrawLocked: tier.isWithdrawLocked,
+    isPermanentBan: tier.isPermanentBan
   };
   if (typeof window !== 'undefined') {
     try {

@@ -18,7 +18,8 @@ import {
   Clock,
   ShieldCheck,
   MessageSquare,
-  Heart
+  Heart,
+  Share2
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { 
@@ -372,28 +373,108 @@ export const PolicyGuideModal: React.FC = () => {
           {/* TAB 4: Chống Gian Lận */}
           {activeTab === 'unfollow' && (
             <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-rose-950/30 border border-rose-500/30 space-y-2">
+              <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 space-y-2">
                 <div className="text-sm font-bold text-rose-300 flex items-center gap-2">
-                  <ShieldAlert className="h-4 w-4 text-rose-400" />
-                  <span>Quy Chuẩn Chống Bỏ Theo Dõi (Anti-Unfollow API) & Chống Treo Máy Ảo</span>
+                  <ShieldAlert className="h-5 w-5 text-rose-400" />
+                  <span>QUY ĐỊNH CHỐNG GIAN LẬN & HỆ THỐNG CHẾ TÀI 4 CẤP ĐỘ (AVA SENTINEL 2026)</span>
                 </div>
                 <p className="text-slate-300 text-xs leading-relaxed">
-                  Để bảo vệ quyền lợi tối đa cho các đối tác shop bỏ tiền ra mua dịch vụ, hệ thống quét ngầm 24/7 kiểm tra trạng thái tương tác của tài khoản:
+                  Để đảm bảo tính minh bạch 100% cho đối tác và người dùng thật, hệ thống áp dụng cơ chế giám sát thời gian thực bằng AI và chế tài phạt lũy tiến nghiêm ngặt.
                 </p>
               </div>
 
+              {/* BẢNG 4 CẤP ĐỘ CHẾ TÀI LŨY TIẾN */}
+              <div className="p-4 rounded-2xl bg-black/60 border border-rose-500/30 space-y-3">
+                <div className="text-xs font-mono font-bold text-white flex items-center gap-1.5 uppercase">
+                  <Flame className="w-4 h-4 text-rose-400" />
+                  <span>Bảng Chế Tài Xử Lý Gian Lận 4 Cấp Độ Lũy Tiến</span>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-white/10">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-white/5 text-slate-400 font-mono uppercase text-[10px]">
+                      <tr>
+                        <th className="p-2.5">Cấp Độ</th>
+                        <th className="p-2.5">Thời Gian Khóa</th>
+                        <th className="p-2.5">Mức Phạt Xu</th>
+                        <th className="p-2.5">Trừ Điểm Uy Tín</th>
+                        <th className="p-2.5">Biện Pháp Bổ Sung</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 text-slate-300 font-mono">
+                      <tr className="hover:bg-white/[0.02]">
+                        <td className="p-2.5 font-bold text-amber-400">⚠️ Lần 1</td>
+                        <td className="p-2.5 text-amber-300">Khóa 60 phút (1 giờ)</td>
+                        <td className="p-2.5 text-slate-400">Thu hồi Xu nhiệm vụ</td>
+                        <td className="p-2.5 text-rose-400">-20 Điểm</td>
+                        <td className="p-2.5 text-slate-400">Cảnh cáo vi phạm</td>
+                      </tr>
+                      <tr className="hover:bg-white/[0.02]">
+                        <td className="p-2.5 font-bold text-rose-400">🚫 Lần 2 (Tái phạm)</td>
+                        <td className="p-2.5 text-rose-300">Khóa 24 giờ (1 ngày)</td>
+                        <td className="p-2.5 text-rose-400 font-black">Phạt -10.000 Xu</td>
+                        <td className="p-2.5 text-rose-400">-40 Điểm</td>
+                        <td className="p-2.5 text-slate-400">Khóa tính năng kiếm Xu</td>
+                      </tr>
+                      <tr className="hover:bg-white/[0.02]">
+                        <td className="p-2.5 font-bold text-red-500">🛑 Lần 3</td>
+                        <td className="p-2.5 text-red-400">Khóa 3 ngày (72 giờ)</td>
+                        <td className="p-2.5 text-rose-400 font-black">Phạt -50.000 Xu</td>
+                        <td className="p-2.5 text-rose-400">-60 Điểm</td>
+                        <td className="p-2.5 text-red-400 font-bold">KHÓA QUYỀN RÚT TIỀN</td>
+                      </tr>
+                      <tr className="hover:bg-white/[0.02] bg-red-950/20">
+                        <td className="p-2.5 font-black text-red-400">⛔ Lần 4</td>
+                        <td className="p-2.5 text-red-400 font-black">KHÓA VĨNH VIỄN</td>
+                        <td className="p-2.5 text-red-400 font-black">Tịch thu 100% Xu</td>
+                        <td className="p-2.5 text-red-400">-100 Điểm</td>
+                        <td className="p-2.5 text-red-400 font-black">Cấm vĩnh viễn + Chuyển hồ sơ</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* 4 QUY TẮC BẮT BUỘC KHI LÀM NHIỆM VỤ */}
               <div className="space-y-3 text-xs">
                 <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-1">
-                  <div className="font-bold text-white">1. Cam kết giữ follow tối thiểu 30 ngày:</div>
-                  <p className="text-slate-400">Nếu tài khoản bỏ follow trước thời hạn, hệ thống sẽ tự động trừ gấp đôi số Xu đã nhận và khóa quyền rút tiền.</p>
+                  <div className="font-bold text-white flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>1. Chống Rời Tab & Tính Thời Gian Thực Xem Video/Live:</span>
+                  </div>
+                  <p className="text-slate-400">
+                    Khi xem livestream hoặc xem video, nếu người dùng chuyển tab, ẩn ứng dụng hoặc bỏ mặc tab thì bộ đếm giờ sẽ <strong>TỰ ĐỘNG ĐÓNG BĂNG</strong> ngay lập tức. Bắt buộc phải xem đủ từng phút thực tế trên màn hình thì mới được cộng Xu.
+                  </p>
                 </div>
+
                 <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-1">
-                  <div className="font-bold text-white">2. Mini-captcha chống bot khi xem Livestream:</div>
-                  <p className="text-slate-400">Người xem live cần tap tim và xác thực hộp quà ngẫu nhiên trong 15s để chứng minh người thật, nhận thêm +200 Xu.</p>
+                  <div className="font-bold text-white flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>2. Bình Luận Kèm Chữ Ký Số & Hashtag Sàn:</span>
+                  </div>
+                  <p className="text-slate-400">
+                    Nhiệm vụ bình luận bắt buộc phải chứa hashtag nhận diện sàn (ví dụ <code>#AVALIVE #AVASTORE</code> kèm mã xác thực session). Mọi bình luận rỗng hoặc sai cú pháp sẽ bị hệ thống từ chối xác nhận.
+                  </p>
                 </div>
+
                 <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-1">
-                  <div className="font-bold text-white">3. Xác minh danh tính CCCD (KYC) chính chủ:</div>
-                  <p className="text-slate-400">Mỗi công dân chỉ được sử dụng 1 tài khoản duy nhất tương ứng với số CCCD và tài khoản ngân hàng chính chủ để rút tiền.</p>
+                  <div className="font-bold text-white flex items-center gap-1.5">
+                    <Share2 className="w-3.5 h-3.5 text-purple-400" />
+                    <span>3. Chia Sẻ Hợp Lệ & Cam Kết Giữ Follow 30 Ngày:</span>
+                  </div>
+                  <p className="text-slate-400">
+                    Nhiệm vụ chia sẻ phải được hệ thống ghi nhận liên kết chia sẻ thành công. Nhiệm vụ Follow áp dụng cam kết giữ follow 30 ngày; nếu cố tình hủy follow sớm, hệ thống sẽ tự động trừ gấp đôi số Xu đã nhận.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-1">
+                  <div className="font-bold text-white flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-neonGold" />
+                    <span>4. Khóa Cố Định 1 TikTok ⇔ 1 Gmail Chính Chủ:</span>
+                  </div>
+                  <p className="text-slate-400">
+                    Mỗi tài khoản TikTok chỉ được liên kết với đúng 1 Gmail chính chủ duy nhất trên hệ thống. Ngăn chặn triệt để hành vi xoay vòng tài khoản ảo để trục lợi ngân sách.
+                  </p>
                 </div>
               </div>
             </div>

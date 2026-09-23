@@ -1785,19 +1785,43 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const isUserTaskLocked = Boolean(taskLockoutDetails.isLocked);
 
   const triggerImmediateFraudAlert = (alertData: Omit<FraudAlertData, 'isOpen'>) => {
-    const userIdentifier = user.id || user.name || 'current_user';
+    const userIdentifier = user.tiktokConnected || user.id || user.name || 'current_user';
+    const cleanUser = userIdentifier.replace(/^@+/, '');
+
+    // Đóng băng và tính cấp độ vi phạm lũy tiến (Level 1: 60p, Level 2: 24h & phạt 10k Xu, Level 3: 3 ngày & khóa rút tiền & phạt 50k Xu, Level 4: Khóa vĩnh viễn)
+    const lockoutRes = triggerCascadingTaskLockout(cleanUser, alertData.reason, undefined, (alertData.anomalyType as FraudAnomalyType) || 'CASCADING_TASK_LOCKOUT');
+    setTaskLockoutDetails(lockoutRes);
+
     // Phạt điểm uy tín trực tiếp
-    applyFraudPenalty(userIdentifier, alertData.penaltyPoints ? alertData.penaltyPoints * 2 : 40, [alertData.anomalyType || 'IMMEDIATE_FRAUD_ALERT'], alertData.reason);
-    
-    // Tự động đóng băng chuỗi nhiệm vụ tiếp theo nếu đây là hành vi gian lận cố tình
-    if (alertData.anomalyType === 'DUPLICATE_CHANNEL_FOLLOW' || alertData.anomalyType === 'DUPLICATE_TASK_ACTION' || alertData.anomalyType === 'TAB_BOUNCE_NO_ACTION' || alertData.anomalyType === 'ZERO_TELEMETRY_CLICK') {
-      const res = triggerCascadingTaskLockout(userIdentifier, alertData.reason, 30, alertData.anomalyType as FraudAnomalyType);
-      setTaskLockoutDetails(res);
+    const penaltyPts = alertData.penaltyPoints || (lockoutRes.violationLevel === 1 ? 20 : (lockoutRes.violationLevel === 2 ? 40 : (lockoutRes.violationLevel === 3 ? 60 : 100)));
+    applyFraudPenalty(cleanUser, penaltyPts, [alertData.anomalyType || 'IMMEDIATE_FRAUD_ALERT'], alertData.reason);
+
+    // Áp dụng phạt trừ Xu nếu vi phạm từ cấp độ 2 trở lên
+    if (lockoutRes.fineCoins && lockoutRes.fineCoins > 0) {
+      setUser(prev => {
+        const nextCoins = Math.max(0, (prev.avaliveCoins || 0) - lockoutRes.fineCoins!);
+        const updated = {
+          ...prev,
+          avaliveCoins: nextCoins,
+          tokenBalance: nextCoins,
+          isWithdrawLocked: lockoutRes.isWithdrawLocked ? true : (prev as any).isWithdrawLocked,
+          isBanned: lockoutRes.isPermanentBan ? true : (prev as any).isBanned
+        };
+        try {
+          localStorage.setItem('ava_user_profile', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+      showToast(`⚠️ Vi phạm Cấp ${lockoutRes.violationLevel}: Bị phạt trừ -${lockoutRes.fineCoins.toLocaleString()} Xu vào số dư!`);
     }
 
     setFraudAlertModalData({
       isOpen: true,
-      ...alertData
+      ...alertData,
+      lockedUntil: lockoutRes.lockedUntil,
+      durationMinutes: lockoutRes.durationMinutes,
+      violationLevel: lockoutRes.violationLevel,
+      penaltyPoints: penaltyPts
     });
   };
 

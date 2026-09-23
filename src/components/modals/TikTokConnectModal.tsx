@@ -406,6 +406,19 @@ export const TikTokConnectModal: React.FC = () => {
               /* Connect TikTok Form */
               <div className="space-y-4">
                 
+                {/* 1 GMAIL = 1 TIKTOK SECURITY BANNER */}
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5">
+                  <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    <p className="font-bold text-amber-300 font-mono">
+                      🔒 CHÍNH SÁCH BẢO MẬT: 1 GMAIL = 1 KÊNH TIKTOK DUY NHẤT
+                    </p>
+                    <p className="text-slate-300 mt-0.5">
+                      Mỗi tài khoản Gmail chỉ được liên kết cố định với 1 tài khoản TikTok. Dữ liệu này được bảo lưu vĩnh viễn trên hệ thống đối soát chống gian lận nhằm bảo vệ quyền lợi nhận Xu của bạn.
+                    </p>
+                  </div>
+                </div>
+
                 {/* METHOD 1: 1-TOUCH DIRECT OAUTH */}
                 <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-rose-950/60 via-slate-900 to-purple-950/60 border border-rose-500/40 space-y-3 shadow-xl">
                   <div className="flex items-center justify-between">

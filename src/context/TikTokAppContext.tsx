@@ -122,6 +122,8 @@ import {
 import {
   isWelcomeBonusEverClaimed,
   recordPermanentBinding,
+  verifyTikTokGmailPair,
+  lockTikTokGmailBinding,
   isAffiliateSponsorPaid,
   getFollowedChannelsByUser,
   isChannelAlreadyFollowedByUser,
@@ -4555,7 +4557,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
     const userEmail = (user.email || '').toLowerCase();
     
-    // 1. Kiểm tra quy tắc 1 Gmail = đúng 1 kênh TikTok duy nhất (Chống dùng chung kênh giữa các tài khoản Gmail)
+    // 1. Kiểm tra quy tắc khóa 1-1 bất biến giữa Gmail và TikTok (1 TikTok <=> 1 Gmail cố định vĩnh viễn)
+    const pairCheck = verifyTikTokGmailPair(userEmail, cleanHandle);
+    if (!pairCheck.valid) {
+      showToast(`⚠️ ${pairCheck.reason}`);
+      triggerImmediateFraudAlert({
+        title: 'TỪ CHỐI LIÊN KẾT TÀI KHOẢN TIKTOK',
+        reason: pairCheck.reason || 'Mỗi tài khoản Gmail chỉ được gắn cố định với 1 kênh TikTok duy nhất!',
+        anomalyType: 'TIKTOK_ACCOUNT_MISMATCH',
+        channelHandle: cleanHandle,
+        penaltyPoints: 10
+      });
+      return;
+    }
+
+    // 2. Kiểm tra quy tắc 1 Gmail = đúng 1 kênh TikTok duy nhất (Chống dùng chung kênh giữa các tài khoản Gmail)
     const existingBinding = adminUsers.find(
       u => u.tiktokConnected && u.tiktokConnected.toLowerCase() === cleanHandle.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail
     );
@@ -4564,7 +4580,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return;
     }
 
-    // 2. Kiểm tra giới hạn tối đa 5 kênh TikTok trên cùng 1 địa chỉ IP
+    // 3. Kiểm tra giới hạn tối đa 5 kênh TikTok trên cùng 1 địa chỉ IP
     const currentList = ipAccountsMap[clientIp] || [];
     const isAlreadyConnectedOnIp = currentList.map(h => h.toLowerCase()).includes(cleanHandle.toLowerCase());
 
@@ -4606,6 +4622,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     recordPermanentBinding(userEmail, cleanHandle, true, false, user.referredBy);
+    lockTikTokGmailBinding(userEmail, cleanHandle, clientIp);
 
     const nextCoins = user.avaliveCoins + addedWelcomeBonus;
 
@@ -6674,7 +6691,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const u = prev[idx];
         const newBalance = Math.max(0, u.coinsBalance + amount);
         const newGranted = (u.grantedCoinsTotal || 0) + (amount > 0 ? amount : 0);
-        matchedUser = { ...u, coinsBalance: newBalance, grantedCoinsTotal: newGranted };
+        matchedUser = { ...u, coinsBalance: newBalance, tokenBalance: newBalance, grantedCoinsTotal: newGranted };
         nextList[idx] = matchedUser;
       } else if (cleanKey) {
         const cleanLower = cleanKey.toLowerCase();
@@ -6720,22 +6737,34 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setUser(prev => {
         const newCoins = Math.max(0, prev.avaliveCoins + amount);
         const newGranted = (prev.grantedCoinsTotal || 0) + (amount > 0 ? amount : 0);
+        const now = new Date();
+        const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+        
         const newTx: TransactionRecord = {
           id: `tx_admin_${Date.now()}`,
           type: amount >= 0 ? 'deposit' : 'spend',
-          title: `Quản Trị Viên (Admin) cấp Xu: ${amount >= 0 ? '+' : ''}${amount.toLocaleString()} Xu`,
-          amount: `${amount >= 0 ? '+' : ''}${amount.toLocaleString()} Xu (${Math.abs(amount).toLocaleString()}đ)`,
+          title: amount >= 0 
+            ? `Quản Trị Viên (Admin) cấp Xu: +${amount.toLocaleString()} Xu` 
+            : `Quản Trị Viên (Admin) trừ Xu: ${amount.toLocaleString()} Xu`,
+          amount: `${amount >= 0 ? '+' : ''}${amount.toLocaleString()} Xu (${Math.abs(amount * 10).toLocaleString()}đ)`,
           isPositive: amount >= 0,
-          date: 'Vừa xong',
+          date: exactTime,
+          exactTime,
+          balanceAfter: newCoins,
+          method: 'Admin Quản Trị',
           status: 'success'
         };
-        const updated = {
+
+        const updated: UserProfileWallet = {
           ...prev,
           avaliveCoins: newCoins,
+          tokenBalance: newCoins,
           grantedCoinsTotal: newGranted,
+          totalEarnedCoins: amount > 0 ? ((prev.totalEarnedCoins || 0) + amount) : (prev.totalEarnedCoins || 0),
           coinsValueVND: `${newCoins.toLocaleString()}đ`,
           transactions: [newTx, ...(prev.transactions || [])]
         };
+
         try {
           if (typeof window !== 'undefined') {
             localStorage.setItem('ava_user_profile', JSON.stringify(updated));
@@ -6756,7 +6785,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       amount, 
       data: matchedUser 
     });
-    showToast(`Đã cấp ${amount > 0 ? '+' : ''}${amount.toLocaleString()} Xu cho tài khoản ${(matchedUser as any)?.name || cleanKey}!`);
+    showToast(`✅ Đã ${amount >= 0 ? 'cộng +' : 'trừ '}${Math.abs(amount).toLocaleString()} Xu cho tài khoản ${(matchedUser as any)?.name || cleanKey}!`);
   };
 
   const adminGrantPackage = (userId: string, packageItem: GrowthServiceItem) => {
@@ -7097,6 +7126,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const nextList = [...prev];
       if (idx >= 0) {
         matchedUser = { ...prev[idx], ...data };
+        if (data.coinsBalance !== undefined) {
+          matchedUser.tokenBalance = data.coinsBalance;
+        }
         nextList[idx] = matchedUser;
       }
       try {
@@ -7109,7 +7141,27 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     if (isCurrentUser(cleanKey, matchedUser || undefined)) {
       setUser(prev => {
-        const updated = {
+        let newTransactions = prev.transactions || [];
+        if (data.coinsBalance !== undefined && data.coinsBalance !== prev.avaliveCoins) {
+          const diff = data.coinsBalance - prev.avaliveCoins;
+          const now = new Date();
+          const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+          const newTx: TransactionRecord = {
+            id: `tx_admin_set_${Date.now()}`,
+            type: diff >= 0 ? 'deposit' : 'spend',
+            title: `Admin điều chỉnh số dư: ${diff >= 0 ? '+' : ''}${diff.toLocaleString()} Xu`,
+            amount: `${diff >= 0 ? '+' : ''}${diff.toLocaleString()} Xu (${Math.abs(diff * 10).toLocaleString()}đ)`,
+            isPositive: diff >= 0,
+            date: exactTime,
+            exactTime,
+            balanceAfter: data.coinsBalance,
+            method: 'Admin Quản Trị',
+            status: 'success'
+          };
+          newTransactions = [newTx, ...newTransactions];
+        }
+
+        const updated: UserProfileWallet = {
           ...prev,
           ...(data.name ? { name: data.name } : {}),
           ...(data.phone ? { phone: data.phone } : {}),
@@ -7119,7 +7171,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           ...(data.youtubeConnected ? { youtubeConnected: data.youtubeConnected } : {}),
           ...(data.tiktokFollowers !== undefined ? { tiktokFollowers: data.tiktokFollowers } : {}),
           ...(data.rankLevel ? { rankLevel: data.rankLevel } : {}),
-          ...(data.coinsBalance !== undefined ? { avaliveCoins: data.coinsBalance, coinsValueVND: `${data.coinsBalance.toLocaleString()}đ` } : {}),
+          ...(data.coinsBalance !== undefined ? { avaliveCoins: data.coinsBalance, tokenBalance: data.coinsBalance, coinsValueVND: `${data.coinsBalance.toLocaleString()}đ` } : {}),
           ...(data.kycStatus ? { kycStatus: data.kycStatus } : {}),
           ...(data.status ? { status: data.status } : {}),
           ...(data.hasAllPermissions !== undefined ? {
@@ -7127,7 +7179,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             isWhitelisted: data.hasAllPermissions,
             canRunAnyCampaign: data.hasAllPermissions,
             canFollowCrossUnrestricted: data.hasAllPermissions
-          } : {})
+          } : {}),
+          transactions: newTransactions
         };
         try {
           if (typeof window !== 'undefined') {
@@ -7147,7 +7200,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       handle: (matchedUser as any)?.handle, 
       data: matchedUser || data 
     });
-    showToast('✅ Đã lưu cập nhật thông tin tài khoản!');
+    showToast('✅ Đã lưu cập nhật thông tin tài khoản và đồng bộ toàn hệ thống!');
   };
 
   const adminDeleteUser = (userId: string) => {

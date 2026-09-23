@@ -343,7 +343,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     });
 
   const liveTasksFeedItems: UnifiedFeedItem[] = (livestreamTasks || [])
-    .filter(l => l.status === 'live' && !l.isLocked)
+    .filter(l => l.status === 'live' && !l.isLocked && !userCompletedActions?.[l.id])
     .map(l => ({
       id: l.id,
       kind: 'livestream',

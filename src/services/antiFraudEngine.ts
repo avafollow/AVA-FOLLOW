@@ -1637,4 +1637,109 @@ export function recordTaskActionClaimed(userHandle: string, taskId: string, acti
   } catch {}
 }
 
+// ─────────────────────────────────────────────────────────────
+// 17. QUY TẮC KHÓA CHẶT 1 TIKTOK <=> 1 GMAIL DUY NHẤT (ZERO-MULTIPLE TIKTOK TRICK)
+// ─────────────────────────────────────────────────────────────
+
+const PERMANENT_TIKTOK_GMAIL_PAIR_KEY = 'ava_permanent_tiktok_gmail_pairs_v1';
+
+export interface TikTokGmailPair {
+  email: string;
+  tiktokHandle: string;
+  boundAt: string;
+  ipAddress?: string;
+  deviceFingerprint?: string;
+  isLocked: boolean;
+}
+
+export function getPermanentTikTokGmailPairs(): TikTokGmailPair[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(PERMANENT_TIKTOK_GMAIL_PAIR_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Kiểm tra tính hợp lệ của cặp Gmail - TikTok:
+ * 1. Gmail này đã từng đăng ký kênh TikTok nào chưa? Nếu đã đăng ký kênh A mà cố tình nhập kênh B -> Từ chối.
+ * 2. Kênh TikTok này đã được đăng ký bởi Gmail khác chưa? Nếu đã thuộc Gmail X mà Gmail Y cố kết nối -> Từ chối.
+ */
+export function verifyTikTokGmailPair(email: string, tiktokHandle: string): {
+  valid: boolean;
+  reason?: string;
+  boundTikTok?: string;
+  boundEmail?: string;
+} {
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanTikTok = (tiktokHandle || '').toLowerCase().replace(/^@+/, '').trim();
+
+  if (!cleanEmail || !cleanTikTok) {
+    return { valid: false, reason: 'Email hoặc kênh TikTok không hợp lệ!' };
+  }
+
+  const pairs = getPermanentTikTokGmailPairs();
+
+  // 1. Kiểm tra nếu Gmail này đã có kênh TikTok đăng ký cố định trước đó
+  const existingPairByEmail = pairs.find(p => p.email.toLowerCase() === cleanEmail);
+  if (existingPairByEmail) {
+    const existingHandle = existingPairByEmail.tiktokHandle.toLowerCase().replace(/^@+/, '').trim();
+    if (existingHandle !== cleanTikTok) {
+      return {
+        valid: false,
+        reason: `Tài khoản Gmail "${email}" đã được liên kết cố định với kênh TikTok "@${existingPairByEmail.tiktokHandle}". Theo quy định an toàn 1 Gmail = 1 TikTok, bạn không thể thay đổi tài khoản TikTok khác trên cùng một Gmail!`,
+        boundTikTok: existingPairByEmail.tiktokHandle
+      };
+    }
+  }
+
+  // 2. Kiểm tra nếu kênh TikTok này đã được một Gmail khác đăng ký từ trước
+  const existingPairByTikTok = pairs.find(p => p.tiktokHandle.toLowerCase().replace(/^@+/, '').trim() === cleanTikTok);
+  if (existingPairByTikTok) {
+    const existingEmail = existingPairByTikTok.email.toLowerCase().trim();
+    if (existingEmail !== cleanEmail) {
+      return {
+        valid: false,
+        reason: `Kênh TikTok "@${cleanTikTok}" đã được đăng ký và sở hữu bởi tài khoản Gmail "${existingPairByTikTok.email}". Mỗi kênh TikTok chỉ được kết nối với đúng 1 tài khoản Gmail duy nhất!`,
+        boundEmail: existingPairByTikTok.email
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Khóa chặt vĩnh viễn cặp Gmail <=> TikTok vào cơ sở dữ liệu bất biến
+ */
+export function lockTikTokGmailBinding(email: string, tiktokHandle: string, ipAddress?: string): void {
+  if (typeof window === 'undefined') return;
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanTikTok = (tiktokHandle || '').toLowerCase().replace(/^@+/, '').trim();
+  if (!cleanEmail || !cleanTikTok) return;
+
+  const pairs = getPermanentTikTokGmailPairs();
+  const exists = pairs.some(
+    p => p.email.toLowerCase() === cleanEmail && p.tiktokHandle.toLowerCase().replace(/^@+/, '') === cleanTikTok
+  );
+
+  if (!exists) {
+    const newPair: TikTokGmailPair = {
+      email: cleanEmail,
+      tiktokHandle: cleanTikTok,
+      boundAt: new Date().toISOString(),
+      ipAddress: ipAddress || '127.0.0.1',
+      deviceFingerprint: getDeviceFingerprint(),
+      isLocked: true
+    };
+    const updated = [...pairs, newPair];
+    try {
+      localStorage.setItem(PERMANENT_TIKTOK_GMAIL_PAIR_KEY, JSON.stringify(updated));
+    } catch {}
+  }
+}
+
+
 

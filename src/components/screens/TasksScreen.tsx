@@ -234,11 +234,33 @@ export const TasksScreen: React.FC<{
     showToast(`🎉 ĐÃ MUA THÊM +20 LƯỢT TƯƠNG TÁC! Đã triệt tiêu -${currentTierQuota.extraExpansionCostXu.toLocaleString()} Xu vào Quỹ Đốt Token.`);
   };
 
-  // Filtered & Sorted Partner Campaigns (Ẩn các nhiệm vụ đã hoàn thành hoặc hết suất)
+  // Hàm kiểm tra nhiệm vụ đã hoàn thành toàn bộ yêu cầu chưa (Hỗ trợ Combo & Đa hành động)
+  const isTaskFinishedByUser = (taskId: string, type: string, channelHandle?: string) => {
+    const history = userCompletedActions?.[taskId];
+    if (!history) return false;
+
+    if (type === 'follow') {
+      return !!history.followed || (channelHandle ? isChannelFollowed(channelHandle) : false);
+    }
+    if (type === 'like') return !!history.liked;
+    if (type === 'comment') return !!history.commented;
+    if (type === 'share') return !!history.shared;
+    if (type === 'watch') return !!history.viewed;
+    if (type === 'livestream' || type === 'livestream_viewers') {
+      return !!history.viewed || history.totalCoinsEarned > 0;
+    }
+    if (type === 'multi_target') {
+      return !!(history.followed && history.liked && history.commented);
+    }
+
+    return !!(history.followed || history.viewed || history.liked || history.commented || history.shared);
+  };
+
+  // Filtered & Sorted Partner Campaigns (Ẩn các nhiệm vụ đã hoàn thành toàn bộ hoặc hết suất)
   const filteredPartnerTasks = tasks
     .filter(t => {
       if (t.type === 'follow' && isChannelFollowed(t.channelHandle)) return false;
-      return t.campaignCategory === "partner" && t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !userCompletedActions?.[t.id];
+      return t.campaignCategory === "partner" && t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !isTaskFinishedByUser(t.id, t.type, t.channelHandle);
     })
     .filter(t => {
       if (enterpriseFilter === "targeted" && t.audienceTargeting?.mode !== "niche_targeted") return false;
@@ -280,7 +302,7 @@ export const TasksScreen: React.FC<{
 
   // Filtered Livestream Rooms (Chỉ hiển thị phòng Live đang phát sóng, tự động ẩn khi kết thúc hoặc đã xem)
   const filteredLiveTasks = livestreamTasks
-    .filter(live => live.status === 'live' && (live.remainingSlots === undefined || live.remainingSlots > 0) && !userCompletedActions?.[live.id])
+    .filter(live => live.status === 'live' && (live.remainingSlots === undefined || live.remainingSlots > 0) && !isTaskFinishedByUser(live.id, 'livestream', live.channelHandle))
     .filter((live) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -298,7 +320,7 @@ export const TasksScreen: React.FC<{
   const videoCampaignTasks = tasks
     .filter(t => {
       if (t.type === 'follow' && isChannelFollowed(t.channelHandle)) return false;
-      return t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !userCompletedActions?.[t.id];
+      return t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !isTaskFinishedByUser(t.id, t.type, t.channelHandle);
     })
     .filter(t => t.type === "watch" || t.videoPreviewUrl || t.campaignCategory === "partner");
 
@@ -307,7 +329,7 @@ export const TasksScreen: React.FC<{
     .filter(c => {
       if (c.status === 'completed') return false;
       if ((c.completedQuantity || 0) >= (c.targetQuantity || 100)) return false;
-      if (userCompletedActions?.[c.id]) return false;
+      if (isTaskFinishedByUser(c.id, c.type, c.channelHandle)) return false;
       if ((c.type === 'follow' || (c.title || '').toLowerCase().includes('follow')) && isChannelFollowed(c.channelHandle)) return false;
       return true;
     })

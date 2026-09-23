@@ -80,6 +80,12 @@ import {
   generateLegalEscalationDossier,
   HONEYPOT_TASKS
 } from '../../services/antiFraudEngine';
+import { 
+  getGeminiApiKey, 
+  setGeminiApiKey, 
+  testGeminiApiKey, 
+  isGeminiAiConnected 
+} from '../../services/geminiSentinelBrain';
 import { FraudIncidentLog, AntiFraudStrategyDef } from '../../types';
 
 export interface StaffMember {
@@ -436,6 +442,12 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const [withdrawProcessingWindow, setWithdrawProcessingWindow] = useState('24 giờ');
   const [withdrawFeeRate, setWithdrawFeeRate] = useState(5);
   const [requireKycCccd, setRequireKycCccd] = useState(true);
+
+  // Gemini 1.5 Flash AI API Key Configuration States
+  const [geminiApiKeyInput, setGeminiApiKeyInput] = useState<string>(() => getGeminiApiKey());
+  const [geminiTesting, setGeminiTesting] = useState<boolean>(false);
+  const [geminiTestResult, setGeminiTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
+  const [geminiConnectedStatus, setGeminiConnectedStatus] = useState<boolean>(() => isGeminiAiConnected());
 
   // Admin Pending Withdrawal Requests Queue (100% Realtime từ lệnh rút thật của người dùng)
   const [adminWithdrawals, setAdminWithdrawals] = useState<any[]>(() => {
@@ -5639,6 +5651,133 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 <span className="text-[10px] font-mono text-slate-400 block">Hồ Sơ Chuyển Pháp Chế</span>
                 <div className="text-lg font-black text-purple-400 font-mono">18 Hồ Sơ</div>
                 <span className="text-[10px] text-slate-400 font-mono">Theo NĐ 15/2020/NĐ-CP</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* CẤU HÌNH BỘ NÃO AI GOOGLE GEMINI 1.5 FLASH (AI SENTINEL CONTROL PANEL)   */}
+          {/* ========================================================================= */}
+          <div className="p-6 rounded-3xl bg-gradient-to-br from-[#0c1322] via-[#090e1a] to-black border-2 border-cyan-500/40 space-y-4 shadow-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold">
+                  <Cpu className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                  <span>BỘ NÃO AI GOOGLE GEMINI 1.5 FLASH (AI SENTINEL BRAIN)</span>
+                </div>
+                <h4 className="text-base sm:text-lg font-black text-white font-display">
+                  Cấu Hình API Key &amp; Chế Độ Hoạt Động Của Trí Tuệ Nhân Tạo
+                </h4>
+                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                  Hệ thống hoạt động theo nguyên tắc <strong>Ưu tiên Thuật toán Cục bộ 0đ</strong> (Bắt rời tab Zalo/FB/YouTube, đo vi rung ngón tay, kiểm tra hashtag). <strong>Google Gemini 1.5 Flash</strong> chỉ can thiệp khi cần soi ảnh chụp màn hình bằng chứng (Vision OCR) hoặc giám định khiếu nại.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1.5 rounded-full text-xs font-mono font-bold border flex items-center gap-1.5 ${
+                  geminiConnectedStatus
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${geminiConnectedStatus ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
+                  <span>{geminiConnectedStatus ? 'Gemini 1.5 Flash: ĐÃ KẾT NỐI' : 'Chế độ Cục bộ (0đ Chi phí)'}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* API Key Input & Action Controls */}
+            <div className="p-4 rounded-2xl bg-black/60 border border-white/10 space-y-3">
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <div className="relative flex-1">
+                  <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    value={geminiApiKeyInput}
+                    onChange={(e) => setGeminiApiKeyInput(e.target.value)}
+                    placeholder="Dán mã Google Gemini API Key (AIzaSy...)"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/80 border border-white/15 text-xs text-white font-mono placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGeminiApiKey(geminiApiKeyInput);
+                      const isConn = isGeminiAiConnected();
+                      setGeminiConnectedStatus(isConn);
+                      setFraudNotificationMsg(isConn ? '✅ Đã lưu Google Gemini API Key thành công!' : 'Đã xóa API Key, chuyển sang chế độ thuật toán cục bộ 0đ.');
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-mono font-bold text-xs shadow-lg transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Lưu Key</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={geminiTesting || !geminiApiKeyInput.trim()}
+                    onClick={async () => {
+                      setGeminiTesting(true);
+                      setGeminiTestResult(null);
+                      const res = await testGeminiApiKey(geminiApiKeyInput);
+                      setGeminiTesting(false);
+                      setGeminiTestResult(res);
+                      setGeminiConnectedStatus(res.success);
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-mono font-bold text-xs shadow-lg transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {geminiTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />}
+                    <span>Kiểm Tra (Ping AI)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Ping Test Result Banner */}
+              {geminiTestResult && (
+                <div className={`p-3 rounded-xl border text-xs font-mono flex items-center justify-between animate-in fade-in ${
+                  geminiTestResult.success
+                    ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-200'
+                    : 'bg-rose-950/60 border-rose-500/40 text-rose-200'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {geminiTestResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />}
+                    <span>{geminiTestResult.message}</span>
+                  </div>
+                  {geminiTestResult.latencyMs !== undefined && (
+                    <span className="text-[10px] opacity-75">{geminiTestResult.latencyMs}ms</span>
+                  )}
+                </div>
+              )}
+
+              {/* 3 Capabilities Summary Pills */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-[11px] font-mono">
+                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-0.5">
+                  <div className="text-cyan-400 font-bold flex items-center gap-1">
+                    <span>⚡ Thuật Toán Cục Bộ (0đ)</span>
+                  </div>
+                  <p className="text-slate-400 text-[10px]">
+                    Bắt rời tab Zalo/FB, đo vi rung ngón tay, đếm giây 15s/Live. Tự xử lý 100% không tốn chi phí API.
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-0.5">
+                  <div className="text-purple-400 font-bold flex items-center gap-1">
+                    <span>👁️ Gemini Vision OCR</span>
+                  </div>
+                  <p className="text-slate-400 text-[10px]">
+                    Soi ảnh chụp màn hình TikTok thật, kiểm tra nút Follow xám / Like đỏ khi user khiếu nại.
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-0.5">
+                  <div className="text-emerald-400 font-bold flex items-center gap-1">
+                    <span>⚖️ AI Appeal Arbiter</span>
+                  </div>
+                  <p className="text-slate-400 text-[10px]">
+                    Tự động phán quyết giải trình và bồi hoàn điểm uy tín cho người dùng bị xử lý oan.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

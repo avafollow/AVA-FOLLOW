@@ -191,12 +191,17 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     const isShare = !isMulti && (c.type === 'share' || titleLower.includes('chia sẻ') || titleLower.includes('share'));
     const isPaidWatchOnly = !isMulti && (c.type === 'watch' || titleLower.includes('giữ chân') || titleLower.includes('lượt xem')) && !titleLower.includes('tặng');
     
-    // Livestream CHỈ KHI không phải là combo/follow/like/comment/share
+    const parsedInfo = parseMediaUrl(c.targetUrl, c.channelHandle);
+    
+    // Livestream: Nhận diện toàn diện mọi định dạng link live (TikTok / YouTube / Facebook Live / Mắt xem live)
     const isLive = !isMulti && !isFollow && !isLike && !isComment && !isShare && (
       c.type === 'livestream' || 
       c.type === 'livestream_viewers' || 
       c.type === 'mega_live' || 
-      (targetUrlLower.includes('tiktok.com/@') && targetUrlLower.includes('/live'))
+      Boolean(c.livestreamMinutes) ||
+      targetUrlLower.includes('/live') ||
+      targetUrlLower.includes('livestream') ||
+      parsedInfo.isLive
     );
     
     const avatar = getTikTokAvatar(c.channelHandle);

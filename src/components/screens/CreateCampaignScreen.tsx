@@ -39,7 +39,7 @@ import {
 import { CampaignItem, FLEXIBLE_LIVESTREAM_TIERS, MultiTargetConfig } from '../../types';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TikTokVideoPreviewPlayer } from '../common/TikTokVideoPreviewPlayer';
-import { getTikTokAvatar, sanitizeMediaUrl, extractTikTokHandle } from '../../data/videoSources';
+import { getTikTokAvatar, sanitizeMediaUrl, extractTikTokHandle, parseMediaUrl } from '../../data/videoSources';
 
 interface TargetOptionDef {
   id: 'follow' | 'watch' | 'like' | 'comment' | 'share' | 'livestream' | 'booking_review';
@@ -264,7 +264,8 @@ export const CreateCampaignScreen: React.FC<{
     }
 
     // Tự động nhận diện link Live (TikTok / YouTube / Facebook Live) vs Video thường và phát tức thì
-    const isLiveUrl = cleanVal.includes('/live') || cleanVal.toLowerCase().includes('live');
+    const mediaParsed = parseMediaUrl(cleanVal);
+    const isLiveUrl = mediaParsed.isLive || cleanVal.includes('/live') || cleanVal.toLowerCase().includes('live') || cleanVal.toLowerCase().includes('livestream');
     if (isLiveUrl) {
       setSelectedTargets(prev => ({
         ...prev,
@@ -991,12 +992,12 @@ export const CreateCampaignScreen: React.FC<{
             {/* Khung phát video to đúng chuẩn kích thước 9:16 trên điện thoại di động & máy tính */}
             <div className="w-full max-w-full sm:max-w-[380px] lg:max-w-[380px] aspect-[9/16] min-h-[520px] sm:min-h-[580px] lg:h-[640px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-rose-500/60 ring-4 ring-rose-500/15 relative bg-black transition-all">
               <TikTokVideoPreviewPlayer
-                key={`preview-${targetUrl}-${channelHandle}-${selectedTargets.livestream ? 'live' : 'vod'}`}
+                key={`preview-${targetUrl}-${channelHandle}-${(selectedTargets.livestream || targetUrl.toLowerCase().includes('live')) ? 'live' : 'vod'}`}
                 url={targetUrl}
                 channelHandle={channelHandle}
-                isLive={Boolean(selectedTargets.livestream || targetUrl.includes('/live'))}
+                isLive={Boolean(selectedTargets.livestream || targetUrl.includes('/live') || targetUrl.toLowerCase().includes('live') || parseMediaUrl(targetUrl).isLive)}
                 className="w-full h-full"
-                badgeText={selectedTargets.livestream || targetUrl.includes('/live') ? 'LIVE' : 'FYP'}
+                badgeText={Boolean(selectedTargets.livestream || targetUrl.includes('/live') || targetUrl.toLowerCase().includes('live') || parseMediaUrl(targetUrl).isLive) ? 'LIVE' : 'FYP'}
                 autoPlay={true}
                 muted={true}
                 fullSize={true}

@@ -26,7 +26,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   targetUrl,
   channelName,
   viewersCount = 1420,
-  isMuted = false,
+  isMuted = true,
   onToggleMute,
   className = '',
   mode = 'preview',

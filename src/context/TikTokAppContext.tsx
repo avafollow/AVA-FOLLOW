@@ -43,7 +43,8 @@ import {
   MarqueeTickerItem,
   MarqueeHistoryRecord,
   FraudAppealRecord,
-  CampaignAuditTrailItem
+  CampaignAuditTrailItem,
+  FraudAnomalyType
 } from '../types';
 import { CongratulationData } from '../components/modals/FireworksCongratulationModal';
 import { SepayCheckoutItem } from '../components/modals/SepayUniversalCheckoutModal';
@@ -128,7 +129,11 @@ import {
   isTaskActionAlreadyClaimed,
   recordTaskActionClaimed,
   applyFraudPenalty,
-  getTrustProfile
+  getTrustProfile,
+  isUserNextTasksLocked,
+  triggerCascadingTaskLockout,
+  clearCascadingTaskLockout,
+  TaskLockoutStatus
 } from '../services/antiFraudEngine';
 
 interface TaskActionDetails {
@@ -438,6 +443,12 @@ interface TikTokAppContextType {
   userCompletedActions: Record<string, UserTaskActionHistory>;
   isChannelFollowed: (channelHandle: string) => boolean;
   triggerImmediateFraudAlert: (alertData: Omit<FraudAlertData, 'isOpen'>) => void;
+
+  // Khóa chuỗi nhiệm vụ tiếp theo (Cascading Task Lockout)
+  isUserTaskLocked: boolean;
+  taskLockoutDetails: TaskLockoutStatus;
+  triggerCascadingLock: (reason: string, durationMinutes?: number, anomaly?: FraudAnomalyType) => void;
+  clearCascadingLock: () => void;
 
   // Thông báo thời gian thực về tài khoản người dùng
   userNotifications: UserNotificationItem[];
@@ -1724,11 +1735,48 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Immediate Fraud Alert Modal State
   const [fraudAlertModalData, setFraudAlertModalData] = useState<FraudAlertData | null>(null);
 
+  const [taskLockoutDetails, setTaskLockoutDetails] = useState<TaskLockoutStatus>(() => {
+    const handle = user?.tiktokConnected || user?.id || user?.name || '';
+    return isUserNextTasksLocked(handle);
+  });
+
+  useEffect(() => {
+    const handle = user?.tiktokConnected || user?.id || user?.name || '';
+    setTaskLockoutDetails(isUserNextTasksLocked(handle));
+  }, [user?.tiktokConnected, user?.id, user?.name]);
+
+  const triggerCascadingLock = (reason: string, durationMinutes: number = 30, anomaly: FraudAnomalyType = 'CASCADING_TASK_LOCKOUT') => {
+    const handle = user?.tiktokConnected || user?.id || user?.name || 'current_user';
+    const res = triggerCascadingTaskLockout(handle, reason, durationMinutes, anomaly);
+    setTaskLockoutDetails(res);
+    triggerImmediateFraudAlert({
+      title: 'CHUỖI NHIỆM VỤ ĐÃ BỊ ĐÓNG BĂNG',
+      reason,
+      anomalyType: anomaly,
+      penaltyPoints: 15
+    });
+  };
+
+  const clearCascadingLock = () => {
+    const handle = user?.tiktokConnected || user?.id || user?.name || 'current_user';
+    clearCascadingTaskLockout(handle);
+    setTaskLockoutDetails({ isLocked: false });
+    showToast('✅ Đã gỡ bỏ trạng thái khóa chuỗi nhiệm vụ!');
+  };
+
+  const isUserTaskLocked = Boolean(taskLockoutDetails.isLocked);
+
   const triggerImmediateFraudAlert = (alertData: Omit<FraudAlertData, 'isOpen'>) => {
     const userIdentifier = user.id || user.name || 'current_user';
     // Phạt điểm uy tín trực tiếp
     applyFraudPenalty(userIdentifier, alertData.penaltyPoints ? alertData.penaltyPoints * 2 : 40, [alertData.anomalyType || 'IMMEDIATE_FRAUD_ALERT'], alertData.reason);
     
+    // Tự động đóng băng chuỗi nhiệm vụ tiếp theo nếu đây là hành vi gian lận cố tình
+    if (alertData.anomalyType === 'DUPLICATE_CHANNEL_FOLLOW' || alertData.anomalyType === 'DUPLICATE_TASK_ACTION' || alertData.anomalyType === 'TAB_BOUNCE_NO_ACTION' || alertData.anomalyType === 'ZERO_TELEMETRY_CLICK') {
+      const res = triggerCascadingTaskLockout(userIdentifier, alertData.reason, 30, alertData.anomalyType as FraudAnomalyType);
+      setTaskLockoutDetails(res);
+    }
+
     setFraudAlertModalData({
       isOpen: true,
       ...alertData
@@ -2906,6 +2954,18 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return { coinsEarned: 0, vndEarned: 0 };
     }
 
+    const userIdentifier = user.id || user.name || 'current_user';
+    const lockout = isUserNextTasksLocked(user.tiktokConnected || userIdentifier);
+    if (lockout.isLocked) {
+      triggerImmediateFraudAlert({
+        title: 'CHUỖI NHIỆM VỤ ĐANG BỊ ĐÓNG BĂNG',
+        reason: lockout.reason || `Tài khoản của bạn đang bị tạm khóa chuỗi nhiệm vụ ${lockout.durationMinutes || 30} phút do phát hiện hành vi gian lận trước đó.`,
+        anomalyType: lockout.fraudAnomaly || 'CASCADING_TASK_LOCKOUT',
+        penaltyPoints: 0
+      });
+      return { coinsEarned: 0, vndEarned: 0 };
+    }
+
     const task = tasks.find(t => t.id === taskId);
     if (!task) return { coinsEarned: 0, vndEarned: 0 };
 
@@ -3101,6 +3161,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return;
     }
 
+    const userIdentifier = user.id || user.name || 'current_user';
+    const lockout = isUserNextTasksLocked(user.tiktokConnected || userIdentifier);
+    if (lockout.isLocked) {
+      return;
+    }
+
     const live = livestreamTasks.find(l => l.id === taskId);
     if (!live) return;
 
@@ -3257,6 +3323,19 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const userIdentifier = user.id || user.name || 'current_user';
     const taskObj = tasks.find(t => t.id === taskId) || livestreamTasks.find(l => l.id === taskId);
     const targetChannelHandle = taskObj?.channelHandle || '';
+
+    // 0. Kiểm tra khóa chuỗi nhiệm vụ (Cascading Lockout)
+    const lockout = isUserNextTasksLocked(user.tiktokConnected || userIdentifier);
+    if (lockout.isLocked) {
+      triggerImmediateFraudAlert({
+        title: 'CHUỖI NHIỆM VỤ ĐANG BỊ ĐÓNG BĂNG',
+        reason: lockout.reason || `Tài khoản của bạn đang trong thời gian tạm khóa chuỗi nhiệm vụ ${lockout.durationMinutes || 30} phút do hệ thống phát hiện hành vi gian lận trước đó. Tất cả nhiệm vụ tiếp theo bị đóng băng để bảo vệ sàn!`,
+        anomalyType: lockout.fraudAnomaly || 'CASCADING_TASK_LOCKOUT',
+        channelHandle: targetChannelHandle,
+        penaltyPoints: 0
+      });
+      return 0;
+    }
 
     // 1. Kiểm tra quy tắc 1 lần duy nhất: Kênh đã follow trên toàn hệ thống chưa
     if (actionType === 'follow' && targetChannelHandle) {
@@ -7480,9 +7559,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         submitFraudAppeal,
         reviewFraudAppeal,
         recordAuditTrailItem,
-        // Chống gian lận cấp cao & deduplication
+        // Chống gian lận cấp cao & deduplication & cascading lockout
         isChannelFollowed,
-        triggerImmediateFraudAlert
+        triggerImmediateFraudAlert,
+        isUserTaskLocked,
+        taskLockoutDetails,
+        triggerCascadingLock,
+        clearCascadingLock
       }}
     >
       {children}

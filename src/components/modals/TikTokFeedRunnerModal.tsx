@@ -534,12 +534,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
   }, [currentItem?.id, currentItem?.targetUrl]);
 
-  // Main timer countdown (chỉ đếm ngược khi có gói xem video / livestream - Live bắt buộc Tab Active)
+  // Main timer countdown (chỉ đếm ngược khi có gói xem video / livestream - ĐÓNG BĂNG 100% KHI ẨN TAB HOẶC RỜI APP)
   useEffect(() => {
     if (!isFeedRunnerOpen || !isWatchRequired || timeLeft <= 0 || !isPlaying) return;
     const timer = setInterval(() => {
-      // Đối với livestream, nếu user ẩn tab (document.hidden), tạm dừng đếm để chống treo máy AFK
-      if (currentItem?.kind === 'livestream' && document.hidden) {
+      // Đóng băng đếm ngược ngay lập tức nếu tab bị ẩn, chuyển tab, nhận cuộc gọi, đọc tin nhắn hoặc chuyển ứng dụng khác
+      if (typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()))) {
         return;
       }
       setTimeLeft(prev => {

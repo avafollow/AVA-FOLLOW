@@ -89,7 +89,9 @@ export const TasksScreen: React.FC<{
     tasksActiveTab,
     setTasksActiveTab,
     isChannelFollowed,
-    triggerImmediateFraudAlert
+    triggerImmediateFraudAlert,
+    isUserTaskLocked,
+    taskLockoutDetails
   } = useTikTokApp();
 
   // 5 TAB CHỨC NĂNG DẠNG LƯỚI HÀNG TRÊN CÙNG
@@ -524,6 +526,36 @@ export const TasksScreen: React.FC<{
 
   return (
     <div className="space-y-5">
+      {/* CẢNH BÁO TẠM KHÓA CHUỖI NHIỆM VỤ DO PHÁT HIỆN GIAN LẬN */}
+      {isUserTaskLocked && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/95 via-rose-950/90 to-red-900/95 border-2 border-red-500/80 text-white shadow-xl shadow-red-950/50">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-400/40 flex items-center justify-center text-red-400 shrink-0 text-xl font-black">
+              🚫
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <h4 className="text-xs font-black text-red-300 uppercase font-display tracking-wider">
+                  CHUỖI NHIỆM VỤ ĐANG TẠM KHÓA PHÒNG VỆ
+                </h4>
+                <span className="px-2.5 py-0.5 rounded-full bg-red-500 text-black text-[9px] font-mono font-black">
+                  ĐÓNG BĂNG {taskLockoutDetails?.durationMinutes || 30} PHÚT
+                </span>
+              </div>
+              <p className="text-[11px] text-red-200/90 mt-1 leading-relaxed">
+                {taskLockoutDetails?.reason || 'Hệ thống AVA Sentinel phát hiện hành vi thoát ra vào lại không thao tác hoặc giả lập bot. Toàn bộ chuỗi nhiệm vụ tiếp theo đã bị tạm dừng để bảo vệ ngân sách các chiến dịch.'}
+              </p>
+              <div className="mt-2 text-[10px] text-red-300/80 font-mono flex items-center gap-1.5">
+                <span>⏱️ Thời gian tự động mở khóa:</span>
+                <span className="font-bold text-white">
+                  {taskLockoutDetails?.lockedUntil ? new Date(taskLockoutDetails.lockedUntil).toLocaleTimeString('vi-VN') : 'Đang xử lý'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* 1. TOP HEADER ROW: TIÊU ĐỀ & CÁC CÔNG CỤ ĐIỀU HƯỚNG NHANH */}
       {/* ========================================================================= */}

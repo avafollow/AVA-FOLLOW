@@ -1323,7 +1323,7 @@ export interface CampaignAuditTrailItem {
   notes?: string;
 }
 
-// ===== HỆ THỐNG 20 CHIẾN LƯỢC CHỐNG GIAN LẬN TOÀN DIỆN (AVA SENTINEL 20-LAYER ANTI-FRAUD) =====
+// ===== HỆ THỐNG 40 CHIẾN LƯỢC CHỐNG GIAN LẬN TOÀN DIỆN (AVA SENTINEL 40-LAYER TITAN ANTI-FRAUD) =====
 export type FraudRiskSeverity = 'low' | 'medium' | 'high' | 'critical' | 'blacklisted';
 
 export type FraudAnomalyType = 
@@ -1341,7 +1341,16 @@ export type FraudAnomalyType =
   | 'ESCROW_CHARGEBACK_DISPUTE'      // Tranh chấp rút xu khi đang giữ trong két 7 ngày
   | 'IP_PROXY_TOR_DETECTED'          // Dùng Proxy/VPN/Tor để spam nhiệm vụ
   | 'TOKEN_TAMPERING_ATTEMPT'        // Sửa đổi payload hoặc số dư client-side
-  | 'LIVE_HEARTBEAT_FROZEN';         // Tab livestream bị ẩn hoặc pause video
+  | 'LIVE_HEARTBEAT_FROZEN'          // Tab livestream bị ẩn hoặc pause video
+  | 'BACKGROUND_INTERRUPT_BYPASS'    // Rời app nghe gọi/nhắn tin/chơi game mà đòi nhận xu
+  | 'CASCADING_TASK_LOCKOUT'         // Khóa chuỗi nhiệm vụ tiếp theo sau khi phát hiện gian lận
+  | 'FLOATING_PIP_IDLE'              // Gian lận thu nhỏ video chạy nền không tương tác
+  | 'ACCESSIBILITY_AUTOCLICK'        // Phát hiện công cụ tự động click qua quyền trợ năng
+  | 'MULTI_TAB_RACE'                 // Mở nhiều tab cùng lúc để cày xu đa luồng trái phép
+  | 'TIME_DRIFT_MANIPULATION'        // Gian lận chỉnh lùi đồng hồ hệ thống client
+  | 'DUPLICATE_CHANNEL_FOLLOW'       // Follow trùng kênh đã nhận xu trước đó
+  | 'DUPLICATE_TASK_ACTION'          // Claim lặp lại hành vi đã hoàn thành
+  | 'PERMANENT_BINDING_VIOLATION';   // Hủy liên kết rồi liên kết lại để trục lợi bonus
 
 export interface AntiFraudStrategyDef {
   id: number;

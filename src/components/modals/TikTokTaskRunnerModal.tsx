@@ -143,10 +143,13 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     }
   }, [isRunnerOpen, runnerTask, userCompletedActions, isMuted, isYouTube]);
 
-  // 15-second countdown timer
+  // 15-second countdown timer (ĐÓNG BĂNG 100% KHI ẨN TAB / RỜI APP / NHẬN CUỘC GỌI)
   useEffect(() => {
     if (!isRunnerOpen || timeLeft <= 0 || !isPlaying) return;
     const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()))) {
+        return;
+      }
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);

@@ -246,11 +246,16 @@ export const LivestreamRunnerModal: React.FC = () => {
     }
   };
 
-  // Main tick loop
+  // Main tick loop (ĐÓNG BĂNG 100% KHI ẨN TAB HOẶC RỜI ỨNG DỤNG)
   useEffect(() => {
     if (!isLiveRunnerOpen || !activeLiveTask || isCompletedMission) return;
 
     const timer = setInterval(() => {
+      // Đóng băng toàn bộ đồng hồ live nếu user chuyển ứng dụng / ẩn màn hình / nhận cuộc gọi
+      if (typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()))) {
+        return;
+      }
+
       if (showCaptcha) {
         setCaptchaSecondsLeft(prev => {
           if (prev <= 1) {

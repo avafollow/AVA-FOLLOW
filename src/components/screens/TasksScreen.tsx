@@ -120,16 +120,24 @@ export const TasksScreen: React.FC<{
   // Inline Quick Edit & Switch Account State (Thu gọn thanh trạng thái kết nối TikTok, Facebook, YouTube)
   const [editingTikTok, setEditingTikTok] = useState<boolean>(false);
   const [tempTikTokHandle, setTempTikTokHandle] = useState<string>(user.tiktokConnected || "");
+  const [tempTikTokFollowers, setTempTikTokFollowers] = useState<number | string>(user.tiktokFollowers || 0);
+
   const [editingFacebook, setEditingFacebook] = useState<boolean>(false);
   const [tempFacebookUrl, setTempFacebookUrl] = useState<string>(user.facebookConnected || "");
+  const [tempFacebookFollowers, setTempFacebookFollowers] = useState<number | string>(user.facebookFollowers || 0);
+
   const [editingYoutube, setEditingYoutube] = useState<boolean>(false);
   const [tempYoutubeUrl, setTempYoutubeUrl] = useState<string>(user.youtubeConnected || "");
+  const [tempYoutubeSubscribers, setTempYoutubeSubscribers] = useState<number | string>(user.youtubeSubscribers || 0);
 
   useEffect(() => {
     setTempTikTokHandle(user.tiktokConnected || "");
+    setTempTikTokFollowers(user.tiktokFollowers || 0);
     setTempFacebookUrl(user.facebookConnected || "");
+    setTempFacebookFollowers(user.facebookFollowers || 0);
     setTempYoutubeUrl(user.youtubeConnected || "");
-  }, [user.tiktokConnected, user.facebookConnected, user.youtubeConnected]);
+    setTempYoutubeSubscribers(user.youtubeSubscribers || 0);
+  }, [user.tiktokConnected, user.tiktokFollowers, user.facebookConnected, user.facebookFollowers, user.youtubeConnected, user.youtubeSubscribers]);
 
   // Kiểm tra hoàn thành toàn bộ Nhiệm Vụ Ngày để mở khóa Live Stream, Lướt Video & Follow Chéo
   const dailyMissions = userMissions?.filter(m => m.category === 'daily') || [];
@@ -682,20 +690,29 @@ export const TasksScreen: React.FC<{
                       </span>
                     )}
                   </div>
-                  {editingTikTok && user.kycStatus !== 'verified' ? (
-                    <div className="flex items-center gap-1 mt-0.5">
+                  {editingTikTok ? (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                       <input
                         type="text"
                         value={tempTikTokHandle}
                         onChange={(e) => setTempTikTokHandle(e.target.value)}
                         placeholder="@ten_kenh"
-                        className="px-2 py-0.5 rounded bg-black border border-rose-500/60 text-xs font-mono text-white focus:outline-none w-28 sm:w-36"
+                        className="px-2 py-0.5 rounded bg-black border border-rose-500/60 text-xs font-mono text-white focus:outline-none w-28 sm:w-32"
                         autoFocus
+                      />
+                      <input
+                        type="number"
+                        value={tempTikTokFollowers}
+                        onChange={(e) => setTempTikTokFollowers(e.target.value)}
+                        placeholder="Số fl"
+                        className="px-1.5 py-0.5 rounded bg-black border border-rose-500/60 text-[11px] font-mono text-white focus:outline-none w-16"
+                        title="Số lượng người theo dõi (Followers)"
                       />
                       <button
                         onClick={() => {
                           if (tempTikTokHandle.trim()) {
-                            connectTikTok(tempTikTokHandle.trim());
+                            const flNum = typeof tempTikTokFollowers === 'string' ? parseInt(tempTikTokFollowers.replace(/\D/g, '') || '0', 10) : tempTikTokFollowers;
+                            connectTikTok(tempTikTokHandle.trim(), flNum);
                             setEditingTikTok(false);
                           }
                         }}
@@ -725,39 +742,32 @@ export const TasksScreen: React.FC<{
                       >
                         {formatFollowerBadge(user.tiktokFollowers || 0, 'fl')}
                       </span>
-                      {user.kycStatus !== 'verified' && (
-                        <button
-                          onClick={() => {
-                            setTempTikTokHandle(user.tiktokConnected || "");
-                            setEditingTikTok(true);
-                          }}
-                          className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer shrink-0"
-                          title="Đổi tên kênh TikTok"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          setTempTikTokHandle(user.tiktokConnected || "");
+                          setTempTikTokFollowers(user.tiktokFollowers || 0);
+                          setEditingTikTok(true);
+                        }}
+                        className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer shrink-0"
+                        title="Đổi tên kênh & cập nhật số fl TikTok"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
                     </div>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                {user.kycStatus !== 'verified' ? (
-                  <button
-                    onClick={() => {
-                      setTempTikTokHandle(user.tiktokConnected || "");
-                      setEditingTikTok(true);
-                    }}
-                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10 whitespace-nowrap"
-                  >
-                    {isTikTokConnected ? 'Đổi Kênh' : '+ Nối Kênh'}
-                  </button>
-                ) : (
-                  <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1 whitespace-nowrap">
-                    <Lock className="w-3 h-3 text-emerald-400" />
-                    Cố Định
-                  </span>
-                )}
+                <button
+                  onClick={() => {
+                    setTempTikTokHandle(user.tiktokConnected || "");
+                    setTempTikTokFollowers(user.tiktokFollowers || 0);
+                    setEditingTikTok(true);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10 whitespace-nowrap"
+                >
+                  {isTikTokConnected ? 'Đổi Kênh' : '+ Nối Kênh'}
+                </button>
                 <a
                   href={tiktokChannelUrl}
                   target="_blank"
@@ -785,12 +795,7 @@ export const TasksScreen: React.FC<{
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-mono font-bold text-blue-300 uppercase">FACEBOOK:</span>
-                    {user.kycStatus === 'verified' ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
-                        <Lock className="w-3 h-3 text-emerald-400" />
-                        ĐÃ DUYỆT KYC
-                      </span>
-                    ) : isFacebookConnected ? (
+                    {isFacebookConnected ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                         ĐÃ KẾT NỐI
@@ -801,20 +806,29 @@ export const TasksScreen: React.FC<{
                       </span>
                     )}
                   </div>
-                  {editingFacebook && user.kycStatus !== 'verified' ? (
-                    <div className="flex items-center gap-1 mt-0.5">
+                  {editingFacebook ? (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                       <input
                         type="text"
                         value={tempFacebookUrl}
                         onChange={(e) => setTempFacebookUrl(e.target.value)}
                         placeholder="fb.com/ten_nick"
-                        className="px-2 py-0.5 rounded bg-black border border-blue-500/60 text-xs font-mono text-white focus:outline-none w-28 sm:w-36"
+                        className="px-2 py-0.5 rounded bg-black border border-blue-500/60 text-xs font-mono text-white focus:outline-none w-28 sm:w-32"
                         autoFocus
+                      />
+                      <input
+                        type="number"
+                        value={tempFacebookFollowers}
+                        onChange={(e) => setTempFacebookFollowers(e.target.value)}
+                        placeholder="Số fl"
+                        className="px-1.5 py-0.5 rounded bg-black border border-blue-500/60 text-[11px] font-mono text-white focus:outline-none w-16"
+                        title="Số lượng bạn bè / fl Facebook"
                       />
                       <button
                         onClick={() => {
                           if (tempFacebookUrl.trim()) {
-                            connectFacebook(tempFacebookUrl.trim());
+                            const flNum = typeof tempFacebookFollowers === 'string' ? parseInt(tempFacebookFollowers.replace(/\D/g, '') || '0', 10) : tempFacebookFollowers;
+                            connectFacebook(tempFacebookUrl.trim(), 'personal', flNum);
                             setEditingFacebook(false);
                           }
                         }}
@@ -844,39 +858,32 @@ export const TasksScreen: React.FC<{
                       >
                         {formatFollowerBadge(user.facebookFollowers || 0, 'fl')}
                       </span>
-                      {user.kycStatus !== 'verified' && (
-                        <button
-                          onClick={() => {
-                            setTempFacebookUrl(user.facebookConnected || "");
-                            setEditingFacebook(true);
-                          }}
-                          className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer shrink-0"
-                          title="Đổi nick Facebook"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          setTempFacebookUrl(user.facebookConnected || "");
+                          setTempFacebookFollowers(user.facebookFollowers || 0);
+                          setEditingFacebook(true);
+                        }}
+                        className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer shrink-0"
+                        title="Đổi nick Facebook & cập nhật số fl"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
                     </div>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                {user.kycStatus !== 'verified' ? (
-                  <button
-                    onClick={() => {
-                      setTempFacebookUrl(user.facebookConnected || "");
-                      setEditingFacebook(true);
-                    }}
-                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10 whitespace-nowrap"
-                  >
-                    {isFacebookConnected ? 'Đổi Nick' : '+ Kết Nối'}
-                  </button>
-                ) : (
-                  <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1 whitespace-nowrap">
-                    <Lock className="w-3 h-3 text-emerald-400" />
-                    Cố Định
-                  </span>
-                )}
+                <button
+                  onClick={() => {
+                    setTempFacebookUrl(user.facebookConnected || "");
+                    setTempFacebookFollowers(user.facebookFollowers || 0);
+                    setEditingFacebook(true);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10 whitespace-nowrap"
+                >
+                  {isFacebookConnected ? 'Đổi Nick' : '+ Kết Nối'}
+                </button>
                 <a
                   href={facebookUrl}
                   target="_blank"
@@ -906,12 +913,7 @@ export const TasksScreen: React.FC<{
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-mono font-bold text-red-300 uppercase">YOUTUBE / GOOGLE:</span>
-                    {user.kycStatus === 'verified' ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
-                        <Lock className="w-3 h-3 text-emerald-400" />
-                        ĐÃ DUYỆT KYC
-                      </span>
-                    ) : isYoutubeConnected ? (
+                    {isYoutubeConnected ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                         ĐÃ KẾT NỐI
@@ -922,20 +924,29 @@ export const TasksScreen: React.FC<{
                       </span>
                     )}
                   </div>
-                  {editingYoutube && user.kycStatus !== 'verified' ? (
-                    <div className="flex items-center gap-1 mt-0.5">
+                  {editingYoutube ? (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                       <input
                         type="text"
                         value={tempYoutubeUrl}
                         onChange={(e) => setTempYoutubeUrl(e.target.value)}
                         placeholder="@ten_kenh_youtube"
-                        className="px-2 py-0.5 rounded bg-black border border-red-500/60 text-xs font-mono text-white focus:outline-none w-28 sm:w-36"
+                        className="px-2 py-0.5 rounded bg-black border border-red-500/60 text-xs font-mono text-white focus:outline-none w-28 sm:w-32"
                         autoFocus
+                      />
+                      <input
+                        type="number"
+                        value={tempYoutubeSubscribers}
+                        onChange={(e) => setTempYoutubeSubscribers(e.target.value)}
+                        placeholder="Số subs"
+                        className="px-1.5 py-0.5 rounded bg-black border border-red-500/60 text-[11px] font-mono text-white focus:outline-none w-16"
+                        title="Số lượng người đăng ký (Subscribers)"
                       />
                       <button
                         onClick={() => {
                           if (tempYoutubeUrl.trim()) {
-                            connectYoutube(tempYoutubeUrl.trim());
+                            const subNum = typeof tempYoutubeSubscribers === 'string' ? parseInt(tempYoutubeSubscribers.replace(/\D/g, '') || '0', 10) : tempYoutubeSubscribers;
+                            connectYoutube(tempYoutubeUrl.trim(), subNum);
                             setEditingYoutube(false);
                           }
                         }}
@@ -965,39 +976,32 @@ export const TasksScreen: React.FC<{
                       >
                         {formatFollowerBadge(user.youtubeSubscribers || 0, 'subs')}
                       </span>
-                      {user.kycStatus !== 'verified' && (
-                        <button
-                          onClick={() => {
-                            setTempYoutubeUrl(user.youtubeConnected || "");
-                            setEditingYoutube(true);
-                          }}
-                          className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-red-300 transition-colors cursor-pointer shrink-0"
-                          title="Đổi kênh YouTube"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          setTempYoutubeUrl(user.youtubeConnected || "");
+                          setTempYoutubeSubscribers(user.youtubeSubscribers || 0);
+                          setEditingYoutube(true);
+                        }}
+                        className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-400 hover:text-red-300 transition-colors cursor-pointer shrink-0"
+                        title="Đổi kênh YouTube & cập nhật số subs"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
                     </div>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                {user.kycStatus !== 'verified' ? (
-                  <button
-                    onClick={() => {
-                      setTempYoutubeUrl(user.youtubeConnected || "");
-                      setEditingYoutube(true);
-                    }}
-                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10 whitespace-nowrap"
-                  >
-                    {isYoutubeConnected ? 'Đổi Nick' : '+ Kết Nối'}
-                  </button>
-                ) : (
-                  <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9px] font-mono border border-emerald-500/30 flex items-center gap-1 whitespace-nowrap">
-                    <Lock className="w-3 h-3 text-emerald-400" />
-                    Cố Định
-                  </span>
-                )}
+                <button
+                  onClick={() => {
+                    setTempYoutubeUrl(user.youtubeConnected || "");
+                    setTempYoutubeSubscribers(user.youtubeSubscribers || 0);
+                    setEditingYoutube(true);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono cursor-pointer border border-white/10 whitespace-nowrap"
+                >
+                  {isYoutubeConnected ? 'Đổi Nick' : '+ Kết Nối'}
+                </button>
                 <a
                   href={youtubeUrl}
                   target="_blank"

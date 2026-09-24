@@ -118,10 +118,10 @@ export const OnboardingTourGuide: React.FC<OnboardingTourGuideProps> = ({ onNavi
     try {
       const isCompleted = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (!isCompleted) {
-        // Tự động mở sau 800ms khi người dùng mới vào app
+        // Tự động mở sau 600ms khi người dùng mới vào app
         const timer = setTimeout(() => {
           setIsOpen(true);
-        }, 800);
+        }, 600);
         return () => clearTimeout(timer);
       }
     } catch {}
@@ -133,6 +133,18 @@ export const OnboardingTourGuide: React.FC<OnboardingTourGuideProps> = ({ onNavi
     } catch {}
     setIsOpen(false);
   };
+
+  // Lắng nghe phím Escape để bấm tắt nhanh
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleFinish();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   const handleNext = () => {
     if (currentStepIndex < TOUR_STEPS.length - 1) {
@@ -155,8 +167,14 @@ export const OnboardingTourGuide: React.FC<OnboardingTourGuideProps> = ({ onNavi
   const progressPercent = ((currentStepIndex + 1) / TOUR_STEPS.length) * 100;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-lg rounded-3xl bg-[#0b0f19] border border-white/15 shadow-2xl overflow-hidden flex flex-col">
+    <div 
+      onClick={handleFinish}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn cursor-pointer"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg rounded-3xl bg-[#0b0f19] border border-white/15 shadow-2xl overflow-hidden flex flex-col cursor-default"
+      >
         {/* Top Gradient Header Accent */}
         <div className="h-1.5 w-full bg-gradient-to-r from-rose-500 via-purple-500 to-emerald-400" />
 

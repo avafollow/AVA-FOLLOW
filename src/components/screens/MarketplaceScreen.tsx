@@ -110,17 +110,17 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-300">
       
-      {/* Top Banner Hero */}
-      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-purple-950/60 via-slate-900 to-indigo-950/60 border border-purple-500/30 shadow-2xl">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold animate-pulse">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>🔥 SIÊU HỆ SINH THÁI 3 TRONG 1: TIKTOK • FACEBOOK • YOUTUBE</span>
+      {/* Top Banner Hero (Tinh gọn, sang trọng trên cả Di Động & Máy Tính) */}
+      <div className="relative overflow-hidden rounded-3xl p-4 sm:p-6 md:p-8 bg-gradient-to-br from-purple-950/70 via-slate-900 to-indigo-950/70 border border-purple-500/30 shadow-2xl">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+          <div className="space-y-2 sm:space-y-3 max-w-2xl">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] sm:text-xs font-bold">
+                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
+                <span>🔥 SIÊU HỆ SINH THÁI: TIKTOK • FACEBOOK • YOUTUBE</span>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[10px] font-mono font-bold">
-                ✓ 100% Người Dùng Thật Việt Nam
+              <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[9px] sm:text-[10px] font-mono font-bold">
+                ✓ 100% Người Thật
               </span>
               <FeatureGuideTooltip
                 title="Hệ Sinh Thái Tăng Trưởng Đa Nền Tảng"
@@ -136,25 +136,25 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
                 placement="bottom"
               />
             </div>
-            <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight font-display">
-              Kho Gói Tăng Trưởng Toàn Năng: TikTok • Facebook • YouTube
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-black text-white leading-tight font-display">
+              Kho Gói Tăng Trưởng Toàn Năng
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Tận dụng sức mạnh của hơn <strong>154,200+ người dùng thật</strong> để bùng nổ traffic, tăng tương tác tự nhiên, mở khóa kiếm tiền và gia tăng doanh số bán hàng vượt bậc trên mọi nền tảng mạng xã hội.
+            <p className="text-[11px] sm:text-xs md:text-sm text-slate-300 leading-relaxed line-clamp-2 sm:line-clamp-none">
+              Tận dụng sức mạnh của hơn <strong>154,200+ người dùng thật</strong> để bùng nổ traffic, tăng tương tác tự nhiên, mở khóa kiếm tiền và gia tăng doanh số vượt bậc.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
+          <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 sm:gap-3 shrink-0">
             <div className="flex items-center gap-2">
               <button
                 onClick={openKocModal}
-                className="w-full px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-900/30 flex items-center justify-center gap-2"
+                className="w-full px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-[11px] sm:text-xs shadow-lg shadow-purple-900/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-transform"
               >
-                <Award className="w-4 h-4" />
+                <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span>Đăng Ký Làm KOC Nhận Booking</span>
               </button>
             </div>
-            <div className="text-[11px] text-slate-400 text-center font-mono">
+            <div className="text-[10px] sm:text-[11px] text-slate-400 text-center font-mono">
               Số dư ví: <strong className="text-amber-400">{(user?.avaliveCoins || 0).toLocaleString()} Xu</strong>
               <span className="text-slate-500 mx-1">≈</span>
               <strong className="text-emerald-400">{(user?.avaliveCoins || 0).toLocaleString('vi-VN')}đ</strong>
@@ -163,8 +163,8 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
         </div>
       </div>
 
-      {/* 1. PLATFORM SWITCHER TABS (TIKTOK / FACEBOOK / YOUTUBE / ALL) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* 1. PLATFORM SWITCHER TABS (TIKTOK / FACEBOOK / YOUTUBE / ALL) - Compact trên điện thoại */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
         {PLATFORMS.map((plat) => {
           const Icon = plat.icon;
           const isSelected = selectedPlatform === plat.id;
@@ -176,70 +176,78 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
                 setSelectedPlatform(plat.id as any);
                 setActiveCategory('all');
               }}
-              className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between gap-2 cursor-pointer ${
+              className={`p-2.5 sm:p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between gap-1.5 sm:gap-2 cursor-pointer ${
                 isSelected
-                  ? `bg-gradient-to-br ${plat.color} text-white border-white/30 shadow-xl shadow-purple-950/40 scale-[1.02] ring-2 ring-white/20`
+                  ? `bg-gradient-to-br ${plat.color} text-white border-white/30 shadow-xl shadow-purple-950/40 scale-[1.01] ring-2 ring-white/20`
                   : 'bg-slate-900/80 hover:bg-slate-800/90 text-slate-300 border-slate-800 hover:border-slate-700'
               }`}
             >
               <div className="flex items-center justify-between">
-                <div className={`p-2 rounded-xl ${isSelected ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-400'}`}>
-                  <Icon className="w-5 h-5" />
+                <div className={`p-1.5 sm:p-2 rounded-xl ${isSelected ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-400'}`}>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                <span className={`px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold ${
                   isSelected ? 'bg-black/30 text-white' : 'bg-slate-800 text-slate-400'
                 }`}>
                   {plat.count} Gói
                 </span>
               </div>
               <div>
-                <div className="text-sm font-black tracking-wide font-display">{plat.label}</div>
-                <div className={`text-[10px] line-clamp-1 ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>{plat.desc}</div>
+                <div className="text-xs sm:text-sm font-black tracking-wide font-display truncate">{plat.label}</div>
+                <div className={`text-[9px] sm:text-[10px] line-clamp-1 ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>{plat.desc}</div>
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* 4 Pillars of Store Benefits (Di chuyển ra ngoài trang bán hàng & bảo hành 15-30 ngày) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2 relative overflow-hidden">
-          <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 w-fit">
-            <Users className="w-5 h-5" />
+      {/* 4 Pillars of Store Benefits - Nhỏ gọn, tinh gọn 2x2 trên mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3.5">
+        <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1 relative overflow-hidden">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 shrink-0">
+              <Users className="w-3.5 h-3.5" />
+            </div>
+            <h4 className="text-xs font-bold text-white font-display truncate">154,200+ User Thật</h4>
           </div>
-          <h4 className="text-sm font-bold text-white font-display">154,200+ Người Dùng Thật</h4>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Mạng lưới người dùng thật xem video, tương tác chéo tự nhiên trên TikTok, Facebook và YouTube.
+          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
+            Tương tác chéo tự nhiên trên TikTok, Facebook và YouTube.
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2 relative overflow-hidden">
-          <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 w-fit">
-            <ShieldCheck className="w-5 h-5" />
+        <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1 relative overflow-hidden">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5" />
+            </div>
+            <h4 className="text-xs font-bold text-white font-display truncate">Bảo Hành 30 Ngày</h4>
           </div>
-          <h4 className="text-sm font-bold text-white font-display">Bảo Hành Chống Tụt 30 Ngày</h4>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Hệ thống tự động theo dõi số lượng tương tác. Cam kết bù đủ 100% nếu phát sinh hiện tượng tụt giảm.
+          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
+            Theo dõi tự động, cam kết bù đủ 100% nếu phát sinh tụt.
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2 relative overflow-hidden">
-          <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-400 w-fit">
-            <Headphones className="w-5 h-5" />
+        <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1 relative overflow-hidden">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-400 shrink-0">
+              <Headphones className="w-3.5 h-3.5" />
+            </div>
+            <h4 className="text-xs font-bold text-white font-display truncate">Cố Vấn 1-1</h4>
           </div>
-          <h4 className="text-sm font-bold text-white font-display">Cố Vấn Kỹ Thuật 1-1</h4>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Đội ngũ chuyên gia Marketing đồng hành tư vấn chiến lược xây kênh, tối ưu SEO và chốt đơn chuyển đổi cao.
+          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
+            Đội ngũ tư vấn chiến lược xây kênh, tối ưu SEO và chốt đơn.
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2 relative overflow-hidden">
-          <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 w-fit">
-            <TrendingUp className="w-5 h-5" />
+        <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1 relative overflow-hidden">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
+              <TrendingUp className="w-3.5 h-3.5" />
+            </div>
+            <h4 className="text-xs font-bold text-white font-display truncate">Đẩy Lên Đề Xuất</h4>
           </div>
-          <h4 className="text-sm font-bold text-white font-display">Kích Hoạt Thuật Toán Đề Xuất</h4>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Cơ chế Drip-feed nhịp độ tự nhiên giúp kênh đạt điểm tín nhiệm cao, dễ dàng được đẩy vào tab Đề Xuất.
+          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
+            Cơ chế Drip-feed nhịp độ tự nhiên giúp kênh đạt điểm tín nhiệm cao.
           </p>
         </div>
       </div>

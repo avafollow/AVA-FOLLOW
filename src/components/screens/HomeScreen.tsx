@@ -348,19 +348,55 @@ export const HomeScreen: React.FC<{
           </div>
 
           {(() => {
-            // TÍNH TOÁN 100% CON SỐ THẬT TỪ HÀNH ĐỘNG CỦA NGƯỜI DÙNG
-            const completedFollowTasks = tasks.filter(t => t.type === 'follow' && userCompletedActions?.[t.id]);
-            const completedWatchTasks = tasks.filter(t => (t.type === 'watch' || t.videoPreviewUrl) && userCompletedActions?.[t.id]);
-            const completedKocTasks = tasks.filter(t => (t.type === 'review' || t.campaignCategory === 'partner') && userCompletedActions?.[t.id]);
-            const completedLiveTasks = livestreamTasks.filter(l => userCompletedActions?.[l.id]);
+            // TÍNH TOÁN 100% CON SỐ THẬT VÀ CHI TIẾT TỪ HÀNH ĐỘNG CỦA NGƯỜI DÙNG
+            const actionsList = Object.values(userCompletedActions || {});
 
-            const followEarned = completedFollowTasks.reduce((sum, t) => sum + (t.rewardCoins || 200), 0);
-            const watchEarned = completedWatchTasks.reduce((sum, t) => sum + (t.rewardCoins || 200), 0);
-            const kocEarned = completedKocTasks.reduce((sum, t) => sum + (t.rewardCoins || 50000), 0);
-            const liveEarned = completedLiveTasks.reduce((sum, l) => sum + (l.totalRewardCoins || 400), 0);
-            
+            // 1. Follow Kênh
+            const completedFollowList = actionsList.filter(a => a.followed || tasks.some(t => t.id === a.taskId && t.type === 'follow'));
+            const followEarnedFromActions = completedFollowList.reduce((sum, a) => sum + (a.totalCoinsEarned || 200), 0);
+            const followEarnedFromTx = (user.transactions || []).filter(tx => tx.missionType === 'follow' && tx.isPositive).reduce((sum, tx) => {
+              const num = parseInt(tx.amount.replace(/[^0-9]/g, ''), 10) || 0;
+              return sum + num;
+            }, 0);
+            const followEarned = Math.max(followEarnedFromActions, followEarnedFromTx);
+            const followCount = completedFollowList.length;
+
+            // 2. Xem Video FYP
+            const completedWatchList = actionsList.filter(a => a.viewed && !a.followed);
+            const watchEarnedFromActions = completedWatchList.reduce((sum, a) => sum + (a.totalCoinsEarned || 200), 0);
+            const watchEarnedFromTx = (user.transactions || []).filter(tx => tx.missionType === 'watch' && tx.isPositive).reduce((sum, tx) => {
+              const num = parseInt(tx.amount.replace(/[^0-9]/g, ''), 10) || 0;
+              return sum + num;
+            }, 0);
+            const watchEarned = Math.max(watchEarnedFromActions, watchEarnedFromTx);
+            const watchCount = completedWatchList.length;
+
+            // 3. Booking KOC & Escrow
+            const completedKocList = actionsList.filter(a => a.taskId?.startsWith('booking_') || a.taskId?.startsWith('koc_'));
+            const kocEarnedFromActions = completedKocList.reduce((sum, a) => sum + (a.totalCoinsEarned || 50000), 0);
+            const kocEarnedFromTx = (user.transactions || []).filter(tx => (tx.missionType === 'koc' || tx.missionType === 'review' || tx.method?.includes('Booking')) && tx.isPositive).reduce((sum, tx) => {
+              const num = parseInt(tx.amount.replace(/[^0-9]/g, ''), 10) || 0;
+              return sum + num;
+            }, 0);
+            const kocEarned = Math.max(kocEarnedFromActions, kocEarnedFromTx);
+            const kocCount = completedKocList.length;
+
+            // 4. Mắt Live & Nhiệm Vụ Khác (Like, Comment, Share, Livestreams)
+            const completedLiveList = actionsList.filter(a => 
+              a.taskId?.startsWith('live_') || 
+              (!completedFollowList.includes(a) && !completedWatchList.includes(a) && !completedKocList.includes(a))
+            );
+            const liveEarnedFromActions = completedLiveList.reduce((sum, a) => sum + (a.totalCoinsEarned || 400), 0);
+            const liveEarnedFromTx = (user.transactions || []).filter(tx => (tx.missionType === 'live' || tx.missionType === 'livestream' || tx.missionType === 'like' || tx.missionType === 'comment' || tx.missionType === 'share' || tx.method?.includes('Live')) && tx.isPositive).reduce((sum, tx) => {
+              const num = parseInt(tx.amount.replace(/[^0-9]/g, ''), 10) || 0;
+              return sum + num;
+            }, 0);
+            const liveEarned = Math.max(liveEarnedFromActions, liveEarnedFromTx);
+            const liveCount = completedLiveList.length;
+
             const totalEarnedFromTasks = followEarned + watchEarned + kocEarned + liveEarned;
 
+            // Tỷ lệ % chuẩn xác
             const followPct = totalEarnedFromTasks > 0 ? Math.round((followEarned / totalEarnedFromTasks) * 100) : 0;
             const watchPct = totalEarnedFromTasks > 0 ? Math.round((watchEarned / totalEarnedFromTasks) * 100) : 0;
             const kocPct = totalEarnedFromTasks > 0 ? Math.round((kocEarned / totalEarnedFromTasks) * 100) : 0;
@@ -376,6 +412,12 @@ export const HomeScreen: React.FC<{
             const offsetWatch = -dashFollow;
             const offsetKoc = -(dashFollow + dashWatch);
             const offsetLive = -(dashFollow + dashWatch + dashKoc);
+
+            // Tiến độ nhiệm vụ hôm nay chính xác
+            const totalRealTasksCompleted = Math.max(user.dailyTasksCompleted || 0, user.completedTasksCount || 0, actionsList.length);
+            const dailyTarget = Math.max(10, tasks.length);
+            const realProgressPercent = Math.min(100, Math.round((totalRealTasksCompleted / dailyTarget) * 100));
+            const realRemainingForBonus = Math.max(0, 5 - (totalRealTasksCompleted % 5));
 
             return (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
@@ -437,7 +479,7 @@ export const HomeScreen: React.FC<{
                               className="transition-all duration-700"
                             />
                           )}
-                          {/* Segment 4: Xem Livestream (Cyan) */}
+                          {/* Segment 4: Xem Livestream & Khác (Cyan) */}
                           {livePct > 0 && (
                             <circle
                               cx="50"
@@ -483,7 +525,7 @@ export const HomeScreen: React.FC<{
                       <div className="text-sm font-black text-rose-300 mt-1">
                         {followEarned.toLocaleString()} Xu
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{completedFollowTasks.length} nhiệm vụ đã xong</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{followCount} nhiệm vụ đã xong</div>
                     </div>
 
                     <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30">
@@ -494,7 +536,7 @@ export const HomeScreen: React.FC<{
                       <div className="text-sm font-black text-amber-300 mt-1">
                         {watchEarned.toLocaleString()} Xu
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{completedWatchTasks.length} video đã xem</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{watchCount} video đã xem</div>
                     </div>
 
                     <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/30">
@@ -505,7 +547,7 @@ export const HomeScreen: React.FC<{
                       <div className="text-sm font-black text-purple-300 mt-1">
                         {kocEarned.toLocaleString()} Xu
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{completedKocTasks.length} đơn hoàn thành</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{kocCount} đơn hoàn thành</div>
                     </div>
 
                     <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30">
@@ -516,7 +558,7 @@ export const HomeScreen: React.FC<{
                       <div className="text-sm font-black text-cyan-300 mt-1">
                         {liveEarned.toLocaleString()} Xu
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{completedLiveTasks.length} phiên đã xem</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{liveCount} phiên đã xem</div>
                     </div>
                   </div>
 
@@ -525,20 +567,20 @@ export const HomeScreen: React.FC<{
                     <div className="flex items-center justify-between text-[11px] font-mono">
                       <span className="text-slate-300 font-bold">Tiến Độ Nhiệm Vụ Hôm Nay:</span>
                       <span className="text-emerald-400 font-bold font-mono">
-                        {completedTasksCount}/{totalDailyTarget} Hoàn Thành ({progressPercent}%)
+                        {totalRealTasksCompleted}/{dailyTarget} Hoàn Thành ({realProgressPercent}%)
                       </span>
                     </div>
                     <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                       <div 
                         className="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-rose-500 rounded-full transition-all duration-500" 
-                        style={{ width: `${progressPercent}%` }} 
+                        style={{ width: `${realProgressPercent}%` }} 
                       />
                     </div>
                     <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-0.5">
                       <span>
-                        {remainingForBonus > 0 
-                          ? `Còn ${remainingForBonus} nhiệm vụ để nhận thêm lượt Quay May Mắn` 
-                          : 'Đã hoàn thành xuất sắc chỉ tiêu!'}
+                        {realRemainingForBonus > 0 
+                          ? `Còn ${realRemainingForBonus} nhiệm vụ để nhận thêm lượt Quay May Mắn` 
+                          : 'Đã hoàn thành xuất sắc chỉ tiêu hôm nay!'}
                       </span>
                       <button
                         onClick={() => onNavigate('tasks')}
@@ -557,26 +599,40 @@ export const HomeScreen: React.FC<{
         {/* ========================================================================= */}
         {/* PHÒNG LIVE STREAM TIKTOK THẬT & CHIẾN DỊCH VIDEO ĐANG PHÁT (ĐỒNG BỘ MOBILE) */}
         {/* ========================================================================= */}
-        {/* ========================================================================= */}
-        {/* PHÒNG LIVE STREAM TIKTOK THẬT & CHIẾN DỊCH VIDEO ĐANG PHÁT (ĐỒNG BỘ MOBILE) */}
-        {/* ========================================================================= */}
         {(() => {
-          // 1. Genuine Active Campaigns (Tự động loại bỏ khi hết hiệu lực, hoàn thành hoặc user đã làm xong)
-          const activeCampaigns = (campaigns || []).filter(
-            c => {
-              if (c.status === 'completed' || c.status === 'paused') return false;
-              if ((c.completedQuantity || 0) >= (c.targetQuantity || 100)) return false;
-              if (userCompletedActions?.[c.id]) return false;
-              if ((c.type === 'follow' || (c.title || '').toLowerCase().includes('follow')) && isChannelFollowed(c.channelHandle)) return false;
-              return true;
-            }
-          );
+          // Hàm kiểm tra chiến dịch / nhiệm vụ đã hoàn thành hay chưa (Chống trùng lặp & Tự động ẩn hoàn toàn)
+          const isItemCompletedByUser = (itemId: string, handle?: string, url?: string) => {
+            if (userCompletedActions?.[itemId]) return true;
+            if (handle && isChannelFollowed(handle)) return true;
+            const clean = (handle || '').toLowerCase().replace(/^@+/, '');
+            return Object.values(userCompletedActions || {}).some(a => {
+              if (a.taskId === itemId) return true;
+              if (clean && a.channelHandle && a.channelHandle.toLowerCase().replace(/^@+/, '') === clean) return true;
+              if (url && a.taskId && url.includes(a.taskId)) return true;
+              return false;
+            });
+          };
+
+          // 1. Genuine Active Campaigns (Tự động ẩn 100% khi đã làm xong hoặc hết ngân sách)
+          const activeCampaigns = (campaigns || []).filter(c => {
+            if (c.status === 'completed' || c.status === 'paused') return false;
+            if ((c.completedQuantity || 0) >= (c.targetQuantity || 100)) return false;
+            if (isItemCompletedByUser(c.id, c.channelHandle, c.targetUrl)) return false;
+            return true;
+          });
 
           const activeVideoCampaigns = activeCampaigns.filter(c => {
             const isMulti = c.type === 'multi_target' || (c.title || '').toLowerCase().includes('combo');
             if (isMulti) return true;
             const isLive = c.type === 'livestream' || c.type === 'livestream_viewers' || c.type === 'mega_live' || ((c.targetUrl || '').includes('tiktok.com/@') && (c.targetUrl || '').includes('/live'));
             return !isLive;
+          });
+
+          const uncompletedTasks = tasks.filter(t => {
+            if (t.status === 'completed') return false;
+            if (t.remainingSlots !== undefined && t.remainingSlots <= 0) return false;
+            if (isItemCompletedByUser(t.id, t.channelHandle, t.targetUrl)) return false;
+            return t.type === 'watch' || t.videoPreviewUrl || t.campaignCategory === 'partner' || t.type === 'follow';
           });
 
           const displayedVideoItems = activeVideoCampaigns.length > 0
@@ -592,10 +648,7 @@ export const HomeScreen: React.FC<{
                 isBoosted: c.isBoosted,
                 remainingSlots: Math.max(1, (c.targetQuantity || 100) - (c.completedQuantity || 0))
               }))
-            : tasks.filter(t => {
-                if (t.type === 'follow' && isChannelFollowed(t.channelHandle)) return false;
-                return t.status !== 'completed' && (t.type === 'watch' || t.videoPreviewUrl || t.campaignCategory === 'partner') && !userCompletedActions?.[t.id];
-              }).slice(0, 6).map(t => ({
+            : uncompletedTasks.slice(0, 6).map(t => ({
                 id: t.id,
                 title: t.title,
                 channelName: t.channelName,
@@ -608,12 +661,18 @@ export const HomeScreen: React.FC<{
                 remainingSlots: t.remainingSlots || 50
               }));
 
-          // 2. Genuine Active Live Rooms
+          // 2. Genuine Active Live Rooms (Tự động ẩn phòng live đã xem / hoàn thành)
           const activeLiveCampaigns = activeCampaigns.filter(c => {
             const isMulti = c.type === 'multi_target' || (c.title || '').toLowerCase().includes('combo');
             if (isMulti) return false;
             return c.type === 'livestream' || c.type === 'livestream_viewers' || c.type === 'mega_live' || ((c.targetUrl || '').includes('tiktok.com/@') && (c.targetUrl || '').includes('/live'));
           });
+
+          const uncompletedLiveTasks = livestreamTasks.filter(l => 
+            l.status === 'live' && 
+            (l.remainingSlots === undefined || l.remainingSlots > 0) && 
+            !isItemCompletedByUser(l.id, l.channelHandle, l.targetUrl)
+          );
 
           const allActiveLiveRooms = [
             ...activeLiveCampaigns.map(c => ({
@@ -627,7 +686,7 @@ export const HomeScreen: React.FC<{
               currentViewers: 850,
               status: 'live' as const
             })),
-            ...livestreamTasks.filter(l => l.status === 'live' && (l.remainingSlots === undefined || l.remainingSlots > 0) && !userCompletedActions?.[l.id])
+            ...uncompletedLiveTasks
           ];
 
           const seenLive = new Set<string>();
@@ -660,46 +719,54 @@ export const HomeScreen: React.FC<{
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {displayedVideoItems.slice(0, 6).map((task) => (
-                    <div
-                      key={task.id}
-                      onClick={() => openFeedRunner(task.id)}
-                      className="cursor-pointer p-3 rounded-2xl bg-[#0D111E] border border-cyan-500/30 hover:border-cyan-400 transition-all flex items-center gap-3 shadow-lg group hover:scale-[1.01]"
-                    >
-                      <div className="relative w-16 h-20 sm:w-20 sm:h-24 rounded-xl overflow-hidden bg-black shrink-0 border border-white/10 group-hover:border-cyan-400/60 transition-colors shadow-md">
-                        <SmartMediaThumbnail
-                          targetUrl={task.targetUrl}
-                          videoPreviewUrl={task.videoPreviewUrl}
-                          channelAvatar={task.channelAvatar}
-                          channelHandle={task.channelHandle}
-                          badgeText="15 GIÂY"
-                          isBoosted={task.isBoosted}
-                          className="w-full h-full"
-                        />
-                      </div>
+                {displayedVideoItems.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-black/30 border border-white/5 text-center space-y-2">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+                    <div className="text-xs font-bold text-slate-200">Bạn Đã Hoàn Thành Tất Cả Chiến Dịch Video Hiện Có!</div>
+                    <p className="text-[10px] text-slate-400 font-mono">Các video bạn đã tương tác thành công được tự động ẩn để giao diện luôn gọn gàng và tinh gọn. Hãy quay lại sau khi có chiến dịch mới!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {displayedVideoItems.slice(0, 6).map((task) => (
+                      <div
+                        key={task.id}
+                        onClick={() => openFeedRunner(task.id)}
+                        className="cursor-pointer p-3 rounded-2xl bg-[#0D111E] border border-cyan-500/30 hover:border-cyan-400 transition-all flex items-center gap-3 shadow-lg group hover:scale-[1.01]"
+                      >
+                        <div className="relative w-16 h-20 sm:w-20 sm:h-24 rounded-xl overflow-hidden bg-black shrink-0 border border-white/10 group-hover:border-cyan-400/60 transition-colors shadow-md">
+                          <SmartMediaThumbnail
+                            targetUrl={task.targetUrl}
+                            videoPreviewUrl={task.videoPreviewUrl}
+                            channelAvatar={task.channelAvatar}
+                            channelHandle={task.channelHandle}
+                            badgeText="15 GIÂY"
+                            isBoosted={task.isBoosted}
+                            className="w-full h-full"
+                          />
+                        </div>
 
-                      <div className="flex-1 min-w-0 flex flex-col justify-between h-20 sm:h-24 py-0.5">
-                        <div>
-                          <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
-                            {task.channelName}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between h-20 sm:h-24 py-0.5">
+                          <div>
+                            <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
+                              {task.channelName}
+                            </div>
+                            <div className="text-[10px] text-cyan-400 font-mono truncate">{task.channelHandle}</div>
+                            <p className="text-[10px] text-slate-300 line-clamp-1 mt-0.5">{task.title}</p>
                           </div>
-                          <div className="text-[10px] text-cyan-400 font-mono truncate">{task.channelHandle}</div>
-                          <p className="text-[10px] text-slate-300 line-clamp-1 mt-0.5">{task.title}</p>
-                        </div>
 
-                        <div className="flex items-center justify-between pt-1 border-t border-white/5">
-                          <span className="text-[10px] font-mono font-black text-amber-400">
-                            +{task.rewardCoins || 200} Xu
-                          </span>
-                          <span className="text-[9px] font-mono font-bold text-cyan-400 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
-                            Lướt ngay →
-                          </span>
+                          <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                            <span className="text-[10px] font-mono font-black text-amber-400">
+                              +{task.rewardCoins || 200} Xu
+                            </span>
+                            <span className="text-[9px] font-mono font-bold text-cyan-400 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                              Lướt ngay →
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* 2. KHỐI PHÒNG LIVE STREAM ĐANG CẦN MẮT XEM (ĐỒNG BỘ PHÒNG THẬT) */}

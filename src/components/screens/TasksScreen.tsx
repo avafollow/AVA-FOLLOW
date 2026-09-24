@@ -441,43 +441,47 @@ export const TasksScreen: React.FC<{
     platform: t.platform || 'tiktok'
   }));
 
-  // Map live stream tasks to feed cards
-  const liveFeedCards = livestreamTasks.map(l => ({
-    id: l.id,
-    category: 'live' as const,
-    taskType: 'livestream',
-    title: l.roomTitle || `Live: ${l.channelName}`,
-    channelName: l.channelName,
-    channelHandle: l.channelHandle,
-    channelAvatar: l.channelAvatar,
-    thumbnail: l.channelAvatar,
-    rewardXu: l.totalRewardCoins || 400,
-    durationBadge: `${l.targetMinutes || 3} PHÚT`,
-    remainingSlots: 350,
-    isRealCampaign: false,
-    isBoosted: false,
-    targetUrl: l.targetUrl,
-    platform: (l as any).platform || 'tiktok'
-  }));
+  // Map live stream tasks to feed cards (Tự động ẩn phòng live đã hoàn thành)
+  const liveFeedCards = livestreamTasks
+    .filter(l => !userCompletedActions?.[l.id])
+    .map(l => ({
+      id: l.id,
+      category: 'live' as const,
+      taskType: 'livestream',
+      title: l.roomTitle || `Live: ${l.channelName}`,
+      channelName: l.channelName,
+      channelHandle: l.channelHandle,
+      channelAvatar: l.channelAvatar,
+      thumbnail: l.channelAvatar,
+      rewardXu: l.totalRewardCoins || 400,
+      durationBadge: `${l.targetMinutes || 3} PHÚT`,
+      remainingSlots: 350,
+      isRealCampaign: false,
+      isBoosted: false,
+      targetUrl: l.targetUrl,
+      platform: (l as any).platform || 'tiktok'
+    }));
 
-  // Map cross follow items to feed cards
-  const crossFeedCards = crossFollowItems.map(cf => ({
-    id: cf.id,
-    category: 'cross_follow' as const,
-    taskType: cf.type,
-    title: cf.title,
-    channelName: cf.channelName,
-    channelHandle: cf.channelHandle,
-    channelAvatar: cf.channelAvatar,
-    thumbnail: cf.channelAvatar,
-    rewardXu: cf.rewardXu || 200,
-    durationBadge: 'CHÉO KÊNH',
-    remainingSlots: Math.max(10, (cf.followersCount || 1000) - (cf.completedByUsersCount || 0)),
-    isRealCampaign: false,
-    isBoosted: false,
-    targetUrl: cf.targetUrl,
-    platform: 'tiktok'
-  }));
+  // Map cross follow items to feed cards (Tự động ẩn kênh chéo đã follow / hoàn thành)
+  const crossFeedCards = crossFollowItems
+    .filter(cf => !userCompletedActions?.[cf.id] && !isChannelFollowed(cf.channelHandle))
+    .map(cf => ({
+      id: cf.id,
+      category: 'cross_follow' as const,
+      taskType: cf.type,
+      title: cf.title,
+      channelName: cf.channelName,
+      channelHandle: cf.channelHandle,
+      channelAvatar: cf.channelAvatar,
+      thumbnail: cf.channelAvatar,
+      rewardXu: cf.rewardXu || 200,
+      durationBadge: 'CHÉO KÊNH',
+      remainingSlots: Math.max(10, (cf.followersCount || 1000) - (cf.completedByUsersCount || 0)),
+      isRealCampaign: false,
+      isBoosted: false,
+      targetUrl: cf.targetUrl,
+      platform: 'tiktok'
+    }));
 
   // Hàm khử trùng lặp triệt để và sắp xếp: Đẩy TOP 1 (100.000 Xu) lên đầu tiên
   const deduplicateAndSortCards = <T extends { targetUrl?: string; channelHandle?: string; id: string; isBoosted?: boolean; isRealCampaign?: boolean; platform?: string }>(cards: T[]): T[] => {

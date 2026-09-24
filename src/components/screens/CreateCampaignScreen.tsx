@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   PlusCircle, 
   UserPlus, 
@@ -34,7 +34,10 @@ import {
   Target,
   Users,
   Rocket,
-  Trash2
+  Trash2,
+  Image,
+  Upload,
+  X
 } from 'lucide-react';
 import { CampaignItem, FLEXIBLE_LIVESTREAM_TIERS, MultiTargetConfig } from '../../types';
 import { useTikTokApp } from '../../context/TikTokAppContext';
@@ -145,11 +148,13 @@ export const CreateCampaignScreen: React.FC<{
     openLiveRunner,
     livestreamTasks,
     openMarqueeBoostModal,
-    openMarqueeHistoryModal
+    openMarqueeHistoryModal,
+    createLivestreamBannerCampaign,
+    bannerCampaigns
   } = useTikTokApp();
 
-  // Tab: Standard vs Mega Live & Product Launch
-  const [activeMainTab, setActiveMainTab] = useState<'standard' | 'mega_launch'>('standard');
+  // Tab: Standard vs Mega Live & Product Launch vs Banner Live 100k
+  const [activeMainTab, setActiveMainTab] = useState<'standard' | 'mega_launch' | 'banner_live'>('standard');
 
   // Mega Live & Launch Form States
   const [megaType, setMegaType] = useState<'mega_live' | 'product_launch'>('mega_live');
@@ -364,6 +369,70 @@ export const CreateCampaignScreen: React.FC<{
   const isAboveMinBudget = baseCostXu >= MIN_CAMPAIGN_BUDGET_XU;
   const hasEnoughCoins = (user.avaliveCoins || 0) >= totalCostXu;
 
+  // ===== BANNER LIVE 100K STATE =====
+  const [bannerLiveUrl, setBannerLiveUrl] = useState('');
+  const [bannerLiveTitle, setBannerLiveTitle] = useState('');
+  const [bannerImageUrl, setBannerImageUrl] = useState('');
+  const [bannerImageFile, setBannerImageFile] = useState<File | null>(null);
+  const [bannerImagePreview, setBannerImagePreview] = useState<string>('');
+  const [isSubmittingBanner, setIsSubmittingBanner] = useState(false);
+  const bannerFileInputRef = useRef<HTMLInputElement>(null);
+  const BANNER_COST_XU = 100000;
+
+  const handleBannerImageSelect = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('⚠️ Ảnh banner vượt quá 5MB! Vui lòng chọn ảnh nhỏ hơn.');
+      return;
+    }
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      showToast('⚠️ Chỉ hỗ trợ định dạng JPG, PNG, WebP hoặc GIF!');
+      return;
+    }
+    setBannerImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      setBannerImagePreview(result);
+      setBannerImageUrl(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleBannerSubmit = () => {
+    const liveUrl = bannerLiveUrl.trim();
+    if (!liveUrl) {
+      showToast('⚠️ Vui lòng nhập đường link phiên live của bạn!');
+      return;
+    }
+    if (!bannerImagePreview && !bannerImageUrl.trim()) {
+      showToast('⚠️ Vui lòng tải lên ảnh banner 1080×1080px!');
+      return;
+    }
+    if ((user.avaliveCoins || 0) < BANNER_COST_XU) {
+      showToast(`⚠️ Bạn cần ${BANNER_COST_XU.toLocaleString()} Xu để chạy banner! Hiện tại: ${(user.avaliveCoins || 0).toLocaleString()} Xu.`);
+      openDeposit();
+      return;
+    }
+    setIsSubmittingBanner(true);
+    setTimeout(async () => {
+      const success = await createLivestreamBannerCampaign({
+        liveTitle: bannerLiveTitle.trim() || `Banner Live: ${liveUrl}`,
+        targetLiveUrl: liveUrl,
+        bannerImageUrl: bannerImagePreview || bannerImageUrl.trim()
+      });
+      setIsSubmittingBanner(false);
+      if (success) {
+        showToast('🎉 Banner Live 100k đã được kích hoạt! Tự động vào lịch sử chiến dịch của bạn.');
+        setBannerLiveUrl('');
+        setBannerLiveTitle('');
+        setBannerImageUrl('');
+        setBannerImageFile(null);
+        setBannerImagePreview('');
+      }
+    }, 1200);
+  };
+
   const handleSelectLiveDuration = (mins: number) => {
     setLivestreamMinutes(mins);
     const tier = FLEXIBLE_LIVESTREAM_TIERS.find(t => t.minutes === mins);
@@ -372,6 +441,7 @@ export const CreateCampaignScreen: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (activeTargetsList.length === 0) {
       alert('Vui lòng chọn ít nhất 1 mục tiêu chiến dịch!');
       return;
@@ -555,7 +625,7 @@ export const CreateCampaignScreen: React.FC<{
       </div>
 
       {/* Main Mode Tabs Switcher */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-1.5 bg-[#0D111E] rounded-3xl border border-white/10 shadow-xl">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-1.5 bg-[#0D111E] rounded-3xl border border-white/10 shadow-xl">
         <button
           type="button"
           onClick={() => setActiveMainTab('standard')}
@@ -584,7 +654,24 @@ export const CreateCampaignScreen: React.FC<{
             VIP GÓI LỚN
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveMainTab('banner_live')}
+          className={`py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-black font-mono transition-all flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden ${
+            activeMainTab === 'banner_live'
+              ? 'bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-600/30'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Image className="w-4 h-4 text-cyan-300" />
+          <span>Banner Live 100k</span>
+          <span className="px-1.5 py-0.2 rounded-full bg-cyan-400 text-black text-[9px] font-black uppercase">
+            QUẢNG CÁO
+          </span>
+        </button>
       </div>
+
 
       {/* Wallet Balance & Instant Recharge */}
       <div className="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs shadow-lg">
@@ -1996,6 +2083,243 @@ export const CreateCampaignScreen: React.FC<{
         </form>
       )}
 
+      {/* =========================================================== */}
+      {/* BANNER LIVE 100K PANEL                                       */}
+      {/* =========================================================== */}
+      {activeMainTab === 'banner_live' && (
+        <div className="p-6 sm:p-8 rounded-3xl bg-[#0D111E] border border-cyan-500/30 space-y-6 text-xs shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+          {/* Header */}
+          <div className="space-y-1 relative z-10">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2.5 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400">
+                <Image className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white font-display">BANNER LIVE 100K XU</h3>
+                <p className="text-[11px] text-slate-400 font-mono">Phát banner quảng cáo phiên live toàn bộ màn hình người dùng — 1080×1080px vuông, tối đa 5MB</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-start gap-2 mt-2">
+              <Zap className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-cyan-200 leading-relaxed">
+                Banner của bạn sẽ xuất hiện toàn màn hình cho toàn bộ người dùng AVA với countdown 3 giây, badge LIVE và nút click trực tiếp vào phiên live của bạn. Chi phí: <span className="font-black text-amber-300">100.000 Xu</span>. Tự động lưu vào lịch sử chiến dịch khi hoàn thành.
+              </p>
+            </div>
+          </div>
+
+          {/* Form */}
+          <div className="space-y-5 relative z-10">
+
+            {/* 1. Link phiên live */}
+            <div className="space-y-2">
+              <label className="block text-zinc-300 font-mono font-black uppercase text-[11px]">
+                1. Đường Link Phiên Live Của Bạn: <span className="text-rose-400">*</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={bannerLiveUrl}
+                  onChange={(e) => setBannerLiveUrl(e.target.value)}
+                  placeholder="https://www.tiktok.com/@kenh_cua_ban/live hoặc link Facebook Live / YouTube Live"
+                  className="flex-1 bg-black/60 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText();
+                      if (text?.trim()) setBannerLiveUrl(text.trim());
+                      showToast('📋 Đã dán đường link live!');
+                    } catch { showToast('💡 Hãy bấm giữ ô và chọn Dán nhé!'); }
+                  }}
+                  className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 font-bold flex items-center gap-1.5"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Dán</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 2. Tiêu đề banner */}
+            <div className="space-y-2">
+              <label className="block text-zinc-300 font-mono font-black uppercase text-[11px]">
+                2. Tiêu Đề Banner (tùy chọn):
+              </label>
+              <input
+                type="text"
+                value={bannerLiveTitle}
+                onChange={(e) => setBannerLiveTitle(e.target.value)}
+                placeholder="VD: 🔴 LIVE SALE 50% — Flash Deal chỉ còn hôm nay!"
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+
+            {/* 3. Upload ảnh banner 1080x1080 */}
+            <div className="space-y-2">
+              <label className="block text-zinc-300 font-mono font-black uppercase text-[11px]">
+                3. Ảnh Banner 1080×1080px (Vuông, tối đa 5MB): <span className="text-rose-400">*</span>
+              </label>
+
+              {/* Preview + upload area */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+
+                {/* Upload zone */}
+                <div
+                  className="aspect-square rounded-2xl border-2 border-dashed border-cyan-500/40 bg-black/40 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-cyan-400 hover:bg-cyan-950/20 transition-all relative overflow-hidden"
+                  onClick={() => bannerFileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files[0];
+                    if (file) handleBannerImageSelect(file);
+                  }}
+                >
+                  {bannerImagePreview ? (
+                    <>
+                      <img src={bannerImagePreview} alt="Banner Preview" className="absolute inset-0 w-full h-full object-cover rounded-2xl" />
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setBannerImagePreview(''); setBannerImageUrl(''); setBannerImageFile(null); }}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-black/90 z-10"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                      <div className="absolute bottom-2 left-2 right-2 bg-black/70 rounded-xl p-2 text-center z-10">
+                        <span className="text-[10px] text-emerald-300 font-bold font-mono">✅ Ảnh đã tải lên</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-3 rounded-2xl bg-cyan-500/20 text-cyan-400">
+                        <Image className="w-8 h-8" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs font-bold text-slate-300">Kéo thả hoặc bấm để chọn ảnh</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">JPG, PNG, WebP • Max 5MB • 1080×1080px</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* URL input + preview info */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-mono mb-1 block">Hoặc dán link URL ảnh trực tiếp:</label>
+                    <input
+                      type="text"
+                      value={bannerImageUrl.startsWith('data:') ? '' : bannerImageUrl}
+                      onChange={(e) => {
+                        setBannerImageUrl(e.target.value);
+                        if (e.target.value.startsWith('http')) {
+                          setBannerImagePreview(e.target.value);
+                          setBannerImageFile(null);
+                        }
+                      }}
+                      placeholder="https://... (link ảnh 1080×1080px)"
+                      className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 space-y-1.5">
+                    <p className="text-[10px] font-bold text-cyan-300 font-mono">📐 THÔNG SỐ CHUẨN:</p>
+                    <ul className="text-[10px] text-slate-300 space-y-0.5 font-mono">
+                      <li>• Kích thước: <span className="text-white font-bold">1080 × 1080px (vuông 1:1)</span></li>
+                      <li>• Dung lượng: <span className="text-white font-bold">Tối đa 5MB</span></li>
+                      <li>• Định dạng: <span className="text-white font-bold">JPG, PNG, WebP, GIF</span></li>
+                      <li>• Nội dung: <span className="text-emerald-300 font-bold">Không vi phạm quy định</span></li>
+                    </ul>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => bannerFileInputRef.current?.click()}
+                    className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Chọn Ảnh Từ Thiết Bị</span>
+                  </button>
+                </div>
+              </div>
+
+              <input
+                ref={bannerFileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleBannerImageSelect(file);
+                }}
+              />
+            </div>
+
+            {/* Cost & Submit */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/40 to-blue-950/40 border border-cyan-500/30 space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 font-mono">Chi phí Banner Live 100k:</span>
+                <span className="text-amber-300 font-black text-base font-mono">100.000 Xu</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 font-mono">Số dư hiện tại:</span>
+                <span className={`font-black font-mono ${(user.avaliveCoins || 0) >= BANNER_COST_XU ? 'text-emerald-300' : 'text-rose-400'}`}>
+                  {(user.avaliveCoins || 0).toLocaleString()} Xu
+                </span>
+              </div>
+              {(user.avaliveCoins || 0) < BANNER_COST_XU && (
+                <div className="flex items-center gap-2 text-[10px] text-rose-300 font-mono">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Số dư không đủ! Cần nạp thêm {(BANNER_COST_XU - (user.avaliveCoins || 0)).toLocaleString()} Xu.</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleBannerSubmit}
+                disabled={isSubmittingBanner}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-60"
+              >
+                {isSubmittingBanner ? (
+                  <><Radio className="w-4 h-4 animate-spin" /><span>Đang kích hoạt banner...</span></>
+                ) : (
+                  <><Zap className="w-4 h-4 text-amber-300" /><span>⚡ KÍCH HOẠT BANNER LIVE 100K XU</span></>
+                )}
+              </button>
+            </div>
+
+            {/* Banner campaigns history */}
+            {bannerCampaigns && bannerCampaigns.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-black text-slate-300 font-mono uppercase flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                  Lịch Sử Banner Live ({bannerCampaigns.length})
+                </h4>
+                {bannerCampaigns.slice(0, 5).map((bc) => (
+                  <div key={bc.id} className="p-3 rounded-2xl bg-black/50 border border-white/10 flex items-start gap-3">
+                    {bc.bannerImageUrl && (
+                      <img src={bc.bannerImageUrl} alt="banner" className="w-12 h-12 rounded-xl object-cover border border-cyan-500/30 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-white truncate">{bc.liveTitle}</p>
+                      <p className="text-[10px] text-slate-400 font-mono truncate">{bc.targetLiveUrl}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold font-mono ${
+                          bc.status === 'active' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                          bc.status === 'approved' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                          bc.status === 'pending_moderation' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                          'bg-slate-500/20 text-slate-300 border border-slate-500/30'
+                        }`}>
+                          {bc.status === 'active' ? '🟢 ĐANG CHẠY' : bc.status === 'approved' ? '✅ ĐÃ DUYỆT' : bc.status === 'pending_moderation' ? '⏳ CHỜ DUYỆT' : bc.status}
+                        </span>
+                        <span className="text-[9px] text-slate-500 font-mono">{new Date(bc.createdAt).toLocaleDateString('vi-VN')}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Active campaigns list with progress tracking */}
       <div className="space-y-3">
         <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center gap-2">
@@ -2006,6 +2330,7 @@ export const CreateCampaignScreen: React.FC<{
           {campaigns.map((camp) => {
             const percent = Math.min(100, Math.round((camp.completedQuantity / Math.max(1, camp.targetQuantity)) * 100));
             const isLive = camp.type === 'livestream' || camp.type === 'livestream_viewers';
+
             const isMulti = camp.type === 'multi_target' || (camp.multiTargets && camp.multiTargets.length > 0);
 
             return (

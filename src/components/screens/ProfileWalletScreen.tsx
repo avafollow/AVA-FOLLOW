@@ -417,7 +417,52 @@ export const ProfileWalletScreen: React.FC<{
         </div>
       </div>
 
-      {/* BANNER CẢNH BÁO BẢO MẬT, CHỐNG LỪA ĐẢO & TUÂN THỦ PHÁP LUẬT (NỔI BẬT ĐẦU TRANG HỒ SƠ) */}
+      {/* ====================================================== */}
+      {/* 💡 CTA KHUYẾN KHÍCH DÙNG XU TẠO CHIẾN DỊCH */}
+      {/* Vị trí: Ngay sau khi thấy số dư Xu — hiệu quả nhất */}
+      {/* ====================================================== */}
+      {(() => {
+        const coinBalance = user.avaliveCoins || 0;
+        if (coinBalance < 500) return null;
+        const activeCampaigns = campaigns.filter(c => c.status === 'running').length;
+        return (
+          <div 
+            onClick={() => {/* navigate to create campaign */}}
+            className="relative overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-orange-950/30 to-yellow-950/40 p-4 cursor-pointer hover:border-amber-400 hover:bg-amber-950/30 transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg">
+                💰
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="text-xs font-black text-amber-300 uppercase font-mono bg-amber-500/15 border border-amber-500/30 rounded px-2 py-0.5">
+                    💡 Tối ưu số Xu đang có
+                  </span>
+                  {activeCampaigns > 0 && (
+                    <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded px-1.5 py-0.5">
+                      {activeCampaigns} chiến dịch đang chạy
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm font-black text-white font-display group-hover:text-amber-200 transition-colors">
+                  Bạn đang có {coinBalance >= 1000000 ? `${(coinBalance/1000000).toFixed(1)}M` : coinBalance >= 1000 ? `${Math.floor(coinBalance/1000)}K` : coinBalance} Xu — Hãy đầu tư vào chiến dịch!
+                </p>
+                <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  Dùng Xu tạo chiến dịch Follow • Xem Video • Like • Livestream • Bán hàng → Cộng đồng cùng làm, cùng kiếm!
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow">
+                  <PlusCircle className="w-4.5 h-4.5 text-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* BANNER CẢNH BÁO BẢO MẬT, CHỐNG LỬA ĐẢO & TUÂN THỦ PHÁP LUẬT (NỔI BẬT ĐẦU TRANG HỒ SƠ) */}
       <div className="p-4 rounded-3xl bg-gradient-to-r from-red-950/50 via-[#0F1424] to-slate-950 border-2 border-red-500/50 shadow-xl shadow-red-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="w-10 h-10 rounded-2xl bg-red-600/30 border border-red-500/60 flex items-center justify-center text-red-400 shrink-0 shadow-lg animate-pulse">

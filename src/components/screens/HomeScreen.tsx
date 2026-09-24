@@ -257,6 +257,75 @@ export const HomeScreen: React.FC<{
           </div>
         </div>
 
+        {/* ====================================================================== */}
+        {/* 🔥 CTA KHUYẾN KHÍCH TẠO CHIẾN DỊCH — LUÔN ĐẬP VÀO MẮT NGƯỜI DÙNG   */}
+        {/* Vị trí: Ngay dưới lưới tác vụ chính — nơi người dùng nhìn nhiều nhất */}
+        {/* ====================================================================== */}
+        {(() => {
+          const coinBalance = user.avaliveCoins || 0;
+          const activeCampaigns = campaigns.filter(c => c.status === 'running' || c.status === 'pending').length;
+          const msgs = [
+            { icon: '📣', highlight: 'Dùng Xu tạo chiến dịch Follow', body: 'Thu hút hàng trăm người thật follow kênh TikTok của bạn ngay hôm nay!' },
+            { icon: '🎬', highlight: 'Tăng lượt xem video bằng Xu', body: 'Video được xem bởi người thật → Tăng reach tự nhiên, viral nhanh hơn!' },
+            { icon: '❤️‍🔥', highlight: 'Chiến dịch Like giá cực rẻ', body: 'Mỗi lượt tương tác từ người thật chỉ tốn vài Xu — hiệu quả gấp 10x!' },
+            { icon: '📡', highlight: 'Live nhiều viewer hơn với Xu', body: 'Kéo người thật vào xem livestream — TikTok đẩy phòng live của bạn lên Top!' },
+            { icon: '🛍️', highlight: 'Chiến dịch bán hàng — đúng tệp', body: 'Tiếp cận đúng khách hàng mục tiêu, tăng đơn hàng thực tế từ cộng đồng!' },
+            { icon: '🤝', highlight: 'Cộng đồng cùng nhau phát triển', body: 'Bạn lên chiến dịch → mọi người có việc làm → cả hai cùng win!' },
+          ];
+          const msgIdx = Math.floor(Date.now() / 12000) % msgs.length;
+          const msg = msgs[msgIdx];
+          return (
+            <div 
+              onClick={onOpenCreateCampaign || (() => onNavigate('create_campaign'))}
+              className="relative overflow-hidden rounded-2xl border-2 border-pink-500/60 bg-gradient-to-r from-[#1a0a1e] via-[#120824] to-[#0d1226] shadow-xl shadow-pink-950/30 cursor-pointer hover:border-pink-400 hover:shadow-pink-900/40 hover:scale-[1.01] active:scale-[0.99] transition-all group"
+            >
+              {/* Animated glow bg */}
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-600/8 via-purple-600/5 to-cyan-600/8 animate-pulse pointer-events-none" />
+              <div className="relative z-10 flex items-center gap-3 p-3.5 sm:p-4">
+                {/* Left: Icon + xu balance */}
+                <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-xl shadow-lg shadow-pink-950/40 group-hover:scale-110 transition-transform">
+                    {msg.icon}
+                  </div>
+                  {coinBalance > 0 && (
+                    <div className="text-[9px] font-mono font-black text-pink-400 bg-pink-500/10 border border-pink-500/30 rounded-lg px-1.5 py-0.5 text-center whitespace-nowrap">
+                      {coinBalance >= 1000000 
+                        ? `${(coinBalance/1000000).toFixed(1)}M Xu`
+                        : coinBalance >= 1000 
+                          ? `${Math.floor(coinBalance/1000)}K Xu`
+                          : `${coinBalance} Xu`}
+                    </div>
+                  )}
+                </div>
+                {/* Center: Message */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[10px] font-mono font-black text-pink-400 uppercase tracking-wider bg-pink-500/15 border border-pink-500/30 rounded px-1.5 py-0.5">
+                      💡 Dùng Xu của bạn
+                    </span>
+                    {activeCampaigns > 0 && (
+                      <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded px-1.5 py-0.5">
+                        {activeCampaigns} chiến dịch đang chạy
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs sm:text-sm font-black text-white font-display group-hover:text-pink-200 transition-colors leading-tight">
+                    {msg.highlight}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5 line-clamp-1">{msg.body}</p>
+                </div>
+                {/* Right: CTA arrow */}
+                <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                    <PlusCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-[8px] font-mono font-black text-pink-400 uppercase">Tạo ngay</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ========================================================================= */}
         {/* BIỂU ĐỒ HÌNH TRÒN: CƠ CẤU THU NHẬP, XU, FOLLOW & NHIỆM VỤ THỜI GIAN THỰC */}
         {/* ========================================================================= */}

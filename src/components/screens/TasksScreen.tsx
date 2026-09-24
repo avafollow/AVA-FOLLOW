@@ -629,6 +629,40 @@ export const TasksScreen: React.FC<{
 
       </div>
 
+      {/* ====================================================== */}
+      {/* 💡 CTA DÙNG XU LÀM CHIẾN DỊCH — VỊ TRÍ ĐẸP NHẤT */}
+      {/* ====================================================== */}
+      {(() => {
+        const coinBalance = user.avaliveCoins || 0;
+        if (coinBalance < 500) return null; // Chỉ hiện nếu có Xu
+        const activeCampaigns = campaigns.filter(c => c.status === 'running').length;
+        const totalTasksToday = campaigns.filter(c => c.status === 'running').length * 10;
+        return (
+          <button
+            type="button"
+            onClick={onOpenCreateCampaign || (() => onNavigate?.('create_campaign'))}
+            className="w-full flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-violet-950/60 via-pink-950/50 to-purple-950/60 border border-pink-500/40 hover:border-pink-400 hover:bg-pink-950/30 transition-all cursor-pointer group text-left"
+          >
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-110 transition-transform">
+              📣
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-black text-white font-display group-hover:text-pink-200 transition-colors">
+                  Dùng {coinBalance >= 1000000 ? `${(coinBalance/1000000).toFixed(1)}M` : coinBalance >= 1000 ? `${Math.floor(coinBalance/1000)}K` : coinBalance} Xu — Tạo chiến dịch, kéo Follow • Like • View • Live ngay!
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                {activeCampaigns > 0 
+                  ? `✅ ${activeCampaigns} chiến dịch đang chạy — Cộng đồng ${totalTasksToday}+ người đang làm nhiệm vụ của bạn!`
+                  : '💡 Chưa có chiến dịch → Ít nhiệm vụ → Cộng đồng ít việc. Tạo ngay để cùng nhau phát triển!'}
+              </p>
+            </div>
+            <PlusCircle className="w-5 h-5 text-pink-400 flex-shrink-0 group-hover:scale-110 transition-transform" />
+          </button>
+        );
+      })()}
+
       {/* ========================================================================= */}
       {/* 2. THANH KẾT NỐI TÀI KHOẢN (TIKTOK, FACEBOOK & YOUTUBE) MỞ TRỰC TIẾP KÊNH THẬT */}
       {/* ========================================================================= */}

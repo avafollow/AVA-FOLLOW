@@ -111,7 +111,7 @@ export const HomeScreen: React.FC<{
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 border border-white/10 text-white shadow-sm">
                   <Mail className="w-3.5 h-3.5 text-rose-400" />
                   <span className="text-slate-400">Google:</span>
-                  <span className="font-bold text-cyan-300 truncate max-w-[140px] sm:max-w-[200px]">{user.email || 'Chưa đăng nhập'}</span>
+                  <span className="font-bold text-cyan-300 truncate max-w-[140px] sm:max-w-[200px]">{user.email || `${user.name || 'Thành viên'} (Đã đăng nhập)`}</span>
                   <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
                 </div>
 
@@ -842,7 +842,7 @@ export const HomeScreen: React.FC<{
                   <Mail className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                   <div className="truncate">
                     <div className="text-[10px] text-slate-400">Google Auth</div>
-                    <div className="text-white font-bold text-[10px] truncate">{user.email || 'Chưa đăng nhập'}</div>
+                    <div className="text-white font-bold text-[10px] truncate">{user.email || `${user.name || 'Người dùng'} (Đang hoạt động)`}</div>
                   </div>
                 </div>
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />

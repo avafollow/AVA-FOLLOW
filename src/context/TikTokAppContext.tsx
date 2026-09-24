@@ -2010,10 +2010,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
       if (typeof window === 'undefined') return false;
+      // Chỉ khi người dùng bấm Đăng Xuất thủ công thì mới hiển thị lại màn hình đăng nhập
       if (localStorage.getItem('ava_logged_out') === 'true') return false;
-      const hasEmail = !!localStorage.getItem('ava_user_email');
+      const hasEmail = Boolean(localStorage.getItem('ava_user_email'));
       const hasAuth = localStorage.getItem('tiktok_pro_auth') === 'true';
-      return hasAuth && hasEmail;
+      const hasSavedUser = Boolean(localStorage.getItem('ava_user_profile'));
+      return hasAuth || hasEmail || hasSavedUser;
     } catch {
       return false;
     }

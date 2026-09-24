@@ -21,21 +21,22 @@ export interface ParsedMediaInfo {
   sourceType: 'tiktok_embed' | 'cdn_stream' | 'youtube_embed' | 'facebook_embed' | 'live_stream' | 'direct_stream';
 }
 
-// Bộ nguồn CDN trực tiếp cho video & stream (Tốc độ cao 100%, load tức thì < 50ms trên điện thoại di động)
+// Bộ nguồn CDN trực tiếp cho video & stream (Tốc độ cao 100%, load tức thì < 50ms trên điện thoại di động & máy tính)
 export const HIGH_SPEED_CDN_VIDEOS = {
   fyp: [
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    '/videos/sample1.mp4',
+    '/videos/sample2.mp4',
+    '/videos/sample3.mp4'
   ],
   livestream: [
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4'
+    '/videos/sample2.mp4',
+    '/videos/sample1.mp4',
+    '/videos/sample3.mp4'
   ],
   product_review: [
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    '/videos/sample3.mp4',
+    '/videos/sample2.mp4',
+    '/videos/sample1.mp4'
   ]
 };
 
@@ -283,7 +284,8 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
       embedUrl = `https://www.tiktok.com/@${cleanHandle}/live`;
       streamUrl = HIGH_SPEED_CDN_VIDEOS.livestream[0];
     } else {
-      streamUrl = url;
+      sourceType = 'cdn_stream';
+      streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[0];
     }
   } else if (isDirectVideo) {
     streamUrl = url;

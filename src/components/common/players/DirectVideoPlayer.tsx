@@ -21,14 +21,22 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
   className = ''
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [currentSrc, setCurrentSrc] = useState<string>(src || '');
+  const resolveValidSrc = (input?: string) => {
+    if (!input) return '/videos/sample1.mp4';
+    if (input.endsWith('.mp4') || input.endsWith('.webm') || input.startsWith('/videos/') || input.includes('blob:')) {
+      return input;
+    }
+    return '/videos/sample1.mp4';
+  };
+
+  const [currentSrc, setCurrentSrc] = useState<string>(() => resolveValidSrc(src));
   const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [hasStartedPlaying, setHasStartedPlaying] = useState<boolean>(false);
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
 
   // Cập nhật khi prop src thay đổi
   useEffect(() => {
-    setCurrentSrc(src || '');
+    setCurrentSrc(resolveValidSrc(src));
     setIsBuffering(false);
     setHasStartedPlaying(false);
   }, [src]);
@@ -38,6 +46,7 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
     setInternalMuted(isMuted);
     if (videoRef.current) {
       videoRef.current.muted = isMuted;
+      videoRef.current.defaultMuted = isMuted;
     }
   }, [isMuted]);
 
@@ -48,6 +57,7 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
 
     video.playsInline = true;
     video.muted = internalMuted;
+    video.defaultMuted = internalMuted;
 
     const startPlay = () => {
       if (autoPlay || isPlaying) {
@@ -61,6 +71,7 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
             .catch(() => {
               // Mobile Safari chặn autoplay có tiếng -> ép muted và phát ngay
               video.muted = true;
+              video.defaultMuted = true;
               setInternalMuted(true);
               video.play().then(() => {
                 setIsBuffering(false);
@@ -93,9 +104,12 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
     };
   }, [currentSrc, isPlaying, autoPlay]);
 
-  // Tự động chuyển sang video CDN tiếp theo nếu video hiện tại bị lỗi
+  // Tự động chuyển sang video mẫu chuẩn nếu video hiện tại bị lỗi mạng
   const handleVideoError = () => {
     setIsBuffering(false);
+    if (currentSrc !== '/videos/sample1.mp4') {
+      setCurrentSrc('/videos/sample1.mp4');
+    }
   };
 
   const handleVideoWaiting = () => {

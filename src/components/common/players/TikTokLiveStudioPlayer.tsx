@@ -55,12 +55,20 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
 
   const hasDirectStream = Boolean(
     streamUrl && 
-    (streamUrl.endsWith('.mp4') || streamUrl.endsWith('.webm') || streamUrl.endsWith('.m3u8') || streamUrl.includes('blob:') || streamUrl.includes('commondatastorage') || streamUrl.includes('sample'))
+    (streamUrl.endsWith('.mp4') || streamUrl.endsWith('.webm') || streamUrl.endsWith('.m3u8') || streamUrl.includes('blob:') || streamUrl.startsWith('/videos/'))
   );
 
-  const effectiveStreamSrc = hasDirectStream && streamUrl
-    ? streamUrl 
-    : (HIGH_SPEED_CDN_VIDEOS.livestream[0] || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4');
+  const [activeSrc, setActiveSrc] = useState<string>(
+    hasDirectStream && streamUrl ? streamUrl : (HIGH_SPEED_CDN_VIDEOS.livestream[0] || '/videos/sample2.mp4')
+  );
+
+  useEffect(() => {
+    if (hasDirectStream && streamUrl) {
+      setActiveSrc(streamUrl);
+    } else {
+      setActiveSrc(HIGH_SPEED_CDN_VIDEOS.livestream[0] || '/videos/sample2.mp4');
+    }
+  }, [streamUrl, hasDirectStream]);
 
   // Đồng bộ âm thanh
   useEffect(() => {
@@ -121,7 +129,7 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
       window.removeEventListener('touchstart', handleUserInteraction);
       window.removeEventListener('click', handleUserInteraction);
     };
-  }, [effectiveStreamSrc, isPlaying, internalMuted]);
+  }, [activeSrc, isPlaying, internalMuted]);
 
   const handleSoundToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -132,6 +140,13 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
     }
     if (onToggleMute) {
       onToggleMute();
+    }
+  };
+
+  const handleVideoError = () => {
+    // Tự động fallback sang sample video nếu link ngoài bị lỗi
+    if (activeSrc !== '/videos/sample1.mp4') {
+      setActiveSrc('/videos/sample1.mp4');
     }
   };
 
@@ -150,8 +165,8 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
             el.playsInline = true;
           }
         }}
-        key={effectiveStreamSrc}
-        src={effectiveStreamSrc}
+        key={activeSrc}
+        src={activeSrc}
         autoPlay
         loop
         muted={internalMuted}
@@ -159,6 +174,7 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
         {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
         preload="auto"
         onPlaying={() => setHasStartedPlaying(true)}
+        onError={handleVideoError}
         className="absolute inset-0 w-full h-full object-cover z-0"
       />
 

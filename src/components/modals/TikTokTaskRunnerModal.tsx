@@ -44,6 +44,8 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     claimTaskAction, 
     openShareModal, 
     openFeedRunner,
+    user,
+    openConnect,
     userCompletedActions,
     showToast,
     isChannelFollowed,
@@ -222,12 +224,8 @@ export const TikTokTaskRunnerModal: React.FC = () => {
 
   if (!isRunnerOpen || !runnerTask) return null;
 
-  // Trigger Like & Floating hearts effect
+  // Visual hearts effect on screen (Không cộng Xu trực tiếp để chống auto click/macro)
   const triggerLikeEffect = (clientX?: number, clientY?: number) => {
-    if (!claimedActions.like) {
-      claimTaskAction(runnerTask.id, 'like');
-      setClaimedActions(prev => ({ ...prev, like: true }));
-    }
     const id = Date.now() + Math.random();
     const x = clientX ?? (180 + (Math.random() * 60 - 30));
     const y = clientY ?? (300 + (Math.random() * 60 - 30));
@@ -237,7 +235,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     }, 1200);
   };
 
-  // Double tap video stage to like / single tap to play/pause
+  // Double tap video stage to show hearts / single tap to play/pause
   const handleStageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const now = Date.now();
     const DOUBLE_TAP_THRESHOLD = 300;
@@ -252,9 +250,16 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     lastTapRef.current = now;
   };
 
-  // Single-action handlers with 1-time-only strict enforcement
+  // 1. Follow Kênh TikTok (Bắt buộc kết nối tài khoản + mở TikTok thật)
   const handleFollowAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
+
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+      openConnect();
+      return;
+    }
+
     if (isChannelFollowed(runnerTask.channelHandle)) {
       triggerImmediateFraudAlert({
         title: 'TỪ CHỐI FOLLOW TRÙNG LẶP',
@@ -265,6 +270,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       });
       return;
     }
+
     if (!claimedActions.follow) {
       setPendingFraudAction('follow');
       setPendingActionStartTime(Date.now());
@@ -272,8 +278,33 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     }
   };
 
+  // 2. Thả Tim Video (Bắt buộc kết nối tài khoản + mở TikTok thật)
+  const handleLikeAction = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+      openConnect();
+      return;
+    }
+
+    if (!claimedActions.like) {
+      setPendingFraudAction('like');
+      setPendingActionStartTime(Date.now());
+      const targetUrl = runnerTask.targetUrl || `https://www.tiktok.com/@${runnerTask.channelHandle}`;
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  // 3. Bình luận Video (Copy text + mở TikTok thật)
   const handleCommentAction = (commentText: string) => {
     if (!commentText.trim()) return;
+
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+      openConnect();
+      return;
+    }
     
     // ĐÓNG BĂNG 60 LỚP: BẮT BUỘC COPY VÀ MỞ TIKTOK ĐỂ DÁN
     navigator.clipboard.writeText(commentText).catch(() => {});
@@ -292,12 +323,23 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     }, 1000);
   };
 
+  // 4. Chia sẻ Video (Bắt buộc kết nối tài khoản + mở TikTok thật)
   const handleShareAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (!claimedActions.share) {
-      claimTaskAction(runnerTask.id, 'share');
-      setClaimedActions(prev => ({ ...prev, share: true }));
+
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+      openConnect();
+      return;
     }
+
+    if (!claimedActions.share) {
+      setPendingFraudAction('share');
+      setPendingActionStartTime(Date.now());
+      const targetUrl = runnerTask.targetUrl || `https://www.tiktok.com/@${runnerTask.channelHandle}`;
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
+
     openShareModal({
       targetUrl: runnerTask.targetUrl,
       title: runnerTask.title
@@ -587,10 +629,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
 
             {/* 2. TikTok Like Action */}
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                triggerLikeEffect();
-              }}
+              onClick={handleLikeAction}
               className="flex flex-col items-center gap-0.5 cursor-pointer group mt-2"
             >
               <div className={`p-2 rounded-full transition-all duration-200 ${

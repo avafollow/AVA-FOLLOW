@@ -210,6 +210,7 @@ interface TikTokAppContextType {
     completedQty: number;
   };
   updateOrderTargetUrl: (orderId: string, newTargetUrl: string) => boolean;
+  updateCustomRefCode: (newCode: string) => { success: boolean; message: string };
 
   // Modals state
   runnerTask: TikTokTaskItem | null;
@@ -3239,6 +3240,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
+    // Tự động tạo mã Ref cá nhân từ Gmail đăng ký (nếu chưa có mã tùy chỉnh)
+    const customStoredCode = typeof window !== 'undefined' ? localStorage.getItem('ava_custom_ref_code') : null;
+    const defaultUserRefCode = customStoredCode || (cleanEmail ? cleanEmail.split('@')[0].toUpperCase().replace(/[^A-Z0-9]/g, '') : 'THIENVUAAPP88');
+    setAffiliateData(prev => ({
+      ...prev,
+      refCode: (!prev.refCode || prev.refCode === 'THIENVUAAPP88') ? defaultUserRefCode : prev.refCode,
+      refLink: `${typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://avafollow.vn'}/?ref=${(!prev.refCode || prev.refCode === 'THIENVUAAPP88') ? defaultUserRefCode : prev.refCode}`
+    }));
+
     // Nếu có mã bảo trợ (từ cookie hoặc URL ref), tự động ghi nhận thành viên F1 vào Affiliate Hub
     if (activeRefSponsor) {
       setAffiliateData(prev => {
@@ -4068,6 +4078,19 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const userIdentifier = user.id || user.name || 'current_user';
     const taskObj = tasks.find(t => t.id === taskId) || livestreamTasks.find(l => l.id === taskId);
     const targetChannelHandle = taskObj?.channelHandle || '';
+
+    // BẮT BUỘC ĐỒNG BỘ TÀI KHOẢN TIKTOK CHÍNH CHỦ ĐÃ ĐĂNG KÝ
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết đúng tài khoản TikTok chính chủ để làm nhiệm vụ và nhận Xu!');
+      triggerImmediateFraudAlert({
+        title: 'CHƯA LIÊN KẾT TÀI KHOẢN TIKTOK',
+        reason: 'Hệ thống yêu cầu phải sử dụng đúng tài khoản TikTok chính chủ đã đăng ký để làm nhiệm vụ. Tài khoản chưa liên kết sẽ không được tính Xu!',
+        anomalyType: 'UNLINKED_TIKTOK_ACCOUNT',
+        channelHandle: targetChannelHandle,
+        penaltyPoints: 0
+      });
+      return 0;
+    }
 
     // 0. Kiểm tra khóa chuỗi nhiệm vụ (Cascading Lockout)
     const lockout = isUserNextTasksLocked(user.tiktokConnected || userIdentifier);
@@ -4921,8 +4944,44 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return true;
   };
 
+  // Tùy chỉnh và lưu tên đuôi (Custom Alias / Suffix) Link Tiếp Thị Liên Kết
+  const updateCustomRefCode = (newCode: string): { success: boolean; message: string } => {
+    const clean = newCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    if (!clean || clean.length < 3 || clean.length > 25) {
+      showToast('⚠️ Tên đuôi link ref phải từ 3 đến 25 ký tự chữ và số!');
+      return { success: false, message: 'Tên đuôi phải từ 3 đến 25 ký tự chữ và số' };
+    }
+
+    const newLink = `${typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://avafollow.vn'}/?ref=${clean}`;
+
+    setAffiliateData(prev => {
+      const updated = {
+        ...prev,
+        refCode: clean,
+        refLink: newLink
+      };
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_affiliate_data', JSON.stringify(updated));
+          localStorage.setItem('ava_custom_ref_code', clean);
+        }
+      } catch {}
+      syncAffiliateToSupabase(updated);
+      return updated;
+    });
+
+    showToast(`✓ Đã lưu thành công đuôi link tiếp thị: ${clean}`);
+    return { success: true, message: `Đã cập nhật đuôi link tiếp thị: ${clean}` };
+  };
+
   // 3. Tương tác với phòng Live cộng đồng & Cập nhật tiến độ gói của Người Mua
   const interactWithLiveBroadcast = (broadcastId: string, action: 'eye' | 'heart' | 'comment' | 'share') => {
+    // BẮT BUỘC ĐỒNG BỘ TÀI KHOẢN TIKTOK CHÍNH CHỦ ĐÃ ĐĂNG KÝ
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok của bạn để nhận Xu nhiệm vụ!');
+      return 0;
+    }
+
     let reward = 200;
     let actionLabel = 'Thả tim phòng Live';
     if (action === 'eye') {
@@ -8400,6 +8459,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         purchaseServicePackage,
         refundLivestreamOrder,
         updateOrderTargetUrl,
+        updateCustomRefCode,
         runnerTask,
         isRunnerOpen,
         openRunner,

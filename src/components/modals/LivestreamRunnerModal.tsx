@@ -274,6 +274,7 @@ export const LivestreamRunnerModal: React.FC = () => {
     if (!isLiveRunnerOpen || !activeLiveTask) return;
     const handleVisibilityChange = () => {
       const isHidden = typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()));
+      setIsTabInactive(isHidden);
       
       if (!isHidden && pendingFraudAction && activeLiveTask) {
         const timeSpentAway = Date.now() - pendingActionStartTime;
@@ -375,18 +376,11 @@ export const LivestreamRunnerModal: React.FC = () => {
 
   if (!isLiveRunnerOpen || !activeLiveTask) return null;
 
-  // Tap-tap Heartbeat Handler
+  // Tap-tap Heartbeat Handler (Hiệu ứng tim bay trực quan)
   const handleScreenTap = (e: React.MouseEvent<HTMLDivElement>) => {
     setIdleSeconds(0);
     const nextTaps = tapsCount + 1;
     setTapsCount(nextTaps);
-
-    if (nextTaps >= 20 && !claimedHeartReward) {
-      setClaimedHeartReward(true);
-      interactWithLiveBroadcast(activeLiveTask.id, 'heart');
-      syncTikTokLike(activeLiveTask.id, user.tiktokConnected || user.email || '@user');
-      showToast('💖 Đã tap đủ 20 tim! Nhận ngay +200 Xu thưởng.');
-    }
 
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -402,6 +396,13 @@ export const LivestreamRunnerModal: React.FC = () => {
   const handleSendChat = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMsg.trim() || !activeLiveTask) return;
+
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+      openConnect();
+      return;
+    }
+
     const msg = inputMsg.trim();
     
     // ĐÓNG BĂNG 60 LỚP: BẮT BUỘC COPY VÀ MỞ TIKTOK ĐỂ DÁN
@@ -420,9 +421,15 @@ export const LivestreamRunnerModal: React.FC = () => {
     }
   };
 
-
   const handleShareLive = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+      openConnect();
+      return;
+    }
+
     if (!claimedShareReward) {
       setPendingFraudAction('share');
       setPendingActionStartTime(Date.now());
@@ -444,18 +451,26 @@ export const LivestreamRunnerModal: React.FC = () => {
   };
 
   const handleFinishMission = () => {
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
+      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+      openConnect();
+      return;
+    }
+
     interactWithLiveBroadcast(activeLiveTask.id, 'eye');
     completeLivestreamSession(activeLiveTask.id, totalMinutesWatched, tapsCount, passedCaptcha);
     closeLiveRunner();
   };
 
-  // Mock Active Real Watchers
+  // Phiên xem thật của người dùng hiện tại
   const activeWatchers = [
-    { id: '#USR-90218', name: 'Minh Hoàng', device: 'iPhone 15 Pro', watchMins: '14p', status: 'Active' },
-    { id: '#USR-18239', name: 'Thanh Thảo', device: 'Galaxy S24', watchMins: '28p', status: 'Active' },
-    { id: '#USR-88210', name: 'Tuấn Anh', device: 'Xiaomi 13T', watchMins: '9p', status: 'Active' },
-    { id: '#USR-33419', name: 'Ngọc Lan', device: 'iPhone 14', watchMins: '41p', status: 'Active' },
-    { id: '#USR-55102', name: 'Hải Đăng', device: 'Oppo Reno 11', watchMins: '18p', status: 'Active' }
+    { 
+      id: user.id || '#USR-CURRENT', 
+      name: user.name || (user.email ? user.email.split('@')[0] : 'Bạn'), 
+      device: typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iOS Device' : (typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent) ? 'Android' : 'Web Browser'), 
+      watchMins: `${totalMinutesWatched} phút`, 
+      status: isTabInactive ? 'Tạm Dừng' : 'Đang Xem' 
+    }
   ];
 
 

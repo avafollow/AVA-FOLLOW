@@ -1622,7 +1622,23 @@ export function getImmutableFraudLedger(): FraudIncidentLog[] {
       localStorage.setItem(IMMUTABLE_FRAUD_LEDGER_KEY, JSON.stringify(DEFAULT_FRAUD_INCIDENTS));
       return DEFAULT_FRAUD_INCIDENTS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      // Loại bỏ triệt để mọi dữ liệu giả lập/mock cũ (bot_farmer, script_runner, hoangnam_mmo, v.v.)
+      const cleaned = parsed.filter(item => 
+        item && 
+        item.userHandle && 
+        !item.userHandle.includes('bot_farmer') && 
+        !item.userHandle.includes('script_runner') && 
+        !item.userHandle.includes('hoangnam_mmo') &&
+        !['FR-2026-9812', 'FR-2026-9813', 'FR-2026-9814'].includes(item.id)
+      );
+      if (cleaned.length !== parsed.length) {
+        localStorage.setItem(IMMUTABLE_FRAUD_LEDGER_KEY, JSON.stringify(cleaned));
+      }
+      return cleaned;
+    }
+    return DEFAULT_FRAUD_INCIDENTS;
   } catch {
     return DEFAULT_FRAUD_INCIDENTS;
   }

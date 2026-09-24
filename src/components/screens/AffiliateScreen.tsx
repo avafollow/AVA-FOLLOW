@@ -28,9 +28,13 @@ export const AffiliateScreen: React.FC<{
   const { 
     affiliateData, 
     openWithdraw, 
-    showToast
+    showToast,
+    updateCustomRefCode,
+    user
   } = useTikTokApp();
   const [copied, setCopied] = useState(false);
+  const [isEditingSlug, setIsEditingSlug] = useState(false);
+  const [customSlugInput, setCustomSlugInput] = useState(affiliateData.refCode || '');
 
   const currentRefLink = typeof window !== 'undefined' && window.location?.origin
     ? `${window.location.origin}/?ref=${affiliateData.refCode}`
@@ -43,6 +47,18 @@ export const AffiliateScreen: React.FC<{
     setCopied(true);
     showToast('✓ Đã sao chép link tiếp thị liên kết (đã bao gồm mã bảo trợ)!');
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSaveCustomSlug = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customSlugInput.trim()) {
+      showToast('⚠️ Vui lòng nhập tên đuôi link tiếp thị!');
+      return;
+    }
+    const res = updateCustomRefCode(customSlugInput.trim());
+    if (res.success) {
+      setIsEditingSlug(false);
+    }
   };
 
   return (
@@ -96,14 +112,61 @@ export const AffiliateScreen: React.FC<{
               <span className="font-mono text-amber-400 font-bold truncate select-all">{currentRefLink}</span>
             </div>
 
-            <button
-              onClick={handleCopyLink}
-              className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold shrink-0 transition-all font-mono cursor-pointer border border-amber-500/30"
-            >
-              {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-              <span>{copied ? 'Đã sao chép link' : 'Sao chép link ref'}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setCustomSlugInput(affiliateData.refCode || '');
+                  setIsEditingSlug(!isEditingSlug);
+                }}
+                className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 font-bold shrink-0 transition-all font-mono cursor-pointer border border-white/10"
+                title="Đổi tên đuôi link giới thiệu theo ý muốn"
+              >
+                <span>{isEditingSlug ? 'Đóng' : '✏️ Đổi Đuôi Link'}</span>
+              </button>
+
+              <button
+                onClick={handleCopyLink}
+                className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold shrink-0 transition-all font-mono cursor-pointer border border-amber-500/30"
+              >
+                {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                <span>{copied ? 'Đã sao chép link' : 'Sao chép link ref'}</span>
+              </button>
+            </div>
           </div>
+
+          {/* Form chỉnh sửa tên đuôi link tiếp thị */}
+          {isEditingSlug && (
+            <form onSubmit={handleSaveCustomSlug} className="p-3.5 rounded-xl bg-slate-900/90 border border-amber-500/40 space-y-2.5 animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-amber-300 font-mono uppercase flex items-center gap-1.5">
+                  <span>⚙️ TÙY CHỈNH ĐUÔI LINK TIẾP THỊ LIÊN KẾT:</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">Tự động gắn mã bảo lưu 30 ngày</span>
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-2.5 text-slate-500 font-mono text-xs">?ref=</span>
+                  <input
+                    type="text"
+                    value={customSlugInput}
+                    onChange={(e) => setCustomSlugInput(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                    placeholder="VD: THIENVUA, KINGAPP, MMO2026..."
+                    maxLength={25}
+                    className="w-full bg-black/60 border border-white/20 rounded-xl pl-14 pr-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-amber-400 tracking-wider"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-black font-black text-xs font-mono transition-all shadow-md cursor-pointer"
+                >
+                  Lưu Đuôi Link
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-relaxed font-mono">
+                * Tên đuôi chỉ chứa chữ cái và số (3 - 25 ký tự). Khi bạn bè click vào link này, hệ thống sẽ lưu mã giới thiệu trong 30 ngày và tự động đồng bộ khi họ đăng ký &amp; mua gói.
+              </p>
+            </form>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-white/5 text-[11px] font-mono">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">

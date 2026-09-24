@@ -51,7 +51,7 @@ import {
 } from '../types';
 import { CongratulationData } from '../components/modals/FireworksCongratulationModal';
 import { SepayCheckoutItem } from '../components/modals/SepayUniversalCheckoutModal';
-import { generateWeeklyMissions, STREAK_REWARDS, getRankTierConfig, getRankByTaskCount, getNextRankTier } from '../data/weeklyMissions';
+import { generateWeeklyMissions, STREAK_REWARDS, getRankTierConfig, getRankByTaskCount, getNextRankTier, buildMissionSubMilestones } from '../data/weeklyMissions';
 import { performAiModerationScan } from '../services/aiCampaignModeration';
 import { TaskHistoryItemDetail } from '../components/modals/TaskHistoryDetailModal';
 import { ActiveLivestreamBanner } from '../components/common/LivestreamBannerPopup';
@@ -1697,12 +1697,18 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (m.type !== type || m.status !== 'active') return m;
         const next = Math.min(m.completedCount + count, m.targetCount);
         const isDone = next >= m.targetCount;
+        const updatedMilestones = m.subMilestones ? m.subMilestones.map(ms => ({
+          ...ms,
+          isDone: next >= ms.targetCount
+        })) : buildMissionSubMilestones(m.type, m.targetCount, next);
+
         if (isDone) {
-          newlyCompletedMission = { ...m, completedCount: next, status: 'completed' as const };
+          newlyCompletedMission = { ...m, completedCount: next, status: 'completed' as const, subMilestones: updatedMilestones };
         }
         return {
           ...m,
           completedCount: next,
+          subMilestones: updatedMilestones,
           status: isDone ? ('completed' as const) : ('active' as const)
         };
       });
@@ -1945,7 +1951,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Người dùng bấm vào nút "Hoàn Thành" để nhận Xu của từng nhiệm vụ
   const claimMissionReward = (defId: string) => {
     const mission = userMissions.find(m => m.defId === defId);
-    if (!mission || mission.status !== 'completed') return;
+    if (!mission || mission.status === 'claimed' || (mission.status !== 'completed' && mission.completedCount < mission.targetCount)) return;
 
     setUserMissions(prev => prev.map(m => m.defId === defId ? { ...m, status: 'claimed' as const } : m));
 
@@ -2014,20 +2020,29 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Lấy thông tin tier cấp bậc hiện tại của người dùng (10 cấp bậc)
     const tierCfg = getRankTierConfig(user.rankLevel);
     const spinsBonus = tierCfg.wheelSpinsBonus || 1;
+    const bundleBonusXu = category === 'daily' ? (tierCfg.dailyBundleRewardXu || 35000) : 0;
 
-    // Tính tổng Xu thưởng của tất cả nhiệm vụ trong danh mục
-    const totalReward = categoryMissions.reduce((sum, m) => sum + m.rewardXu, 0);
+    // Tính tổng Xu chưa nhận của các nhiệm vụ trong danh mục + Thưởng tất toán trọn gói
+    const unclaimedReward = categoryMissions
+      .filter(m => m.status !== 'claimed')
+      .reduce((sum, m) => sum + m.rewardXu, 0);
+    const totalPayout = unclaimedReward + bundleBonusXu;
+
+    if (totalPayout <= 0) {
+      showToast('⚠️ Bạn đã nhận toàn bộ thù lao và thưởng tất toán của danh mục này rồi!');
+      return;
+    }
 
     // Cập nhật tất cả mission trong danh mục thành 'claimed'
     setUserMissions(prev => prev.map(m => m.category === category ? { ...m, status: 'claimed' as const } : m));
 
     // Cộng Xu & Vòng Quay May Mắn vào tài khoản và ghi sổ giao dịch
-    const newCoins = user.avaliveCoins + totalReward;
+    const newCoins = user.avaliveCoins + totalPayout;
     const now = new Date();
     const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 
     const categoryLabels = {
-      daily: 'Chuỗi Nhiệm Vụ Ngày',
+      daily: 'Gói Tất Toán Nhiệm Vụ Ngày',
       weekly: 'Chuỗi Nhiệm Vụ Tuần',
       special: 'Chuỗi Nhiệm Vụ Đặc Biệt VIP'
     };
@@ -2036,8 +2051,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newTx: TransactionRecord = {
       id: `tx_missions_all_${category}_${Date.now()}`,
       type: 'earn',
-      title: `Nhận Trọn Bộ Quỹ Thưởng ${catLabel} (${tierCfg.badge} • 100% Hoàn Tất)`,
-      amount: `+${totalReward.toLocaleString()} Xu & +${spinsBonus} Vòng Quay May Mắn`,
+      title: `Tất Toán Trọn Gói ${catLabel} (${tierCfg.badge} • 100% Hoàn Thành)`,
+      amount: `+${totalPayout.toLocaleString()} Xu & +${spinsBonus} Vòng Quay May Mắn`,
       isPositive: true,
       date: exactTime,
       exactTime,
@@ -2058,8 +2073,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     setAnalytics(prev => ({
       ...prev,
-      todayEarningsCoins: prev.todayEarningsCoins + totalReward,
-      weeklyEarningsCoins: prev.weeklyEarningsCoins + totalReward
+      todayEarningsCoins: prev.todayEarningsCoins + totalPayout,
+      weeklyEarningsCoins: prev.weeklyEarningsCoins + totalPayout
     }));
 
     // Tự động kích hoạt rương ngày nếu là daily
@@ -2072,14 +2087,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }));
     }
 
-    showToast(`🎁 Đã tất toán trọn bộ +${totalReward.toLocaleString()} Xu & tặng +${spinsBonus} lượt quay may mắn!`);
+    showToast(`🎁 Đã tất toán trọn bộ +${totalPayout.toLocaleString()} Xu & tặng +${spinsBonus} lượt quay may mắn!`);
 
     triggerFireworks({
       type: 'mission',
       badge: `🎁 NHẬN TRỌN BỘ QUỸ THƯỞNG ${catLabel.toUpperCase()} (${tierCfg.badge})`,
       title: `XUẤT SẮC HOÀN THÀNH 100% TẤT CẢ NHIỆM VỤ!`,
       subtitle: `${categoryMissions.length}/${categoryMissions.length} Nhiệm vụ hoàn tất • ${tierCfg.name}`,
-      rewardText: `+${totalReward.toLocaleString()} XU & +${spinsBonus} LƯỢT QUAY MAY MẮN 🎡`,
+      rewardText: `+${totalPayout.toLocaleString()} XU & +${spinsBonus} LƯỢT QUAY MAY MẮN 🎡`,
       message: `Tuyệt vời! Bạn đã hoàn thành trọn vẹn 100% toàn bộ nhiệm vụ ${catLabel.toLowerCase()} được giao ở ${tierCfg.shortTitle}. Quỹ thưởng Xu tổng đã được giải ngân và sàn tặng thêm cho bạn +${spinsBonus} lượt quay vòng quay may mắn!`
     });
   };

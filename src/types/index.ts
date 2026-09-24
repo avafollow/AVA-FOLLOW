@@ -1152,6 +1152,13 @@ export interface WeeklyMissionDef {
   tags?: string[];
 }
 
+export interface MissionSubMilestone {
+  step: number;
+  label: string;
+  targetCount: number;
+  isDone: boolean;
+}
+
 export interface UserWeeklyMission {
   defId: string;                  // ref to WeeklyMissionDef.id
   title: string;
@@ -1167,6 +1174,7 @@ export interface UserWeeklyMission {
   expiresAt: string;              // ISO timestamp
   icon: string;
   tags?: string[];
+  subMilestones?: MissionSubMilestone[];
 }
 
 export interface RankTierConfig {

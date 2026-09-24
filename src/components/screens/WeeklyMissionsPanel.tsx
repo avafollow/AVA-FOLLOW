@@ -52,6 +52,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
     userMissions,
     missionStreak,
     claimAllCategoryMissions,
+    claimMissionReward,
     claimStreakReward
   } = useTikTokApp();
 
@@ -476,28 +477,40 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
             {/* Quỹ Xu Tổng & Nút Nhận Thưởng 100% */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
               <div className="px-3.5 py-2 rounded-2xl bg-black/60 border border-white/10 text-center sm:text-right">
-                <div className="text-[10px] font-mono text-slate-400">TỔNG QUỸ THƯỞNG XU</div>
+                <div className="text-[10px] font-mono text-slate-400">
+                  {activeTab === 'daily' ? 'TỔNG THU NHẬP NGÀY' : 'TỔNG QUỸ THƯỞNG XU'}
+                </div>
                 <div className="text-base sm:text-lg font-black text-neonGold font-mono">
-                  +{currentPoolXu.toLocaleString()} XU
+                  +{activeTab === 'daily' ? currentTierCfg.dailyEstimatedEarningsXu.toLocaleString() : currentPoolXu.toLocaleString()} XU
                 </div>
                 <div className="text-[9px] font-mono text-pink-300 font-bold">
-                  + {currentTierCfg.wheelSpinsBonus} Lượt Quay May Mắn
+                  {activeTab === 'daily' 
+                    ? `(NV: +${currentTierCfg.dailyTaskRewardTotal.toLocaleString()} + Gói: +${currentTierCfg.dailyBundleRewardXu.toLocaleString()} Xu)`
+                    : `+ ${currentTierCfg.wheelSpinsBonus} Lượt Quay May Mắn`}
                 </div>
               </div>
 
-              {/* Nút Nhận Thưởng All-or-Nothing */}
+              {/* Nút Nhận Thưởng All-or-Nothing / Gộp Tất Toán */}
               {isCurrentAllFinished && !isCurrentAllClaimed ? (
                 <button
                   onClick={() => claimAllCategoryMissions(activeTab)}
                   className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 hover:from-emerald-400 hover:to-green-500 text-white font-black text-xs font-mono shadow-xl shadow-emerald-950/60 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer border border-emerald-400/50 animate-pulse"
                 >
                   <Gift className="w-5 h-5" />
-                  <span>🎁 NHẬN TRỌN BỘ +{currentPoolXu.toLocaleString()} XU &amp; +{currentTierCfg.wheelSpinsBonus} VÒNG QUAY (100%)</span>
+                  <span>
+                    {activeTab === 'daily' 
+                      ? `🎁 TẤT TOÁN TRỌN GÓI NGÀY (+${currentTierCfg.dailyBundleRewardXu.toLocaleString()} XU & +${currentTierCfg.wheelSpinsBonus} VÒNG QUAY)`
+                      : `🎁 NHẬN TRỌN BỘ +${currentPoolXu.toLocaleString()} XU & +${currentTierCfg.wheelSpinsBonus} VÒNG QUAY`}
+                  </span>
                 </button>
               ) : isCurrentAllClaimed ? (
                 <div className="px-4 py-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs font-mono flex items-center justify-center gap-2">
                   <Check className="w-4 h-4" />
-                  <span>✓ ĐÃ NHẬN TRỌN BỘ (+{currentPoolXu.toLocaleString()} XU &amp; +{currentTierCfg.wheelSpinsBonus} LƯỢT QUAY)</span>
+                  <span>
+                    {activeTab === 'daily'
+                      ? `✓ ĐÃ TẤT TOÁN TRỌN GÓI NGÀY (+${currentTierCfg.dailyEstimatedEarningsXu.toLocaleString()} XU)`
+                      : `✓ ĐÃ NHẬN TRỌN BỘ (+${currentPoolXu.toLocaleString()} XU & +${currentTierCfg.wheelSpinsBonus} LƯỢT QUAY)`}
+                  </span>
                 </div>
               ) : (
                 <div className="px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-slate-400 font-mono text-xs flex items-center justify-center gap-2 text-center">
@@ -606,7 +619,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
                         Tiến độ: {mission.completedCount}/{mission.targetCount} ({pct}%)
                       </span>
                       <span className="font-black text-emerald-400 bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-500/30">
-                        Đóng Góp Quỹ: +{mission.rewardXu.toLocaleString()} Xu
+                        Thù lao: +{mission.rewardXu.toLocaleString()} Xu
                       </span>
                     </div>
                     <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden p-0.5 border border-white/5">
@@ -619,16 +632,56 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
                     </div>
                   </div>
 
+                  {/* Danh sách nhiệm vụ con / chặng nhỏ */}
+                  {mission.subMilestones && mission.subMilestones.length > 0 && (
+                    <div className="space-y-1.5 pt-1 border-t border-white/5">
+                      <div className="flex items-center justify-between text-[10px] font-mono">
+                        <span className="flex items-center gap-1 font-bold text-slate-300">
+                          <Target className="w-3 h-3 text-cyan-400" />
+                          Chặng nhiệm vụ con:
+                        </span>
+                        <span className="text-slate-400">
+                          {mission.subMilestones.filter(s => s.isDone).length}/{mission.subMilestones.length} hoàn thành
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {mission.subMilestones.map((sub, sIdx) => (
+                          <div 
+                            key={sIdx}
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-mono border transition-all ${
+                              sub.isDone 
+                                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-bold' 
+                                : 'bg-black/30 border-white/5 text-slate-400'
+                            }`}
+                          >
+                            {sub.isDone ? (
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                            ) : (
+                              <div className="w-3 h-3 rounded-full border border-slate-500/50 shrink-0 flex items-center justify-center text-[7px] text-slate-500">
+                                {sub.step}
+                              </div>
+                            )}
+                            <span className="truncate">{sub.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Action button */}
                   <div>
                     {isDone && !isClaimed ? (
-                      <div className="w-full py-2 rounded-xl text-xs font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-center flex items-center justify-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        <span>Đã Hoàn Thành (Chờ Nhận Quỹ Tổng)</span>
-                      </div>
+                      <button
+                        onClick={() => claimMissionReward(mission.defId)}
+                        className="w-full py-2.5 px-3 rounded-xl text-xs font-mono font-black bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-lg shadow-emerald-950/40 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer border border-emerald-400/50 animate-pulse"
+                      >
+                        <Gift className="w-4 h-4" />
+                        <span>🎁 NHẬN NGAY +{mission.rewardXu.toLocaleString()} XU VÀO VÍ</span>
+                      </button>
                     ) : isClaimed ? (
-                      <div className="w-full py-1.5 rounded-xl text-[11px] font-mono text-center text-slate-500 bg-white/[0.03] border border-white/5">
-                        ✓ Đã tất toán vào quỹ tổng
+                      <div className="w-full py-2 rounded-xl text-[11px] font-mono text-center text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 font-bold flex items-center justify-center gap-1.5">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>✓ Đã nhận +{mission.rewardXu.toLocaleString()} Xu vào ví</span>
                       </div>
                     ) : (
                       <button
@@ -636,7 +689,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
                         className="w-full py-2 px-3 rounded-xl text-xs font-mono font-bold bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:opacity-95 text-white shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <Play className="w-3.5 h-3.5 fill-white" />
-                        <span>Thực Hiện Tương Tác Kênh Ngay</span>
+                        <span>Thực Hiện Nhiệm Vụ ({mission.completedCount}/{mission.targetCount})</span>
                       </button>
                     )}
                   </div>

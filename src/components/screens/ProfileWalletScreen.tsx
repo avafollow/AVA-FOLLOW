@@ -447,7 +447,8 @@ export const ProfileWalletScreen: React.FC<{
               {(() => {
                 const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
                 let lockedCoins = 0;
-                user.transactions.forEach(tx => {
+                const safeTransactions = user.transactions || [];
+                safeTransactions.forEach(tx => {
                   if (tx.type === 'earn' && tx.id.startsWith('tx_')) {
                     // tx.id format: tx_1727170000000 or tx_act_1727170000000
                     const timestampMatch = tx.id.match(/\d{13}/);

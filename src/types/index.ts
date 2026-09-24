@@ -565,9 +565,14 @@ export interface AdminUserManagementItem {
   facebookConnected?: string;
   isFacebookVerified?: boolean;
   facebookFollowers?: number;
+  facebookAvatar?: string;
+  facebookProfileUrl?: string;
   youtubeConnected?: string;
   isYoutubeVerified?: boolean;
   youtubeSubscribers?: number;
+  youtubeAvatar?: string;
+  youtubeProfileUrl?: string;
+  tiktokAvatar?: string;
   orders?: ServiceOrder[];
   referralCount?: number;
   referralEarningsVND?: string;
@@ -1017,6 +1022,7 @@ export interface UserProfileWallet {
   handle: string;
   avatar: string;
   email?: string;
+  phone?: string;
   isAdmin?: boolean;
   role: string;
   tiktokConnected: string;

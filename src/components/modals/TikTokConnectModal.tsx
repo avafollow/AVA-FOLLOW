@@ -20,6 +20,7 @@ import {
   Link2
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
+import { getTikTokAvatar } from '../../data/videoSources';
 
 export const TikTokConnectModal: React.FC = () => {
   const { 
@@ -125,7 +126,8 @@ export const TikTokConnectModal: React.FC = () => {
     setTimeout(() => {
       setIsVerifying(false);
       setVerifyingPlatform(null);
-      connectTikTok(formattedHandle, parsedFollowers, ttAvatar || user.avatar);
+      const finalTtAvatar = ttAvatar.trim() || getTikTokAvatar(cleanHandle) || `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=010101&color=fff&bold=true`;
+      connectTikTok(formattedHandle, parsedFollowers, finalTtAvatar);
       setIsTtEditing(false);
       setSuccessBanner(`Đã kết nối & đồng bộ kênh TikTok ${formattedHandle} thành công!`);
       setTimeout(() => setSuccessBanner(null), 4000);
@@ -161,7 +163,8 @@ export const TikTokConnectModal: React.FC = () => {
     setTimeout(() => {
       setIsFbVerifying(false);
       setVerifyingPlatform(null);
-      connectFacebook(cleanFb, 'personal', parsedFollowers, fbAvatar || user.avatar);
+      const finalFbAvatar = fbAvatar.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanFb)}&background=1877F2&color=fff&bold=true`;
+      connectFacebook(cleanFb, 'personal', parsedFollowers, finalFbAvatar);
       setIsFbEditing(false);
       setSuccessBanner(`Đã kết nối & đồng bộ tài khoản Facebook fb.com/${cleanFb} thành công!`);
       setTimeout(() => setSuccessBanner(null), 4000);
@@ -199,7 +202,8 @@ export const TikTokConnectModal: React.FC = () => {
     setTimeout(() => {
       setIsYtVerifying(false);
       setVerifyingPlatform(null);
-      connectYoutube(cleanYt, parsedSubs, ytAvatar || user.avatar);
+      const finalYtAvatar = ytAvatar.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanYt)}&background=FF0000&color=fff&bold=true`;
+      connectYoutube(cleanYt, parsedSubs, finalYtAvatar);
       setIsYtEditing(false);
       setSuccessBanner(`Đã kết nối & đồng bộ kênh YouTube ${formattedYt} thành công!`);
       setTimeout(() => setSuccessBanner(null), 4000);
@@ -216,10 +220,10 @@ export const TikTokConnectModal: React.FC = () => {
   const cleanYt = (user.youtubeConnected || '').replace(/^(https?:\/\/)?(www\.)?youtube\.com\/(@)?/, '').replace(/^@+/, '');
   const currentYtUrl = user.youtubeProfileUrl || (cleanYt ? `https://www.youtube.com/@${cleanYt}` : '#');
 
-  // Avatar hiển thị chuẩn
-  const currentTtAvatar = user.tiktokAvatar || user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
-  const currentFbAvatar = user.facebookAvatar || user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
-  const currentYtAvatar = user.youtubeAvatar || user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+  // Avatar hiển thị chuẩn theo từng nền tảng, không dùng ảnh người ảo
+  const currentTtAvatar = user.tiktokAvatar || (cleanTikTok ? `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanTikTok)}&background=010101&color=fff&bold=true` : (user.avatar && !user.avatar.includes('unsplash') ? user.avatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=010101&color=fff&bold=true`));
+  const currentFbAvatar = user.facebookAvatar || (cleanFb ? `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanFb)}&background=1877F2&color=fff&bold=true` : (user.avatar && !user.avatar.includes('unsplash') ? user.avatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=1877F2&color=fff&bold=true`));
+  const currentYtAvatar = user.youtubeAvatar || (cleanYt ? `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanYt)}&background=FF0000&color=fff&bold=true` : (user.avatar && !user.avatar.includes('unsplash') ? user.avatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF0000&color=fff&bold=true`));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
@@ -335,7 +339,7 @@ export const TikTokConnectModal: React.FC = () => {
                           src={currentTtAvatar} 
                           alt="TikTok Avatar"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+                            (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanTikTok || 'TikTok')}&background=010101&color=fff&bold=true`;
                           }}
                           className="w-14 h-14 rounded-2xl object-cover border-2 border-rose-500/60 shadow-lg"
                         />
@@ -590,7 +594,7 @@ export const TikTokConnectModal: React.FC = () => {
                           src={currentFbAvatar} 
                           alt="Facebook Avatar"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+                            (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanFb || 'Facebook')}&background=1877F2&color=fff&bold=true`;
                           }}
                           className="w-14 h-14 rounded-2xl object-cover border-2 border-blue-500/60 shadow-lg"
                         />
@@ -787,7 +791,7 @@ export const TikTokConnectModal: React.FC = () => {
                           src={currentYtAvatar} 
                           alt="YouTube Avatar"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+                            (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanYt || 'YouTube')}&background=FF0000&color=fff&bold=true`;
                           }}
                           className="w-14 h-14 rounded-2xl object-cover border-2 border-red-500/60 shadow-lg"
                         />

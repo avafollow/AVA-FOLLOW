@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { extractTikTokVideoId, extractTikTokHandle, getTikTokAvatar, HIGH_SPEED_CDN_VIDEOS } from '../../../data/videoSources';
+import { extractTikTokVideoId, extractTikTokHandle, getTikTokAvatar } from '../../../data/videoSources';
 import { Play, Pause, ExternalLink, CheckCircle2, Sparkles, Volume2, VolumeX, Loader2 } from 'lucide-react';
-import { DirectVideoPlayer } from './DirectVideoPlayer';
 
 export interface TikTokVideoEmbedPlayerProps {
   videoId?: string;
@@ -133,31 +132,21 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
           style={{ width: '100%', height: '100%', border: 'none' }}
         />
       ) : (
-        /* 2. NẾU LÀ SHORTLINK HOẶC CHỜ PHÂN GIẢI: PHÁT VIDEO TRỰC TIẾP CHUYỂN ĐỘNG KÈM LỚP PHỦ KÊNH THẬT */
-        <div className="relative w-full h-full bg-black flex flex-col items-center justify-between overflow-hidden rounded-3xl select-none">
-          {/* Video Stream nền chuyển động mượt mà 100% */}
-          <DirectVideoPlayer
-            src={HIGH_SPEED_CDN_VIDEOS.fyp[0]}
-            autoPlay={true}
-            isMuted={internalMuted}
-            isPlaying={isPlayingFallback}
-            onTogglePlay={() => setIsPlayingFallback(prev => !prev)}
-            className="absolute inset-0 w-full h-full object-cover z-0"
-          />
+        /* 2. NẾU LÀ SHORTLINK HOẶC CHỜ PHÂN GIẢI: HIỂN THỊ THẺ KÊNH & VIDEO TIKTOK THẬT (KHÔNG DÙNG VIDEO MÁY) */
+        <div className="relative w-full h-full bg-gradient-to-b from-[#0F1420] via-[#090D16] to-black flex flex-col items-center justify-between p-4 overflow-hidden rounded-3xl select-none">
+          {/* Glow effects */}
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-48 h-48 bg-rose-600/15 rounded-full blur-3xl animate-pulse pointer-events-none" />
+          <div className="absolute bottom-1/4 left-1/3 w-40 h-40 bg-cyan-600/15 rounded-full blur-3xl animate-pulse pointer-events-none" style={{ animationDelay: '1.5s' }} />
 
-          {/* Lớp phủ Gradient tương phản */}
-          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/80 via-black/30 to-transparent pointer-events-none z-[1]" />
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none z-[1]" />
-
-          {/* Top Pill: TikTok Live / Video Status */}
-          <div className="relative z-10 w-full flex items-center justify-between pt-3 px-3 pointer-events-auto">
+          {/* Top Bar */}
+          <div className="relative z-10 w-full flex items-center justify-between pt-1 pointer-events-auto">
             <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md p-1 pr-2.5 rounded-full border border-white/20 shadow-xl">
               <div className="relative w-7 h-7 rounded-full overflow-hidden border border-rose-500">
                 <img 
                   src={getTikTokAvatar(cleanHandle)} 
                   alt={cleanHandle}
                   onError={(e) => {
-                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=E11D48&color=fff&bold=true`;
+                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=010101&color=fff&bold=true`;
                   }}
                   className="w-full h-full rounded-full object-cover"
                 />
@@ -171,14 +160,49 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
             </div>
 
             <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={toggleSound}
-                className="p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 transition-transform active:scale-95 cursor-pointer shadow-lg"
-                title={internalMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
-              >
-                {internalMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
-              </button>
+              <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-mono font-bold">
+                TikTok Thật
+              </span>
+            </div>
+          </div>
+
+          {/* Center: Creator Info & Live Waves */}
+          <div className="relative z-10 flex flex-col items-center justify-center my-auto gap-4 pointer-events-auto text-center px-4">
+            <div className="relative cursor-pointer" onClick={() => window.open(finalOpenUrl, '_blank')}>
+              <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-[#FF0050] to-[#00F2FE] shadow-2xl ring-4 ring-rose-500/20 animate-pulse">
+                <img
+                  src={getTikTokAvatar(cleanHandle)}
+                  alt={cleanHandle}
+                  onError={(e) => {
+                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=010101&color=fff&bold=true`;
+                  }}
+                  className="w-full h-full rounded-full object-cover border-2 border-black"
+                />
+              </div>
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-black/80 border border-white/20 text-white text-[10px] font-mono font-bold flex items-center gap-1 shadow-lg whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                <span>@{cleanHandle}</span>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <h4 className="text-white font-black text-base tracking-wide font-display">
+                Video TikTok Đang Kết Nối
+              </h4>
+              <p className="text-slate-400 text-xs font-mono max-w-[240px] truncate">
+                {title || finalOpenUrl}
+              </p>
+            </div>
+
+            {/* Equalizer animation */}
+            <div className="flex items-center justify-center gap-1 h-5">
+              {[40, 75, 100, 60, 90, 45, 80].map((h, i) => (
+                <div
+                  key={i}
+                  className="w-1 bg-gradient-to-t from-rose-500 to-cyan-400 rounded-full animate-pulse"
+                  style={{ height: `${h}%`, animationDuration: `${0.6 + i * 0.15}s` }}
+                />
+              ))}
             </div>
           </div>
 

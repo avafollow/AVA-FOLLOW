@@ -12,7 +12,6 @@ import {
   Sparkles,
   Heart
 } from 'lucide-react';
-import { HIGH_SPEED_CDN_VIDEOS } from '../../../data/videoSources';
 
 export interface TikTokLiveStudioPlayerProps {
   channelHandle: string;
@@ -59,14 +58,14 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
   );
 
   const [activeSrc, setActiveSrc] = useState<string>(
-    hasDirectStream && streamUrl ? streamUrl : (HIGH_SPEED_CDN_VIDEOS.livestream[0] || '/videos/sample2.mp4')
+    hasDirectStream && streamUrl ? streamUrl : ''
   );
 
   useEffect(() => {
     if (hasDirectStream && streamUrl) {
       setActiveSrc(streamUrl);
     } else {
-      setActiveSrc(HIGH_SPEED_CDN_VIDEOS.livestream[0] || '/videos/sample2.mp4');
+      setActiveSrc('');
     }
   }, [streamUrl, hasDirectStream]);
 
@@ -148,10 +147,7 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
   };
 
   const handleVideoError = () => {
-    // Tự động fallback sang sample video nếu link ngoài bị lỗi
-    if (activeSrc !== '/videos/sample2.mp4') {
-      setActiveSrc('/videos/sample2.mp4');
-    }
+    // Không fallback sang video máy cục bộ
   };
 
   return (

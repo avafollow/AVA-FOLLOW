@@ -23,11 +23,11 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   
   const resolveValidSrc = (input?: string) => {
-    if (!input) return '/videos/sample1.mp4';
-    if (input.endsWith('.mp4') || input.endsWith('.webm') || input.startsWith('/videos/') || input.includes('blob:')) {
+    if (!input) return '';
+    if (input.endsWith('.mp4') || input.endsWith('.webm') || input.includes('.mp4?') || input.includes('.webm?') || input.startsWith('/videos/') || input.includes('blob:') || input.includes('.m3u8')) {
       return input;
     }
-    return '/videos/sample1.mp4';
+    return '';
   };
 
   const [currentSrc, setCurrentSrc] = useState<string>(() => resolveValidSrc(src));
@@ -112,12 +112,8 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
     };
   }, [currentSrc, isPlaying, autoPlay, internalMuted]);
 
-  // Tự động chuyển sang video mẫu chuẩn nếu video hiện tại bị lỗi mạng
   const handleVideoError = () => {
     setIsBuffering(false);
-    if (currentSrc !== '/videos/sample1.mp4') {
-      setCurrentSrc('/videos/sample1.mp4');
-    }
   };
 
   const handleVideoWaiting = () => {
@@ -159,28 +155,42 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
       )}
 
       {/* Thẻ Video Chính Thức */}
-      <video
-        ref={videoRef}
-        key={currentSrc}
-        src={currentSrc}
-        poster={poster}
-        autoPlay={autoPlay}
-        loop
-        muted={internalMuted}
-        playsInline
-        {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
-        preload="auto"
-        onWaiting={handleVideoWaiting}
-        onPlaying={handleVideoPlaying}
-        onCanPlay={() => {
-          setIsBuffering(false);
-          if (videoRef.current && (autoPlay || isPlaying) && videoRef.current.paused) {
-            videoRef.current.play().catch(() => {});
-          }
-        }}
-        onError={handleVideoError}
-        className="w-full h-full object-cover rounded-3xl z-10"
-      />
+      {currentSrc ? (
+        <video
+          ref={videoRef}
+          key={currentSrc}
+          src={currentSrc}
+          poster={poster}
+          autoPlay={autoPlay}
+          loop
+          muted={internalMuted}
+          playsInline
+          {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
+          preload="auto"
+          onWaiting={handleVideoWaiting}
+          onPlaying={handleVideoPlaying}
+          onCanPlay={() => {
+            setIsBuffering(false);
+            if (videoRef.current && (autoPlay || isPlaying) && videoRef.current.paused) {
+              videoRef.current.play().catch(() => {});
+            }
+          }}
+          onError={handleVideoError}
+          className="w-full h-full object-cover rounded-3xl z-10"
+        />
+      ) : (
+        <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center space-y-3">
+          <div className="w-16 h-16 rounded-full bg-rose-600/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shadow-xl">
+            <Play className="w-8 h-8 fill-current translate-x-0.5" />
+          </div>
+          <p className="text-white text-xs font-mono font-bold">
+            Luồng Video Trực Tiếp
+          </p>
+          <span className="text-[10px] text-slate-400 font-mono">
+            Kết nối trực tiếp nền tảng chính thức
+          </span>
+        </div>
+      )}
 
       {/* Loading Spinner mượt mà khi video đang buffer */}
       {isBuffering && !hasStartedPlaying && (

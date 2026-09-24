@@ -93,22 +93,39 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
 
   const avatarUrl = getTikTokAvatar(cleanHandle);
   const displayName = channelName || `@${cleanHandle}`;
+  const [iframeError, setIframeError] = useState<boolean>(false);
+  const livePlayerUrl = cleanHandle
+    ? `https://www.tiktok.com/player/v1/live?unique_id=${encodeURIComponent(cleanHandle)}&autoplay=1`
+    : null;
 
   return (
     <div
       className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none cursor-pointer ${className}`}
       onClick={handleTapScreen}
     >
-      {/* ============================================================== */}
-      {/* LIVE PREVIEW CARD — Hiển thị đúng kênh thật, nút mở trực tiếp  */}
-      {/* ============================================================== */}
-      <div className="absolute inset-0 flex flex-col">
-        {/* Animated dark background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0A0D18] via-[#12172B] to-[#0D1117]">
-          <div className="absolute top-1/4 left-1/4 w-32 h-32 sm:w-48 sm:h-48 bg-rose-600/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/3 right-1/4 w-24 h-24 sm:w-40 sm:h-40 bg-purple-600/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 right-1/3 w-20 h-20 sm:w-32 sm:h-32 bg-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+      {/* 1. TIKTOK OFFICIAL LIVE WEB PLAYER IFRAME (PHÁT TRỰC TIẾP LUỒNG THẬT) */}
+      {livePlayerUrl && !iframeError ? (
+        <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
+          <iframe
+            key={`tt-live-iframe-${cleanHandle}`}
+            src={livePlayerUrl}
+            title={`TikTok Live: @${cleanHandle}`}
+            allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
+            allowFullScreen
+            onError={() => setIframeError(true)}
+            className="w-full h-full border-0 bg-black pointer-events-auto"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+          />
         </div>
+      ) : (
+        /* 2. LIVE PREVIEW CARD THẬT CỦA CREATOR (KHÔNG DÙNG VIDEO MÁY) */
+        <div className="absolute inset-0 flex flex-col">
+          {/* Animated dark background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0A0D18] via-[#12172B] to-[#0D1117]">
+            <div className="absolute top-1/4 left-1/4 w-32 h-32 sm:w-48 sm:h-48 bg-rose-600/20 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-1/3 right-1/4 w-24 h-24 sm:w-40 sm:h-40 bg-purple-600/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+            <div className="absolute top-1/2 right-1/3 w-20 h-20 sm:w-32 sm:h-32 bg-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+          </div>
 
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center justify-center h-full gap-4 sm:gap-5 px-4 py-6">
@@ -190,6 +207,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* HUD BAR TOP */}
       {!hideHud && (

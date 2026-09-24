@@ -21,23 +21,11 @@ export interface ParsedMediaInfo {
   sourceType: 'tiktok_embed' | 'cdn_stream' | 'youtube_embed' | 'facebook_embed' | 'live_stream' | 'direct_stream';
 }
 
-// Bộ nguồn CDN trực tiếp cho video & stream (Tốc độ cao 100%, load tức thì < 50ms trên điện thoại di động & máy tính)
+// Bộ nguồn CDN trực tiếp (Không dùng video cục bộ mẫu của máy tính)
 export const HIGH_SPEED_CDN_VIDEOS = {
-  fyp: [
-    '/videos/sample1.mp4',
-    '/videos/sample2.mp4',
-    '/videos/sample3.mp4'
-  ],
-  livestream: [
-    '/videos/sample2.mp4',
-    '/videos/sample1.mp4',
-    '/videos/sample3.mp4'
-  ],
-  product_review: [
-    '/videos/sample3.mp4',
-    '/videos/sample2.mp4',
-    '/videos/sample1.mp4'
-  ]
+  fyp: [] as string[],
+  livestream: [] as string[],
+  product_review: [] as string[]
 };
 
 /**
@@ -282,10 +270,10 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
     } else if (isLive) {
       sourceType = 'live_stream';
       embedUrl = `https://www.tiktok.com/@${cleanHandle}/live`;
-      streamUrl = HIGH_SPEED_CDN_VIDEOS.livestream[0];
+      streamUrl = url;
     } else {
-      sourceType = 'cdn_stream';
-      streamUrl = HIGH_SPEED_CDN_VIDEOS.fyp[0];
+      sourceType = 'tiktok_embed';
+      streamUrl = url;
     }
   } else if (isDirectVideo) {
     streamUrl = url;
@@ -329,15 +317,17 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
 // Lấy Avatar dựa trên Platform & Handle
 export function getPlatformAvatar(platform: 'tiktok' | 'facebook' | 'youtube' | 'direct', handle?: string, fallback?: string): string {
   const clean = (handle || '').replace(/^@+/, '').trim();
-  if (!clean) return fallback || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120';
+  const bg = platform === 'facebook' ? '1877F2' : (platform === 'youtube' ? 'FF0000' : '010101');
+  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(clean || 'User')}&background=${bg}&color=fff&bold=true`;
+  if (!clean) return fallback || defaultAvatar;
   
   if (platform === 'youtube') {
-    return `https://unavatar.io/youtube/${clean}`;
+    return `https://unavatar.io/youtube/${clean}?fallback=${encodeURIComponent(defaultAvatar)}`;
   }
   if (platform === 'facebook') {
-    return `https://unavatar.io/facebook/${clean}`;
+    return `https://unavatar.io/facebook/${clean}?fallback=${encodeURIComponent(defaultAvatar)}`;
   }
-  return `https://unavatar.io/tiktok/${clean}`;
+  return `https://unavatar.io/tiktok/${clean}?fallback=${encodeURIComponent(defaultAvatar)}`;
 }
 
 // Lấy Avatar TikTok thật 100% dựa trên Handle chính xác của tài khoản

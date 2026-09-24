@@ -38,7 +38,7 @@ export const KycVerificationModal: React.FC<KycVerificationModalProps> = ({
   // Sample card image previews + Selfie
   const [frontCardPreview, setFrontCardPreview] = useState(user.kycData?.frontIdCardUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop&q=80');
   const [backCardPreview, setBackCardPreview] = useState(user.kycData?.backIdCardUrl || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&auto=format&fit=crop&q=80');
-  const [selfiePreview, setSelfiePreview] = useState(user.kycData?.selfiePhotoUrl || user.selfiePhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80');
+  const [selfiePreview, setSelfiePreview] = useState(user.kycData?.selfiePhotoUrl || user.selfiePhotoUrl || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
 

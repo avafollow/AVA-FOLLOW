@@ -137,7 +137,7 @@ export const BookingEscrowScreen: React.FC = () => {
       id: app.id,
       name: app.kocName,
       handle: app.tiktokHandle,
-      avatar: app.avatar || user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      avatar: app.avatar || user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(app.kocName || 'KOC')}&background=010101&color=fff&bold=true`,
       category: app.category,
       verifiedKyc: true,
       reputationScore: 100,

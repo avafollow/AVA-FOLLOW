@@ -31,6 +31,7 @@ import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
 import { BrandLogo } from '../common/BrandLogo';
 import { MarqueeNoticeDetailModal } from '../modals/MarqueeNoticeDetailModal';
 import { MarqueeTickerItem } from '../../types';
+import { getTikTokAvatar } from '../../data/videoSources';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -119,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
           id: item.id || `live_${Date.now()}`,
           channelName: item.channelHandle || 'Phiên Live Hot',
           channelHandle: item.channelHandle || '@creator_live',
-          channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          channelAvatar: getTikTokAvatar(item.channelHandle),
           roomTitle: item.title,
           currentViewers: 1850,
           targetMinutes: 3,

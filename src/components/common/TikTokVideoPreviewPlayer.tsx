@@ -16,7 +16,7 @@ import {
   Check,
   Music2
 } from 'lucide-react';
-import { parseMediaUrl, ParsedMediaInfo, getTikTokAvatar, extractTikTokVideoId, HIGH_SPEED_CDN_VIDEOS } from '../../data/videoSources';
+import { parseMediaUrl, ParsedMediaInfo, getTikTokAvatar, extractTikTokVideoId } from '../../data/videoSources';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import {
   TikTokVideoEmbedPlayer,
@@ -273,7 +273,8 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
                   src={mediaInfo.avatarUrl}
                   alt={mediaInfo.channelName}
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120';
+                    const bg = isYouTube ? 'FF0000' : isFacebook ? '1877F2' : '010101';
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(mediaInfo.channelName || 'Live')}&background=${bg}&color=fff&bold=true`;
                   }}
                   className="w-8 h-8 rounded-full border border-white/30 object-cover"
                 />

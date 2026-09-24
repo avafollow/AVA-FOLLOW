@@ -581,7 +581,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     id: `usr_${inputAccountGmail.trim().toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
     name: inputAccountGmail.trim().split('@')[0],
     handle: inputAccountGmail.trim().replace(/^@/, '').split('@')[0],
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(inputAccountGmail.trim().split('@')[0])}&background=0284C7&color=fff&bold=true`,
     email: inputAccountGmail.trim().includes('@') ? inputAccountGmail.trim().toLowerCase() : `${inputAccountGmail.trim().toLowerCase()}@gmail.com`,
     phone: '0988888888',
     tiktokConnected: `@${inputAccountGmail.trim().replace(/^@/, '').split('@')[0]}`,
@@ -3470,8 +3470,8 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       <Camera className="w-3.5 h-3.5 text-pink-400" />
                       <span>3. Ảnh Chụp Selfie:</span>
                     </span>
-                    <a href={req.selfiePhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'} target="_blank" rel="noreferrer" className="block h-28 rounded-xl overflow-hidden border border-purple-500/40 bg-black/40 group">
-                      <img src={req.selfiePhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'} alt="Selfie" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    <a href={req.selfiePhotoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.fullName || 'Selfie')}&background=1a1a2e&color=fff&bold=true`} target="_blank" rel="noreferrer" className="block h-28 rounded-xl overflow-hidden border border-purple-500/40 bg-black/40 group">
+                      <img src={req.selfiePhotoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.fullName || 'Selfie')}&background=1a1a2e&color=fff&bold=true`} alt="Selfie" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     </a>
                   </div>
                 </div>

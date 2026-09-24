@@ -529,6 +529,50 @@ interface TikTokAppContextType {
   closeTaskDetail: () => void;
 }
 
+export interface StoredUserConnections {
+  tiktokConnected: string;
+  tiktokHandle?: string;
+  tiktokProfileUrl?: string;
+  tiktokFollowers: number;
+  tiktokAvatar: string;
+  isTikTokVerified: boolean;
+
+  facebookConnected: string;
+  facebookProfileUrl?: string;
+  facebookType?: 'personal' | 'fanpage' | 'group';
+  facebookFollowers: number;
+  facebookAvatar: string;
+  isFacebookVerified: boolean;
+
+  youtubeConnected: string;
+  youtubeProfileUrl?: string;
+  youtubeSubscribers: number;
+  youtubeAvatar: string;
+  isYoutubeVerified: boolean;
+}
+
+export function saveConnectionsForUser(userEmail: string, connections: Partial<StoredUserConnections>): void {
+  if (typeof window === 'undefined' || !userEmail) return;
+  const cleanKey = `ava_connections_${userEmail.toLowerCase().trim()}`;
+  try {
+    const existingRaw = localStorage.getItem(cleanKey);
+    const existing: Partial<StoredUserConnections> = existingRaw ? JSON.parse(existingRaw) : {};
+    const merged = { ...existing, ...connections };
+    localStorage.setItem(cleanKey, JSON.stringify(merged));
+  } catch {}
+}
+
+export function getConnectionsForUser(userEmail: string): Partial<StoredUserConnections> | null {
+  if (typeof window === 'undefined' || !userEmail) return null;
+  const cleanKey = `ava_connections_${userEmail.toLowerCase().trim()}`;
+  try {
+    const raw = localStorage.getItem(cleanKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 const TikTokAppContext = createContext<TikTokAppContextType | undefined>(undefined);
 
 export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -542,38 +586,100 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const parsed = JSON.parse(savedUser);
         const savedEmail = (typeof window !== 'undefined' ? localStorage.getItem('ava_user_email') : null) || parsed.email;
         if (!savedEmail) return EMPTY_GUEST_USER;
-        const savedTiktok = (typeof window !== 'undefined' ? localStorage.getItem('ava_tiktok_connected') : null) || parsed.tiktokConnected;
+        const userEmailKey = savedEmail.toLowerCase().trim();
+        const userConn = getConnectionsForUser(userEmailKey);
+
+        const savedTiktok = (typeof window !== 'undefined' ? localStorage.getItem('ava_tiktok_connected') : null);
         const isAdmin = savedEmail === 'quocthiencr90@gmail.com' || parsed.isAdmin;
         // Khử số dư ảo hàng tỷ xu từ dữ liệu test cũ
         const cleanCoins = (Number(parsed.avaliveCoins) >= 1000000000 || isNaN(Number(parsed.avaliveCoins))) ? 0 : (Number(parsed.avaliveCoins) || 0);
+
+        const effTiktok = userConn?.tiktokConnected !== undefined ? userConn.tiktokConnected : (savedTiktok !== null ? savedTiktok : (parsed.tiktokConnected || ''));
+        const effTiktokFollowers = userConn?.tiktokFollowers !== undefined ? userConn.tiktokFollowers : (parsed.tiktokFollowers || 0);
+        const effTiktokAvatar = userConn?.tiktokAvatar || (effTiktok ? `https://ui-avatars.com/api/?name=${encodeURIComponent(effTiktok.replace(/^@/, ''))}&background=010101&color=fff&bold=true` : (parsed.tiktokAvatar || ''));
+
+        const effFb = userConn?.facebookConnected !== undefined ? userConn.facebookConnected : (parsed.facebookConnected || '');
+        const effFbFollowers = userConn?.facebookFollowers !== undefined ? userConn.facebookFollowers : (parsed.facebookFollowers || 0);
+        const effFbAvatar = userConn?.facebookAvatar || (effFb ? `https://ui-avatars.com/api/?name=${encodeURIComponent(effFb)}&background=1877F2&color=fff&bold=true` : (parsed.facebookAvatar || ''));
+        const effFbUrl = userConn?.facebookProfileUrl || parsed.facebookProfileUrl || (effFb ? (effFb.startsWith('http') ? effFb : `https://facebook.com/${effFb}`) : '');
+
+        const effYt = userConn?.youtubeConnected !== undefined ? userConn.youtubeConnected : (parsed.youtubeConnected || '');
+        const effYtSubs = userConn?.youtubeSubscribers !== undefined ? userConn.youtubeSubscribers : (parsed.youtubeSubscribers || 0);
+        const effYtAvatar = userConn?.youtubeAvatar || (effYt ? `https://ui-avatars.com/api/?name=${encodeURIComponent(effYt.replace(/^@/, ''))}&background=FF0000&color=fff&bold=true` : (parsed.youtubeAvatar || ''));
+        const effYtUrl = userConn?.youtubeProfileUrl || parsed.youtubeProfileUrl || (effYt ? (effYt.startsWith('http') ? effYt : `https://youtube.com/@${effYt.replace(/^@/, '')}`) : '');
+
+        const cleanAvatar = (parsed.avatar && !parsed.avatar.includes('unsplash')) 
+          ? parsed.avatar 
+          : `https://ui-avatars.com/api/?name=${encodeURIComponent(isAdmin ? 'Quoc Thien Admin' : (parsed.name || savedEmail.split('@')[0]))}&background=0284C7&color=fff&bold=true`;
+
         return {
           ...USER_PROFILE_WALLET,
           ...parsed,
           avaliveCoins: cleanCoins,
           coinsValueVND: `${cleanCoins.toLocaleString('vi-VN')}đ`,
           email: savedEmail || parsed.email || '',
-          tiktokConnected: savedTiktok !== null ? savedTiktok : (parsed.tiktokConnected || ''),
+          avatar: cleanAvatar,
+          tiktokConnected: effTiktok,
+          tiktokFollowers: effTiktokFollowers,
+          tiktokAvatar: effTiktokAvatar,
+          isTikTokVerified: Boolean(effTiktok),
+          facebookConnected: effFb,
+          facebookFollowers: effFbFollowers,
+          facebookAvatar: effFbAvatar,
+          facebookProfileUrl: effFbUrl,
+          isFacebookVerified: Boolean(effFb),
+          youtubeConnected: effYt,
+          youtubeSubscribers: effYtSubs,
+          youtubeAvatar: effYtAvatar,
+          youtubeProfileUrl: effYtUrl,
+          isYoutubeVerified: Boolean(effYt),
           isAdmin
         };
       }
       const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('ava_user_email') : null;
-      const savedTiktok = typeof window !== 'undefined' ? localStorage.getItem('ava_tiktok_connected') : null;
-      const baseTiktok = savedTiktok !== null ? savedTiktok : '';
-      const isVerified = Boolean(baseTiktok && baseTiktok.trim().length > 0);
-
       if (savedEmail) {
+        const userEmailKey = savedEmail.toLowerCase().trim();
+        const userConn = getConnectionsForUser(userEmailKey);
+        const savedTiktok = typeof window !== 'undefined' ? localStorage.getItem('ava_tiktok_connected') : null;
         const isAdmin = savedEmail === 'quocthiencr90@gmail.com';
+
+        const effTiktok = userConn?.tiktokConnected !== undefined ? userConn.tiktokConnected : (savedTiktok || '');
+        const effTiktokFollowers = userConn?.tiktokFollowers || 0;
+        const effTiktokAvatar = userConn?.tiktokAvatar || (effTiktok ? `https://ui-avatars.com/api/?name=${encodeURIComponent(effTiktok.replace(/^@/, ''))}&background=010101&color=fff&bold=true` : '');
+
+        const effFb = userConn?.facebookConnected || '';
+        const effFbFollowers = userConn?.facebookFollowers || 0;
+        const effFbAvatar = userConn?.facebookAvatar || (effFb ? `https://ui-avatars.com/api/?name=${encodeURIComponent(effFb)}&background=1877F2&color=fff&bold=true` : '');
+        const effFbUrl = userConn?.facebookProfileUrl || (effFb ? (effFb.startsWith('http') ? effFb : `https://facebook.com/${effFb}`) : '');
+
+        const effYt = userConn?.youtubeConnected || '';
+        const effYtSubs = userConn?.youtubeSubscribers || 0;
+        const effYtAvatar = userConn?.youtubeAvatar || (effYt ? `https://ui-avatars.com/api/?name=${encodeURIComponent(effYt.replace(/^@/, ''))}&background=FF0000&color=fff&bold=true` : '');
+        const effYtUrl = userConn?.youtubeProfileUrl || (effYt ? (effYt.startsWith('http') ? effYt : `https://youtube.com/@${effYt.replace(/^@/, '')}`) : '');
+
+        const cleanAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(isAdmin ? 'Quoc Thien Admin' : savedEmail.split('@')[0])}&background=0284C7&color=fff&bold=true`;
+
         return {
           ...USER_PROFILE_WALLET,
           email: savedEmail,
           name: isAdmin ? 'Nguyễn Quốc Thiện (Admin)' : (savedEmail.split('@')[0]),
           role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : 'Nhà Sáng Tạo AVA FOLLOW',
           isAdmin,
-          tiktokConnected: baseTiktok,
-          isTikTokVerified: isVerified,
-          avatar: isAdmin 
-            ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-            : USER_PROFILE_WALLET.avatar
+          avatar: cleanAvatar,
+          tiktokConnected: effTiktok,
+          tiktokFollowers: effTiktokFollowers,
+          tiktokAvatar: effTiktokAvatar,
+          isTikTokVerified: Boolean(effTiktok),
+          facebookConnected: effFb,
+          facebookFollowers: effFbFollowers,
+          facebookAvatar: effFbAvatar,
+          facebookProfileUrl: effFbUrl,
+          isFacebookVerified: Boolean(effFb),
+          youtubeConnected: effYt,
+          youtubeSubscribers: effYtSubs,
+          youtubeAvatar: effYtAvatar,
+          youtubeProfileUrl: effYtUrl,
+          isYoutubeVerified: Boolean(effYt)
         };
       }
       return EMPTY_GUEST_USER;
@@ -609,7 +715,6 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const localSamples = ['/videos/sample1.mp4', '/videos/sample2.mp4', '/videos/sample3.mp4'];
           const realOnly = parsed
             .filter((t: TikTokTaskItem) => 
               !t.id.startsWith('task_') && 
@@ -619,9 +724,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               t.channelHandle !== '@auraboutique.vn' &&
               t.channelHandle !== '@homie_vietnam'
             )
-            .map((t: TikTokTaskItem, i: number) => {
-              if (!t.videoPreviewUrl || t.videoPreviewUrl.includes('test-videos.co.uk') || t.videoPreviewUrl.includes('interactive-examples') || t.videoPreviewUrl.includes('vjs.zencdn.net')) {
-                return { ...t, videoPreviewUrl: localSamples[i % localSamples.length] };
+            .map((t: TikTokTaskItem) => {
+              if (!t.videoPreviewUrl || t.videoPreviewUrl.includes('sample') || t.videoPreviewUrl.includes('test-videos.co.uk') || t.videoPreviewUrl.includes('interactive-examples') || t.videoPreviewUrl.includes('vjs.zencdn.net')) {
+                return { ...t, videoPreviewUrl: t.targetUrl || '' };
               }
               return t;
             });
@@ -2695,11 +2800,28 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const isWhite = isAdmin || !!matchedAdminUser?.isWhitelisted;
     const canRun = isAdmin || !!matchedAdminUser?.canRunAnyCampaign;
     const canFollow = isAdmin || !!matchedAdminUser?.canFollowCrossUnrestricted;
-    const connectedTiktok = matchedAdminUser?.tiktokConnected || '';
-    const connectedFacebook = matchedAdminUser?.facebookConnected || '';
-    const connectedYoutube = matchedAdminUser?.youtubeConnected || '';
+    const userEmailKey = targetEmail.toLowerCase().trim();
+    const storedConn = getConnectionsForUser(userEmailKey);
+
+    const connectedTiktok = storedConn?.tiktokConnected !== undefined ? storedConn.tiktokConnected : (matchedAdminUser?.tiktokConnected || '');
+    const tiktokFollowers = storedConn?.tiktokFollowers !== undefined ? storedConn.tiktokFollowers : (matchedAdminUser?.tiktokFollowers || 0);
+    const tiktokAvatar = storedConn?.tiktokAvatar || (connectedTiktok ? `https://ui-avatars.com/api/?name=${encodeURIComponent(connectedTiktok.replace(/^@/, ''))}&background=010101&color=fff&bold=true` : (matchedAdminUser?.tiktokAvatar || ''));
+
+    const connectedFacebook = storedConn?.facebookConnected !== undefined ? storedConn.facebookConnected : (matchedAdminUser?.facebookConnected || '');
+    const facebookFollowers = storedConn?.facebookFollowers !== undefined ? storedConn.facebookFollowers : (matchedAdminUser?.facebookFollowers || 0);
+    const facebookAvatar = storedConn?.facebookAvatar || (connectedFacebook ? `https://ui-avatars.com/api/?name=${encodeURIComponent(connectedFacebook)}&background=1877F2&color=fff&bold=true` : (matchedAdminUser?.facebookAvatar || ''));
+    const facebookProfileUrl = storedConn?.facebookProfileUrl || (connectedFacebook ? (connectedFacebook.startsWith('http') ? connectedFacebook : `https://facebook.com/${connectedFacebook}`) : '');
+
+    const connectedYoutube = storedConn?.youtubeConnected !== undefined ? storedConn.youtubeConnected : (matchedAdminUser?.youtubeConnected || '');
+    const youtubeSubscribers = storedConn?.youtubeSubscribers !== undefined ? storedConn.youtubeSubscribers : (matchedAdminUser?.youtubeSubscribers || 0);
+    const youtubeAvatar = storedConn?.youtubeAvatar || (connectedYoutube ? `https://ui-avatars.com/api/?name=${encodeURIComponent(connectedYoutube.replace(/^@/, ''))}&background=FF0000&color=fff&bold=true` : (matchedAdminUser?.youtubeAvatar || ''));
+    const youtubeProfileUrl = storedConn?.youtubeProfileUrl || (connectedYoutube ? (connectedYoutube.startsWith('http') ? connectedYoutube : `https://youtube.com/@${connectedYoutube.replace(/^@/, '')}`) : '');
 
     const cleanDefault = { ...USER_PROFILE_WALLET };
+
+    const cleanUserAvatar = (matchedAdminUser?.avatar && !matchedAdminUser.avatar.includes('unsplash'))
+      ? matchedAdminUser.avatar
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(isAdmin ? 'Quoc Thien Admin' : (matchedAdminUser?.name || targetEmail.split('@')[0]))}&background=0284C7&color=fff&bold=true`;
 
     const updatedUser: UserProfileWallet = {
       ...cleanDefault,
@@ -2718,21 +2840,24 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       grantedCoinsTotal: matchedAdminUser?.grantedCoinsTotal || 0,
       grantedPackagesTotal: matchedAdminUser?.grantedPackagesTotal || (matchedAdminUser?.orders?.length || 0),
       tiktokConnected: connectedTiktok,
-      tiktokFollowers: matchedAdminUser?.tiktokFollowers || 0,
+      tiktokFollowers: tiktokFollowers,
+      tiktokAvatar: tiktokAvatar,
       isTikTokVerified: !!connectedTiktok,
       facebookConnected: connectedFacebook,
-      facebookFollowers: matchedAdminUser?.facebookFollowers || 0,
+      facebookFollowers: facebookFollowers,
+      facebookAvatar: facebookAvatar,
+      facebookProfileUrl: facebookProfileUrl,
       isFacebookVerified: !!connectedFacebook,
       youtubeConnected: connectedYoutube,
-      youtubeSubscribers: matchedAdminUser?.youtubeSubscribers || 0,
+      youtubeSubscribers: youtubeSubscribers,
+      youtubeAvatar: youtubeAvatar,
+      youtubeProfileUrl: youtubeProfileUrl,
       isYoutubeVerified: !!connectedYoutube,
       myOrders: matchedAdminUser?.orders || [],
       completedTasksCount: matchedAdminUser?.completedTasksCount || 0,
       kycStatus: (matchedAdminUser?.kycStatus || 'unverified') as KycStatus,
       kycData: matchedAdminUser?.kycData,
-      avatar: isAdmin 
-        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-        : (matchedAdminUser?.avatar || cleanDefault.avatar)
+      avatar: cleanUserAvatar
     };
 
     setUser(updatedUser);
@@ -2853,6 +2978,27 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const cleanDefault = { ...USER_PROFILE_WALLET };
 
+    const userEmailKey = cleanEmail.toLowerCase().trim();
+    const storedConn = getConnectionsForUser(userEmailKey);
+
+    const effTiktok = formattedHandle || storedConn?.tiktokConnected || matchedAdminUser?.tiktokConnected || '';
+    const effTiktokFollowers = storedConn?.tiktokFollowers !== undefined ? storedConn.tiktokFollowers : (matchedAdminUser?.tiktokFollowers || 0);
+    const effTiktokAvatar = storedConn?.tiktokAvatar || (effTiktok ? `https://ui-avatars.com/api/?name=${encodeURIComponent(effTiktok.replace(/^@/, ''))}&background=010101&color=fff&bold=true` : (matchedAdminUser?.tiktokAvatar || ''));
+
+    const effFb = storedConn?.facebookConnected !== undefined ? storedConn.facebookConnected : (matchedAdminUser?.facebookConnected || '');
+    const effFbFollowers = storedConn?.facebookFollowers !== undefined ? storedConn.facebookFollowers : (matchedAdminUser?.facebookFollowers || 0);
+    const effFbAvatar = storedConn?.facebookAvatar || (effFb ? `https://ui-avatars.com/api/?name=${encodeURIComponent(effFb)}&background=1877F2&color=fff&bold=true` : (matchedAdminUser?.facebookAvatar || ''));
+    const effFbUrl = storedConn?.facebookProfileUrl || (effFb ? (effFb.startsWith('http') ? effFb : `https://facebook.com/${effFb}`) : '');
+
+    const effYt = storedConn?.youtubeConnected !== undefined ? storedConn.youtubeConnected : (matchedAdminUser?.youtubeConnected || '');
+    const effYtSubs = storedConn?.youtubeSubscribers !== undefined ? storedConn.youtubeSubscribers : (matchedAdminUser?.youtubeSubscribers || 0);
+    const effYtAvatar = storedConn?.youtubeAvatar || (effYt ? `https://ui-avatars.com/api/?name=${encodeURIComponent(effYt.replace(/^@/, ''))}&background=FF0000&color=fff&bold=true` : (matchedAdminUser?.youtubeAvatar || ''));
+    const effYtUrl = storedConn?.youtubeProfileUrl || (effYt ? (effYt.startsWith('http') ? effYt : `https://youtube.com/@${effYt.replace(/^@/, '')}`) : '');
+
+    const cleanUserAvatar = (matchedAdminUser?.avatar && !matchedAdminUser.avatar.includes('unsplash'))
+      ? matchedAdminUser.avatar
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(name || cleanEmail.split('@')[0])}&background=0284C7&color=fff&bold=true`;
+
     const updatedUser: UserProfileWallet = {
       ...cleanDefault,
       id: matchedAdminUser?.id || `usr_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`,
@@ -2860,10 +3006,23 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       name: name || matchedAdminUser?.name || cleanEmail.split('@')[0],
       role: isAdmin ? 'Super Admin • Quản Trị Hệ Thống' : 'Nhà Sáng Tạo AVA FOLLOW',
       isAdmin: isAdmin,
-      tiktokConnected: formattedHandle || matchedAdminUser?.tiktokConnected || '',
-      tiktokHandle: formattedHandle || matchedAdminUser?.tiktokConnected || `@${cleanEmail.split('@')[0]}`,
-      tiktokProfileUrl: formattedHandle ? `https://www.tiktok.com/${formattedHandle}` : '',
-      isTikTokVerified: !!(formattedHandle || matchedAdminUser?.tiktokConnected),
+      avatar: cleanUserAvatar,
+      tiktokConnected: effTiktok,
+      tiktokHandle: effTiktok || `@${cleanEmail.split('@')[0]}`,
+      tiktokProfileUrl: effTiktok ? `https://www.tiktok.com/${effTiktok}` : '',
+      tiktokFollowers: effTiktokFollowers,
+      tiktokAvatar: effTiktokAvatar,
+      isTikTokVerified: !!effTiktok,
+      facebookConnected: effFb,
+      facebookFollowers: effFbFollowers,
+      facebookAvatar: effFbAvatar,
+      facebookProfileUrl: effFbUrl,
+      isFacebookVerified: !!effFb,
+      youtubeConnected: effYt,
+      youtubeSubscribers: effYtSubs,
+      youtubeAvatar: effYtAvatar,
+      youtubeProfileUrl: effYtUrl,
+      isYoutubeVerified: !!effYt,
       rankLevel: nextRank,
       hasAllPermissions: isAdmin || !!matchedAdminUser?.hasAllPermissions,
       isWhitelisted: isAdmin || !!matchedAdminUser?.isWhitelisted,
@@ -2954,7 +3113,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const newRefEntry = {
           id: refId,
           username: name || cleanEmail.split('@')[0],
-          avatar: updatedUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          avatar: updatedUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || cleanEmail.split('@')[0])}&background=010101&color=fff&bold=true`,
           tiktokHandle: formattedHandle || `@${cleanEmail.split('@')[0]}`,
           joinedDate: 'Vừa xong',
           hasCompletedTask: false,
@@ -4299,7 +4458,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           id: `friend_${Date.now()}`,
           name: name || handle,
           handle,
-          avatar: avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+          avatar: avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || handle)}&background=010101&color=fff&bold=true`,
           role: role || 'Creator',
           status: 'pending',
           isOnline: true,
@@ -5075,6 +5234,17 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const nextCoins = user.avaliveCoins + addedWelcomeBonus;
 
+    const finalAvatar = avatarUrl || user.tiktokAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle.replace(/^@/, ''))}&background=010101&color=fff&bold=true`;
+
+    saveConnectionsForUser(userEmail, {
+      tiktokConnected: cleanHandle,
+      tiktokHandle: cleanHandle,
+      tiktokProfileUrl: `https://www.tiktok.com/${cleanHandle}`,
+      tiktokFollowers: followers !== undefined ? followers : (user.tiktokFollowers || 0),
+      tiktokAvatar: finalAvatar,
+      isTikTokVerified: true
+    });
+
     const updatedUser: UserProfileWallet = {
       ...user,
       tiktokConnected: cleanHandle,
@@ -5082,7 +5252,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       tiktokProfileUrl: `https://www.tiktok.com/${cleanHandle}`,
       isTikTokVerified: true,
       tiktokFollowers: followers !== undefined ? followers : (user.tiktokFollowers || 0),
-      tiktokAvatar: avatarUrl || user.tiktokAvatar || user.avatar,
+      tiktokAvatar: finalAvatar,
       isNewUserBonusClaimed: true,
       avaliveCoins: nextCoins,
       coinsValueVND: `${nextCoins.toLocaleString()}đ`,
@@ -5105,6 +5275,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           ...copy[idx],
           tiktokConnected: cleanHandle,
           tiktokFollowers: followers !== undefined ? followers : copy[idx].tiktokFollowers,
+          tiktokAvatar: finalAvatar,
           isTikTokVerified: true,
           coinsBalance: nextCoins,
           tokenBalance: nextCoins
@@ -5115,8 +5286,41 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
         } catch {}
         return copy;
+      } else {
+        const newUserAdmin: AdminUserManagementItem = {
+          id: user.id || `usr_${Date.now()}`,
+          name: user.name || userEmail.split('@')[0],
+          handle: cleanHandle,
+          avatar: user.avatar || finalAvatar,
+          email: userEmail,
+          phone: user.phone || '0988888888',
+          tiktokConnected: cleanHandle,
+          tiktokFollowers: followers !== undefined ? followers : 0,
+          isTikTokVerified: true,
+          tiktokAvatar: finalAvatar,
+          coinsBalance: nextCoins,
+          tokenBalance: nextCoins,
+          completedTasksCount: user.completedTasksCount || 0,
+          createdCampaignsCount: 0,
+          purchasedPackagesCount: 0,
+          escrowLockedAmountVND: '0 ₫',
+          status: 'active',
+          kycStatus: 'unverified',
+          joinedDate: new Date().toISOString(),
+          orders: user.myOrders || [],
+          grantedCoinsTotal: user.grantedCoinsTotal || 0,
+          grantedPackagesTotal: user.grantedPackagesTotal || 0,
+          rankLevel: user.rankLevel || 'Đồng',
+          registrationSource: 'direct'
+        };
+        const copy = [newUserAdmin, ...prev];
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+          }
+        } catch {}
+        return copy;
       }
-      return prev;
     });
 
     // Đồng bộ hồ sơ mới nhất lên Supabase Cloud
@@ -5143,6 +5347,16 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         localStorage.setItem('ava_tiktok_connected', '');
       }
     } catch {}
+    if (user.email) {
+      saveConnectionsForUser(user.email, {
+        tiktokConnected: '',
+        tiktokHandle: '',
+        tiktokProfileUrl: '',
+        tiktokFollowers: 0,
+        tiktokAvatar: '',
+        isTikTokVerified: false
+      });
+    }
     const updatedUser: UserProfileWallet = {
       ...user,
       tiktokConnected: '',
@@ -5207,14 +5421,26 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       } catch {}
     }
 
+    const finalFbAvatar = avatarUrl || user.facebookAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=1877F2&color=fff&bold=true`;
+    const finalFbUrl = urlOrHandle.startsWith('http') ? urlOrHandle : `https://facebook.com/${clean}`;
+
+    saveConnectionsForUser(userEmail, {
+      facebookConnected: clean,
+      facebookProfileUrl: finalFbUrl,
+      facebookType: fbType,
+      facebookFollowers: followers !== undefined ? followers : (user.facebookFollowers || 0),
+      facebookAvatar: finalFbAvatar,
+      isFacebookVerified: true
+    });
+
     const updatedUser: UserProfileWallet = {
       ...user,
       facebookConnected: clean,
-      facebookProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://facebook.com/${clean}`,
+      facebookProfileUrl: finalFbUrl,
       facebookType: fbType,
       isFacebookVerified: true,
       facebookFollowers: followers !== undefined ? followers : (user.facebookFollowers || 0),
-      facebookAvatar: avatarUrl || user.facebookAvatar || user.avatar
+      facebookAvatar: finalFbAvatar
     };
 
     setUser(updatedUser);
@@ -5230,7 +5456,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const copy = [...prev];
         copy[idx] = {
           ...copy[idx],
-          facebookConnected: clean
+          facebookConnected: clean,
+          facebookFollowers: followers !== undefined ? followers : copy[idx].facebookFollowers,
+          facebookAvatar: finalFbAvatar,
+          facebookProfileUrl: finalFbUrl,
+          isFacebookVerified: true
         };
         try {
           if (typeof window !== 'undefined') {
@@ -5238,8 +5468,45 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
         } catch {}
         return copy;
+      } else {
+        const newUserAdmin: AdminUserManagementItem = {
+          id: user.id || `usr_${Date.now()}`,
+          name: user.name || userEmail.split('@')[0],
+          handle: user.tiktokConnected || user.handle || `@${userEmail.split('@')[0]}`,
+          avatar: user.avatar || finalFbAvatar,
+          email: userEmail,
+          phone: user.phone || '0988888888',
+          tiktokConnected: user.tiktokConnected || '',
+          tiktokFollowers: user.tiktokFollowers || 0,
+          isTikTokVerified: user.isTikTokVerified || false,
+          facebookConnected: clean,
+          facebookFollowers: followers !== undefined ? followers : 0,
+          facebookAvatar: finalFbAvatar,
+          facebookProfileUrl: finalFbUrl,
+          isFacebookVerified: true,
+          coinsBalance: user.avaliveCoins,
+          tokenBalance: user.avaliveCoins,
+          completedTasksCount: user.completedTasksCount || 0,
+          createdCampaignsCount: 0,
+          purchasedPackagesCount: 0,
+          escrowLockedAmountVND: '0 ₫',
+          status: 'active',
+          kycStatus: 'unverified',
+          joinedDate: new Date().toISOString(),
+          orders: user.myOrders || [],
+          grantedCoinsTotal: user.grantedCoinsTotal || 0,
+          grantedPackagesTotal: user.grantedPackagesTotal || 0,
+          rankLevel: user.rankLevel || 'Đồng',
+          registrationSource: 'direct'
+        };
+        const copy = [newUserAdmin, ...prev];
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+          }
+        } catch {}
+        return copy;
       }
-      return prev;
     });
 
     syncUserProfileToSupabase(updatedUser);
@@ -5248,10 +5515,20 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const disconnectFacebook = () => {
+    if (user.email) {
+      saveConnectionsForUser(user.email, {
+        facebookConnected: '',
+        facebookProfileUrl: '',
+        facebookFollowers: 0,
+        facebookAvatar: '',
+        isFacebookVerified: false
+      });
+    }
     const updatedUser: UserProfileWallet = {
       ...user,
       facebookConnected: '',
       facebookProfileUrl: '',
+      facebookFollowers: 0,
       isFacebookVerified: false
     };
     setUser(updatedUser);
@@ -5265,7 +5542,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const idx = prev.findIndex(u => (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id);
       if (idx >= 0) {
         const copy = [...prev];
-        copy[idx] = { ...copy[idx], facebookConnected: '', isFacebookVerified: false };
+        copy[idx] = { ...copy[idx], facebookConnected: '', facebookFollowers: 0, isFacebookVerified: false };
         try {
           if (typeof window !== 'undefined') {
             localStorage.setItem('ava_admin_users', JSON.stringify(copy));
@@ -5317,13 +5594,24 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       } catch {}
     }
 
+    const finalYtAvatar = avatarUrl || user.youtubeAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=FF0000&color=fff&bold=true`;
+    const finalYtUrl = urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean}`;
+
+    saveConnectionsForUser(userEmail, {
+      youtubeConnected: formattedYt,
+      youtubeProfileUrl: finalYtUrl,
+      youtubeSubscribers: subscribers !== undefined ? subscribers : (user.youtubeSubscribers || 0),
+      youtubeAvatar: finalYtAvatar,
+      isYoutubeVerified: true
+    });
+
     const updatedUser: UserProfileWallet = {
       ...user,
       youtubeConnected: formattedYt,
-      youtubeProfileUrl: urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean}`,
+      youtubeProfileUrl: finalYtUrl,
       isYoutubeVerified: true,
       youtubeSubscribers: subscribers !== undefined ? subscribers : (user.youtubeSubscribers || 0),
-      youtubeAvatar: avatarUrl || user.youtubeAvatar || user.avatar
+      youtubeAvatar: finalYtAvatar
     };
 
     setUser(updatedUser);
@@ -5340,6 +5628,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         copy[idx] = {
           ...copy[idx],
           youtubeConnected: formattedYt,
+          youtubeSubscribers: subscribers !== undefined ? subscribers : copy[idx].youtubeSubscribers,
+          youtubeAvatar: finalYtAvatar,
+          youtubeProfileUrl: finalYtUrl,
           isYoutubeVerified: true
         };
         try {
@@ -5348,8 +5639,45 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
         } catch {}
         return copy;
+      } else {
+        const newUserAdmin: AdminUserManagementItem = {
+          id: user.id || `usr_${Date.now()}`,
+          name: user.name || userEmail.split('@')[0],
+          handle: user.tiktokConnected || user.handle || `@${userEmail.split('@')[0]}`,
+          avatar: user.avatar || finalYtAvatar,
+          email: userEmail,
+          phone: user.phone || '0988888888',
+          tiktokConnected: user.tiktokConnected || '',
+          tiktokFollowers: user.tiktokFollowers || 0,
+          isTikTokVerified: user.isTikTokVerified || false,
+          youtubeConnected: formattedYt,
+          youtubeSubscribers: subscribers !== undefined ? subscribers : 0,
+          youtubeAvatar: finalYtAvatar,
+          youtubeProfileUrl: finalYtUrl,
+          isYoutubeVerified: true,
+          coinsBalance: user.avaliveCoins,
+          tokenBalance: user.avaliveCoins,
+          completedTasksCount: user.completedTasksCount || 0,
+          createdCampaignsCount: 0,
+          purchasedPackagesCount: 0,
+          escrowLockedAmountVND: '0 ₫',
+          status: 'active',
+          kycStatus: 'unverified',
+          joinedDate: new Date().toISOString(),
+          orders: user.myOrders || [],
+          grantedCoinsTotal: user.grantedCoinsTotal || 0,
+          grantedPackagesTotal: user.grantedPackagesTotal || 0,
+          rankLevel: user.rankLevel || 'Đồng',
+          registrationSource: 'direct'
+        };
+        const copy = [newUserAdmin, ...prev];
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
+          }
+        } catch {}
+        return copy;
       }
-      return prev;
     });
 
     syncUserProfileToSupabase(updatedUser);
@@ -5358,10 +5686,20 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const disconnectYoutube = () => {
+    if (user.email) {
+      saveConnectionsForUser(user.email, {
+        youtubeConnected: '',
+        youtubeProfileUrl: '',
+        youtubeSubscribers: 0,
+        youtubeAvatar: '',
+        isYoutubeVerified: false
+      });
+    }
     const updatedUser: UserProfileWallet = {
       ...user,
       youtubeConnected: '',
       youtubeProfileUrl: '',
+      youtubeSubscribers: 0,
       isYoutubeVerified: false
     };
     setUser(updatedUser);
@@ -5375,7 +5713,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const idx = prev.findIndex(u => (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id);
       if (idx >= 0) {
         const copy = [...prev];
-        copy[idx] = { ...copy[idx], youtubeConnected: '', isYoutubeVerified: false };
+        copy[idx] = { ...copy[idx], youtubeConnected: '', youtubeSubscribers: 0, isYoutubeVerified: false };
         try {
           if (typeof window !== 'undefined') {
             localStorage.setItem('ava_admin_users', JSON.stringify(copy));
@@ -6999,7 +7337,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           id: cleanKey.startsWith('usr_') ? cleanKey : `usr_${email.replace(/[^a-z0-9]/g, '_')}`,
           name: cleanHandle,
           handle: cleanHandle,
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=010101&color=fff&bold=true`,
           email,
           phone: '0988888888',
           tiktokConnected: `@${cleanHandle}`,
@@ -7150,7 +7488,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           id: cleanKey.startsWith('usr_') ? cleanKey : `usr_${email.replace(/[^a-z0-9]/g, '_')}`,
           name: cleanHandle,
           handle: cleanHandle,
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=010101&color=fff&bold=true`,
           email,
           phone: '0988888888',
           tiktokConnected: `@${cleanHandle}`,
@@ -7290,7 +7628,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           id: cleanKey.startsWith('usr_') ? cleanKey : `usr_${email.replace(/[^a-z0-9]/g, '_')}`,
           name: cleanHandle,
           handle: cleanHandle,
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=010101&color=fff&bold=true`,
           email,
           phone: '0988888888',
           tiktokConnected: `@${cleanHandle}`,
@@ -7382,7 +7720,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           id: cleanKey.startsWith('usr_') ? cleanKey : `usr_${email.replace(/[^a-z0-9]/g, '_')}`,
           name: cleanHandle,
           handle: cleanHandle,
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=010101&color=fff&bold=true`,
           email,
           phone: '0988888888',
           tiktokConnected: `@${cleanHandle}`,
@@ -7462,7 +7800,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           id: cleanKey.startsWith('usr_') ? cleanKey : `usr_${email.replace(/[^a-z0-9]/g, '_')}`,
           name: cleanHandle,
           handle: cleanHandle,
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=010101&color=fff&bold=true`,
           email,
           phone: '0988888888',
           tiktokConnected: `@${cleanHandle}`,
@@ -7529,7 +7867,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       id: newId,
       name: userData.name || email.split('@')[0],
       handle: handleClean,
-      avatar: userData.avatar || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80`,
+      avatar: userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || handleClean)}&background=010101&color=fff&bold=true`,
       email,
       phone: userData.phone || '0988888888',
       tiktokConnected: userData.tiktokConnected || `@${handleClean}`,

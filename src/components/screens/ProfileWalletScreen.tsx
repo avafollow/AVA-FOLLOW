@@ -150,7 +150,7 @@ export const ProfileWalletScreen: React.FC<{
   );
   const [frontCardPreview, setFrontCardPreview] = useState<string>(user.kycData?.frontIdCardUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop&q=80');
   const [backCardPreview, setBackCardPreview] = useState<string>(user.kycData?.backIdCardUrl || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&auto=format&fit=crop&q=80');
-  const [selfiePreview, setSelfiePreview] = useState<string>(user.kycData?.selfiePhotoUrl || user.selfiePhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80');
+  const [selfiePreview, setSelfiePreview] = useState<string>(user.kycData?.selfiePhotoUrl || user.selfiePhotoUrl || '');
   const [kycSaved, setKycSaved] = useState(false);
   const [kycStatus, setKycStatus] = useState<'pending' | 'verified' | 'unsubmitted'>(user.kycStatus === 'verified' ? 'verified' : user.kycStatus === 'pending' ? 'pending' : 'unsubmitted');
   const isKycVerified = kycStatus === 'verified' || user.kycStatus === 'verified';

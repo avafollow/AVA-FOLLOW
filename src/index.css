@@ -213,14 +213,33 @@
   75% { transform: scale(0.97) rotate(1.5deg) translateX(1px); }
 }
 
-/* Luxury Glassmorphism & Custom Scrollbar (Desktop Smooth Wheel Ergonomics) */
-* {
+/* High-Performance Smooth Scroll & GPU Rasterization */
+html {
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.fast-scroll {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  will-change: scroll-position;
+}
+
+.section-optimize {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 700px;
+  transform: translateZ(0);
+}
+
+.gpu-accelerate {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
 }
 
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -228,19 +247,19 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 9999px;
-  border: 1.5px solid #07090E;
+  border: 1px solid #07090E;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 0, 80, 0.6);
+  background: rgba(255, 0, 80, 0.7);
 }
 
 .smooth-scroll-container {
-  scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+  transform: translateZ(0);
 }
 
 .no-scrollbar::-webkit-scrollbar {

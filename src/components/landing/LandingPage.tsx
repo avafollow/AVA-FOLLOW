@@ -148,7 +148,7 @@ const LandingPageCore: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-[100dvh] max-w-full bg-[#07090E] text-slate-100 font-sans selection:bg-rose-500 selection:text-white overflow-x-hidden">
+    <div className="min-h-[100dvh] max-w-full bg-[#07090E] text-slate-100 font-sans selection:bg-rose-500 selection:text-white overflow-x-hidden fast-scroll">
       
       {/* 1. LUXURY STICKY NAVBAR */}
       <header className="sticky top-0 z-50 w-full pt-[env(safe-area-inset-top,0px)] bg-[#07090E]/90 backdrop-blur-2xl border-b border-white/10 transition-all shadow-2xl">
@@ -282,7 +282,7 @@ const LandingPageCore: React.FC = () => {
       </header>
 
       {/* 2. HERO SECTION - CHỐT SALE THÔI MIÊN CỰC ĐỈNH */}
-      <section className="relative pt-12 pb-20 md:pt-20 md:pb-28 overflow-hidden">
+      <section className="relative pt-12 pb-20 md:pt-20 md:pb-28 overflow-hidden gpu-accelerate">
         {/* Ambient Glows */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-tr from-[#FF0050]/20 via-purple-600/20 to-[#00F2FE]/15 rounded-full blur-[140px] pointer-events-none" />
         <div className="absolute top-10 right-10 w-96 h-96 bg-amber-500/10 rounded-full blur-[110px] pointer-events-none" />

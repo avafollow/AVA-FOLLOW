@@ -2616,6 +2616,48 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
+    // Nếu có mã bảo trợ (từ cookie hoặc URL ref), tự động ghi nhận thành viên F1 vào Affiliate Hub
+    if (activeRefSponsor) {
+      setAffiliateData(prev => {
+        const refId = `ref_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`;
+        const alreadyExists = prev.referralsList.some(
+          r => r.id === refId || (r.tiktokHandle && r.tiktokHandle.toLowerCase() === formattedHandle.toLowerCase())
+        );
+        if (alreadyExists) return prev;
+
+        const newRefEntry = {
+          id: refId,
+          username: name || cleanEmail.split('@')[0],
+          avatar: updatedUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          tiktokHandle: formattedHandle || `@${cleanEmail.split('@')[0]}`,
+          joinedDate: 'Vừa xong',
+          hasCompletedTask: false,
+          taskCompletedType: 'Chờ hoàn thành 1 nhiệm vụ để xác thực',
+          status: 'Chờ hoàn thành 1 nhiệm vụ',
+          bonusCoins: 5000,
+          isClaimed: false,
+          packageSpentVND: '0đ',
+          earnedVND: '0đ'
+        };
+
+        const updated = {
+          ...prev,
+          totalSignups: prev.totalSignups + 1,
+          referralPendingCount: prev.referralPendingCount + 1,
+          referralPendingCoins: prev.referralPendingCoins + 5000,
+          referralsList: [newRefEntry, ...prev.referralsList]
+        };
+
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_affiliate_data', JSON.stringify(updated));
+          }
+        } catch {}
+        syncAffiliateToSupabase(updated);
+        return updated;
+      });
+    }
+
     // Đồng bộ tài khoản và quà chào mừng 5.000 Xu lên Supabase
     registerUserToSupabase({
       email,
@@ -3547,6 +3589,16 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
           return u;
         });
+
+        // Ghi sổ cái Supabase cho người bảo trợ
+        syncTokenLedgerToSupabase({
+          userId: user.referredBy,
+          txType: 'referral_bonus',
+          tokenAmount: 0,
+          tokenBalanceAfter: 0,
+          vndEquivalent: 5000,
+          note: `Thưởng giới thiệu (+5.000 Xu) khi thành viên F1 (${user.name} - ${user.tiktokConnected || user.email}) hoàn thành nhiệm vụ 1`
+        });
       }
 
       try {
@@ -3557,17 +3609,62 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return copy;
     });
 
-    // Nếu là nhiệm vụ đầu tiên của người được giới thiệu -> Cập nhật affiliateData
+    // Nếu là nhiệm vụ đầu tiên của người được giới thiệu -> Cập nhật affiliateData toàn diện
     if (isFirstTask && user.referredBy) {
-      setAffiliateData(prev => ({
-        ...prev,
-        referralsList: prev.referralsList.map(r => {
-          if (r.tiktokHandle === user.tiktokConnected || r.username === user.name) {
-            return { ...r, hasCompletedTask: true, status: 'Đã hoàn thành nhiệm vụ 1 • Đủ điều kiện nhận 5.000 Xu' };
+      setAffiliateData(prev => {
+        let matched = false;
+        const refId = `ref_${(user.email || '').replace(/[^a-z0-9]/g, '_')}`;
+        const updatedList = prev.referralsList.map(r => {
+          if (
+            r.id === refId || 
+            r.tiktokHandle === user.tiktokConnected || 
+            r.username === user.name
+          ) {
+            matched = true;
+            return { 
+              ...r, 
+              hasCompletedTask: true, 
+              isClaimed: true,
+              taskCompletedType: `Đã hoàn thành nhiệm vụ 1 (${label})`,
+              status: 'Đã xác thực (+5.000 Xu)' 
+            };
           }
           return r;
-        })
-      }));
+        });
+
+        const updated = {
+          ...prev,
+          referralActivatedCount: prev.referralActivatedCount + 1,
+          referralPendingCount: Math.max(0, prev.referralPendingCount - 1),
+          referralBonusCoinsTotal: prev.referralBonusCoinsTotal + 5000,
+          referralPendingCoins: Math.max(0, prev.referralPendingCoins - 5000),
+          referralsList: matched ? updatedList : [
+            {
+              id: refId,
+              username: user.name || 'Thành viên F1',
+              avatar: user.avatar || '',
+              tiktokHandle: user.tiktokConnected || '@f1_user',
+              joinedDate: 'Hôm nay',
+              hasCompletedTask: true,
+              taskCompletedType: `Đã hoàn thành nhiệm vụ 1 (${label})`,
+              status: 'Đã xác thực (+5.000 Xu)',
+              bonusCoins: 5000,
+              isClaimed: true,
+              packageSpentVND: '0đ',
+              earnedVND: '0đ'
+            },
+            ...prev.referralsList
+          ]
+        };
+
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ava_affiliate_data', JSON.stringify(updated));
+          }
+        } catch {}
+        syncAffiliateToSupabase(updated);
+        return updated;
+      });
     }
 
     setAnalytics(prev => ({

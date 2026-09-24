@@ -42,7 +42,7 @@ const TOUR_STEPS: TourStep[] = [
     bgGradient: 'from-rose-500/20 via-slate-900/80 to-slate-950',
     keyPoints: [
       'Xác thực kênh thật 100% không lo bị khóa',
-      'Nhận ngay gói quà tặng tân thủ 10.000 Xu',
+      'Nhận ngay gói quà tặng tân thủ +5.000 Xu',
       'Đồng bộ tức thì mọi tương tác qua hệ thống'
     ],
     actionLabel: 'Kết Nối Ngay',

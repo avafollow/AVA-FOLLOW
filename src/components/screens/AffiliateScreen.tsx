@@ -55,9 +55,24 @@ export const AffiliateScreen: React.FC<{
               <Gift className="h-3.5 w-3.5 text-amber-400" />
               <span>TẶNG 5,000 XU/BẠN MỚI • HOA HỒNG BÁN GÓI 20% - 35%</span>
             </div>
-            <h2 className="text-xl sm:text-3xl font-black text-white font-display">
-              Trung Tâm Tiếp Thị Liên Kết &amp; Cấp Bậc Hoa Hồng (Affiliate Hub)
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl sm:text-3xl font-black text-white font-display">
+                Trung Tâm Tiếp Thị Liên Kết &amp; Cấp Bậc Hoa Hồng (Affiliate Hub)
+              </h2>
+              <FeatureGuideTooltip
+                title="Hướng Dẫn Tiếp Thị Liên Kết & Hoa Hồng Bảo Trợ"
+                description="Hệ thống tiếp thị liên kết 2 nguồn thu nhập: Tặng Xu giới thiệu (+5.000 Xu/bạn khi hoàn thành nhiệm vụ đầu) và Hoa hồng bán gói 20% - 35% theo cấp bậc."
+                badge="LƯU COOKIE 30 NGÀY"
+                steps={[
+                  'Bước 1: Sao chép đường link giới thiệu cá nhân có chứa mã ref của bạn.',
+                  'Bước 2: Gửi cho bạn bè qua Zalo, Facebook, TikTok hoặc Telegram.',
+                  'Bước 3: Bạn bè đăng ký và kết nối tài khoản nhận ngay +5.000 Xu quà chào mừng.',
+                  'Bước 4: Khi bạn bè hoàn thành nhiệm vụ đầu tiên, bạn nhận ngay +5.000 Xu tri ân.',
+                  'Bước 5: Khi bạn bè mua bất kỳ gói dịch vụ nào, bạn nhận 20% - 35% hoa hồng tiền mặt rút ATM.'
+                ]}
+                tips="Cookie được lưu trữ 30 ngày trên trình duyệt của người dùng, đảm bảo bạn không bị mất quyền lợi bảo trợ."
+              />
+            </div>
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
               Hai nguồn thu nhập minh bạch: <strong>Tặng Xu giới thiệu (+5,000 Xu/bạn)</strong> khi bạn bè đăng ký và hoàn thành 1 nhiệm vụ xác thực, cùng <strong>Hoa hồng tiền mặt 20% - 35% theo quy mô cộng đồng</strong> cho các đơn hàng của thành viên trong hệ thống.
             </p>

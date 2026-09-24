@@ -3632,6 +3632,32 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!task) return { coinsEarned: 0, vndEarned: 0 };
 
     let baseCoins = task.rewardCoins;
+    
+    // YÊU CẦU: BẮT BUỘC PHẢI LÀM NHIỆM VỤ THEO ĐÚNG LOẠI (task.type)
+    const tType = task.type || 'watch'; // 'follow' | 'watch' | 'like' | 'comment' | 'share' | 'review' | 'affiliate' | 'livestream'
+    let isTaskValid = true;
+    let missingReason = '';
+
+    if (tType === 'follow' && !actions.followed) {
+      isTaskValid = false;
+      missingReason = 'Bạn chưa Follow kênh (yêu cầu bắt buộc của nhiệm vụ này).';
+    } else if (tType === 'like' && !actions.liked) {
+      isTaskValid = false;
+      missingReason = 'Bạn chưa Thả Tim video (yêu cầu bắt buộc của nhiệm vụ này).';
+    } else if (tType === 'comment' && !actions.commented) {
+      isTaskValid = false;
+      missingReason = 'Bạn chưa Bình Luận (yêu cầu bắt buộc của nhiệm vụ này).';
+    } else if (tType === 'share' && !actions.shared) {
+      isTaskValid = false;
+      missingReason = 'Bạn chưa Chia Sẻ (yêu cầu bắt buộc của nhiệm vụ này).';
+    }
+    // Đối với 'watch' hoặc 'livestream', action xem (hoàn thành đếm ngược) đã được gọi tự động
+
+    if (!isTaskValid) {
+      showToast(`❌ NHIỆM VỤ THẤT BẠI: ${missingReason} Hệ thống đối soát không ghi nhận tương tác của bạn.`);
+      return { coinsEarned: 0, vndEarned: 0 };
+    }
+
     if (actions.liked) baseCoins += 100;
     // Bỏ hệ số nhân để chống lạm phát (Chuẩn minh bạch 1:1)
     const totalCoins = baseCoins;

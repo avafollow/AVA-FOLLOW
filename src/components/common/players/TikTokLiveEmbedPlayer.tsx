@@ -103,22 +103,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
       className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none cursor-pointer ${className}`}
       onClick={handleTapScreen}
     >
-      {/* 1. TIKTOK OFFICIAL LIVE WEB PLAYER IFRAME (PHÁT TRỰC TIẾP LUỒNG THẬT) */}
-      {livePlayerUrl && !iframeError ? (
-        <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-          <iframe
-            key={`tt-live-iframe-${cleanHandle}`}
-            src={livePlayerUrl}
-            title={`TikTok Live: @${cleanHandle}`}
-            allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
-            allowFullScreen
-            onError={() => setIframeError(true)}
-            className="w-full h-full border-0 bg-black pointer-events-auto"
-            style={{ width: '100%', height: '100%', border: 'none' }}
-          />
-        </div>
-      ) : (
-        /* 2. LIVE PREVIEW CARD THẬT CỦA CREATOR (KHÔNG DÙNG VIDEO MÁY) */
+      {/* LIVE PREVIEW CARD THẬT CỦA CREATOR (Bỏ qua iframe vì TikTok chặn nhúng Live) */}
         <div className="absolute inset-0 flex flex-col">
           {/* Animated dark background */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#0A0D18] via-[#12172B] to-[#0D1117]">
@@ -207,7 +192,6 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           </div>
         </div>
       </div>
-      )}
 
       {/* HUD BAR TOP */}
       {!hideHud && (

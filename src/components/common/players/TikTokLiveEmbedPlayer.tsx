@@ -93,18 +93,16 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
 
   const avatarUrl = getTikTokAvatar(cleanHandle);
   const displayName = channelName || `@${cleanHandle}`;
-  const [iframeError, setIframeError] = useState<boolean>(false);
   const livePlayerUrl = cleanHandle
-    ? `https://www.tiktok.com/player/v1/live?unique_id=${encodeURIComponent(cleanHandle)}&autoplay=1`
+    ? `https://www.tiktok.com/embed/@${encodeURIComponent(cleanHandle)}/live?autoplay=1`
     : null;
-
   return (
     <div
       className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none cursor-pointer ${className}`}
       onClick={handleTapScreen}
     >
       {/* 1. TIKTOK OFFICIAL LIVE WEB PLAYER IFRAME (PHÁT TRỰC TIẾP LUỒNG THẬT) */}
-      {livePlayerUrl && !iframeError ? (
+      {livePlayerUrl ? (
         <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
           <iframe
             key={`tt-live-iframe-${cleanHandle}`}
@@ -112,102 +110,11 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
             title={`TikTok Live: @${cleanHandle}`}
             allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
             allowFullScreen
-            onError={() => setIframeError(true)}
             className="w-full h-full border-0 bg-black pointer-events-auto"
             style={{ width: '100%', height: '100%', border: 'none' }}
           />
         </div>
-      ) : (
-        /* 2. LIVE PREVIEW CARD THẬT CỦA CREATOR (KHÔNG DÙNG VIDEO MÁY) */
-        <div className="absolute inset-0 flex flex-col">
-          {/* Animated dark background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0A0D18] via-[#12172B] to-[#0D1117]">
-            <div className="absolute top-1/4 left-1/4 w-32 h-32 sm:w-48 sm:h-48 bg-rose-600/20 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute bottom-1/3 right-1/4 w-24 h-24 sm:w-40 sm:h-40 bg-purple-600/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-            <div className="absolute top-1/2 right-1/3 w-20 h-20 sm:w-32 sm:h-32 bg-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-          </div>
-
-        {/* Content */}
-        <div className="relative z-10 flex flex-col items-center justify-center h-full gap-4 sm:gap-5 px-4 py-6">
-          
-          {/* Avatar + live ring */}
-          <div className="relative flex flex-col items-center gap-3">
-            <div className="relative">
-              <div className="absolute -inset-2 rounded-full bg-gradient-to-tr from-rose-500 via-pink-500 to-purple-500 animate-spin opacity-80" style={{ animationDuration: '3s' }} />
-              <img
-                src={avatarUrl}
-                alt={cleanHandle}
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle || 'LIVE')}&background=E11D48&color=fff&bold=true&size=200`;
-                }}
-                className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-black z-10"
-              />
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-rose-600 border border-white/20 text-white text-[10px] font-black tracking-wider z-20 flex items-center gap-1 shadow-lg shadow-rose-600/50 whitespace-nowrap">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                LIVE
-              </div>
-            </div>
-
-            {/* Channel info */}
-            <div className="text-center">
-              <div className="text-white font-black text-base sm:text-lg font-display">{displayName}</div>
-              <div className="text-rose-300 text-xs font-mono font-bold flex items-center justify-center gap-1.5 mt-0.5">
-                <Radio className="w-3 h-3 animate-spin" style={{ animationDuration: '2s' }} />
-                <span>Đang phát trực tiếp</span>
-              </div>
-            </div>
-
-            {/* Viewer count */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 border border-rose-500/30 backdrop-blur-sm">
-              <Users className="w-3.5 h-3.5 text-rose-400" />
-              <span className="text-white font-black text-sm font-mono">{viewers.toLocaleString()}</span>
-              <span className="text-slate-400 text-[10px] font-mono">đang xem</span>
-            </div>
-          </div>
-
-          {/* Stats row */}
-          <div className="flex items-center gap-3 text-[11px] font-mono">
-            <div className="flex items-center gap-1 text-pink-400">
-              <Heart className="w-3.5 h-3.5 fill-current" />
-              <span className="font-bold">{(viewers * 3).toLocaleString()}</span>
-            </div>
-            <div className="w-px h-4 bg-white/10" />
-            <div className="flex items-center gap-1 text-blue-400">
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span className="font-bold">{Math.floor(viewers * 0.4).toLocaleString()}</span>
-            </div>
-            <div className="w-px h-4 bg-white/10" />
-            <div className="flex items-center gap-1 text-amber-400">
-              <Flame className="w-3.5 h-3.5" />
-              <span className="font-bold">Hot</span>
-            </div>
-          </div>
-
-          {/* CTA button */}
-          <div className="flex flex-col items-center gap-2 w-full max-w-[260px]">
-            <button
-              type="button"
-              onClick={handleOpenLiveApp}
-              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 hover:from-rose-500 hover:to-purple-500 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-rose-600/40 cursor-pointer transition-all active:scale-95 hover:scale-[1.02] border border-white/10"
-            >
-              <Play className="w-5 h-5 fill-current" />
-              <span>🔴 Mở Phiên Live Ngay</span>
-              <ExternalLink className="w-4 h-4" />
-            </button>
-            <p className="text-[10px] text-slate-500 font-mono text-center leading-relaxed px-2">
-              Bấm để xem phiên live thật tại{' '}
-              <span className="text-rose-400 font-bold break-all">{directLiveUrl}</span>
-            </p>
-          </div>
-
-          {/* Security badge */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-emerald-300 text-[10px] font-bold font-mono">Phiên Live Thật • Đã Xác Minh Chính Chủ</span>
-          </div>
-        </div>
-      </div>
-      )}
+      ) : null}
 
       {/* HUD BAR TOP */}
       {!hideHud && (

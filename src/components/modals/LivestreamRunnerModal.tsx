@@ -247,6 +247,8 @@ export const LivestreamRunnerModal: React.FC = () => {
   };
 
   const [isTabInactive, setIsTabInactive] = useState<boolean>(false);
+  const [pendingFraudAction, setPendingFraudAction] = useState<'comment' | 'share' | 'eye' | null>(null);
+  const [pendingActionStartTime, setPendingActionStartTime] = useState<number>(0);
 
   // Lắng nghe trạng thái Tab / Ẩn ứng dụng để tạm dừng bộ đếm ngay lập tức
   useEffect(() => {
@@ -266,6 +268,52 @@ export const LivestreamRunnerModal: React.FC = () => {
       window.removeEventListener('focus', handleVisibilityChange);
     };
   }, [isLiveRunnerOpen]);
+
+  
+  useEffect(() => {
+    if (!isLiveRunnerOpen || !activeLiveTask) return;
+    const handleVisibilityChange = () => {
+      const isHidden = typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()));
+      
+      if (!isHidden && pendingFraudAction && activeLiveTask) {
+        const timeSpentAway = Date.now() - pendingActionStartTime;
+        let requiredTime = 4000;
+        let actionName = 'Thao tác';
+        if (pendingFraudAction === 'comment') { requiredTime = 8000; actionName = 'Bình luận'; }
+        if (pendingFraudAction === 'share') { requiredTime = 5000; actionName = 'Chia sẻ'; }
+        
+        if (timeSpentAway < requiredTime) {
+           triggerImmediateFraudAlert({
+             title: 'PHÁT HIỆN GIAN LẬN',
+             reason: `Thời gian thao tác quá nhanh (${(timeSpentAway/1000).toFixed(1)}s). Bạn phải MỞ TIKTOK và ${actionName} để nhận xu!`,
+             anomalyType: 'BOT_SPEED_DETECTED',
+             channelHandle: activeLiveTask.channelHandle,
+             penaltyPoints: 10
+           });
+        } else {
+           if (pendingFraudAction === 'comment' && !claimedCommentReward) {
+             setClaimedCommentReward(true);
+             interactWithLiveBroadcast(activeLiveTask.id, 'comment');
+             showToast('💬 Đã gửi bình luận seeding! Nhận ngay +350 Xu thưởng.');
+           } else if (pendingFraudAction === 'share' && !claimedShareReward) {
+             setClaimedShareReward(true);
+             interactWithLiveBroadcast(activeLiveTask.id, 'share');
+             showToast('🚀 Đã chia sẻ phòng Live! Nhận ngay +300 Xu.');
+           }
+        }
+        setPendingFraudAction(null);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
+  }, [isLiveRunnerOpen, pendingFraudAction, pendingActionStartTime, activeLiveTask, claimedCommentReward, claimedShareReward, interactWithLiveBroadcast, triggerImmediateFraudAlert]);
+
 
   // Main tick loop (ĐÓNG BĂNG 100% KHI ẨN TAB HOẶC RỜI ỨNG DỤNG)
   useEffect(() => {
@@ -353,31 +401,34 @@ export const LivestreamRunnerModal: React.FC = () => {
 
   const handleSendChat = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMsg.trim()) return;
+    if (!inputMsg.trim() || !activeLiveTask) return;
     const msg = inputMsg.trim();
+    
+    // ĐÓNG BĂNG 60 LỚP: BẮT BUỘC COPY VÀ MỞ TIKTOK ĐỂ DÁN
+    navigator.clipboard.writeText(msg).catch(() => {});
+    
     setChatMessages(prev => [...prev, `${user.name}: ${msg}`]);
     setInputMsg('');
     setIdleSeconds(0);
     syncTikTokComment(activeLiveTask.id, msg, user.tiktokConnected || user.email || '@user');
 
     if (!claimedCommentReward) {
-      setClaimedCommentReward(true);
-      interactWithLiveBroadcast(activeLiveTask.id, 'comment');
-      showToast('💬 Đã gửi bình luận seeding! Nhận ngay +350 Xu thưởng.');
+      setPendingFraudAction('comment');
+      setPendingActionStartTime(Date.now());
+      showToast('Đã Copy bình luận! Đang mở TikTok, vui lòng DÁN (Paste) bình luận vào phiên LIVE nhé.');
+      window.open(activeLiveTask.targetUrl || `https://www.tiktok.com/@${activeLiveTask.channelHandle}/live`, '_blank', 'noopener,noreferrer');
     }
   };
 
 
   const handleShareLive = (e: React.MouseEvent) => {
     e.stopPropagation();
-    syncShareToFacebook(activeLiveTask.targetUrl, activeLiveTask.channelHandle);
-
     if (!claimedShareReward) {
-      setClaimedShareReward(true);
-      interactWithLiveBroadcast(activeLiveTask.id, 'share');
-      showToast('🚀 Đã chia sẻ phòng Live về Facebook! Nhận ngay +300 Xu.');
+      setPendingFraudAction('share');
+      setPendingActionStartTime(Date.now());
+      window.open(activeLiveTask?.targetUrl || `https://www.tiktok.com/@${activeLiveTask?.channelHandle}/live`, '_blank', 'noopener,noreferrer');
     } else {
-      showToast('🚀 Đã mở chia sẻ phòng Live về Facebook!');
+      showToast('🚀 Đã mở chia sẻ phòng Live!');
     }
   };
 

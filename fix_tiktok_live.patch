@@ -1,0 +1,74 @@
+--- src/components/common/players/TikTokLiveEmbedPlayer.tsx
++++ src/components/common/players/TikTokLiveEmbedPlayer.tsx
+@@ -1,4 +1,4 @@
+-import React, { useState, useEffect } from 'react';
++import React, { useState, useEffect, useRef } from 'react';
+ import { ExternalLink, Radio, Users, Heart, Volume2, VolumeX, ShieldCheck } from 'lucide-react';
+ import { extractTikTokHandle, getTikTokAvatar } from '../../../data/videoSources';
+ 
+@@ -34,26 +36,44 @@
+   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
+   const [viewers, setViewers] = useState<number>(viewersCount);
+   const [hearts, setHearts] = useState<{ id: number; x: number; color: string }[]>([]);
++  const [realHlsUrl, setRealHlsUrl] = useState<string | null>(null);
++  const [isLiveActive, setIsLiveActive] = useState<boolean>(true);
++  const videoRef = useRef<HTMLVideoElement>(null);
+ 
+   useEffect(() => {
+-    const url = targetUrl || '';
+-    if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com') || url.includes('tiktok.com/t')) {
+-      fetch(`/api/tiktok-resolve?url=${encodeURIComponent(url)}`)
+-        .then(res => res.json())
+-        .then(data => {
+-          if (data && data.resolved) {
+-            const extracted = extractTikTokHandle(data.resolved);
+-            if (extracted) {
+-              setResolvedHandle(extracted.replace(/^@+/, '').trim());
+-            }
++    const urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
++    fetch(`/api/tiktok-resolve?url=${encodeURIComponent(urlToResolve)}`)
++      .then(res => res.json())
++      .then(data => {
++        if (data && data.resolved) {
++          const extracted = extractTikTokHandle(data.resolved);
++          if (extracted) {
++            setResolvedHandle(extracted.replace(/^@+/, '').trim());
+           }
+-        })
+-        .catch(() => {});
+-    }
+-  }, [targetUrl]);
+-
+-  useEffect(() => { setInternalMuted(isMuted); }, [isMuted]);
+-
+-  // Bộ đếm mắt xem dao động tự nhiên
++        }
++        if (data && data.isLive !== undefined) setIsLiveActive(data.isLive);
++        if (data && data.liveViewers) setViewers(data.liveViewers);
++        if (data && data.hlsUrl) setRealHlsUrl(data.hlsUrl);
++      })
++      .catch(() => {});
++  }, [targetUrl, cleanHandle]);
++
++  useEffect(() => {
++    if (videoRef.current) {
++      videoRef.current.muted = internalMuted;
++    }
++  }, [internalMuted]);
++
++  useEffect(() => { setInternalMuted(isMuted); }, [isMuted]);
++
++  // CHỐNG GIAN LẬN: Cập nhật mắt xem thực tế 10s/lần
+   useEffect(() => {
+     const timer = setInterval(() => {
+-      setViewers(prev => Math.max(500, prev + Math.floor(Math.random() * 11) - 5));
++      const urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
++      fetch(`/api/tiktok-resolve?url=${encodeURIComponent(urlToResolve)}`)
++        .then(res => res.json())
++        .then(data => {
++          if (data && data.liveViewers) setViewers(data.liveViewers);
++        }).catch(() => {});
+     }, 3000);
+-    return () => clearInterval(timer);
++    return () => clearInterval(timer); // Chống gọi API quá nhanh, chỉ nên update
+   }, []);

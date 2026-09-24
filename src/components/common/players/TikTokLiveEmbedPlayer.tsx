@@ -56,33 +56,48 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const [viewers, setViewers] = useState<number>(viewersCount);
   const [hearts, setHearts] = useState<{ id: number; x: number; color: string }[]>([]);
+  const [realHlsUrl, setRealHlsUrl] = useState<string | null>(null);
+  const [isLiveActive, setIsLiveActive] = useState<boolean>(true);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    const url = targetUrl || '';
-    if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com') || url.includes('tiktok.com/t')) {
-      fetch(`/api/tiktok-resolve?url=${encodeURIComponent(url)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.resolved) {
-            const extracted = extractTikTokHandle(data.resolved);
-            if (extracted) {
-              setResolvedHandle(extracted.replace(/^@+/, '').trim());
-            }
+    const urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
+    fetch(`/api/tiktok-resolve?url=${encodeURIComponent(urlToResolve)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.resolved) {
+          const extracted = extractTikTokHandle(data.resolved);
+          if (extracted) {
+            setResolvedHandle(extracted.replace(/^@+/, '').trim());
           }
-        })
-        .catch(() => {});
-    }
-  }, [targetUrl]);
+        }
+        if (data && data.isLive !== undefined) setIsLiveActive(data.isLive);
+        if (data && data.liveViewers) setViewers(data.liveViewers);
+        if (data && data.hlsUrl) setRealHlsUrl(data.hlsUrl);
+      })
+      .catch(() => {});
+  }, [targetUrl, cleanHandle]);
 
   useEffect(() => { setInternalMuted(isMuted); }, [isMuted]);
 
-  // Bộ đếm mắt xem dao động tự nhiên
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = internalMuted;
+    }
+  }, [internalMuted]);
+
+  // Bộ đếm mắt xem THẬT (Cập nhật 15s 1 lần, không dao động ảo)
   useEffect(() => {
     const timer = setInterval(() => {
-      setViewers(prev => Math.max(500, prev + Math.floor(Math.random() * 11) - 5));
-    }, 3000);
+      const urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
+      fetch(`/api/tiktok-resolve?url=${encodeURIComponent(urlToResolve)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.liveViewers) setViewers(data.liveViewers);
+        }).catch(() => {});
+    }, 15000);
     return () => clearInterval(timer);
-  }, []);
+  }, [targetUrl, cleanHandle]);
 
   const handleToggleSound = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -115,14 +130,60 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const livePlayerUrl = cleanHandle
     ? `https://www.tiktok.com/embed/@${encodeURIComponent(cleanHandle)}/live?autoplay=1&muted=${isMuted ? 1 : 0}`
     : null;
+
+  // Xử lý nạp HLS khi có HLS URL thật
+  useEffect(() => {
+    if (realHlsUrl && videoRef.current) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/hls.js@1';
+      script.onload = () => {
+        const video = videoRef.current;
+        if (!video) return;
+        // @ts-ignore
+        if (window.Hls && window.Hls.isSupported()) {
+          // @ts-ignore
+          const hls = new window.Hls();
+          hls.loadSource(realHlsUrl);
+          hls.attachMedia(video);
+          // @ts-ignore
+          hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+            video.play().catch(() => {});
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = realHlsUrl;
+          video.addEventListener('loadedmetadata', () => {
+            video.play().catch(() => {});
+          });
+        }
+      };
+      document.body.appendChild(script);
+      return () => {
+        document.body.removeChild(script);
+      };
+    }
+  }, [realHlsUrl]);
+
   return (
     <div
       className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none cursor-pointer ${className}`}
       onClick={handleTapScreen}
     >
-      {/* 1. TIKTOK OFFICIAL LIVE WEB PLAYER IFRAME (PHÁT TRỰC TIẾP LUỒNG THẬT) */}
-      {livePlayerUrl ? (
-        <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
+      {/* 1. TIKTOK LUỒNG HLS THẬT HOẶC IFRAME DỰ PHÒNG */}
+      <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
+        {!isLiveActive ? (
+          <div className="flex flex-col items-center justify-center text-white/50 text-xs gap-2">
+            <Radio className="w-8 h-8 opacity-50" />
+            <span>Phiên LIVE đã kết thúc hoặc không tồn tại</span>
+          </div>
+        ) : realHlsUrl ? (
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover pointer-events-auto"
+            autoPlay
+            playsInline
+            muted={internalMuted}
+          />
+        ) : livePlayerUrl ? (
           <iframe
             key={`tt-live-iframe-${cleanHandle}`}
             src={livePlayerUrl}
@@ -132,8 +193,8 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
             className="w-full h-full border-0 bg-black pointer-events-auto"
             style={{ width: '100%', height: '100%', border: 'none' }}
           />
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       {/* HUD BAR TOP */}
       {!hideHud && (

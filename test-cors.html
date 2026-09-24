@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body>
+<video id="video" controls></video>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+<script>
+  var video = document.getElementById('video');
+  var hls = new Hls();
+  hls.loadSource('https://pull-hls-l1-sg01.tiktokcdn.com/game/stream-1561290706921193564_hd/index.m3u8?expire=1791468789&sign=fe323eb1ec362fbad30f501e5f16f508');
+  hls.attachMedia(video);
+  hls.on(Hls.Events.MANIFEST_PARSED, function() {
+    video.play();
+  });
+</script>
+</body>
+</html>

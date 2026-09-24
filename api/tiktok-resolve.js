@@ -32,16 +32,52 @@ export default async function handler(req, res) {
       finalUrl = response.url;
     }
     
-    // Đôi khi link là mobile html page, chứa link canon
+    // Nếu link có dạng /live hoặc chúng ta có thể cào thông tin LiveRoom
+    let liveData = null;
+    let liveViewers = 0;
+    let isLive = false;
+    let hlsUrl = null;
+
     if (finalUrl === url && response.status === 200) {
        const text = await response.text();
        const canonMatch = text.match(/<link\s+rel="canonical"\s+href="([^"]+)"/i);
        if (canonMatch && canonMatch[1]) {
            finalUrl = canonMatch[1];
        }
+
+       // Parse SIGI_STATE for Live Room info
+       const sigiMatch = text.match(/<script id="SIGI_STATE" type="application\/json">([\s\S]*?)<\/script>/);
+       if (sigiMatch) {
+         try {
+           const state = JSON.parse(sigiMatch[1]);
+           const liveRoom = state.LiveRoom?.liveRoomUserInfo?.liveRoom;
+           if (liveRoom) {
+             isLive = true;
+             liveViewers = liveRoom.liveRoomStats?.userCount || 0;
+             liveData = liveRoom;
+             
+             // Extract HLS URL if available
+             try {
+               const streamStr = liveRoom.streamData?.pull_data?.stream_data;
+               if (streamStr) {
+                 const streamData = JSON.parse(streamStr);
+                 // Prioritize standard hd/sd over others, or just take the first hls
+                 hlsUrl = streamData?.data?.hd?.main?.hls || streamData?.data?.sd?.main?.hls || streamData?.data?.ld?.main?.hls || streamData?.data?.origin?.main?.hls || null;
+               }
+             } catch (e) {}
+           }
+         } catch(e) {}
+       }
     }
 
-    return res.status(200).json({ original: url, resolved: finalUrl });
+    return res.status(200).json({ 
+      original: url, 
+      resolved: finalUrl,
+      isLive,
+      liveViewers,
+      hlsUrl,
+      liveData
+    });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

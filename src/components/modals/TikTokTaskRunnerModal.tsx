@@ -144,6 +144,8 @@ export const TikTokTaskRunnerModal: React.FC = () => {
   }, [isRunnerOpen, runnerTask, userCompletedActions, isMuted, isYouTube]);
 
   const [isTabInactive, setIsTabInactive] = useState<boolean>(false);
+  const [pendingFraudAction, setPendingFraudAction] = useState<'follow' | 'like' | 'comment' | 'share' | null>(null);
+  const [pendingActionStartTime, setPendingActionStartTime] = useState<number>(0);
 
   // Lắng nghe trạng thái Tab để đóng băng bộ đếm ngay khi user chuyển sang ứng dụng khác
   useEffect(() => {
@@ -151,6 +153,32 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     const handleVisibilityChange = () => {
       const isHidden = typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()));
       setIsTabInactive(isHidden);
+      
+      if (!isHidden && pendingFraudAction && runnerTask) {
+        const timeSpentAway = Date.now() - pendingActionStartTime;
+        let requiredTime = 4000; 
+        let actionName = 'Follow';
+        if (pendingFraudAction === 'comment') { requiredTime = 8000; actionName = 'Bình luận'; }
+        if (pendingFraudAction === 'share') { requiredTime = 5000; actionName = 'Chia sẻ'; }
+        if (pendingFraudAction === 'like') { requiredTime = 4000; actionName = 'Thả tim'; }
+        
+        if (timeSpentAway < requiredTime) {
+           triggerImmediateFraudAlert({
+             title: 'PHÁT HIỆN GIAN LẬN',
+             reason: `Thời gian thao tác quá nhanh (${(timeSpentAway/1000).toFixed(1)}s). Bạn phải THỰC SỰ MỞ ỨNG DỤNG và ${actionName} để nhận xu!`,
+             anomalyType: 'BOT_SPEED_DETECTED',
+             channelHandle: runnerTask.channelHandle,
+             penaltyPoints: 10
+           });
+        } else {
+           const earned = claimTaskAction(runnerTask.id, pendingFraudAction);
+           if (earned > 0) {
+             setClaimedActions(prev => ({ ...prev, [pendingFraudAction]: true }));
+             showToast(`🎉 Xác minh ${actionName} thành công: +${earned} Xu`);
+           }
+        }
+        setPendingFraudAction(null);
+      }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -162,7 +190,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       window.removeEventListener('blur', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
     };
-  }, [isRunnerOpen]);
+  }, [isRunnerOpen, pendingFraudAction, pendingActionStartTime, runnerTask, claimTaskAction, triggerImmediateFraudAlert]);
 
   // 15-second countdown timer (ĐÓNG BĂNG 100% KHI ẨN TAB / RỜI APP / NHẬN CUỘC GỌI)
   useEffect(() => {
@@ -186,13 +214,11 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     return () => clearInterval(timer);
   }, [isRunnerOpen, timeLeft, isPlaying]);
 
-  // When timer hits 0, auto claim watch reward (+200 Xu) once
+  // Bắt buộc click Xem Trên TikTok để nhận phần thưởng watch
   useEffect(() => {
-    if (timeLeft === 0 && !claimedActions.watch && runnerTask) {
-      claimTaskAction(runnerTask.id, 'watch');
-      setClaimedActions(prev => ({ ...prev, watch: true }));
-    }
-  }, [timeLeft, claimedActions.watch, runnerTask, claimTaskAction]);
+    // Chúng ta KHÔNG auto claim Xu khi đếm lùi về 0 nữa. 
+    // Người dùng phải thực sự chuyển hướng sang TikTok.
+  }, []);
 
   if (!isRunnerOpen || !runnerTask) return null;
 
@@ -240,20 +266,30 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       return;
     }
     if (!claimedActions.follow) {
-      const earned = claimTaskAction(runnerTask.id, 'follow');
-      if (earned > 0) {
-        setClaimedActions(prev => ({ ...prev, follow: true }));
-      }
+      setPendingFraudAction('follow');
+      setPendingActionStartTime(Date.now());
+      window.open(`https://www.tiktok.com/@${runnerTask.channelHandle}`, '_blank', 'noopener,noreferrer');
     }
   };
 
   const handleCommentAction = (commentText: string) => {
-    setSelectedComment(commentText);
-    if (!claimedActions.comment) {
-      claimTaskAction(runnerTask.id, 'comment');
-      setClaimedActions(prev => ({ ...prev, comment: true }));
-    }
-    setShowCommentSheet(false);
+    if (!commentText.trim()) return;
+    
+    // ĐÓNG BĂNG 60 LỚP: BẮT BUỘC COPY VÀ MỞ TIKTOK ĐỂ DÁN
+    navigator.clipboard.writeText(commentText).catch(() => {});
+    
+    setIsSubmitting(true);
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setShowCommentSheet(false);
+      
+      setPendingFraudAction('comment');
+      setPendingActionStartTime(Date.now());
+      showToast('Đã Copy bình luận! Đang mở TikTok, vui lòng DÁN (Paste) bình luận vào video nhé.');
+      
+      const targetUrl = runnerTask.targetUrl || `https://www.tiktok.com/@${runnerTask.channelHandle}`;
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }, 1000);
   };
 
   const handleShareAction = (e?: React.MouseEvent) => {

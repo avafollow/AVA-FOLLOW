@@ -48,6 +48,8 @@ import { MarqueeHistoryModal } from './components/modals/MarqueeHistoryModal';
 import { FireworksCongratulationModal } from './components/modals/FireworksCongratulationModal';
 import { PwaInstallGuideModal } from './components/modals/PwaInstallGuideModal';
 import { FraudAppealModal } from './components/modals/FraudAppealModal';
+import { TaskHistoryDetailModal } from './components/modals/TaskHistoryDetailModal';
+import { LivestreamBannerPopup } from './components/common/LivestreamBannerPopup';
 import { RecentUserJoinNotification } from './components/common/RecentUserJoinNotification';
 import { ZaloCommunityFloatingButton } from './components/common/ZaloCommunityFloatingButton';
 import { AntiFraudMarqueeTicker } from './components/common/AntiFraudMarqueeTicker';
@@ -138,7 +140,10 @@ function AppContent() {
     closePwaModal,
     isFraudAppealModalOpen,
     closeFraudAppealModal,
-    fraudAppealTargetTask
+    fraudAppealTargetTask,
+    selectedTaskDetail,
+    isTaskDetailModalOpen,
+    closeTaskDetail
   } = useTikTokApp();
 
   // Ref tới phần tử nội dung cuộn chính
@@ -450,6 +455,12 @@ function AppContent() {
         onClose={closeFraudAppealModal}
         targetTask={fraudAppealTargetTask}
       />
+      <TaskHistoryDetailModal
+        isOpen={isTaskDetailModalOpen}
+        onClose={closeTaskDetail}
+        item={selectedTaskDetail}
+      />
+      <LivestreamBannerPopup />
 
       {/* Global Command Palette (Ctrl + K) */}
       <CommandPalette

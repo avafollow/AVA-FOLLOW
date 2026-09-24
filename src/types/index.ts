@@ -1421,4 +1421,56 @@ export interface HoneypotTrapItem {
   botIpsCaught: string[];
 }
 
+// ===== HỆ THỐNG BANNER QUẢNG CÁO LIVESTREAM (100.000 XU • HIỂN THỊ 3 GIÂY • KHUNG 50%) =====
+export interface LivestreamBannerCampaign {
+  id: string;
+  userId: string;
+  userHandle: string;
+  userName: string;
+  bannerImageUrl: string;
+  targetLiveUrl: string;
+  liveTitle: string;
+  costCoins: number; // 100.000 Xu
+  status: 'pending_moderation' | 'approved' | 'active' | 'completed' | 'rejected';
+  moderationDurationMinutes: number; // Tối đa 5 phút
+  moderationRemainingSeconds: number;
+  moderationResult?: {
+    passed: boolean;
+    reason: string;
+    checkedBy: string;
+    checkedAt: string;
+  };
+  durationSeconds: number; // 3s
+  createdAt: string;
+  expiresAt?: string;
+  totalDisplays?: number;
+  impressionsCount?: number;
+  clicksCount?: number;
+}
+
+// ===== GÓI NHIỆM VỤ NGÀY (DAILY MISSION PACKAGE BUNDLE) =====
+export interface DailyMissionBundleItem {
+  id: string;
+  title: string;
+  description: string;
+  actionType: 'watch' | 'follow' | 'like' | 'comment' | 'share' | 'live';
+  targetCount: number;
+  completedCount: number;
+  rewardXu: number;
+  isCompleted: boolean;
+}
+
+export interface DailyMissionPackageBundle {
+  dateKey: string;
+  title: string;
+  description: string;
+  totalRewardCoins: number;
+  pendingAccumulatedCoins: number;
+  isFullyCompleted: boolean;
+  isClaimed: boolean;
+  expiresAt: string;
+  items: DailyMissionBundleItem[];
+}
+
+
 

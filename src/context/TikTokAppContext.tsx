@@ -44,11 +44,17 @@ import {
   MarqueeHistoryRecord,
   FraudAppealRecord,
   CampaignAuditTrailItem,
-  FraudAnomalyType
+  FraudAnomalyType,
+  LivestreamBannerCampaign,
+  DailyMissionPackageBundle,
+  DailyMissionBundleItem
 } from '../types';
 import { CongratulationData } from '../components/modals/FireworksCongratulationModal';
 import { SepayCheckoutItem } from '../components/modals/SepayUniversalCheckoutModal';
 import { generateWeeklyMissions, STREAK_REWARDS, getRankTierConfig, getRankByTaskCount, getNextRankTier } from '../data/weeklyMissions';
+import { performAiModerationScan } from '../services/aiCampaignModeration';
+import { TaskHistoryItemDetail } from '../components/modals/TaskHistoryDetailModal';
+import { ActiveLivestreamBanner } from '../components/common/LivestreamBannerPopup';
 import { 
   MARQUEE_BOOST_FEE_XU, 
   INITIAL_MARQUEE_ITEMS, 
@@ -505,6 +511,22 @@ interface TikTokAppContextType {
   submitFraudAppeal: (appeal: Omit<FraudAppealRecord, 'id' | 'status' | 'submittedAt'>) => Promise<FraudAppealRecord>;
   reviewFraudAppeal: (appealId: string, decision: 'approved' | 'rejected', reviewerNote: string, compensationXu?: number) => void;
   recordAuditTrailItem: (item: Omit<CampaignAuditTrailItem, 'id' | 'timestamp'>) => void;
+
+  // Gói Nhiệm Vụ Ngày (Daily Mission Package Bundle - Nhận Xu Tổng Khi 100% Hoàn Tất)
+  dailyBundle: DailyMissionPackageBundle;
+  claimDailyBundle: () => void;
+
+  // Hệ Thống Banner Quảng Cáo Livestream (100.000 Xu • 3s Pop-up • 50% Khung Hình • AI Duyệt Tối Đa 5 Phút)
+  bannerCampaigns: LivestreamBannerCampaign[];
+  activeGlobalBanner: ActiveLivestreamBanner | null;
+  createLivestreamBannerCampaign: (params: { bannerImageUrl: string; targetLiveUrl: string; liveTitle: string }) => Promise<boolean>;
+  dismissGlobalBanner: () => void;
+
+  // Modal Báo Cáo Đối Soát Chi Tiết Nhiệm Vụ (Task History Audit Detail Modal)
+  selectedTaskDetail: TaskHistoryItemDetail | null;
+  isTaskDetailModalOpen: boolean;
+  openTaskDetail: (item: TaskHistoryItemDetail) => void;
+  closeTaskDetail: () => void;
 }
 
 const TikTokAppContext = createContext<TikTokAppContextType | undefined>(undefined);
@@ -1455,6 +1477,68 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   });
 
+  // Helper tạo Gói Nhiệm Vụ Ngày (Daily Mission Package Bundle)
+  const createInitialDailyBundle = (): DailyMissionPackageBundle => {
+    const todayKey = new Date().toISOString().split('T')[0];
+    const items: DailyMissionBundleItem[] = [
+      { id: 'b_watch_5', title: 'Lướt xem 5 video đề xuất FYP', description: 'Xem đủ 15s mỗi video trên hệ thống', actionType: 'watch', targetCount: 5, completedCount: 0, rewardXu: 2500, isCompleted: false },
+      { id: 'b_follow_3', title: 'Theo dõi 3 kênh TikTok đối soát', description: 'Follow kênh và duy trì liên kết an toàn', actionType: 'follow', targetCount: 3, completedCount: 0, rewardXu: 3000, isCompleted: false },
+      { id: 'b_like_5', title: 'Thả tim 5 video tương tác thật', description: 'Thả tim video tự nhiên trên TikTok', actionType: 'like', targetCount: 5, completedCount: 0, rewardXu: 2000, isCompleted: false },
+      { id: 'b_comment_2', title: 'Bình luận 2 video chất lượng', description: 'Gửi bình luận tích cực kèm hashtag #AVALIVE', actionType: 'comment', targetCount: 2, completedCount: 0, rewardXu: 3500, isCompleted: false },
+      { id: 'b_live_3m', title: 'Xem 1 phiên livestream 3 phút', description: 'Giữ mắt xem live liên tục tối thiểu 3 phút', actionType: 'live', targetCount: 1, completedCount: 0, rewardXu: 4000, isCompleted: false }
+    ];
+    return {
+      dateKey: todayKey,
+      title: `Gói Nhiệm Vụ Ngày (${new Date().toLocaleDateString('vi-VN')})`,
+      description: 'Hoàn thành 100% tất cả nhiệm vụ trong gói trước 00:00 để nhận trọn bộ Xu tổng (+15.000 Xu).',
+      totalRewardCoins: 15000,
+      pendingAccumulatedCoins: 0,
+      isFullyCompleted: false,
+      isClaimed: false,
+      expiresAt: '23:59:59 Hôm Nay',
+      items
+    };
+  };
+
+  const [dailyBundle, setDailyBundle] = useState<DailyMissionPackageBundle>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_daily_bundle') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const todayKey = new Date().toISOString().split('T')[0];
+        if (parsed && parsed.dateKey === todayKey) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return createInitialDailyBundle();
+  });
+
+  // State Quản Lý Banner Quảng Cáo Livestream (100.000 Xu • 3s Pop-up • 50% Khung Hình • AI Duyệt Tối Đa 5 Phút)
+  const [bannerCampaigns, setBannerCampaigns] = useState<LivestreamBannerCampaign[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_banner_campaigns') : null;
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
+  const [activeGlobalBanner, setActiveGlobalBanner] = useState<ActiveLivestreamBanner | null>(null);
+
+  // State Modal Xem Chi Tiết Báo Cáo Đối Soát Nhiệm Vụ
+  const [selectedTaskDetail, setSelectedTaskDetail] = useState<TaskHistoryItemDetail | null>(null);
+  const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState<boolean>(false);
+
+  const openTaskDetail = (item: TaskHistoryItemDetail) => {
+    setSelectedTaskDetail(item);
+    setIsTaskDetailModalOpen(true);
+  };
+
+  const closeTaskDetail = () => {
+    setIsTaskDetailModalOpen(false);
+    setSelectedTaskDetail(null);
+  };
+
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -1471,8 +1555,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch {}
   }, [missionStreak]);
 
-  // Tự động nhận diện & làm đầy tiến độ nhiệm vụ sàn (Đa tác vụ đồng thời: xem, thả tim, follow, comment, share...)
+  // Tự động nhận diện & làm đầy tiến độ nhiệm vụ sàn & gói ngày
   const recordMissionProgress = (type: MissionType, count: number = 1) => {
+    // 1. Cập nhật userMissions
     setUserMissions(prev => {
       let newlyCompletedMission: UserWeeklyMission | null = null;
       const updated = prev.map(m => {
@@ -1501,14 +1586,227 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isDailyAllClear: allDailyDone
       }));
 
-      // Khi hoàn thành nhiệm vụ: Thông báo nhẹ nhàng hướng dẫn bấm Nhận Thưởng, chỉ chúc mừng khi nhận thưởng hoặc hoàn thành tất cả
-      if (newlyCompletedMission) {
-        const targetMission = newlyCompletedMission as UserWeeklyMission;
-        showToast(`🎯 Đã hoàn thành chỉ tiêu "${targetMission.title}"! Bấm "Nhận Thưởng" để cộng +${targetMission.rewardXu.toLocaleString()} Xu.`);
-      }
-
       return updated;
     });
+
+    // 2. Cập nhật Gói Nhiệm Vụ Ngày (Daily Mission Package Bundle)
+    setDailyBundle(prev => {
+      const todayKey = new Date().toISOString().split('T')[0];
+      let current = prev;
+      if (prev.dateKey !== todayKey) {
+        current = createInitialDailyBundle();
+      }
+      if (current.isClaimed) return current;
+
+      const updatedItems = current.items.map(item => {
+        if (item.actionType !== type || item.isCompleted) return item;
+        const next = Math.min(item.completedCount + count, item.targetCount);
+        const isDone = next >= item.targetCount;
+        return {
+          ...item,
+          completedCount: next,
+          isCompleted: isDone
+        };
+      });
+
+      const allDone = updatedItems.every(i => i.isCompleted);
+      const pendingXu = updatedItems.filter(i => i.isCompleted).reduce((s, i) => s + i.rewardXu, 0);
+
+      const nextBundle = {
+        ...current,
+        items: updatedItems,
+        pendingAccumulatedCoins: pendingXu,
+        isFullyCompleted: allDone
+      };
+
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_daily_bundle', JSON.stringify(nextBundle));
+        }
+      } catch {}
+
+      if (allDone && !current.isFullyCompleted) {
+        showToast(`🎉 XUẤT SẮC! Bạn đã hoàn thành 100% Gói Nhiệm Vụ Ngày! Bấm "Nhận Thưởng Trọn Gói" để nhận +${nextBundle.totalRewardCoins.toLocaleString()} Xu.`);
+      }
+
+      return nextBundle;
+    });
+  };
+
+  // Người dùng bấm vào nút "Nhận Trọn Gói Ngày" (Chỉ nhận được số Xu tổng khi 100% hoàn thành)
+  const claimDailyBundle = () => {
+    if (!dailyBundle.isFullyCompleted) {
+      const remaining = dailyBundle.items.filter(i => !i.isCompleted).length;
+      showToast(`⚠️ Bạn chưa hoàn thành tất cả nhiệm vụ trong gói ngày! Còn ${remaining} nhiệm vụ cần làm để mở khóa toàn bộ ${dailyBundle.totalRewardCoins.toLocaleString()} Xu.`);
+      return;
+    }
+    if (dailyBundle.isClaimed) {
+      showToast('⚠️ Bạn đã nhận trọn gói Xu ngày hôm nay rồi! Hãy quay lại vào ngày mai để nhận gói mới.');
+      return;
+    }
+
+    const reward = dailyBundle.totalRewardCoins;
+    const newCoins = user.avaliveCoins + reward;
+    const now = new Date();
+    const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
+    const newTx: TransactionRecord = {
+      id: `tx_daily_bundle_${Date.now()}`,
+      type: 'earn',
+      title: `Nhận Trọn Gói Nhiệm Vụ Ngày (${dailyBundle.dateKey} • 100% Hoàn Tất)`,
+      amount: `+${reward.toLocaleString()} Xu`,
+      isPositive: true,
+      date: exactTime,
+      exactTime,
+      balanceAfter: newCoins,
+      missionType: 'daily_bundle',
+      missionName: dailyBundle.title,
+      method: 'Gói Nhiệm Vụ Ngày',
+      status: 'success'
+    };
+
+    setUser(prev => ({
+      ...prev,
+      avaliveCoins: newCoins,
+      coinsValueVND: `${newCoins.toLocaleString()}đ`,
+      transactions: [newTx, ...prev.transactions]
+    }));
+
+    setDailyBundle(prev => {
+      const claimed = { ...prev, isClaimed: true };
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_daily_bundle', JSON.stringify(claimed));
+        }
+      } catch {}
+      return claimed;
+    });
+
+    triggerFireworks({
+      type: 'mission',
+      badge: '🏆 GÓI NHIỆM VỤ NGÀY XUẤT SẮC',
+      title: '🎉 CHÚC MỪNG HOÀN THÀNH GÓI NHIỆM VỤ NGÀY!',
+      subtitle: `Bạn đã xuất sắc hoàn thành 100% các nhiệm vụ trong ngày và nhận trọn vẹn +${reward.toLocaleString()} Xu vào ví khả dụng!`,
+      rewardText: `+${reward.toLocaleString()} XU THỰC NHẬN`,
+      message: 'Toàn bộ số Xu tổng trong gói đã được cộng trực tiếp vào ví khả dụng của bạn để rút tiền ATM hoặc tạo chiến dịch tăng trưởng.'
+    });
+  };
+
+  // Tạo Chiến Dịch Banner Quảng Cáo Livestream (100.000 Xu • Pop-up 3s • Khung 50% • AI Duyệt Tối Đa 5 Phút)
+  const createLivestreamBannerCampaign = async (params: { bannerImageUrl: string; targetLiveUrl: string; liveTitle: string }): Promise<boolean> => {
+    const BANNER_COST = 100000;
+    if (user.avaliveCoins < BANNER_COST && !user.isAdmin) {
+      showToast(`⚠️ Số dư ví không đủ 100.000 Xu để tạo chiến dịch Banner Livestream! Hiện có: ${user.avaliveCoins.toLocaleString()} Xu.`);
+      return false;
+    }
+
+    // Trừ 100.000 Xu
+    const newCoins = user.avaliveCoins - BANNER_COST;
+    const now = new Date();
+    const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
+    const tx: TransactionRecord = {
+      id: `tx_banner_${Date.now()}`,
+      type: 'spend',
+      title: `Tạo Chiến Dịch Banner Livestream Toàn Cộng Đồng: ${params.liveTitle}`,
+      amount: `-${BANNER_COST.toLocaleString()} Xu`,
+      isPositive: false,
+      date: exactTime,
+      exactTime,
+      balanceAfter: newCoins,
+      missionType: 'banner_live',
+      missionName: 'Banner Livestream 3s',
+      method: 'Chiến Dịch Banner',
+      status: 'success'
+    };
+
+    setUser(prev => ({
+      ...prev,
+      avaliveCoins: newCoins,
+      coinsValueVND: `${newCoins.toLocaleString()}đ`,
+      transactions: [tx, ...prev.transactions]
+    }));
+
+    const newBanner: LivestreamBannerCampaign = {
+      id: `banner_${Date.now()}`,
+      userId: user.id || 'usr_default',
+      userHandle: user.tiktokConnected || user.handle || '@creator',
+      userName: user.name,
+      bannerImageUrl: params.bannerImageUrl,
+      targetLiveUrl: params.targetLiveUrl,
+      liveTitle: params.liveTitle,
+      costCoins: BANNER_COST,
+      status: 'pending_moderation',
+      moderationDurationMinutes: 5,
+      moderationRemainingSeconds: 300,
+      durationSeconds: 3,
+      createdAt: exactTime,
+      totalDisplays: 0
+    };
+
+    setBannerCampaigns(prev => {
+      const updated = [newBanner, ...prev];
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_banner_campaigns', JSON.stringify(updated));
+        }
+      } catch {}
+      return updated;
+    });
+
+    showToast('🚀 Đã gửi chiến dịch Banner Livestream! AI Sentinel đang tự động kiểm duyệt an toàn (tối đa 5 phút)...');
+
+    // AI Moderation Scan
+    try {
+      const scan = await performAiModerationScan(params.liveTitle, params.targetLiveUrl, '', params.bannerImageUrl);
+      setTimeout(() => {
+        setBannerCampaigns(prev => {
+          const updated = prev.map(b => {
+            if (b.id === newBanner.id) {
+              return {
+                ...b,
+                status: scan.passed ? ('approved' as const) : ('rejected' as const),
+                moderationRemainingSeconds: 0,
+                moderationResult: {
+                  passed: scan.passed,
+                  reason: scan.reason,
+                  checkedBy: scan.checkedBy,
+                  checkedAt: scan.checkedAt
+                }
+              };
+            }
+            return b;
+          });
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('ava_banner_campaigns', JSON.stringify(updated));
+            }
+          } catch {}
+          return updated;
+        });
+
+        if (scan.passed) {
+          // Kích hoạt phát sóng Pop-up 3s toàn cộng đồng
+          setActiveGlobalBanner({
+            id: newBanner.id,
+            bannerImageUrl: params.bannerImageUrl,
+            targetLiveUrl: params.targetLiveUrl,
+            channelHandle: user.tiktokConnected,
+            liveTitle: params.liveTitle,
+            creatorName: user.name
+          });
+          showToast('🎉 [AI DUYỆT THÀNH CÔNG]: Banner Livestream đã được phê duyệt an toàn và phát sóng pop-up 3s toàn cộng đồng!');
+        } else {
+          showToast(`❌ [AI TỪ CHỐI]: ${scan.reason}`);
+        }
+      }, 2500);
+    } catch (err) {}
+
+    return true;
+  };
+
+  const dismissGlobalBanner = () => {
+    setActiveGlobalBanner(null);
   };
 
   // Người dùng bấm vào nút "Hoàn Thành" để nhận Xu của từng nhiệm vụ
@@ -7771,6 +8069,19 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         submitFraudAppeal,
         reviewFraudAppeal,
         recordAuditTrailItem,
+        // Gói Nhiệm Vụ Ngày (Daily Mission Package Bundle)
+        dailyBundle,
+        claimDailyBundle,
+        // Hệ Thống Banner Quảng Cáo Livestream (100.000 Xu • Pop-up 3s)
+        bannerCampaigns,
+        activeGlobalBanner,
+        createLivestreamBannerCampaign,
+        dismissGlobalBanner,
+        // Modal Báo Cáo Đối Soát Chi Tiết Nhiệm Vụ
+        selectedTaskDetail,
+        isTaskDetailModalOpen,
+        openTaskDetail,
+        closeTaskDetail,
         // Chống gian lận cấp cao & deduplication & cascading lockout
         isChannelFollowed,
         triggerImmediateFraudAlert,

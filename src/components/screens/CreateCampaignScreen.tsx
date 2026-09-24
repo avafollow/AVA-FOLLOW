@@ -631,6 +631,26 @@ export const CreateCampaignScreen: React.FC<{
         </div>
       </div>
 
+      {/* AI Moderation & Compliance Sentinel Banner */}
+      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-cyan-950/30 to-purple-950/40 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-lg">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300 shrink-0">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="font-bold text-white flex items-center gap-2">
+              <span>Hệ Thống AI Sentinel Tự Động Kiểm Duyệt Nội Dung</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[9px] font-bold border border-emerald-500/30">
+                TỐI ĐA 5 PHÚT
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300 mt-0.5">
+              Tất cả video, livestream và banner đều được AI quét liên tục chống cờ bạc, lừa đảo, 18+ và hành vi vi phạm pháp luật trước khi phân phối.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Main Campaign Form */}
       {activeMainTab === 'standard' && (
       <form onSubmit={handleSubmit} className="p-6 sm:p-8 rounded-3xl bg-[#0D111E] border border-white/10 space-y-6 text-xs shadow-2xl">

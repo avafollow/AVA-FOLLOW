@@ -80,6 +80,9 @@ export const TasksScreen: React.FC<{
     userMissions,
     recordMissionProgress,
     claimTaskAction,
+    dailyBundle,
+    claimDailyBundle,
+    openTaskDetail,
     openDeposit,
     openShareModal,
     openOrderModal,
@@ -2196,12 +2199,38 @@ export const TasksScreen: React.FC<{
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-1">
                       {completedActionList.map((action, idx) => (
-                        <div key={action.taskId || idx} className="p-3 rounded-2xl bg-black/40 border border-emerald-500/20 flex items-center justify-between gap-2.5">
+                        <div 
+                          key={action.taskId || idx} 
+                          onClick={() => {
+                            openTaskDetail({
+                              id: `audit_${action.taskId}_${idx}`,
+                              taskId: action.taskId,
+                              taskTitle: action.taskTitle || 'Nhiệm vụ tương tác TikTok',
+                              channelHandle: action.channelHandle || action.channelName || '@creator',
+                              channelName: action.channelName,
+                              channelAvatar: action.channelAvatar,
+                              actionType: 'task_completion',
+                              actionLabel: 'Tương tác TikTok',
+                              coinsEarned: action.totalCoinsEarned || 200,
+                              amountVND: (action.totalCoinsEarned || 200) * 10,
+                              txHash: `LOG-${(action.taskId || 'TASK').toUpperCase()}`,
+                              timestamp: action.completedAt || 'Vừa xong',
+                              userHandle: user.tiktokConnected || user.handle || '@user',
+                              status: 'success',
+                              followed: action.followed,
+                              liked: action.liked,
+                              commented: action.commented,
+                              shared: action.shared,
+                              viewed: action.viewed
+                            });
+                          }}
+                          className="p-3 rounded-2xl bg-black/40 hover:bg-black/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center justify-between gap-2.5 transition-all cursor-pointer group"
+                        >
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <img 
                               src={action.channelAvatar || getTikTokAvatar(action.channelHandle)} 
                               alt="" 
-                              className="w-8 h-8 rounded-full object-cover ring-1 ring-emerald-400/50 shrink-0" 
+                              className="w-9 h-9 rounded-full object-cover ring-1 ring-emerald-400/50 shrink-0 group-hover:scale-105 transition-transform" 
                             />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
@@ -2221,17 +2250,38 @@ export const TasksScreen: React.FC<{
                           <div className="text-right shrink-0">
                             <span className="text-xs font-mono font-black text-emerald-400">+{action.totalCoinsEarned || 200} Xu</span>
                             <span className="block text-[9px] font-mono text-slate-500">{action.completedAt || 'Đã hoàn thành'}</span>
+                            <span className="text-[8px] text-cyan-400 font-mono opacity-0 group-hover:opacity-100 transition-opacity">Xem Chi Tiết 🔍</span>
                           </div>
                         </div>
                       ))}
 
-                      {completedCampaignsList.map((camp) => (
-                        <div key={camp.id} className="p-3 rounded-2xl bg-black/40 border border-purple-500/20 flex items-center justify-between gap-2.5">
+                      {completedCampaignsList.map((camp, idx) => (
+                        <div 
+                          key={camp.id} 
+                          onClick={() => {
+                            openTaskDetail({
+                              id: `audit_camp_${camp.id}_${idx}`,
+                              taskId: camp.id,
+                              taskTitle: camp.title || 'Chiến dịch tăng trưởng',
+                              channelHandle: camp.channelHandle || '@creator',
+                              channelAvatar: camp.videoPreviewUrl,
+                              actionType: 'campaign_complete',
+                              actionLabel: camp.title,
+                              coinsEarned: parseInt(camp.budgetTotal.replace(/\D/g, '') || '10000', 10),
+                              amountVND: parseInt(camp.budgetTotal.replace(/\D/g, '') || '10000', 10) * 10,
+                              txHash: `CAMP-${camp.id.toUpperCase()}`,
+                              timestamp: camp.createdAt || 'Hôm nay',
+                              userHandle: user.tiktokConnected || user.handle || '@user',
+                              status: 'success'
+                            });
+                          }}
+                          className="p-3 rounded-2xl bg-black/40 hover:bg-black/60 border border-purple-500/20 hover:border-purple-500/50 flex items-center justify-between gap-2.5 transition-all cursor-pointer group"
+                        >
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <img 
                               src={camp.videoPreviewUrl || getTikTokAvatar(camp.channelHandle)} 
                               alt="" 
-                              className="w-8 h-8 rounded-full object-cover ring-1 ring-purple-400/50 shrink-0" 
+                              className="w-9 h-9 rounded-full object-cover ring-1 ring-purple-400/50 shrink-0 group-hover:scale-105 transition-transform" 
                             />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
@@ -2247,6 +2297,7 @@ export const TasksScreen: React.FC<{
                           <div className="text-right shrink-0">
                             <span className="text-[10px] font-mono text-slate-400 font-bold">100% Hoàn Thành</span>
                             <span className="block text-[9px] font-mono text-emerald-400">✓ Đã Lưu Trữ</span>
+                            <span className="text-[8px] text-purple-300 font-mono opacity-0 group-hover:opacity-100 transition-opacity">Xem Chi Tiết 🔍</span>
                           </div>
                         </div>
                       ))}

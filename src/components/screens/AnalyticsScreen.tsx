@@ -41,6 +41,56 @@ export const AnalyticsScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) =
     { day: 7, coins: 5000, label: 'Ngày 7 (VIP)' }
   ];
 
+  // Tính toán động tỷ lệ phân bổ nguồn thu nhập từ dữ liệu thực tế của người dùng
+  const txs = user.transactions || [];
+  let followCoins = 0;
+  let watchLikeCoins = 0;
+  let commentCoins = 0;
+  let liveCoins = 0;
+  let shareRefCoins = 0;
+
+  txs.forEach(tx => {
+    if (!tx.isPositive) return;
+    const t = (tx.title || '').toLowerCase();
+    const m = (tx.missionType || '').toLowerCase();
+    const rawAmt = parseInt(tx.amount?.replace(/\D/g, '') || '0', 10);
+    const amount = rawAmt > 0 ? (rawAmt > 1000000 ? Math.round(rawAmt / 10) : rawAmt) : 0;
+
+    if (m === 'follow' || t.includes('follow') || t.includes('theo dõi')) {
+      followCoins += amount;
+    } else if (m === 'like' || m === 'watch' || t.includes('tim') || t.includes('thả tim') || t.includes('xem video') || t.includes('lướt video')) {
+      watchLikeCoins += amount;
+    } else if (m === 'comment' || t.includes('bình luận') || t.includes('comment')) {
+      commentCoins += amount;
+    } else if (m === 'live' || m === 'watch_live' || t.includes('live') || t.includes('phiên live')) {
+      liveCoins += amount;
+    } else if (m === 'share' || m === 'referral' || t.includes('chia sẻ') || t.includes('bảo trợ') || t.includes('giới thiệu') || t.includes('vòng quay')) {
+      shareRefCoins += amount;
+    } else {
+      followCoins += Math.round(amount * 0.35);
+      watchLikeCoins += Math.round(amount * 0.25);
+      commentCoins += Math.round(amount * 0.15);
+      liveCoins += Math.round(amount * 0.15);
+      shareRefCoins += Math.round(amount * 0.10);
+    }
+  });
+
+  const totalCalculated = followCoins + watchLikeCoins + commentCoins + liveCoins + shareRefCoins;
+  const baseTotal = totalCalculated > 0 ? totalCalculated : (user.avaliveCoins || 10000);
+
+  const followVal = totalCalculated > 0 ? followCoins : Math.round(baseTotal * 0.42);
+  const watchLikeVal = totalCalculated > 0 ? watchLikeCoins : Math.round(baseTotal * 0.22);
+  const commentVal = totalCalculated > 0 ? commentCoins : Math.round(baseTotal * 0.15);
+  const liveVal = totalCalculated > 0 ? liveCoins : Math.round(baseTotal * 0.12);
+  const shareRefVal = totalCalculated > 0 ? shareRefCoins : Math.round(baseTotal * 0.09);
+
+  const sumAll = followVal + watchLikeVal + commentVal + liveVal + shareRefVal || 1;
+  const followPct = Math.round((followVal / sumAll) * 100);
+  const watchLikePct = Math.round((watchLikeVal / sumAll) * 100);
+  const commentPct = Math.round((commentVal / sumAll) * 100);
+  const livePct = Math.round((liveVal / sumAll) * 100);
+  const shareRefPct = Math.max(0, 100 - (followPct + watchLikePct + commentPct + livePct));
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header Banner */}
@@ -248,51 +298,51 @@ export const AnalyticsScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) =
           <div className="space-y-2.5 text-xs">
             <div>
               <div className="flex justify-between text-slate-300 font-mono">
-                <span>Nhiệm vụ Follow Kênh (42%)</span>
-                <span className="text-rose-400 font-bold">108,360đ</span>
+                <span>Nhiệm vụ Follow Kênh ({followPct}%)</span>
+                <span className="text-rose-400 font-bold">{followVal.toLocaleString()}đ</span>
               </div>
               <div className="w-full h-2 rounded-full bg-white/10 mt-1 overflow-hidden">
-                <div className="h-full bg-rose-500" style={{ width: '42%' }} />
+                <div className="h-full bg-rose-500 transition-all duration-500" style={{ width: `${followPct}%` }} />
               </div>
             </div>
 
             <div>
               <div className="flex justify-between text-slate-300 font-mono">
-                <span>Thả Tim & Xem Video FYP (18%)</span>
-                <span className="text-pink-400 font-bold">46,440đ</span>
+                <span>Thả Tim & Xem Video FYP ({watchLikePct}%)</span>
+                <span className="text-pink-400 font-bold">{watchLikeVal.toLocaleString()}đ</span>
               </div>
               <div className="w-full h-2 rounded-full bg-white/10 mt-1 overflow-hidden">
-                <div className="h-full bg-pink-500" style={{ width: '18%' }} />
+                <div className="h-full bg-pink-500 transition-all duration-500" style={{ width: `${watchLikePct}%` }} />
               </div>
             </div>
 
             <div>
               <div className="flex justify-between text-slate-300 font-mono">
-                <span>Bình Luận Seeding Có Tâm (15%)</span>
-                <span className="text-cyan-400 font-bold">38,700đ</span>
+                <span>Bình Luận Seeding Có Tâm ({commentPct}%)</span>
+                <span className="text-cyan-400 font-bold">{commentVal.toLocaleString()}đ</span>
               </div>
               <div className="w-full h-2 rounded-full bg-white/10 mt-1 overflow-hidden">
-                <div className="h-full bg-cyan-400" style={{ width: '15%' }} />
+                <div className="h-full bg-cyan-400 transition-all duration-500" style={{ width: `${commentPct}%` }} />
               </div>
             </div>
 
             <div>
               <div className="flex justify-between text-slate-300 font-mono">
-                <span>Xem & Tương Tác Livestream (12%)</span>
-                <span className="text-purple-400 font-bold">30,960đ</span>
+                <span>Xem & Tương Tác Livestream ({livePct}%)</span>
+                <span className="text-purple-400 font-bold">{liveVal.toLocaleString()}đ</span>
               </div>
               <div className="w-full h-2 rounded-full bg-white/10 mt-1 overflow-hidden">
-                <div className="h-full bg-purple-400" style={{ width: '12%' }} />
+                <div className="h-full bg-purple-400 transition-all duration-500" style={{ width: `${livePct}%` }} />
               </div>
             </div>
 
             <div>
               <div className="flex justify-between text-slate-300 font-mono">
-                <span>Chia Sẻ Mạng Xã Hội (10%)</span>
-                <span className="text-amber-400 font-bold">25,800đ</span>
+                <span>Chia Sẻ Mạng Xã Hội ({shareRefPct}%)</span>
+                <span className="text-amber-400 font-bold">{shareRefVal.toLocaleString()}đ</span>
               </div>
               <div className="w-full h-2 rounded-full bg-white/10 mt-1 overflow-hidden">
-                <div className="h-full bg-amber-400" style={{ width: '10%' }} />
+                <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${shareRefPct}%` }} />
               </div>
             </div>
           </div>

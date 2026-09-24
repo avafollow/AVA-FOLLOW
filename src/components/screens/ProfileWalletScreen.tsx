@@ -88,7 +88,8 @@ export const ProfileWalletScreen: React.FC<{
     requestRefundEscrow,
     acceptEscrowBooking,
     openFraudAppealModal,
-    fraudAppeals
+    fraudAppeals,
+    campaigns
   } = useTikTokApp();
 
   const [bankName, setBankName] = useState(user.bankInfo?.bankName || 'MB Bank (Ngân Hàng Quân Đội)');
@@ -2120,42 +2121,65 @@ export const ProfileWalletScreen: React.FC<{
                       Chưa có nhật ký đồng bộ tương tác TikTok nào. Hãy lướt video và làm nhiệm vụ để kiếm Xu!
                     </div>
                   ) : (
-                    syncLogs.map((log) => (
-                      <div
-                        key={log.id}
-                        className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between gap-3 text-xs font-mono"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
-                            log.actionType === 'follow' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-                            log.actionType === 'like' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30' :
-                            log.actionType === 'comment' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                            log.actionType === 'share' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                            'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          }`}>
-                            {log.actionType.toUpperCase()}
-                          </span>
-                          <div>
-                            <div className="font-bold text-white flex items-center gap-1.5">
-                              <span>Mục tiêu: {log.targetHandle}</span>
-                              <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                Đã xác thực ✓
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
-                              <span>Hash: {log.txHash}</span>
-                              <span>•</span>
-                              <span>{new Date(log.createdAt).toLocaleString('vi-VN')}</span>
+                    syncLogs.map((log) => {
+                      const clean = (log.targetHandle || '').trim();
+                      const matchedCamp = campaigns?.find(c => c.id === clean || clean.includes(c.id));
+                      const matchedTask = tasks?.find(t => t.id === clean || clean.includes(t.id));
+                      const channel = matchedCamp?.channelHandle || matchedTask?.channelHandle || (clean.startsWith('@') ? clean : (clean.startsWith('camp_') || clean.startsWith('task_') ? '@vtv24news' : `@${clean.replace(/^@+/, '')}`));
+                      
+                      const actionLabel = 
+                        log.actionType === 'follow' ? `Theo Dõi Kênh ${channel}` :
+                        log.actionType === 'like' ? `Thả Tim Video ${channel}` :
+                        log.actionType === 'comment' ? `Bình Luận Video ${channel}` :
+                        log.actionType === 'share' ? `Chia Sẻ Video ${channel}` :
+                        `Xem Livestream ${channel}`;
+
+                      return (
+                        <div
+                          key={log.id}
+                          className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between gap-3 text-xs font-mono"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                              log.actionType === 'follow' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                              log.actionType === 'like' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30' :
+                              log.actionType === 'comment' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                              log.actionType === 'share' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                              'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            }`}>
+                              {log.actionType === 'follow' ? 'FOLLOW' :
+                               log.actionType === 'like' ? 'THẢ TIM' :
+                               log.actionType === 'comment' ? 'BÌNH LUẬN' :
+                               log.actionType === 'share' ? 'CHIA SẺ' : 'XEM LIVE'}
+                            </span>
+                            <div>
+                              <div className="font-bold text-white flex items-center gap-1.5 flex-wrap">
+                                <span>{actionLabel}</span>
+                                <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-sans font-semibold">
+                                  Đã xác thực ✓
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                                <span className="text-slate-500">Mã GD: {log.txHash}</span>
+                                <span>•</span>
+                                <span>{new Date(log.createdAt).toLocaleString('vi-VN')}</span>
+                                {log.note && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-slate-300">{log.note}</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="text-right shrink-0">
-                          <div className="text-emerald-400 font-black text-sm">+{log.coinsEarned} Xu</div>
-                          <div className="text-[9px] text-slate-500 font-mono">Đã cộng vào ví</div>
+                          <div className="text-right shrink-0">
+                            <div className="text-emerald-400 font-black text-sm">+{log.coinsEarned} Xu</div>
+                            <div className="text-[9px] text-slate-500 font-mono">Đã cộng vào ví</div>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               )}

@@ -51,6 +51,7 @@ import { FraudAppealModal } from './components/modals/FraudAppealModal';
 import { RecentUserJoinNotification } from './components/common/RecentUserJoinNotification';
 import { ZaloCommunityFloatingButton } from './components/common/ZaloCommunityFloatingButton';
 import { AntiFraudMarqueeTicker } from './components/common/AntiFraudMarqueeTicker';
+import { OnboardingTourGuide } from './components/common/OnboardingTourGuide';
 
 import { CheckCircle2, ArrowLeft } from 'lucide-react';
 
@@ -482,6 +483,9 @@ function AppContent() {
 
       {/* Bottom-Right Floating Zalo Community Button */}
       <ZaloCommunityFloatingButton />
+
+      {/* New User Onboarding Tour Guide (Only shown once for new users) */}
+      <OnboardingTourGuide onNavigate={(scr) => setCurrentScreen(scr)} />
     </div>
   );
 }

@@ -201,54 +201,46 @@ export const MarketplaceScreen: React.FC<MarketplaceScreenProps> = ({
         })}
       </div>
 
-      {/* 4 Pillars of Store Benefits - Nhỏ gọn, tinh gọn 2x2 trên mobile */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3.5">
-        <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1 relative overflow-hidden">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 shrink-0">
-              <Users className="w-3.5 h-3.5" />
-            </div>
-            <h4 className="text-xs font-bold text-white font-display truncate">154,200+ User Thật</h4>
+      {/* 4 Pillars of Store Benefits - Siêu nhỏ gọn, tinh tế trên mobile & desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <div className="px-2.5 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center gap-2">
+          <div className="p-1 rounded-lg bg-indigo-500/15 text-indigo-400 shrink-0">
+            <Users className="w-3.5 h-3.5" />
           </div>
-          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
-            Tương tác chéo tự nhiên trên TikTok, Facebook và YouTube.
-          </p>
+          <div className="min-w-0">
+            <h4 className="text-[11px] font-bold text-white truncate">154,200+ User Thật</h4>
+            <p className="text-[9px] text-slate-400 truncate">Tương tác chéo tự nhiên</p>
+          </div>
         </div>
 
-        <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1 relative overflow-hidden">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
-              <ShieldCheck className="w-3.5 h-3.5" />
-            </div>
-            <h4 className="text-xs font-bold text-white font-display truncate">Bảo Hành 30 Ngày</h4>
+        <div className="px-2.5 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center gap-2">
+          <div className="p-1 rounded-lg bg-emerald-500/15 text-emerald-400 shrink-0">
+            <ShieldCheck className="w-3.5 h-3.5" />
           </div>
-          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
-            Theo dõi tự động, cam kết bù đủ 100% nếu phát sinh tụt.
-          </p>
+          <div className="min-w-0">
+            <h4 className="text-[11px] font-bold text-white truncate">Bảo Hành 30 Ngày</h4>
+            <p className="text-[9px] text-slate-400 truncate">Bù đủ 100% khi tụt</p>
+          </div>
         </div>
 
-        <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1 relative overflow-hidden">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-400 shrink-0">
-              <Headphones className="w-3.5 h-3.5" />
-            </div>
-            <h4 className="text-xs font-bold text-white font-display truncate">Cố Vấn 1-1</h4>
+        <div className="px-2.5 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center gap-2">
+          <div className="p-1 rounded-lg bg-purple-500/15 text-purple-400 shrink-0">
+            <Headphones className="w-3.5 h-3.5" />
           </div>
-          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
-            Đội ngũ tư vấn chiến lược xây kênh, tối ưu SEO và chốt đơn.
-          </p>
+          <div className="min-w-0">
+            <h4 className="text-[11px] font-bold text-white truncate">Cố Vấn Kỹ Thuật 1-1</h4>
+            <p className="text-[9px] text-slate-400 truncate">Hỗ trợ xây kênh SEO</p>
+          </div>
         </div>
 
-        <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-1 relative overflow-hidden">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
-              <TrendingUp className="w-3.5 h-3.5" />
-            </div>
-            <h4 className="text-xs font-bold text-white font-display truncate">Đẩy Lên Đề Xuất</h4>
+        <div className="px-2.5 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center gap-2">
+          <div className="p-1 rounded-lg bg-amber-500/15 text-amber-400 shrink-0">
+            <TrendingUp className="w-3.5 h-3.5" />
           </div>
-          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
-            Cơ chế Drip-feed nhịp độ tự nhiên giúp kênh đạt điểm tín nhiệm cao.
-          </p>
+          <div className="min-w-0">
+            <h4 className="text-[11px] font-bold text-white truncate">Đẩy Lên Đề Xuất FYP</h4>
+            <p className="text-[9px] text-slate-400 truncate">Thuật toán nhịp tự nhiên</p>
+          </div>
         </div>
       </div>
 

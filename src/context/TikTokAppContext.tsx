@@ -1477,21 +1477,49 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   });
 
-  // Helper tạo Gói Nhiệm Vụ Ngày (Daily Mission Package Bundle)
-  const createInitialDailyBundle = (): DailyMissionPackageBundle => {
+  // Helper tạo Gói Nhiệm Vụ Ngày (Daily Mission Package Bundle) - Tối thiểu 100.000 Xu cho Cấp 1, tăng dần 10 cấp đến 1.200.000 Xu
+  const createInitialDailyBundle = (currentRank?: string): DailyMissionPackageBundle => {
     const todayKey = new Date().toISOString().split('T')[0];
-    const items: DailyMissionBundleItem[] = [
-      { id: 'b_watch_5', title: 'Lướt xem 5 video đề xuất FYP', description: 'Xem đủ 15s mỗi video trên hệ thống', actionType: 'watch', targetCount: 5, completedCount: 0, rewardXu: 2500, isCompleted: false },
-      { id: 'b_follow_3', title: 'Theo dõi 3 kênh TikTok đối soát', description: 'Follow kênh và duy trì liên kết an toàn', actionType: 'follow', targetCount: 3, completedCount: 0, rewardXu: 3000, isCompleted: false },
-      { id: 'b_like_5', title: 'Thả tim 5 video tương tác thật', description: 'Thả tim video tự nhiên trên TikTok', actionType: 'like', targetCount: 5, completedCount: 0, rewardXu: 2000, isCompleted: false },
-      { id: 'b_comment_2', title: 'Bình luận 2 video chất lượng', description: 'Gửi bình luận tích cực kèm hashtag #AVALIVE', actionType: 'comment', targetCount: 2, completedCount: 0, rewardXu: 3500, isCompleted: false },
-      { id: 'b_live_3m', title: 'Xem 1 phiên livestream 3 phút', description: 'Giữ mắt xem live liên tục tối thiểu 3 phút', actionType: 'live', targetCount: 1, completedCount: 0, rewardXu: 4000, isCompleted: false }
+    const rankKey = currentRank || USER_PROFILE_WALLET.rankLevel || 'Cấp 1 - Tập Sự';
+    const tier = getRankTierConfig(rankKey);
+    const targetDailyXu = tier.dailyEstimatedEarningsXu || 100000;
+    const taskRewardTotal = tier.dailyTaskRewardTotal || 65000;
+    const bundleClearBonus = tier.dailyBundleRewardXu || 35000;
+
+    const count = Math.max(5, Math.min(10, tier.dailyMissionsCount));
+    const basePerTask = Math.floor(taskRewardTotal / count);
+    const remainder = taskRewardTotal - (basePerTask * count);
+
+    const rawTemplate = [
+      { actionType: 'watch',   targetCount: Math.min(50, 4 + tier.tierNumber * 3), title: `Lướt xem ${Math.min(50, 4 + tier.tierNumber * 3)} video đề xuất FYP`, desc: 'Xem đủ 15s mỗi video trên hệ thống feed sàn' },
+      { actionType: 'follow',  targetCount: Math.min(30, 2 + tier.tierNumber * 2), title: `Theo dõi ${Math.min(30, 2 + tier.tierNumber * 2)} kênh đối soát thật`, desc: 'Follow kênh chỉ định và duy trì tương tác an toàn' },
+      { actionType: 'like',    targetCount: Math.min(50, 5 + tier.tierNumber * 4), title: `Thả tim ${Math.min(50, 5 + tier.tierNumber * 4)} video chiến dịch`, desc: 'Thả tim video tương tác tự nhiên' },
+      { actionType: 'comment', targetCount: Math.min(20, 2 + tier.tierNumber),     title: `Bình luận ${Math.min(20, 2 + tier.tierNumber)} video chất lượng`,   desc: 'Gửi bình luận tích cực kèm hashtag #AVALIVE' },
+      { actionType: 'live',    targetCount: 1,                                     title: `Xem livestream giữ mắt ${Math.min(60, 3 + tier.tierNumber * 4)} phút`, desc: `Xem phiên live tối thiểu ${Math.min(60, 3 + tier.tierNumber * 4)} phút` },
+      { actionType: 'share',   targetCount: Math.min(15, 1 + Math.floor(tier.tierNumber / 2)), title: `Chia sẻ ${Math.min(15, 1 + Math.floor(tier.tierNumber / 2))} video sàn`, desc: 'Lan tỏa video tới các hội nhóm mạng xã hội' },
+      { actionType: 'watch',   targetCount: Math.min(60, 8 + tier.tierNumber * 3), title: `Lướt thêm ${Math.min(60, 8 + tier.tierNumber * 3)} video TikTok`, desc: 'Tương tác sâu trên luồng phân phối tự động' },
+      { actionType: 'follow',  targetCount: Math.min(35, 4 + tier.tierNumber * 2), title: `Follow ${Math.min(35, 4 + tier.tierNumber * 2)} Creator đối tác`,  desc: 'Tăng cường follow chéo bảo đảm uy tín' },
+      { actionType: 'like',    targetCount: Math.min(60, 10 + tier.tierNumber * 4), title: `Thả tim bổ sung ${Math.min(60, 10 + tier.tierNumber * 4)} video`, desc: 'Ủng hộ video của cộng đồng sáng tạo' },
+      { actionType: 'comment', targetCount: Math.min(25, 3 + tier.tierNumber),     title: `Gửi thêm ${Math.min(25, 3 + tier.tierNumber)} bình luận tích cực`, desc: 'Tương tác chất lượng cao trên video sàn' }
     ];
+
+    const selectedRaw = rawTemplate.slice(0, count);
+    const items: DailyMissionBundleItem[] = selectedRaw.map((item, idx) => ({
+      id: `b_${item.actionType}_${idx}_${todayKey}`,
+      title: item.title,
+      description: item.desc,
+      actionType: item.actionType as any,
+      targetCount: item.targetCount,
+      completedCount: 0,
+      rewardXu: basePerTask + (idx === 0 ? remainder : 0),
+      isCompleted: false
+    }));
+
     return {
       dateKey: todayKey,
-      title: `Gói Nhiệm Vụ Ngày (${new Date().toLocaleDateString('vi-VN')})`,
-      description: 'Hoàn thành 100% tất cả nhiệm vụ trong gói trước 00:00 để nhận trọn bộ Xu tổng (+15.000 Xu).',
-      totalRewardCoins: 15000,
+      title: `Gói Nhiệm Vụ Ngày - ${tier.shortTitle} (${new Date().toLocaleDateString('vi-VN')})`,
+      description: `Hoàn thành 100% tất cả ${items.length} nhiệm vụ ngày để nhận trọn bộ ${targetDailyXu.toLocaleString()} Xu (Thù lao nhiệm vụ: ${taskRewardTotal.toLocaleString()} Xu + Thưởng tất toán: ${bundleClearBonus.toLocaleString()} Xu).`,
+      totalRewardCoins: targetDailyXu,
       pendingAccumulatedCoins: 0,
       isFullyCompleted: false,
       isClaimed: false,
@@ -1506,7 +1534,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (saved) {
         const parsed = JSON.parse(saved);
         const todayKey = new Date().toISOString().split('T')[0];
-        if (parsed && parsed.dateKey === todayKey) {
+        if (parsed && parsed.dateKey === todayKey && parsed.totalRewardCoins >= 100000) {
           return parsed;
         }
       }
@@ -1593,8 +1621,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setDailyBundle(prev => {
       const todayKey = new Date().toISOString().split('T')[0];
       let current = prev;
-      if (prev.dateKey !== todayKey) {
-        current = createInitialDailyBundle();
+      if (prev.dateKey !== todayKey || (prev.totalRewardCoins && prev.totalRewardCoins < 100000)) {
+        current = createInitialDailyBundle(user?.rankLevel);
       }
       if (current.isClaimed) return current;
 

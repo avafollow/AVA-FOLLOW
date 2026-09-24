@@ -1175,6 +1175,10 @@ export interface RankTierConfig {
   wheelSpinsBonus: number;        // Thưởng lượt quay may mắn khi hoàn thành 100%
   minCompletedTasksToUnlock: number; // Điều kiện thăng hạng
   description: string;
+  dailyEstimatedEarningsXu: number; // Mức kiếm được trung bình/ngày (tối thiểu từ 100.000 Xu ở Cấp 1)
+  dailyTaskRewardTotal: number;      // Thù lao từ các nhiệm vụ trong ngày
+  dailyBundleRewardXu: number;       // Thưởng trọn gói hoàn thành 100% nhiệm vụ ngày
+  dailyTasksSummary: string;         // Tóm tắt công việc nhiệm vụ ngày
 }
 
 export interface WeeklyMissionConfig {

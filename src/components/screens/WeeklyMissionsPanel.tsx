@@ -186,12 +186,12 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
         <div className="mt-3 p-3 rounded-2xl bg-black/50 border border-amber-500/30 text-xs space-y-1.5">
           <div className="flex items-center gap-2 text-amber-300 font-black font-mono uppercase text-[11px]">
             <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>QUY TẮC PHÂN BỔ 10 CẤP BẬC &amp; QUỸ THƯỞNG KÈM VÒNG QUAY MAY MẮN</span>
+            <span>QUY TẮC THU NHẬP 10 CẤP BẬC (TỐI THIỂU TỪ 100.000 XU/NGÀY TĂNG DẦN TỚI 1.200.000 XU/NGÀY)</span>
           </div>
           <p className="text-slate-300 text-[11px] leading-relaxed">
-            • <strong>Lộ trình 10 Cấp Bậc:</strong> Người dùng bắt đầu từ <em>Cấp 1 (Tập Sự)</em> với 3 nhiệm vụ ngày, tăng dần đều đến <em>Cấp 10 (Huyền Thoại)</em> với 12 nhiệm vụ ngày + 7 nhiệm vụ tuần, hệ số nhân từ <strong>×1.0 lên tới ×3.0</strong>.<br />
-            • <strong>Mỗi ngày một nhiệm vụ khác nhau:</strong> Hệ thống tự động xáo trộn và cập nhật danh sách nhiệm vụ mới vào đúng 00:00 hàng ngày dựa trên toàn bộ chiến dịch thực tế.<br />
-            • <strong>Tặng Vòng Quay May Mắn:</strong> Mỗi khi bạn hoàn thành <strong>100% chuỗi nhiệm vụ Ngày hoặc Tuần</strong>, bạn sẽ nhận trọn bộ Xu tổng và được <strong>tặng thêm +{currentTierCfg.wheelSpinsBonus} lượt quay Vòng Quay May Mắn</strong> miễn phí để trúng thêm giải thưởng lớn!
+            • <strong>Lộ trình 10 Cấp Bậc chuẩn xác:</strong> Người dùng khởi đầu từ <em>Cấp 1 (Tập Sự)</em> hoàn thành 5 nhiệm vụ ngày nhận trung bình <strong>100.000 Xu/ngày (≈100.000 VNĐ)</strong>. Thu nhập tăng dần đều qua 10 cấp bậc đến <em>Cấp 10 (Huyền Thoại)</em> với 16 nhiệm vụ ngày, nhận tới <strong>1.200.000 Xu/ngày (≈1.200.000 VNĐ)</strong>.<br />
+            • <strong>Cơ chế Thưởng Trọn Gói Ngày:</strong> Khi hoàn thành 100% nhiệm vụ ngày, bạn nhận đủ thù lao từng nhiệm vụ + cộng thêm <strong>Thưởng Tất Toán Gói Ngày</strong> (từ +35.000 Xu ở Cấp 1 lên tới +450.000 Xu ở Cấp 10)!<br />
+            • <strong>Tặng Vòng Quay May Mắn:</strong> Mỗi ngày hoàn thành 100% gói nhiệm vụ được <strong>tặng thêm +{currentTierCfg.wheelSpinsBonus} lượt quay Vòng Quay May Mắn</strong> miễn phí để trúng thêm giải thưởng lớn!
           </p>
         </div>
 
@@ -648,24 +648,26 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
       </div>
 
       {/* 6. BẢNG 10 CẤP BẬC THĂNG TIẾN TOÀN HỆ THỐNG */}
-      <div className="px-4 pb-4">
-        <div className="p-4 rounded-3xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 border border-purple-500/20 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+      <div className="px-4 pb-4 space-y-4">
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 border border-purple-500/30 space-y-4 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
             <div>
-              <div className="text-xs font-mono font-bold text-purple-300 flex items-center gap-1.5">
-                <TrendingUp className="w-4 h-4 text-purple-400" /> LỘ TRÌNH 10 CẤP BẬC THĂNG TIẾN &amp; HỆ SỐ THƯỞNG
+              <div className="text-xs sm:text-sm font-mono font-black text-purple-300 flex items-center gap-1.5 uppercase">
+                <TrendingUp className="w-4 h-4 text-purple-400" /> BẢNG THU NHẬP 10 CẤP BẬC TỪ NHIỆM VỤ NGÀY
               </div>
-              <p className="text-[10px] text-slate-400 mt-0.5">
-                Nhiệm vụ tăng dần từ Cấp 1 đến Cấp 10 • Hệ số nhân thù lao từ ×1.0 lên tới ×3.0 • Thưởng thêm Vòng Quay May Mắn!
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                Cấp 1 khởi đầu nhận trung bình <strong>100.000 Xu/ngày</strong> • Tăng dần đều qua 10 cấp lên tới <strong>1.200.000 Xu/ngày</strong> ở Cấp 10 (Huyền Thoại).
               </p>
             </div>
             {nextTierCfg && (
-              <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-mono text-amber-300">
-                Tiếp theo: <strong>{nextTierCfg.shortTitle}</strong> (Cần {nextTierCfg.minCompletedTasksToUnlock} nhiệm vụ • Hiện có: {user.completedTasksCount})
+              <div className="px-3.5 py-2 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-[11px] font-mono text-amber-300 flex items-center gap-2">
+                <Crown className="w-4 h-4 text-yellow-400" />
+                <span>Cấp kế tiếp: <strong>{nextTierCfg.shortTitle}</strong> (Cần {nextTierCfg.minCompletedTasksToUnlock.toLocaleString()} NV • Bạn có: {user.completedTasksCount})</span>
               </div>
             )}
           </div>
 
+          {/* Grid 10 Card Cấp Bậc Chi Tiết */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {TEN_TIERS_LIST.map((tier) => {
               const isCurrent = currentTierCfg.tierNumber === tier.tierNumber;
@@ -673,40 +675,70 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
               return (
                 <div 
                   key={tier.name} 
-                  className={`p-3.5 rounded-2xl border text-left transition-all space-y-2 relative ${
+                  className={`p-3.5 rounded-2xl border text-left transition-all space-y-2.5 relative flex flex-col justify-between ${
                     isCurrent 
-                      ? 'bg-gradient-to-b from-rose-950/50 via-purple-950/30 to-[#0D111E] border-rose-500/80 shadow-lg shadow-rose-950/40 ring-1 ring-rose-400' 
+                      ? 'bg-gradient-to-b from-rose-950/60 via-purple-950/40 to-[#0D111E] border-rose-500 shadow-xl shadow-rose-950/50 ring-2 ring-rose-400' 
                       : isUnlocked
-                        ? 'bg-[#0D111E] border-white/15'
-                        : 'bg-black/40 border-white/5 opacity-70'
+                        ? 'bg-[#0D111E] border-white/15 hover:border-purple-500/40'
+                        : 'bg-black/50 border-white/5 opacity-75'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-white font-display">{tier.badge}</span>
-                    {isCurrent ? (
-                      <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold font-mono">BẠN ĐANG Ở ĐÂY</span>
-                    ) : (
-                      <span className="text-[9px] text-amber-300 font-mono font-black">×{tier.rewardMultiplier} Thưởng</span>
-                    )}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-white font-display">{tier.badge}</span>
+                      {isCurrent ? (
+                        <span className="text-[8px] px-2 py-0.5 rounded-full bg-rose-500 text-white font-black font-mono">BẠN ĐANG Ở ĐÂY</span>
+                      ) : (
+                        <span className="text-[9px] text-amber-300 font-mono font-black">Hệ số ×{tier.rewardMultiplier}</span>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="text-xs font-bold text-white font-mono leading-tight">
+                        {tier.shortTitle}
+                      </div>
+                      {/* Thu nhập ngày nổi bật */}
+                      <div className="mt-1 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center">
+                        <div className="text-[9px] font-mono text-emerald-400 font-bold uppercase">Thu nhập trung bình/ngày:</div>
+                        <div className="text-sm font-black font-mono text-emerald-300">
+                          {tier.dailyEstimatedEarningsXu.toLocaleString()} Xu
+                        </div>
+                        <div className="text-[9px] font-mono text-slate-400">
+                          ≈ {tier.dailyEstimatedEarningsXu.toLocaleString()} VNĐ/ngày
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Chi tiết thù lao + thưởng gói */}
+                    <div className="space-y-1 text-[10px] font-mono bg-black/40 p-2 rounded-xl border border-white/5">
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>• Thù lao NV:</span>
+                        <strong className="text-amber-300">+{tier.dailyTaskRewardTotal.toLocaleString()} Xu</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>• Thưởng gói ngày:</span>
+                        <strong className="text-pink-300">+{tier.dailyBundleRewardXu.toLocaleString()} Xu</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>• Số NV ngày:</span>
+                        <strong className="text-cyan-300">{tier.dailyMissionsCount} nhiệm vụ</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>• Vòng quay:</span>
+                        <strong className="text-yellow-300">+{tier.wheelSpinsBonus} lượt</strong>
+                      </div>
+                    </div>
+
+                    {/* Tóm tắt nhiệm vụ làm gì */}
+                    <div className="text-[9px] text-slate-300 leading-snug line-clamp-3 bg-white/[0.02] p-1.5 rounded-lg border border-white/5">
+                      <strong className="text-purple-300">Nhiệm vụ:</strong> {tier.dailyTasksSummary}
+                    </div>
                   </div>
 
-                  <div className="text-[11px] font-bold text-white font-mono leading-tight">
-                    {tier.shortTitle}
-                  </div>
-
-                  <div className="text-[10px] text-emerald-400 font-mono space-y-0.5">
-                    <div>📅 {tier.dailyMissionsCount} Ngày • 🏆 {tier.weeklyMissionsCount} Tuần</div>
-                    <div className="text-pink-300 font-bold">🎡 +{tier.wheelSpinsBonus} Vòng Quay May Mắn</div>
-                  </div>
-
-                  <p className="text-[9px] text-slate-400 leading-tight">
-                    {tier.description}
-                  </p>
-
-                  <div className="pt-1 border-t border-white/5 flex items-center justify-between text-[9px] font-mono text-slate-400">
-                    <span>Mở khóa:</span>
+                  <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[9px] font-mono text-slate-400">
+                    <span>Điều kiện lên cấp:</span>
                     <span className={isUnlocked ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
-                      {tier.minCompletedTasksToUnlock === 0 ? 'Mặc định' : `Tích lũy ${tier.minCompletedTasksToUnlock.toLocaleString('vi-VN')} nhiệm vụ`}
+                      {tier.minCompletedTasksToUnlock === 0 ? 'Mặc định' : `${tier.minCompletedTasksToUnlock.toLocaleString('vi-VN')} NV`}
                     </span>
                   </div>
                 </div>

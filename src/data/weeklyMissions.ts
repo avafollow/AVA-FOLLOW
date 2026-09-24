@@ -1,9 +1,9 @@
 import { WeeklyMissionDef, WeeklyMissionConfig, UserWeeklyMission, MissionRank, MissionDifficulty, RankTierConfig } from '../types';
 
 export const STREAK_REWARDS = {
-  dailyAllClearBonus: 25000,
-  weeklyStreakBonus: 200000,
-  monthlyStreakBonus: 1000000,
+  dailyAllClearBonus: 35000,
+  weeklyStreakBonus: 350000,
+  monthlyStreakBonus: 2000000,
 };
 
 // ===== CẤU HÌNH 10 CẤP BẬC THĂNG TIẾN TOÀN DIỆN (10 Rank Tiers System) =====
@@ -14,12 +14,16 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     shortTitle: 'Tập Sự (Đồng I)',
     badge: '🥉 Cấp 1',
     color: 'border-orange-500/40 text-orange-300 bg-orange-950/20',
-    dailyMissionsCount: 3,
-    weeklyMissionsCount: 2,
+    dailyMissionsCount: 5,
+    weeklyMissionsCount: 3,
     rewardMultiplier: 1.0,
     wheelSpinsBonus: 1,
     minCompletedTasksToUnlock: 0,
-    description: 'Nhiệm vụ cơ bản, dễ làm quen cho người mới bắt đầu.'
+    dailyEstimatedEarningsXu: 100000,
+    dailyTaskRewardTotal: 65000,
+    dailyBundleRewardXu: 35000,
+    dailyTasksSummary: 'Lướt 5 video FYP (15s), follow 3 kênh đối soát, thả tim 5 video, bình luận 2 video, xem live 3 phút',
+    description: 'Cấp khởi đầu cho mọi người mới: Hoàn thành 5 nhiệm vụ ngày nhận trung bình 100.000 Xu (≈100k VNĐ/ngày).'
   },
   'Cấp 2 - Khởi Nghiệp': {
     tierNumber: 2,
@@ -27,12 +31,16 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     shortTitle: 'Khởi Nghiệp (Đồng II)',
     badge: '🥉 Cấp 2',
     color: 'border-amber-600/40 text-amber-300 bg-amber-950/20',
-    dailyMissionsCount: 4,
+    dailyMissionsCount: 6,
     weeklyMissionsCount: 3,
-    rewardMultiplier: 1.1,
+    rewardMultiplier: 1.15,
     wheelSpinsBonus: 1,
     minCompletedTasksToUnlock: 20,
-    description: 'Tăng tốc tương tác, làm quen với đa dạng nhiệm vụ.'
+    dailyEstimatedEarningsXu: 130000,
+    dailyTaskRewardTotal: 85000,
+    dailyBundleRewardXu: 45000,
+    dailyTasksSummary: 'Lướt 8 video, follow 5 kênh, thả tim 10 video, bình luận 3 video, xem live 5 phút, chia sẻ 1 video',
+    description: 'Thăng hạng khi tích lũy 20 nhiệm vụ: 6 nhiệm vụ ngày, kiếm trung bình 130.000 Xu/ngày.'
   },
   'Cấp 3 - Năng Động': {
     tierNumber: 3,
@@ -40,12 +48,16 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     shortTitle: 'Năng Động (Bạc I)',
     badge: '🥈 Cấp 3',
     color: 'border-slate-400/40 text-slate-200 bg-slate-800/30',
-    dailyMissionsCount: 5,
-    weeklyMissionsCount: 3,
-    rewardMultiplier: 1.2,
+    dailyMissionsCount: 7,
+    weeklyMissionsCount: 4,
+    rewardMultiplier: 1.3,
     wheelSpinsBonus: 1,
     minCompletedTasksToUnlock: 50,
-    description: 'Mở rộng quy mô xem video, thả tim và bình luận đều đặn.'
+    dailyEstimatedEarningsXu: 170000,
+    dailyTaskRewardTotal: 110000,
+    dailyBundleRewardXu: 60000,
+    dailyTasksSummary: 'Lướt 12 video, follow 8 kênh, thả tim 15 video, bình luận 5 video, xem live 10 phút, chia sẻ 3 video',
+    description: 'Thăng hạng khi tích lũy 50 nhiệm vụ: 7 nhiệm vụ ngày, kiếm trung bình 170.000 Xu/ngày.'
   },
   'Cấp 4 - Tương Tác': {
     tierNumber: 4,
@@ -53,12 +65,16 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     shortTitle: 'Tương Tác (Bạc II)',
     badge: '🥈 Cấp 4',
     color: 'border-cyan-500/40 text-cyan-300 bg-cyan-950/20',
-    dailyMissionsCount: 6,
+    dailyMissionsCount: 8,
     weeklyMissionsCount: 4,
-    rewardMultiplier: 1.35,
+    rewardMultiplier: 1.5,
     wheelSpinsBonus: 1,
     minCompletedTasksToUnlock: 100,
-    description: 'Tương tác chất lượng cao, nhận thêm slot và hệ số x1.35.'
+    dailyEstimatedEarningsXu: 220000,
+    dailyTaskRewardTotal: 140000,
+    dailyBundleRewardXu: 80000,
+    dailyTasksSummary: 'Lướt 15 video liên tiếp, follow 10 kênh, thả tim 20 video, bình luận 6 video, xem live 15 phút, chia sẻ 5 video',
+    description: 'Thăng hạng khi tích lũy 100 nhiệm vụ: 8 nhiệm vụ ngày, kiếm trung bình 220.000 Xu/ngày.'
   },
   'Cấp 5 - Tiên Phong': {
     tierNumber: 5,
@@ -66,12 +82,16 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     shortTitle: 'Tiên Phong (Vàng I)',
     badge: '🥇 Cấp 5',
     color: 'border-yellow-500/40 text-yellow-300 bg-yellow-950/20',
-    dailyMissionsCount: 7,
-    weeklyMissionsCount: 4,
-    rewardMultiplier: 1.5,
+    dailyMissionsCount: 9,
+    weeklyMissionsCount: 5,
+    rewardMultiplier: 1.75,
     wheelSpinsBonus: 2,
     minCompletedTasksToUnlock: 200,
-    description: 'Cấp bậc Vàng uy tín, mở khóa rương thưởng +2 vòng quay may mắn.'
+    dailyEstimatedEarningsXu: 290000,
+    dailyTaskRewardTotal: 185000,
+    dailyBundleRewardXu: 105000,
+    dailyTasksSummary: 'Lướt 20 video, follow 15 kênh VIP, thả tim 25 video, bình luận seeding 8 video, xem live 20 phút, chia sẻ 8 video',
+    description: 'Thăng hạng khi tích lũy 200 nhiệm vụ: 9 nhiệm vụ ngày, kiếm trung bình 290.000 Xu/ngày + 2 Vòng quay.'
   },
   'Cấp 6 - Chuyên Nghiệp': {
     tierNumber: 6,
@@ -79,12 +99,16 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     shortTitle: 'Chuyên Nghiệp (Vàng II)',
     badge: '🥇 Cấp 6',
     color: 'border-amber-400/40 text-amber-300 bg-amber-950/30',
-    dailyMissionsCount: 8,
+    dailyMissionsCount: 10,
     weeklyMissionsCount: 5,
-    rewardMultiplier: 1.75,
+    rewardMultiplier: 2.0,
     wheelSpinsBonus: 2,
     minCompletedTasksToUnlock: 350,
-    description: 'Chuyên gia tương tác mạng xã hội, thù lao nhân x1.75 cực hấp dẫn.'
+    dailyEstimatedEarningsXu: 380000,
+    dailyTaskRewardTotal: 240000,
+    dailyBundleRewardXu: 140000,
+    dailyTasksSummary: 'Lướt 25 video, follow 20 kênh Creator, thả tim 35 video, bình luận chuyên sâu 10 video, xem live 30 phút, chia sẻ 10 video',
+    description: 'Thăng hạng khi tích lũy 350 nhiệm vụ: 10 nhiệm vụ ngày, kiếm trung bình 380.000 Xu/ngày + 2 Vòng quay.'
   },
   'Cấp 7 - Tinh Anh': {
     tierNumber: 7,
@@ -92,12 +116,16 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     shortTitle: 'Tinh Anh (Bạch Kim I)',
     badge: '💠 Cấp 7',
     color: 'border-blue-400/40 text-blue-300 bg-blue-950/30',
-    dailyMissionsCount: 9,
-    weeklyMissionsCount: 5,
-    rewardMultiplier: 2.0,
+    dailyMissionsCount: 11,
+    weeklyMissionsCount: 6,
+    rewardMultiplier: 2.3,
     wheelSpinsBonus: 2,
     minCompletedTasksToUnlock: 600,
-    description: 'Hệ số x2.0, mở khóa các chiến dịch quy mô lớn của sàn.'
+    dailyEstimatedEarningsXu: 500000,
+    dailyTaskRewardTotal: 320000,
+    dailyBundleRewardXu: 180000,
+    dailyTasksSummary: 'Lướt 30 video chiến dịch, follow 25 kênh, thả tim 45 video, bình luận 12 video, xem live 35 phút, chia sẻ 15 video',
+    description: 'Thăng hạng khi tích lũy 600 nhiệm vụ: 11 nhiệm vụ ngày, kiếm trung bình 500.000 Xu/ngày (500k VNĐ).'
   },
   'Cấp 8 - Thủ Lĩnh': {
     tierNumber: 8,
@@ -105,12 +133,16 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     shortTitle: 'Thủ Lĩnh (Bạch Kim II)',
     badge: '💠 Cấp 8',
     color: 'border-indigo-400/40 text-indigo-300 bg-indigo-950/30',
-    dailyMissionsCount: 10,
+    dailyMissionsCount: 12,
     weeklyMissionsCount: 6,
-    rewardMultiplier: 2.3,
+    rewardMultiplier: 2.6,
     wheelSpinsBonus: 3,
     minCompletedTasksToUnlock: 1000,
-    description: 'Thủ lĩnh cộng đồng cày nhiệm vụ, thưởng +3 vòng quay may mắn.'
+    dailyEstimatedEarningsXu: 650000,
+    dailyTaskRewardTotal: 420000,
+    dailyBundleRewardXu: 230000,
+    dailyTasksSummary: 'Lướt 40 video, follow 30 kênh, thả tim 60 video, bình luận 15 video, giữ mắt live 45 phút, chia sẻ 20 video',
+    description: 'Thăng hạng khi tích lũy 1.000 nhiệm vụ: 12 nhiệm vụ ngày, kiếm trung bình 650.000 Xu/ngày + 3 Vòng quay.'
   },
   'Cấp 9 - Cao Thủ': {
     tierNumber: 9,
@@ -118,12 +150,16 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     shortTitle: 'Cao Thủ (Kim Cương I)',
     badge: '💎 Cấp 9',
     color: 'border-purple-400/40 text-purple-300 bg-purple-950/30',
-    dailyMissionsCount: 11,
-    weeklyMissionsCount: 6,
-    rewardMultiplier: 2.6,
+    dailyMissionsCount: 14,
+    weeklyMissionsCount: 7,
+    rewardMultiplier: 3.0,
     wheelSpinsBonus: 3,
     minCompletedTasksToUnlock: 1500,
-    description: 'Hạng Kim Cương cao cấp, thưởng siêu khủng với hệ số x2.6.'
+    dailyEstimatedEarningsXu: 850000,
+    dailyTaskRewardTotal: 550000,
+    dailyBundleRewardXu: 300000,
+    dailyTasksSummary: 'Marathon 50 video, follow 40 kênh lớn, thả tim 80 video, bình luận 20 video, giữ mắt live 60 phút, chia sẻ 25 video',
+    description: 'Thăng hạng khi tích lũy 1.500 nhiệm vụ: 14 nhiệm vụ ngày, kiếm trung bình 850.000 Xu/ngày + 3 Vòng quay.'
   },
   'Cấp 10 - Huyền Thoại': {
     tierNumber: 10,
@@ -131,12 +167,16 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     shortTitle: 'Huyền Thoại (Kim Cương VIP)',
     badge: '👑 Cấp 10',
     color: 'border-pink-500/50 text-pink-300 bg-gradient-to-r from-pink-950/40 to-purple-950/40',
-    dailyMissionsCount: 12,
-    weeklyMissionsCount: 7,
-    rewardMultiplier: 3.0,
+    dailyMissionsCount: 16,
+    weeklyMissionsCount: 8,
+    rewardMultiplier: 3.5,
     wheelSpinsBonus: 5,
     minCompletedTasksToUnlock: 2500,
-    description: 'Đỉnh cao danh vọng, x3.0 toàn bộ nhiệm vụ & tặng +5 vòng quay may mắn!'
+    dailyEstimatedEarningsXu: 1200000,
+    dailyTaskRewardTotal: 750000,
+    dailyBundleRewardXu: 450000,
+    dailyTasksSummary: 'Đại đội 60 video FYP, follow 50 kênh đối tác VIP, thả tim 100 video, bình luận 25 video, giữ mắt live 90 phút, chia sẻ 30 video',
+    description: 'CẤP BẬC CAO NHẤT (Đạt 2.500 nhiệm vụ): 16 nhiệm vụ ngày, kiếm trên 1.200.000 Xu/ngày (1.2 triệu VNĐ/ngày) + 5 Vòng quay!'
   }
 };
 
@@ -176,38 +216,38 @@ export function getRankByTaskCount(count: number): RankTierConfig {
 // ===== KHO NHIỆM VỤ PHÂN BỔ THEO 10 CẤP BẬC =====
 export const MISSION_POOL: WeeklyMissionDef[] = [
   // ---- DAILY MISSIONS (CẤP 1 -> CẤP 4: DỄ & TRUNG BÌNH) ----
-  { id: 'daily_follow_3',    title: 'Theo Dõi 3 Kênh Mới',       description: 'Follow 3 kênh TikTok bất kỳ từ kho hệ thống sàn.',           category: 'daily',   type: 'follow',  difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 600,    targetCount: 3,   icon: '👤', tags: ['follow', 'dễ'] },
-  { id: 'daily_follow_5',    title: 'Theo Dõi 5 Kênh Mới',       description: 'Follow 5 kênh TikTok chất lượng cao do sàn chỉ định.',       category: 'daily',   type: 'follow',  difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 1000,   targetCount: 5,   icon: '👥', tags: ['follow'] },
-  { id: 'daily_watch_5',     title: 'Xem 5 Video 15 Giây',        description: 'Xem đủ 15 giây 5 video sàn trên For You Page.',              category: 'daily',   type: 'watch',   difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 1000,   targetCount: 5,   icon: '🎬', tags: ['video', 'dễ'] },
-  { id: 'daily_like_10',     title: 'Thả Tim 10 Video',           description: 'Thả tim 10 video TikTok sàn cung cấp.',                      category: 'daily',   type: 'like',    difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 1000,   targetCount: 10,  icon: '❤️', tags: ['tim'] },
-  { id: 'daily_comment_3',   title: 'Bình Luận 3 Video',          description: 'Để lại bình luận tích cực trên 3 video sàn.',                category: 'daily',   type: 'comment', difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 600,    targetCount: 3,   icon: '💬', tags: ['comment'] },
-  { id: 'daily_share_3',     title: 'Chia Sẻ 3 Video',            description: 'Chia sẻ 3 video TikTok của sàn ra ngoài.',                   category: 'daily',   type: 'share',   difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 720,    targetCount: 3,   icon: '📤', tags: ['share'] },
-  { id: 'daily_live_5m',     title: 'Xem Live 5 Phút',            description: 'Xem ít nhất 1 livestream liên tục 5 phút từ hệ thống.',      category: 'daily',   type: 'live',    difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 500,    targetCount: 1,   icon: '📡', tags: ['live'] },
+  { id: 'daily_follow_3',    title: 'Theo Dõi 3 Kênh Mới',       description: 'Follow 3 kênh TikTok bất kỳ từ kho hệ thống sàn.',           category: 'daily',   type: 'follow',  difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 13000,  targetCount: 3,   icon: '👤', tags: ['follow', 'dễ'] },
+  { id: 'daily_follow_5',    title: 'Theo Dõi 5 Kênh Mới',       description: 'Follow 5 kênh TikTok chất lượng cao do sàn chỉ định.',       category: 'daily',   type: 'follow',  difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 15000,  targetCount: 5,   icon: '👥', tags: ['follow'] },
+  { id: 'daily_watch_5',     title: 'Xem 5 Video 15 Giây',        description: 'Xem đủ 15 giây 5 video sàn trên For You Page.',              category: 'daily',   type: 'watch',   difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 13000,  targetCount: 5,   icon: '🎬', tags: ['video', 'dễ'] },
+  { id: 'daily_like_10',     title: 'Thả Tim 10 Video',           description: 'Thả tim 10 video TikTok sàn cung cấp.',                      category: 'daily',   type: 'like',    difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 12000,  targetCount: 10,  icon: '❤️', tags: ['tim'] },
+  { id: 'daily_comment_3',   title: 'Bình Luận 3 Video',          description: 'Để lại bình luận tích cực trên 3 video sàn.',                category: 'daily',   type: 'comment', difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 14000,  targetCount: 3,   icon: '💬', tags: ['comment'] },
+  { id: 'daily_share_3',     title: 'Chia Sẻ 3 Video',            description: 'Chia sẻ 3 video TikTok của sàn ra ngoài.',                   category: 'daily',   type: 'share',   difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 13000,  targetCount: 3,   icon: '📤', tags: ['share'] },
+  { id: 'daily_live_5m',     title: 'Xem Live 5 Phút',            description: 'Xem ít nhất 1 livestream liên tục 5 phút từ hệ thống.',      category: 'daily',   type: 'live',    difficulty: 'easy',   source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 13000,  targetCount: 1,   icon: '📡', tags: ['live'] },
   
   // Cấp 2 - Khởi Nghiệp
-  { id: 'daily_follow_8',    title: 'Theo Dõi 8 Kênh Nhanh',      description: 'Follow 8 kênh TikTok được đề xuất trong ngày.',              category: 'daily',   type: 'follow',  difficulty: 'medium', source: 'platform', minRank: 'Cấp 2 - Khởi Nghiệp',   baseRewardXu: 1600,   targetCount: 8,   icon: '🌟', tags: ['follow'] },
-  { id: 'daily_watch_8',     title: 'Xem 8 Video 15 Giây',        description: 'Xem đủ 15 giây 8 video từ chiến dịch đang chạy.',            category: 'daily',   type: 'watch',   difficulty: 'easy',   source: 'platform', minRank: 'Cấp 2 - Khởi Nghiệp',   baseRewardXu: 1600,   targetCount: 8,   icon: '📺', tags: ['video'] },
-  { id: 'daily_like_15',     title: 'Thả Tim 15 Video',           description: 'Thả tim 15 video trên dòng tin chiến dịch.',                 category: 'daily',   type: 'like',    difficulty: 'easy',   source: 'platform', minRank: 'Cấp 2 - Khởi Nghiệp',   baseRewardXu: 1500,   targetCount: 15,  icon: '💖', tags: ['tim'] },
-  { id: 'daily_streak_3',    title: 'Duy Trì 3 Ngày Liên Tiếp',  description: 'Đăng nhập và làm ít nhất 1 nhiệm vụ 3 ngày liên tục.',     category: 'daily',   type: 'streak',  difficulty: 'medium', source: 'platform', minRank: 'Cấp 2 - Khởi Nghiệp',   baseRewardXu: 1500,   targetCount: 3,   icon: '⚡', tags: ['streak', 'bonus'] },
+  { id: 'daily_follow_8',    title: 'Theo Dõi 8 Kênh Nhanh',      description: 'Follow 8 kênh TikTok được đề xuất trong ngày.',              category: 'daily',   type: 'follow',  difficulty: 'medium', source: 'platform', minRank: 'Cấp 2 - Khởi Nghiệp',   baseRewardXu: 15000,  targetCount: 8,   icon: '🌟', tags: ['follow'] },
+  { id: 'daily_watch_8',     title: 'Xem 8 Video 15 Giây',        description: 'Xem đủ 15 giây 8 video từ chiến dịch đang chạy.',            category: 'daily',   type: 'watch',   difficulty: 'easy',   source: 'platform', minRank: 'Cấp 2 - Khởi Nghiệp',   baseRewardXu: 14000,  targetCount: 8,   icon: '📺', tags: ['video'] },
+  { id: 'daily_like_15',     title: 'Thả Tim 15 Video',           description: 'Thả tim 15 video trên dòng tin chiến dịch.',                 category: 'daily',   type: 'like',    difficulty: 'easy',   source: 'platform', minRank: 'Cấp 2 - Khởi Nghiệp',   baseRewardXu: 13000,  targetCount: 15,  icon: '💖', tags: ['tim'] },
+  { id: 'daily_streak_3',    title: 'Duy Trì 3 Ngày Liên Tiếp',  description: 'Đăng nhập và làm ít nhất 1 nhiệm vụ 3 ngày liên tục.',     category: 'daily',   type: 'streak',  difficulty: 'medium', source: 'platform', minRank: 'Cấp 2 - Khởi Nghiệp',   baseRewardXu: 15000,  targetCount: 3,   icon: '⚡', tags: ['streak', 'bonus'] },
   
   // Cấp 3 - Năng Động & Cấp 4 - Tương Tác
-  { id: 'daily_follow_10',   title: 'Theo Dõi 10 Kênh',           description: 'Follow 10 kênh TikTok nhanh trong ngày.',                    category: 'daily',   type: 'follow',  difficulty: 'medium', source: 'platform', minRank: 'Cấp 3 - Năng Động',     baseRewardXu: 2000,   targetCount: 10,  icon: '🌟', tags: ['follow', 'trung bình'] },
-  { id: 'daily_watch_15',    title: 'Xem 15 Video FYP',           description: 'Xem đủ 15 giây 15 video từ chiến dịch sàn cung cấp.',        category: 'daily',   type: 'watch',   difficulty: 'medium', source: 'platform', minRank: 'Cấp 3 - Năng Động',     baseRewardXu: 3000,   targetCount: 15,  icon: '📺', tags: ['video'] },
-  { id: 'daily_comment_5',   title: 'Bình Luận 5 Video',          description: 'Để lại 5 bình luận chất lượng trên video hệ thống.',         category: 'daily',   type: 'comment', difficulty: 'medium', source: 'platform', minRank: 'Cấp 3 - Năng Động',     baseRewardXu: 1000,   targetCount: 5,   icon: '🗣️', tags: ['comment'] },
-  { id: 'daily_live_15m',    title: 'Xem Live 15 Phút',           description: 'Xem 1 phiên livestream liên tục 15 phút từ sàn.',            category: 'daily',   type: 'live',    difficulty: 'medium', source: 'platform', minRank: 'Cấp 3 - Năng Động',     baseRewardXu: 1300,   targetCount: 1,   icon: '🔴', tags: ['live'] },
-  { id: 'daily_share_5',     title: 'Chia Sẻ 5 Video',            description: 'Chia sẻ 5 video TikTok ra ngoài các nền tảng.',             category: 'daily',   type: 'share',   difficulty: 'medium', source: 'platform', minRank: 'Cấp 4 - Tương Tác',   baseRewardXu: 1200,   targetCount: 5,   icon: '🚀', tags: ['share'] },
-  { id: 'daily_watch_20',    title: 'Xem 20 Video Liên Tiếp',     description: 'Xem đủ 15 giây 20 video hệ thống, không ngắt quãng.',        category: 'daily',   type: 'watch',   difficulty: 'hard',   source: 'platform', minRank: 'Cấp 4 - Tương Tác',   baseRewardXu: 4000,   targetCount: 20,  icon: '🔥', tags: ['video', 'streak'] },
-  { id: 'daily_like_25',     title: 'Thả Tim 25 Video',           description: 'Thả tim 25 video TikTok trong ngày.',                        category: 'daily',   type: 'like',    difficulty: 'medium', source: 'platform', minRank: 'Cấp 4 - Tương Tác',   baseRewardXu: 2500,   targetCount: 25,  icon: '❤️‍🔥', tags: ['tim'] },
+  { id: 'daily_follow_10',   title: 'Theo Dõi 10 Kênh',           description: 'Follow 10 kênh TikTok nhanh trong ngày.',                    category: 'daily',   type: 'follow',  difficulty: 'medium', source: 'platform', minRank: 'Cấp 3 - Năng Động',     baseRewardXu: 17000,  targetCount: 10,  icon: '🌟', tags: ['follow', 'trung bình'] },
+  { id: 'daily_watch_15',    title: 'Xem 15 Video FYP',           description: 'Xem đủ 15 giây 15 video từ chiến dịch sàn cung cấp.',        category: 'daily',   type: 'watch',   difficulty: 'medium', source: 'platform', minRank: 'Cấp 3 - Năng Động',     baseRewardXu: 16000,  targetCount: 15,  icon: '📺', tags: ['video'] },
+  { id: 'daily_comment_5',   title: 'Bình Luận 5 Video',          description: 'Để lại 5 bình luận chất lượng trên video hệ thống.',         category: 'daily',   type: 'comment', difficulty: 'medium', source: 'platform', minRank: 'Cấp 3 - Năng Động',     baseRewardXu: 15000,  targetCount: 5,   icon: '🗣️', tags: ['comment'] },
+  { id: 'daily_live_15m',    title: 'Xem Live 15 Phút',           description: 'Xem 1 phiên livestream liên tục 15 phút từ sàn.',            category: 'daily',   type: 'live',    difficulty: 'medium', source: 'platform', minRank: 'Cấp 3 - Năng Động',     baseRewardXu: 16000,  targetCount: 1,   icon: '🔴', tags: ['live'] },
+  { id: 'daily_share_5',     title: 'Chia Sẻ 5 Video',            description: 'Chia sẻ 5 video TikTok ra ngoài các nền tảng.',             category: 'daily',   type: 'share',   difficulty: 'medium', source: 'platform', minRank: 'Cấp 4 - Tương Tác',   baseRewardXu: 18000,  targetCount: 5,   icon: '🚀', tags: ['share'] },
+  { id: 'daily_watch_20',    title: 'Xem 20 Video Liên Tiếp',     description: 'Xem đủ 15 giây 20 video hệ thống, không ngắt quãng.',        category: 'daily',   type: 'watch',   difficulty: 'hard',   source: 'platform', minRank: 'Cấp 4 - Tương Tác',   baseRewardXu: 19000,  targetCount: 20,  icon: '🔥', tags: ['video', 'streak'] },
+  { id: 'daily_like_25',     title: 'Thả Tim 25 Video',           description: 'Thả tim 25 video TikTok trong ngày.',                        category: 'daily',   type: 'like',    difficulty: 'medium', source: 'platform', minRank: 'Cấp 4 - Tương Tác',   baseRewardXu: 16000,  targetCount: 25,  icon: '❤️‍🔥', tags: ['tim'] },
 
   // ---- DAILY MISSIONS (CẤP 5 -> CẤP 10: NÂNG CAO & CHUYÊN GIA) ----
-  { id: 'daily_follow_15',   title: 'Follow Siêu Tốc 15 Kênh',    description: 'Theo dõi 15 kênh đối tác VIP của sàn.',                     category: 'daily',   type: 'follow',  difficulty: 'medium', source: 'platform', minRank: 'Cấp 5 - Tiên Phong',   baseRewardXu: 3000,   targetCount: 15,  icon: '⚡', tags: ['follow', 'vip'] },
-  { id: 'daily_comment_8',   title: 'Seeding 8 Bình Luận Sâu',    description: 'Bình luận trên 8 video chiến dịch trọng điểm.',              category: 'daily',   type: 'comment', difficulty: 'hard',   source: 'platform', minRank: 'Cấp 5 - Tiên Phong',   baseRewardXu: 2400,   targetCount: 8,   icon: '✍️', tags: ['comment'] },
-  { id: 'daily_live_30m',    title: 'Giữ Mắt Live 30 Phút',       description: 'Xem phiên livestream TikTok Shop liên tục 30 phút.',         category: 'daily',   type: 'live',    difficulty: 'hard',   source: 'platform', minRank: 'Cấp 6 - Chuyên Nghiệp', baseRewardXu: 3600, targetCount: 1, icon: '🎙️', tags: ['live'] },
-  { id: 'daily_follow_20',   title: 'Follow 20 Kênh Creator',     description: 'Follow 20 kênh Creator trong kho nhiệm vụ ngày.',            category: 'daily',   type: 'follow',  difficulty: 'hard',   source: 'platform', minRank: 'Cấp 6 - Chuyên Nghiệp', baseRewardXu: 4500, targetCount: 20, icon: '👑', tags: ['follow'] },
-  { id: 'daily_watch_30',    title: 'Marathon 30 Video Ngày',     description: 'Xem đủ thời lượng 30 video chiến dịch sàn cung cấp.',        category: 'daily',   type: 'watch',   difficulty: 'hard',   source: 'platform', minRank: 'Cấp 7 - Tinh Anh',     baseRewardXu: 6000,   targetCount: 30,  icon: '🎬', tags: ['video'] },
-  { id: 'daily_share_10',    title: 'Lan Tỏa 10 Video Sàn',       description: 'Chia sẻ 10 video chiến dịch tới các hội nhóm mạng xã hội.', category: 'daily',   type: 'share',   difficulty: 'hard',   source: 'platform', minRank: 'Cấp 8 - Thủ Lĩnh',     baseRewardXu: 3500,   targetCount: 10,  icon: '📣', tags: ['share'] },
-  { id: 'daily_live_45m',    title: 'Gắn Bó 45 Phút Live',        description: 'Xem livestream và tương tác giỏ hàng TikTok Shop 45 phút.',  category: 'daily',   type: 'live',    difficulty: 'expert', source: 'platform', minRank: 'Cấp 9 - Cao Thủ',      baseRewardXu: 5500,   targetCount: 1,   icon: '👁️', tags: ['live'] },
-  { id: 'daily_follow_30',   title: 'Đại Đội Follow 30 Kênh',     description: 'Follow 30 kênh đối tác chỉ tiêu cấp 10.',                    category: 'daily',   type: 'follow',  difficulty: 'expert', source: 'platform', minRank: 'Cấp 10 - Huyền Thoại', baseRewardXu: 8000, targetCount: 30, icon: '💎', tags: ['follow', 'legend'] },
+  { id: 'daily_follow_15',   title: 'Follow Siêu Tốc 15 Kênh',    description: 'Theo dõi 15 kênh đối tác VIP của sàn.',                     category: 'daily',   type: 'follow',  difficulty: 'medium', source: 'platform', minRank: 'Cấp 5 - Tiên Phong',   baseRewardXu: 22000,  targetCount: 15,  icon: '⚡', tags: ['follow', 'vip'] },
+  { id: 'daily_comment_8',   title: 'Seeding 8 Bình Luận Sâu',    description: 'Bình luận trên 8 video chiến dịch trọng điểm.',              category: 'daily',   type: 'comment', difficulty: 'hard',   source: 'platform', minRank: 'Cấp 5 - Tiên Phong',   baseRewardXu: 21000,  targetCount: 8,   icon: '✍️', tags: ['comment'] },
+  { id: 'daily_live_30m',    title: 'Giữ Mắt Live 30 Phút',       description: 'Xem phiên livestream TikTok Shop liên tục 30 phút.',         category: 'daily',   type: 'live',    difficulty: 'hard',   source: 'platform', minRank: 'Cấp 6 - Chuyên Nghiệp', baseRewardXu: 25000, targetCount: 1, icon: '🎙️', tags: ['live'] },
+  { id: 'daily_follow_20',   title: 'Follow 20 Kênh Creator',     description: 'Follow 20 kênh Creator trong kho nhiệm vụ ngày.',            category: 'daily',   type: 'follow',  difficulty: 'hard',   source: 'platform', minRank: 'Cấp 6 - Chuyên Nghiệp', baseRewardXu: 24000, targetCount: 20, icon: '👑', tags: ['follow'] },
+  { id: 'daily_watch_30',    title: 'Marathon 30 Video Ngày',     description: 'Xem đủ thời lượng 30 video chiến dịch sàn cung cấp.',        category: 'daily',   type: 'watch',   difficulty: 'hard',   source: 'platform', minRank: 'Cấp 7 - Tinh Anh',     baseRewardXu: 30000,  targetCount: 30,  icon: '🎬', tags: ['video'] },
+  { id: 'daily_share_10',    title: 'Lan Tỏa 10 Video Sàn',       description: 'Chia sẻ 10 video chiến dịch tới các hội nhóm mạng xã hội.', category: 'daily',   type: 'share',   difficulty: 'hard',   source: 'platform', minRank: 'Cấp 8 - Thủ Lĩnh',     baseRewardXu: 35000,  targetCount: 10,  icon: '📣', tags: ['share'] },
+  { id: 'daily_live_45m',    title: 'Gắn Bó 45 Phút Live',        description: 'Xem livestream và tương tác giỏ hàng TikTok Shop 45 phút.',  category: 'daily',   type: 'live',    difficulty: 'expert', source: 'platform', minRank: 'Cấp 9 - Cao Thủ',      baseRewardXu: 40000,  targetCount: 1,   icon: '👁️', tags: ['live'] },
+  { id: 'daily_follow_30',   title: 'Đại Đội Follow 30 Kênh',     description: 'Follow 30 kênh đối tác chỉ tiêu cấp 10.',                    category: 'daily',   type: 'follow',  difficulty: 'expert', source: 'platform', minRank: 'Cấp 10 - Huyền Thoại', baseRewardXu: 47000, targetCount: 30, icon: '💎', tags: ['follow', 'legend'] },
 
   // ---- WEEKLY MISSIONS (CẤP 1 -> CẤP 10) ----
   { id: 'weekly_follow_30',  title: 'Theo Dõi 30 Kênh Tuần',     description: 'Follow 30 kênh trong tuần từ kho hệ thống sàn.',             category: 'weekly',  type: 'follow',  difficulty: 'medium', source: 'platform', minRank: 'Cấp 1 - Tập Sự',       baseRewardXu: 6000,   targetCount: 30,  icon: '🏆', tags: ['follow', 'tuần'] },

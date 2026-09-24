@@ -7,6 +7,8 @@ export const STREAK_REWARDS = {
 };
 
 // ===== CẤU HÌNH 10 CẤP BẬC THĂNG TIẾN TOÀN DIỆN (10 Rank Tiers System) =====
+// subMissionRewardXu: Xu nhận được mỗi khi hoàn thành 1 nhiệm vụ con (tối thiểu 10.000 ở Cấp 1)
+// subMissionCompleteBonusXu: Xu thưởng thêm khi hoàn thành TẤT CẢ nhiệm vụ con của 1 nhiệm vụ chính (tối thiểu 1.000 ở Cấp 1)
 export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
   'Cấp 1 - Tập Sự': {
     tierNumber: 1,
@@ -23,7 +25,9 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     dailyTaskRewardTotal: 65000,
     dailyBundleRewardXu: 35000,
     dailyTasksSummary: 'Lướt 5 video FYP (15s), follow 3 kênh đối soát, thả tim 5 video, bình luận 2 video, xem live 3 phút',
-    description: 'Cấp khởi đầu cho mọi người mới: Hoàn thành 5 nhiệm vụ ngày nhận trung bình 100.000 Xu (≈100k VNĐ/ngày).'
+    description: 'Cấp khởi đầu cho mọi người mới: Hoàn thành 5 nhiệm vụ ngày nhận trung bình 100.000 Xu (≈100k VNĐ/ngày).',
+    subMissionRewardXu: 10000,      // 10.000 Xu mỗi nhiệm vụ con
+    subMissionCompleteBonusXu: 1000  // +1.000 Xu thưởng thêm khi hoàn thành hết
   },
   'Cấp 2 - Khởi Nghiệp': {
     tierNumber: 2,
@@ -40,7 +44,9 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     dailyTaskRewardTotal: 85000,
     dailyBundleRewardXu: 45000,
     dailyTasksSummary: 'Lướt 8 video, follow 5 kênh, thả tim 10 video, bình luận 3 video, xem live 5 phút, chia sẻ 1 video',
-    description: 'Thăng hạng khi tích lũy 20 nhiệm vụ: 6 nhiệm vụ ngày, kiếm trung bình 130.000 Xu/ngày.'
+    description: 'Thăng hạng khi tích lũy 20 nhiệm vụ: 6 nhiệm vụ ngày, kiếm trung bình 130.000 Xu/ngày.',
+    subMissionRewardXu: 12000,       // 12.000 Xu mỗi nhiệm vụ con
+    subMissionCompleteBonusXu: 1500  // +1.500 Xu thưởng thêm
   },
   'Cấp 3 - Năng Động': {
     tierNumber: 3,
@@ -57,7 +63,9 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     dailyTaskRewardTotal: 110000,
     dailyBundleRewardXu: 60000,
     dailyTasksSummary: 'Lướt 12 video, follow 8 kênh, thả tim 15 video, bình luận 5 video, xem live 10 phút, chia sẻ 3 video',
-    description: 'Thăng hạng khi tích lũy 50 nhiệm vụ: 7 nhiệm vụ ngày, kiếm trung bình 170.000 Xu/ngày.'
+    description: 'Thăng hạng khi tích lũy 50 nhiệm vụ: 7 nhiệm vụ ngày, kiếm trung bình 170.000 Xu/ngày.',
+    subMissionRewardXu: 14000,       // 14.000 Xu mỗi nhiệm vụ con
+    subMissionCompleteBonusXu: 2000  // +2.000 Xu thưởng thêm
   },
   'Cấp 4 - Tương Tác': {
     tierNumber: 4,
@@ -74,7 +82,9 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     dailyTaskRewardTotal: 140000,
     dailyBundleRewardXu: 80000,
     dailyTasksSummary: 'Lướt 15 video liên tiếp, follow 10 kênh, thả tim 20 video, bình luận 6 video, xem live 15 phút, chia sẻ 5 video',
-    description: 'Thăng hạng khi tích lũy 100 nhiệm vụ: 8 nhiệm vụ ngày, kiếm trung bình 220.000 Xu/ngày.'
+    description: 'Thăng hạng khi tích lũy 100 nhiệm vụ: 8 nhiệm vụ ngày, kiếm trung bình 220.000 Xu/ngày.',
+    subMissionRewardXu: 16000,       // 16.000 Xu mỗi nhiệm vụ con
+    subMissionCompleteBonusXu: 2500  // +2.500 Xu thưởng thêm
   },
   'Cấp 5 - Tiên Phong': {
     tierNumber: 5,
@@ -91,7 +101,9 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     dailyTaskRewardTotal: 185000,
     dailyBundleRewardXu: 105000,
     dailyTasksSummary: 'Lướt 20 video, follow 15 kênh VIP, thả tim 25 video, bình luận seeding 8 video, xem live 20 phút, chia sẻ 8 video',
-    description: 'Thăng hạng khi tích lũy 200 nhiệm vụ: 9 nhiệm vụ ngày, kiếm trung bình 290.000 Xu/ngày + 2 Vòng quay.'
+    description: 'Thăng hạng khi tích lũy 200 nhiệm vụ: 9 nhiệm vụ ngày, kiếm trung bình 290.000 Xu/ngày + 2 Vòng quay.',
+    subMissionRewardXu: 20000,       // 20.000 Xu mỗi nhiệm vụ con
+    subMissionCompleteBonusXu: 3000  // +3.000 Xu thưởng thêm
   },
   'Cấp 6 - Chuyên Nghiệp': {
     tierNumber: 6,
@@ -108,7 +120,9 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     dailyTaskRewardTotal: 240000,
     dailyBundleRewardXu: 140000,
     dailyTasksSummary: 'Lướt 25 video, follow 20 kênh Creator, thả tim 35 video, bình luận chuyên sâu 10 video, xem live 30 phút, chia sẻ 10 video',
-    description: 'Thăng hạng khi tích lũy 350 nhiệm vụ: 10 nhiệm vụ ngày, kiếm trung bình 380.000 Xu/ngày + 2 Vòng quay.'
+    description: 'Thăng hạng khi tích lũy 350 nhiệm vụ: 10 nhiệm vụ ngày, kiếm trung bình 380.000 Xu/ngày + 2 Vòng quay.',
+    subMissionRewardXu: 25000,       // 25.000 Xu mỗi nhiệm vụ con
+    subMissionCompleteBonusXu: 4000  // +4.000 Xu thưởng thêm
   },
   'Cấp 7 - Tinh Anh': {
     tierNumber: 7,
@@ -125,7 +139,9 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     dailyTaskRewardTotal: 320000,
     dailyBundleRewardXu: 180000,
     dailyTasksSummary: 'Lướt 30 video chiến dịch, follow 25 kênh, thả tim 45 video, bình luận 12 video, xem live 35 phút, chia sẻ 15 video',
-    description: 'Thăng hạng khi tích lũy 600 nhiệm vụ: 11 nhiệm vụ ngày, kiếm trung bình 500.000 Xu/ngày (500k VNĐ).'
+    description: 'Thăng hạng khi tích lũy 600 nhiệm vụ: 11 nhiệm vụ ngày, kiếm trung bình 500.000 Xu/ngày (500k VNĐ).',
+    subMissionRewardXu: 30000,       // 30.000 Xu mỗi nhiệm vụ con
+    subMissionCompleteBonusXu: 5000  // +5.000 Xu thưởng thêm
   },
   'Cấp 8 - Thủ Lĩnh': {
     tierNumber: 8,
@@ -142,7 +158,9 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     dailyTaskRewardTotal: 420000,
     dailyBundleRewardXu: 230000,
     dailyTasksSummary: 'Lướt 40 video, follow 30 kênh, thả tim 60 video, bình luận 15 video, giữ mắt live 45 phút, chia sẻ 20 video',
-    description: 'Thăng hạng khi tích lũy 1.000 nhiệm vụ: 12 nhiệm vụ ngày, kiếm trung bình 650.000 Xu/ngày + 3 Vòng quay.'
+    description: 'Thăng hạng khi tích lũy 1.000 nhiệm vụ: 12 nhiệm vụ ngày, kiếm trung bình 650.000 Xu/ngày + 3 Vòng quay.',
+    subMissionRewardXu: 38000,       // 38.000 Xu mỗi nhiệm vụ con
+    subMissionCompleteBonusXu: 7000  // +7.000 Xu thưởng thêm
   },
   'Cấp 9 - Cao Thủ': {
     tierNumber: 9,
@@ -159,7 +177,9 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     dailyTaskRewardTotal: 550000,
     dailyBundleRewardXu: 300000,
     dailyTasksSummary: 'Marathon 50 video, follow 40 kênh lớn, thả tim 80 video, bình luận 20 video, giữ mắt live 60 phút, chia sẻ 25 video',
-    description: 'Thăng hạng khi tích lũy 1.500 nhiệm vụ: 14 nhiệm vụ ngày, kiếm trung bình 850.000 Xu/ngày + 3 Vòng quay.'
+    description: 'Thăng hạng khi tích lũy 1.500 nhiệm vụ: 14 nhiệm vụ ngày, kiếm trung bình 850.000 Xu/ngày + 3 Vòng quay.',
+    subMissionRewardXu: 46000,        // 46.000 Xu mỗi nhiệm vụ con
+    subMissionCompleteBonusXu: 9000   // +9.000 Xu thưởng thêm
   },
   'Cấp 10 - Huyền Thoại': {
     tierNumber: 10,
@@ -176,7 +196,9 @@ export const TEN_TIER_CONFIG: Record<string, RankTierConfig> = {
     dailyTaskRewardTotal: 750000,
     dailyBundleRewardXu: 450000,
     dailyTasksSummary: 'Đại đội 60 video FYP, follow 50 kênh đối tác VIP, thả tim 100 video, bình luận 25 video, giữ mắt live 90 phút, chia sẻ 30 video',
-    description: 'CẤP BẬC CAO NHẤT (Đạt 2.500 nhiệm vụ): 16 nhiệm vụ ngày, kiếm trên 1.200.000 Xu/ngày (1.2 triệu VNĐ/ngày) + 5 Vòng quay!'
+    description: 'CẤP BẬC CAO NHẤT (Đạt 2.500 nhiệm vụ): 16 nhiệm vụ ngày, kiếm trên 1.200.000 Xu/ngày (1.2 triệu VNĐ/ngày) + 5 Vòng quay!',
+    subMissionRewardXu: 56000,         // 56.000 Xu mỗi nhiệm vụ con
+    subMissionCompleteBonusXu: 12000   // +12.000 Xu thưởng thêm
   }
 };
 
@@ -217,8 +239,9 @@ export function getRankByTaskCount(count: number): RankTierConfig {
 export function buildMissionSubMilestones(
   type: MissionType,
   targetCount: number,
-  completedCount: number
-): { step: number; label: string; targetCount: number; isDone: boolean }[] {
+  completedCount: number,
+  subMissionRewardXu: number = 10000   // Xu thưởng mỗi nhiệm vụ con (mặc định 10.000)
+): { step: number; label: string; targetCount: number; isDone: boolean; rewardXu: number; isClaimed: boolean }[] {
   if (targetCount <= 0) return [];
 
   // Nếu target nhỏ (<= 5): tách thành từng tiểu nhiệm vụ con chi tiết 1-by-1
@@ -240,7 +263,9 @@ export function buildMissionSubMilestones(
         step: i,
         label,
         targetCount: i,
-        isDone: completedCount >= i
+        isDone: completedCount >= i,
+        rewardXu: subMissionRewardXu,
+        isClaimed: false
       });
     }
     return list;
@@ -268,7 +293,9 @@ export function buildMissionSubMilestones(
       step: s,
       label,
       targetCount: stepTarget,
-      isDone: completedCount >= stepTarget
+      isDone: completedCount >= stepTarget,
+      rewardXu: subMissionRewardXu,
+      isClaimed: false
     });
   }
 
@@ -557,7 +584,7 @@ export function generateWeeklyMissions(
       expiresAt: isDaily ? todayEndIso : weekEndIso,
       icon: def.icon,
       tags: def.tags,
-      subMilestones: buildMissionSubMilestones(def.type, def.targetCount, 0)
+      subMilestones: buildMissionSubMilestones(def.type, def.targetCount, 0, tierCfg.subMissionRewardXu ?? 10000)
     };
   };
 

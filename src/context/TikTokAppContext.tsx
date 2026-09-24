@@ -492,6 +492,7 @@ interface TikTokAppContextType {
   missionStreak: MissionStreakData;
   recordMissionProgress: (type: MissionType, count?: number) => void;
   claimMissionReward: (defId: string) => void;
+  claimSubMissionReward: (defId: string, subStep: number) => void; // Nhận xu từng nhiệm vụ con
   claimAllCategoryMissions: (category: 'daily' | 'weekly' | 'special') => void;
   claimStreakReward: (period: 'daily' | 'weekly' | 'monthly') => void;
 
@@ -1996,6 +1997,81 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       rewardText: `+${reward.toLocaleString()} XU VÀO VÍ`,
       message: `Chúc mừng bạn đã nỗ lực hoàn thành xuất sắc nhiệm vụ được giao. Từng lượt tương tác của bạn là một bước tiến vững chắc đưa tài khoản thăng cấp bứt phá!`
     });
+  };
+
+  // Nhận xu riêng cho từng nhiệm vụ con (sub-milestone) khi hoàn thành từng chặng nhỏ
+  const claimSubMissionReward = (defId: string, subStep: number) => {
+    const mission = userMissions.find(m => m.defId === defId);
+    if (!mission || !mission.subMilestones) return;
+
+    const sub = mission.subMilestones.find(s => s.step === subStep);
+    if (!sub || !sub.isDone || sub.isClaimed) return;
+
+    const reward = sub.rewardXu;
+    const tierCfg = getRankTierConfig(user.rankLevel);
+    const bonusXu = tierCfg.subMissionCompleteBonusXu ?? 1000;
+
+    // Kiểm tra xem đây có phải nhiệm vụ con cuối cùng chưa claim không
+    const updatedMilestones = mission.subMilestones.map(s =>
+      s.step === subStep ? { ...s, isClaimed: true } : s
+    );
+    const allDoneAndClaimed = updatedMilestones.every(s => !s.isDone || s.isClaimed);
+    const totalPayout = allDoneAndClaimed ? reward + bonusXu : reward;
+
+    // Cập nhật trạng thái claim của sub-milestone
+    setUserMissions(prev => prev.map(m =>
+      m.defId === defId
+        ? { ...m, subMilestones: updatedMilestones }
+        : m
+    ));
+
+    const newCoins = user.avaliveCoins + totalPayout;
+    const now = new Date();
+    const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
+    const newTx: TransactionRecord = {
+      id: `tx_sub_${defId}_${subStep}_${Date.now()}`,
+      type: 'earn',
+      title: allDoneAndClaimed
+        ? `🎊 Hoàn thành toàn bộ chặng nhỏ: ${mission.title} (+${bonusXu.toLocaleString()} Xu thưởng thêm!)`
+        : `✅ Chặng #${subStep}: ${sub.label} | ${mission.title}`,
+      amount: `+${totalPayout.toLocaleString()} Xu`,
+      isPositive: true,
+      date: exactTime,
+      exactTime,
+      balanceAfter: newCoins,
+      missionType: mission.type,
+      missionName: mission.title,
+      method: 'Nhiệm Vụ Con',
+      status: 'success'
+    };
+
+    setUser(prev => ({
+      ...prev,
+      avaliveCoins: newCoins,
+      coinsValueVND: `${newCoins.toLocaleString()}đ`,
+      transactions: [newTx, ...prev.transactions]
+    }));
+
+    setAnalytics(prev => ({
+      ...prev,
+      todayEarningsCoins: prev.todayEarningsCoins + totalPayout,
+      weeklyEarningsCoins: prev.weeklyEarningsCoins + totalPayout
+    }));
+
+    if (allDoneAndClaimed) {
+      showToast(`🎊 Hoàn thành toàn bộ chặng! Nhận ${totalPayout.toLocaleString()} Xu (+${bonusXu.toLocaleString()} Xu thưởng thêm)!`);
+      triggerFireworks({
+        type: 'mission',
+        badge: `🎁 HOÀN THÀNH TRỌN VẸN NHIỆM VỤ CON!`,
+        title: `XIN CHÚC MỪNG! BẠN ĐÃ XONG HẾT CHẶNG NHỎ!`,
+        subtitle: mission.title,
+        rewardText: `+${totalPayout.toLocaleString()} XU (gồm +${bonusXu.toLocaleString()} Xu thưởng thêm 🎁)`,
+        message: `Xuất sắc! Bạn đã hoàn thành tất cả chặng nhiệm vụ con của "${mission.title}". Nhận thêm +${bonusXu.toLocaleString()} Xu thưởng tất toán!`
+      });
+    } else {
+      showToast(`✅ Chặng #${subStep} hoàn thành! Nhận +${reward.toLocaleString()} Xu vào ví!`);
+    }
   };
 
   // Nhận toàn bộ thưởng Xu khi hoàn thành 100% tất cả nhiệm vụ trong danh mục (All-or-Nothing Pool)
@@ -8433,6 +8509,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         missionStreak,
         recordMissionProgress,
         claimMissionReward,
+        claimSubMissionReward,
         claimAllCategoryMissions,
         claimStreakReward,
         // Modal Pháo Hoa Chúc Mừng Toàn Hệ Thống

@@ -1157,6 +1157,8 @@ export interface MissionSubMilestone {
   label: string;
   targetCount: number;
   isDone: boolean;
+  rewardXu: number;    // Xu thưởng riêng cho nhiệm vụ con này (tối thiểu 10.000 Xu ở Cấp 1)
+  isClaimed: boolean;  // Đã nhận xu chưa
 }
 
 export interface UserWeeklyMission {
@@ -1193,6 +1195,8 @@ export interface RankTierConfig {
   dailyTaskRewardTotal: number;      // Thù lao từ các nhiệm vụ trong ngày
   dailyBundleRewardXu: number;       // Thưởng trọn gói hoàn thành 100% nhiệm vụ ngày
   dailyTasksSummary: string;         // Tóm tắt công việc nhiệm vụ ngày
+  subMissionRewardXu: number;        // Xu thưởng cho mỗi nhiệm vụ con (sub-milestone), tối thiểu 10.000 ở Cấp 1
+  subMissionCompleteBonusXu: number; // Xu thưởng thêm khi hoàn thành TẤT CẢ nhiệm vụ con của 1 nhiệm vụ chính
 }
 
 export interface WeeklyMissionConfig {

@@ -53,6 +53,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
     missionStreak,
     claimAllCategoryMissions,
     claimMissionReward,
+    claimSubMissionReward,
     claimStreakReward
   } = useTikTokApp();
 
@@ -184,16 +185,38 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
         </div>
 
         {/* Khối giải thích cơ chế dòng tiền & chỉ nhận thưởng tổng */}
-        <div className="mt-3 p-3 rounded-2xl bg-black/50 border border-amber-500/30 text-xs space-y-1.5">
+        <div className="mt-3 p-3 rounded-2xl bg-black/50 border border-amber-500/30 text-xs space-y-2">
           <div className="flex items-center gap-2 text-amber-300 font-black font-mono uppercase text-[11px]">
             <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>QUY TẮC THU NHẬP 10 CẤP BẬC (TỐI THIỂU TỪ 100.000 XU/NGÀY TĂNG DẦN TỚI 1.200.000 XU/NGÀY)</span>
+            <span>📋 HƯỚNG DẪN NHẬN THƯỞNG — {currentTierCfg.badge} {currentTierCfg.shortTitle}</span>
           </div>
-          <p className="text-slate-300 text-[11px] leading-relaxed">
-            • <strong>Lộ trình 10 Cấp Bậc chuẩn xác:</strong> Người dùng khởi đầu từ <em>Cấp 1 (Tập Sự)</em> hoàn thành 5 nhiệm vụ ngày nhận trung bình <strong>100.000 Xu/ngày (≈100.000 VNĐ)</strong>. Thu nhập tăng dần đều qua 10 cấp bậc đến <em>Cấp 10 (Huyền Thoại)</em> với 16 nhiệm vụ ngày, nhận tới <strong>1.200.000 Xu/ngày (≈1.200.000 VNĐ)</strong>.<br />
-            • <strong>Cơ chế Thưởng Trọn Gói Ngày:</strong> Khi hoàn thành 100% nhiệm vụ ngày, bạn nhận đủ thù lao từng nhiệm vụ + cộng thêm <strong>Thưởng Tất Toán Gói Ngày</strong> (từ +35.000 Xu ở Cấp 1 lên tới +450.000 Xu ở Cấp 10)!<br />
-            • <strong>Tặng Vòng Quay May Mắn:</strong> Mỗi ngày hoàn thành 100% gói nhiệm vụ được <strong>tặng thêm +{currentTierCfg.wheelSpinsBonus} lượt quay Vòng Quay May Mắn</strong> miễn phí để trúng thêm giải thưởng lớn!
-          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] font-mono">
+            {/* Bước 1 */}
+            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+              <div className="text-emerald-400 font-black mb-1">① HOÀN THÀNH TỪNG CHẶNG NHỎ</div>
+              <p className="text-slate-300 leading-relaxed">
+                Mỗi nhiệm vụ chính gồm <strong>các chặng nhỏ</strong>. Làm xong từng chặng → bấm <strong>🎁 NHẬN NGAY +{currentTierCfg.subMissionRewardXu?.toLocaleString()} XU</strong> vào ví tức thì!
+              </p>
+            </div>
+            {/* Bước 2 */}
+            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+              <div className="text-cyan-400 font-black mb-1">② THƯỞNG THÊM KHI XONG HẾT CHẶNG</div>
+              <p className="text-slate-300 leading-relaxed">
+                Hoàn thành <strong>TẤT CẢ chặng nhỏ</strong> của 1 nhiệm vụ chính → nhận thêm <strong>+{currentTierCfg.subMissionCompleteBonusXu?.toLocaleString()} Xu thưởng tất toán</strong> trực tiếp vào ví!
+              </p>
+            </div>
+            {/* Bước 3 */}
+            <div className="p-2 rounded-xl bg-pink-500/10 border border-pink-500/30">
+              <div className="text-pink-400 font-black mb-1">③ THƯỞNG GÓI NGÀY (100%)</div>
+              <p className="text-slate-300 leading-relaxed">
+                Hoàn thành <strong>100% tất cả nhiệm vụ ngày</strong> → nhận thêm <strong>+{currentTierCfg.dailyBundleRewardXu.toLocaleString()} Xu</strong> + <strong>+{currentTierCfg.wheelSpinsBonus} lượt Vòng Quay May Mắn</strong> miễn phí!
+              </p>
+            </div>
+          </div>
+          <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/30 text-[10px] font-mono">
+            <span className="text-red-400 font-black">⚠️ LƯU Ý: </span>
+            <span className="text-slate-300">Không hoàn thành hết chặng trong ngày → <strong className="text-red-300">KHÔNG nhận được Thưởng Gói Ngày</strong> và <strong className="text-red-300">KHÔNG có lượt Vòng Quay</strong>. Reset lúc 00:00 hàng ngày. Nhiệm vụ hết hạn sẽ không được tính!</span>
+          </div>
         </div>
 
         {!hasPkg && (
@@ -632,38 +655,60 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
                     </div>
                   </div>
 
-                  {/* Danh sách nhiệm vụ con / chặng nhỏ */}
+                  {/* Danh sách nhiệm vụ con / chặng nhỏ - Mỗi chặng có nút nhận xu riêng */}
                   {mission.subMilestones && mission.subMilestones.length > 0 && (
-                    <div className="space-y-1.5 pt-1 border-t border-white/5">
+                    <div className="space-y-2 pt-1 border-t border-white/5">
                       <div className="flex items-center justify-between text-[10px] font-mono">
                         <span className="flex items-center gap-1 font-bold text-slate-300">
                           <Target className="w-3 h-3 text-cyan-400" />
                           Chặng nhiệm vụ con:
                         </span>
                         <span className="text-slate-400">
-                          {mission.subMilestones.filter(s => s.isDone).length}/{mission.subMilestones.length} hoàn thành
+                          {mission.subMilestones.filter(s => s.isDone && s.isClaimed).length}/{mission.subMilestones.length} đã nhận xu
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {mission.subMilestones.map((sub, sIdx) => (
-                          <div 
-                            key={sIdx}
-                            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-mono border transition-all ${
-                              sub.isDone 
-                                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-bold' 
-                                : 'bg-black/30 border-white/5 text-slate-400'
-                            }`}
-                          >
-                            {sub.isDone ? (
-                              <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
-                            ) : (
-                              <div className="w-3 h-3 rounded-full border border-slate-500/50 shrink-0 flex items-center justify-center text-[7px] text-slate-500">
-                                {sub.step}
+                      <div className="space-y-1">
+                        {mission.subMilestones.map((sub, sIdx) => {
+                          const isLastSub = sIdx === mission.subMilestones!.length - 1;
+                          const allPrevClaimed = sIdx === 0 || mission.subMilestones!.slice(0, sIdx).every(s => !s.isDone || s.isClaimed);
+                          return (
+                            <div key={sIdx} className={`rounded-xl p-2 border transition-all ${
+                              sub.isClaimed
+                                ? 'bg-emerald-500/10 border-emerald-500/30'
+                                : sub.isDone
+                                  ? 'bg-amber-500/10 border-amber-500/40 ring-1 ring-amber-400/30'
+                                  : 'bg-black/30 border-white/5'
+                            }`}>
+                              <div className="flex items-center gap-2">
+                                {sub.isClaimed ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                ) : sub.isDone ? (
+                                  <Gift className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+                                ) : (
+                                  <div className="w-3.5 h-3.5 rounded-full border border-slate-500/50 shrink-0 flex items-center justify-center text-[8px] text-slate-500 font-bold">
+                                    {sub.step}
+                                  </div>
+                                )}
+                                <span className={`text-[9px] font-mono flex-1 truncate ${sub.isClaimed ? 'text-emerald-400' : sub.isDone ? 'text-amber-300 font-bold' : 'text-slate-500'}`}>
+                                  {sub.label}
+                                  {isLastSub && !sub.isClaimed && <span className="ml-1 text-pink-400">(+{currentTierCfg.subMissionCompleteBonusXu?.toLocaleString()} Xu bonus!)</span>}
+                                </span>
+                                {sub.isClaimed ? (
+                                  <span className="text-[9px] font-mono text-emerald-400 font-bold shrink-0">✓ +{sub.rewardXu.toLocaleString()}</span>
+                                ) : sub.isDone && allPrevClaimed ? (
+                                  <button
+                                    onClick={() => claimSubMissionReward(mission.defId, sub.step)}
+                                    className="shrink-0 px-2 py-0.5 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 text-black text-[9px] font-mono font-black hover:scale-105 active:scale-95 transition-all cursor-pointer border border-amber-400 animate-pulse"
+                                  >
+                                    🎁 +{isLastSub ? (sub.rewardXu + (currentTierCfg.subMissionCompleteBonusXu ?? 1000)).toLocaleString() : sub.rewardXu.toLocaleString()} Xu
+                                  </button>
+                                ) : !sub.isDone ? (
+                                  <span className="text-[9px] font-mono text-slate-500 shrink-0">+{sub.rewardXu.toLocaleString()} Xu</span>
+                                ) : null}
                               </div>
-                            )}
-                            <span className="truncate">{sub.label}</span>
-                          </div>
-                        ))}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

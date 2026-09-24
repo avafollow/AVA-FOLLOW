@@ -249,7 +249,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
               </div>
             </div>
             <span className="text-[10px] font-mono text-neonGold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-              Tổng thưởng chuỗi: +1.225.000 Xu
+              Tổng thưởng chuỗi: +{(missionStreak.dailyBonusXu + missionStreak.weeklyBonusXu + missionStreak.monthlyBonusXu).toLocaleString()} Xu
             </span>
           </div>
 
@@ -288,7 +288,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
                       : 'bg-white/5 text-slate-400 cursor-not-allowed'
                 }`}
               >
-                {missionStreak.dailyBonusClaimed ? '✓ Đã Mở Rương Ngày' : missionStreak.isDailyAllClear ? '🎁 MỞ RƯƠNG NGÀY (+25K XU)' : 'Chưa Hoàn Tất Ngày'}
+                {missionStreak.dailyBonusClaimed ? '✓ Đã Mở Rương Ngày' : missionStreak.isDailyAllClear ? `🎁 MỞ RƯƠNG NGÀY (+${(missionStreak.dailyBonusXu / 1000).toFixed(0)}K XU)` : 'Chưa Hoàn Tất Ngày'}
               </button>
             </div>
 
@@ -326,7 +326,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
                       : 'bg-white/5 text-slate-400 cursor-not-allowed'
                 }`}
               >
-                {missionStreak.weeklyBonusClaimed ? '✓ Đã Mở Rương Tuần' : missionStreak.weeklyStreakDays >= 7 ? '🏆 MỞ RƯƠNG TUẦN (+200K XU)' : `Cần thêm ${Math.max(0, 7 - missionStreak.weeklyStreakDays)} ngày`}
+                {missionStreak.weeklyBonusClaimed ? '✓ Đã Mở Rương Tuần' : missionStreak.weeklyStreakDays >= 7 ? `🏆 MỞ RƯƠNG TUẦN (+${(missionStreak.weeklyBonusXu / 1000).toFixed(0)}K XU)` : `Cần thêm ${Math.max(0, 7 - missionStreak.weeklyStreakDays)} ngày`}
               </button>
             </div>
 
@@ -364,7 +364,7 @@ export const WeeklyMissionsPanel: React.FC<{ darkMode?: boolean }> = () => {
                       : 'bg-white/5 text-slate-400 cursor-not-allowed'
                 }`}
               >
-                {missionStreak.monthlyBonusClaimed ? '✓ Đã Mở Rương Tháng' : missionStreak.monthlyStreakDays >= 30 ? '💎 MỞ RƯƠNG THÁNG (+1 TRIỆU XU)' : `Cần thêm ${Math.max(0, 30 - missionStreak.monthlyStreakDays)} ngày`}
+                {missionStreak.monthlyBonusClaimed ? '✓ Đã Mở Rương Tháng' : missionStreak.monthlyStreakDays >= 30 ? `💎 MỞ RƯƠNG THÁNG (+${(missionStreak.monthlyBonusXu >= 1000000 ? (missionStreak.monthlyBonusXu / 1000000).toFixed(1) + ' TRIỆU' : (missionStreak.monthlyBonusXu / 1000).toFixed(0) + 'K')} XU)` : `Cần thêm ${Math.max(0, 30 - missionStreak.monthlyStreakDays)} ngày`}
               </button>
             </div>
           </div>

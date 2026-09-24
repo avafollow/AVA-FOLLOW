@@ -1689,6 +1689,47 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch {}
   }, [missionStreak]);
 
+  // Tự động tính toán & đồng bộ lại tiến độ Streak Rewards chuẩn xác theo cấp bậc
+  useEffect(() => {
+    const tier = getRankTierConfig(user?.rankLevel || 'Cấp 1 - Tập Sự');
+    const baseDailyIncome = tier.dailyEstimatedEarningsXu || 10000;
+    
+    // Gợi ý phần thưởng hợp lý cho người dùng kiên trì:
+    // Hằng ngày = 50% thu nhập ngày 
+    // Hằng tuần (7 ngày) = 200% thu nhập ngày
+    // Hằng tháng (30 ngày) = 1000% thu nhập ngày
+    const dailyBonus = Math.floor(baseDailyIncome * 0.5);
+    const weeklyBonus = Math.floor(baseDailyIncome * 2);
+    const monthlyBonus = Math.floor(baseDailyIncome * 10);
+
+    const dailyActive = userMissions.filter(m => m.category === 'daily');
+    const dailyDone = dailyActive.filter(m => m.status !== 'active').length;
+    const allDailyDone = dailyActive.length > 0 && dailyDone >= dailyActive.length;
+
+    setMissionStreak(prev => {
+      // Chỉ update nếu có thay đổi để tránh vòng lặp render
+      if (
+        prev.dailyTotalCount === dailyActive.length &&
+        prev.dailyCompletedCount === dailyDone &&
+        prev.isDailyAllClear === allDailyDone &&
+        prev.dailyBonusXu === dailyBonus &&
+        prev.weeklyBonusXu === weeklyBonus &&
+        prev.monthlyBonusXu === monthlyBonus
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        dailyTotalCount: dailyActive.length,
+        dailyCompletedCount: dailyDone,
+        isDailyAllClear: allDailyDone,
+        dailyBonusXu: dailyBonus,
+        weeklyBonusXu: weeklyBonus,
+        monthlyBonusXu: monthlyBonus
+      };
+    });
+  }, [user?.rankLevel, userMissions]);
+
   // Tự động nhận diện & làm đầy tiến độ nhiệm vụ sàn & gói ngày
   const recordMissionProgress = (type: MissionType, count: number = 1) => {
     // 1. Cập nhật userMissions

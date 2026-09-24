@@ -6047,7 +6047,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <span>20/20 Lớp Hoạt Động</span>
                 </span>
                 <FeatureGuideTooltip
-                  title="Vận Hành Radar 20 Lớp Anti-Fraud"
+                  title="Vận Hành Radar 60 Lớp Anti-Fraud"
                   description="Trung tâm điều khiển Zero-Trust AI giám sát mọi hành vi bất thường, tự động phát hiện macro script, đo đạc vi tương tác và chuyển hồ sơ sang cơ quan công an."
                   steps={[
                     "Mã hóa HMAC: Mỗi nhiệm vụ có 1 token thử thách 90s độc bản",
@@ -6066,25 +6066,25 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-white/10">
               <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
                 <span className="text-[10px] font-mono text-slate-400 block">Số Chiến Lược Kích Hoạt</span>
-                <div className="text-lg font-black text-rose-400 font-mono">20 / 20 Chiến Lược</div>
+                <div className="text-lg font-black text-rose-400 font-mono">60 / 60 Chiến Lược</div>
                 <span className="text-[10px] text-emerald-400 font-mono">100% Phòng thủ chủ động</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
                 <span className="text-[10px] font-mono text-slate-400 block">Tài Khoản Nghi Vấn Bị Đóng Băng</span>
-                <div className="text-lg font-black text-amber-400 font-mono">142 Tài Khoản</div>
+                <div className="text-lg font-black text-amber-400 font-mono">{fraudLedger.filter(l => l.actionTaken === 'WALLET_FROZEN' || l.actionTaken === 'ACCOUNT_LOCKED').length} Tài Khoản</div>
                 <span className="text-[10px] text-amber-300 font-mono">Két giữ 7 ngày an toàn</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
                 <span className="text-[10px] font-mono text-slate-400 block">Bẫy Honeypot Đã Bắt</span>
-                <div className="text-lg font-black text-cyan-400 font-mono">231 Bot Farm IP</div>
+                <div className="text-lg font-black text-cyan-400 font-mono">{fraudLedger.filter(l => l.anomalyType.includes('HONEYPOT')).length} Bot Farm IP</div>
                 <span className="text-[10px] text-slate-500 font-mono">Khóa IP vĩnh viễn</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-1">
                 <span className="text-[10px] font-mono text-slate-400 block">Hồ Sơ Chuyển Pháp Chế</span>
-                <div className="text-lg font-black text-purple-400 font-mono">18 Hồ Sơ</div>
+                <div className="text-lg font-black text-purple-400 font-mono">{fraudLedger.filter(l => l.dossierCode).length} Hồ Sơ</div>
                 <span className="text-[10px] text-slate-400 font-mono">Theo NĐ 15/2020/NĐ-CP</span>
               </div>
             </div>
@@ -6418,7 +6418,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </span>
                   </div>
                   <div className="text-[11px] text-slate-400">
-                    Phần thưởng ảo: <strong className="text-rose-400">{trap.rewardXuFake.toLocaleString()} Xu</strong> (Người thật không nhìn thấy trên giao diện).
+                    Mồi nhử tàng hình: Bẫy được ẩn sâu trong mã nguồn (Người thật không nhìn thấy trên giao diện).
                   </div>
                   <div className="text-[10px] font-mono text-slate-500">
                     IP dính bẫy gần nhất: {trap.botIpsCaught.join(', ')}

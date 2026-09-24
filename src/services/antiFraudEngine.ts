@@ -1612,73 +1612,7 @@ export class LiveWatchHeartbeat {
 // 11. IMMUTABLE FRAUD AUDIT LEDGER (LỚP 17 - SỔ CÁI BẤT BIẾN)
 // ─────────────────────────────────────────────────────────────
 
-export const DEFAULT_FRAUD_INCIDENTS: FraudIncidentLog[] = [
-  {
-    id: 'FR-2026-9812',
-    timestamp: '2026-09-23 10:45:12',
-    userId: 'USR-882190',
-    userHandle: '@bot_farmer_auto99',
-    userEmail: 'quanghuy.autoxu@gmail.com',
-    userAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop',
-    anomalyType: 'TAB_BOUNCE_NO_ACTION',
-    severity: 'critical',
-    fraudScore: 92,
-    trustScoreBefore: 85,
-    trustScoreAfter: 20,
-    taskId: 'task_follow_tiktoker_koc',
-    taskTitle: 'Follow KOC Thời Trang TikTok',
-    actionType: 'follow',
-    detail: 'Người dùng chuyển tab và quay lại sau 1.2 giây, hoàn toàn không có tương tác click và không follow kênh.',
-    actionTaken: 'ACCOUNT_LOCKED',
-    isImmutable: true,
-    ip: '113.161.72.19',
-    location: 'Hà Nội, VN',
-    dossierCode: 'DOS-2026-LEGAL-001'
-  },
-  {
-    id: 'FR-2026-9813',
-    timestamp: '2026-09-23 11:15:30',
-    userId: 'USR-773412',
-    userHandle: '@script_runner_pro',
-    userEmail: 'tranminh_cheat@yahoo.com',
-    userAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&h=100&fit=crop',
-    anomalyType: 'ZERO_TELEMETRY_CLICK',
-    severity: 'high',
-    fraudScore: 78,
-    trustScoreBefore: 90,
-    trustScoreAfter: 55,
-    taskId: 'task_comment_viral_video',
-    taskTitle: 'Bình luận Video Đồ Gia Dụng',
-    actionType: 'comment',
-    detail: 'Không phát hiện chuyển động chuột hoặc vuốt chạm cảm ứng (0 touch, 0 mouse movement px). Script tự động dispatchEvent.',
-    actionTaken: 'WALLET_FROZEN',
-    isImmutable: true,
-    ip: '14.162.180.44',
-    location: 'TP. Hồ Chí Minh, VN',
-    dossierCode: 'DOS-2026-LEGAL-002'
-  },
-  {
-    id: 'FR-2026-9814',
-    timestamp: '2026-09-23 11:32:05',
-    userId: 'USR-662319',
-    userHandle: '@hoangnam_mmo',
-    userEmail: 'hoangnam.mmo@gmail.com',
-    userAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-    anomalyType: 'UNFOLLOW_BREACH_30D',
-    severity: 'medium',
-    fraudScore: 50,
-    trustScoreBefore: 95,
-    trustScoreAfter: 68,
-    taskId: 'task_follow_store_mall',
-    taskTitle: 'Follow Shop Thời Trang Nam',
-    actionType: 'follow',
-    detail: 'Phát hiện hủy follow kênh chỉ sau 4 ngày nhận xu (vi phạm cam kết 30 ngày). Hệ thống đã khấu trừ 8,000 Xu.',
-    actionTaken: 'SCORE_DEDUCTED',
-    isImmutable: true,
-    ip: '27.72.105.12',
-    location: 'Đà Nẵng, VN'
-  }
-];
+export const DEFAULT_FRAUD_INCIDENTS: FraudIncidentLog[] = [];
 
 export function getImmutableFraudLedger(): FraudIncidentLog[] {
   if (typeof window === 'undefined') return DEFAULT_FRAUD_INCIDENTS;
@@ -1755,18 +1689,18 @@ export const HONEYPOT_TASKS: HoneypotTrapItem[] = [
     name: 'Bẫy Nút Tàng Hình Chống Macro Script',
     type: 'hidden_button',
     rewardXuFake: 500000,
-    triggerCount: 142,
-    lastTriggeredAt: '2026-09-23 09:12:00',
-    botIpsCaught: ['113.161.72.19', '14.162.180.44', '27.72.105.12']
+    triggerCount: 0,
+    lastTriggeredAt: '',
+    botIpsCaught: []
   },
   {
     id: 'hp_trap_fake_super_reward',
     name: 'Bẫy Nhiệm Vụ Ảo Thưởng Cao 1 Triệu Xu (Bot Trap)',
     type: 'fake_high_reward_task',
     rewardXuFake: 1000000,
-    triggerCount: 89,
-    lastTriggeredAt: '2026-09-23 10:04:22',
-    botIpsCaught: ['171.244.12.88', '42.113.20.9']
+    triggerCount: 0,
+    lastTriggeredAt: '',
+    botIpsCaught: []
   }
 ];
 

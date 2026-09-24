@@ -103,71 +103,7 @@ export const HomeScreen: React.FC<{
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 space-y-6">
-
-            {/* 1. THANH TRẠNG THÁI KẾT NỐI TÀI KHOẢN & ĐỒNG BỘ TOÀN DIỆN */}
-            <div className="p-3 rounded-2xl bg-black/50 border border-white/10 backdrop-blur-md flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono">
-                {/* Google Account */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 border border-white/10 text-white shadow-sm">
-                  <Mail className="w-3.5 h-3.5 text-rose-400" />
-                  <span className="text-slate-400">Google:</span>
-                  <span className="font-bold text-cyan-300 truncate max-w-[140px] sm:max-w-[200px]">{user.email || `${user.name || 'Thành viên'} (Đã đăng nhập)`}</span>
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
-                </div>
-
-                {/* TikTok Channel */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 border border-white/10 text-white shadow-sm">
-                  <span className="text-rose-400 font-bold">♪</span>
-                  <span className="text-slate-400">TikTok:</span>
-                  <span className="font-bold text-rose-300 truncate max-w-[120px]">{user.tiktokConnected || '@chưa_kết_nối'}</span>
-                  {user.tiktokConnected ? (
-                    <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
-                      {(user.tiktokFollowers || 0).toLocaleString()} fl
-                    </span>
-                  ) : null}
-                </div>
-
-                {/* YouTube Channel */}
-                {user.youtubeConnected && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 border border-white/10 text-white shadow-sm">
-                    <span className="text-rose-500 font-bold">▶</span>
-                    <span className="text-slate-400">YouTube:</span>
-                    <span className="font-bold text-white truncate max-w-[120px]">{user.youtubeConnected}</span>
-                  </div>
-                )}
-
-                {/* VIP / Admin Master Privilege Badge */}
-                {(user.hasAllPermissions || user.isAdmin) && (
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/40 text-amber-300 font-black shadow-sm">
-                    <Sparkles className="w-3 h-3 text-amber-400" />
-                    <span>👑 TOÀN QUYỀN VIP (KHÔNG KHÓA)</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Sync & Connect Actions */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => refreshAllData()}
-                  className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white border border-white/10 text-[10px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer"
-                  title="Đồng bộ lại toàn bộ dữ liệu người dùng & quản trị mới nhất"
-                >
-                  <RefreshCw className="w-3 h-3 text-cyan-400" />
-                  <span>Đồng Bộ Dữ Liệu</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openConnect()}
-                  className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-[10px] font-mono font-bold flex items-center gap-1 transition-all shadow cursor-pointer"
-                >
-                  <PlusCircle className="w-3 h-3" />
-                  <span>Kết Nối Kênh</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 2. TIÊU ĐỀ CHÍNH */}
+            {/* 1. TIÊU ĐỀ CHÍNH */}
             <div className="space-y-3">
               <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight font-display">
                 NỀN TẢNG KẾT NỐI TƯƠNG TÁC{' '}

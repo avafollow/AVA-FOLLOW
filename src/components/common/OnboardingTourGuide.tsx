@@ -114,13 +114,13 @@ export const OnboardingTourGuide: React.FC<OnboardingTourGuideProps> = ({ onNavi
   const { openConnect, openFeedRunner } = useTikTokApp();
 
   useEffect(() => {
-    // Chỉ hiển thị DUY NHẤT 1 LẦN cho tài khoản mới hoặc chưa từng hoàn thành onboarding
+    // Chỉ hiển thị DUY NHẤT 1 LẦN. Đánh dấu ĐÃ XEM ngay lập tức để tránh việc tải lại trang nó hiện lại.
     try {
       const isCompleted = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (!isCompleted) {
-        // Tự động mở sau 600ms khi người dùng mới vào app
         const timer = setTimeout(() => {
           setIsOpen(true);
+          localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true'); // Đánh dấu đã hiển thị lập tức!
         }, 600);
         return () => clearTimeout(timer);
       }
@@ -129,7 +129,7 @@ export const OnboardingTourGuide: React.FC<OnboardingTourGuideProps> = ({ onNavi
 
   const handleFinish = () => {
     try {
-      localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true'); // Lưu thêm lần nữa cho chắc
     } catch {}
     setIsOpen(false);
   };

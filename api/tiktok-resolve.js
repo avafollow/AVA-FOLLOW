@@ -18,7 +18,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(url, {
+    // 1. Dùng Mobile UA để resolve vt.tiktok.com (tránh bị redirect về trang chủ)
+    const mobileResponse = await fetch(url, {
       redirect: 'manual',
       headers: {
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
@@ -26,24 +27,36 @@ export default async function handler(req, res) {
     });
 
     let finalUrl = url;
-    if (response.status >= 300 && response.status < 400) {
-      finalUrl = response.headers.get('location') || url;
+    if (mobileResponse.status >= 300 && mobileResponse.status < 400) {
+      finalUrl = mobileResponse.headers.get('location') || url;
     } else {
-      finalUrl = response.url;
+      finalUrl = mobileResponse.url;
     }
     
-    // Nếu link có dạng /live hoặc chúng ta có thể cào thông tin LiveRoom
+    if (finalUrl === url && mobileResponse.status === 200) {
+       const text = await mobileResponse.text();
+       const canonMatch = text.match(/<link\s+rel="canonical"\s+href="([^"]+)"/i);
+       if (canonMatch && canonMatch[1]) {
+           finalUrl = canonMatch[1];
+       }
+    }
+
+    // 2. Nếu URL (sau khi resolve) là một link Live, ta gọi bằng Desktop UA để cào SIGI_STATE
     let liveData = null;
     let liveViewers = 0;
     let isLive = false;
     let hlsUrl = null;
 
-    if (finalUrl === url && response.status === 200) {
-       const text = await response.text();
-       const canonMatch = text.match(/<link\s+rel="canonical"\s+href="([^"]+)"/i);
-       if (canonMatch && canonMatch[1]) {
-           finalUrl = canonMatch[1];
-       }
+    const isLiveUrl = finalUrl.includes('/live') || url.includes('/live');
+    const liveTargetUrl = isLiveUrl ? finalUrl : null; // Nếu không có /live, ta có thể không cần fetch lại
+
+    if (liveTargetUrl) {
+      const desktopRes = await fetch(liveTargetUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+      const text = await desktopRes.text();
 
        // Parse SIGI_STATE for Live Room info
        const sigiMatch = text.match(/<script id="SIGI_STATE" type="application\/json">([\s\S]*?)<\/script>/);

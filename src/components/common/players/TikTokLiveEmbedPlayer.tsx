@@ -61,7 +61,12 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    const urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
+    // Đảm bảo luôn check link /live của kênh
+    let urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
+    if (!urlToResolve.includes('/live') && !urlToResolve.includes('/video/') && urlToResolve.includes('@')) {
+       urlToResolve = urlToResolve.endsWith('/') ? urlToResolve + 'live' : urlToResolve + '/live';
+    }
+    
     fetch(`/api/tiktok-resolve?url=${encodeURIComponent(urlToResolve)}`)
       .then(res => res.json())
       .then(data => {
@@ -89,7 +94,10 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   // Bộ đếm mắt xem THẬT (Cập nhật 15s 1 lần, không dao động ảo)
   useEffect(() => {
     const timer = setInterval(() => {
-      const urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
+      let urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
+      if (!urlToResolve.includes('/live') && !urlToResolve.includes('/video/') && urlToResolve.includes('@')) {
+         urlToResolve = urlToResolve.endsWith('/') ? urlToResolve + 'live' : urlToResolve + '/live';
+      }
       fetch(`/api/tiktok-resolve?url=${encodeURIComponent(urlToResolve)}`)
         .then(res => res.json())
         .then(data => {
@@ -170,12 +178,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     >
       {/* 1. TIKTOK LUỒNG HLS THẬT HOẶC IFRAME DỰ PHÒNG */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-        {!isLiveActive ? (
-          <div className="flex flex-col items-center justify-center text-white/50 text-xs gap-2">
-            <Radio className="w-8 h-8 opacity-50" />
-            <span>Phiên LIVE đã kết thúc hoặc không tồn tại</span>
-          </div>
-        ) : realHlsUrl ? (
+        {realHlsUrl ? (
           <video
             ref={videoRef}
             className="w-full h-full object-cover pointer-events-auto"
@@ -193,7 +196,12 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
             className="w-full h-full border-0 bg-black pointer-events-auto"
             style={{ width: '100%', height: '100%', border: 'none' }}
           />
-        ) : null}
+        ) : (
+          <div className="flex flex-col items-center justify-center text-white/50 text-xs gap-2">
+            <Radio className="w-8 h-8 opacity-50" />
+            <span>Phiên LIVE đã kết thúc hoặc không tồn tại</span>
+          </div>
+        )}
       </div>
 
       {/* HUD BAR TOP */}

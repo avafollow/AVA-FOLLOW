@@ -166,7 +166,9 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     livestreamTasks,
     fraudAppeals,
     reviewFraudAppeal,
-    campaignAuditTrail
+    campaignAuditTrail,
+    isInstantRewardEnabled,
+    toggleInstantReward
   } = useTikTokApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'grant_permissions' | 'software_apps' | 'users' | 'locked_users' | 'referrals' | 'kyc' | 'token_ledger' | 'settings' | 'escrow' | 'campaigns' | 'missions' | 'staff_roles' | 'security_7layers' | 'appeals_audit'>('overview');
@@ -4180,6 +4182,34 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <p className="text-[10px] text-slate-500">Bắt buộc xác thực KYC</p>
                 </div>
               </div>
+            </div>
+
+            {/* 3. CHẾ ĐỘ TRẢ THƯỞNG NHIỆM VỤ */}
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+              <div className="flex justify-between items-center">
+                <label className="text-sm font-bold text-white flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-amber-400" />
+                  Chế Độ Trả Thưởng Nhiệm Vụ (Khóa/Mở Xu)
+                </label>
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); toggleInstantReward(); showToast(isInstantRewardEnabled ? "Đã BẬT Khóa Xu (Yêu cầu làm hết nhiệm vụ)" : "Đã BẬT Mở Khóa Xu (Nhận Xu ngay từng nhiệm vụ)"); }}
+                  className={`relative w-14 h-7 rounded-full transition-colors ${
+                    isInstantRewardEnabled ? 'bg-emerald-500' : 'bg-slate-700'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform shadow-md ${
+                      isInstantRewardEnabled ? 'left-8' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className="text-xs text-slate-400">
+                {isInstantRewardEnabled 
+                  ? "✅ ĐANG BẬT MỞ KHÓA: Người dùng sẽ nhận được xu vào thẳng tài khoản ngay lập tức khi hoàn thành từng nhiệm vụ đơn lẻ." 
+                  : "🔒 ĐANG KHÓA: Người dùng phải hoàn thành 100% tất cả các chặng nhiệm vụ trong một chiến dịch mới được mở khóa để nhận toàn bộ Xu."}
+              </p>
             </div>
 
             {/* Submit button */}

@@ -167,6 +167,10 @@ interface TikTokAppContextType {
   toastMessage: string | null;
   showToast: (msg: string) => void;
   
+  // Instant Reward Toggle
+  isInstantRewardEnabled: boolean;
+  toggleInstantReward: () => void;
+  
   // Auth state
   isAuthenticated: boolean;
   isAuthModalOpen: boolean;
@@ -1486,6 +1490,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   
   // Commission & Fee state
   const [commissionSettings, setCommissionSettings] = useState<PlatformCommissionSettings>(PLATFORM_COMMISSION_DEFAULTS);
+  const [isInstantRewardEnabled, setIsInstantRewardEnabled] = useState<boolean>(false);
+  const toggleInstantReward = () => setIsInstantRewardEnabled(prev => !prev);
 
   // 7-Layer Security & IP Account Limit state (Tối đa 5 tài khoản / 1 IP)
   const [clientIp] = useState<string>(DEFAULT_CLIENT_IP);
@@ -3699,7 +3705,17 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return { coinsEarned: 0, vndEarned: 0 };
     }
 
-    if (actions.liked) baseCoins += 100;
+    // Nếu KHÓA XU (Nhận một cục cuối cùng), cộng dồn toàn bộ số Xu từ các hành động đơn lẻ vào đây.
+    if (!isInstantRewardEnabled) {
+      if (actions.followed && tType !== 'follow') baseCoins += TASK_ACTION_REWARDS.FOLLOW; 
+      if (actions.liked && tType !== 'like') baseCoins += TASK_ACTION_REWARDS.LIKE;
+      if (actions.commented && tType !== 'comment') baseCoins += TASK_ACTION_REWARDS.COMMENT;
+      if (actions.shared && tType !== 'share') baseCoins += TASK_ACTION_REWARDS.SHARE;
+    } else {
+      // Nếu Nhận Xu Ngay đang bật, chỉ cộng các phần thưởng extra nhỏ chưa nhận trong claimTaskAction (nếu có logic riêng)
+      if (actions.liked && tType !== 'like') baseCoins += 100;
+    }
+
     // Bỏ hệ số nhân để chống lạm phát (Chuẩn minh bạch 1:1)
     const totalCoins = baseCoins;
     const totalVND = totalCoins;
@@ -4168,14 +4184,18 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const isFirstTask = (user.completedTasksCount || 0) === 0 && !user.firstTaskCompleted;
     const nextCompletedTasks = (user.completedTasksCount || 0) + 1;
 
+    // Nếu KHÓA XU (isInstantRewardEnabled = false), thì số Xu này sẽ được giữ lại (Tạm Khóa) 
+    // và chỉ cộng vào ví khi gọi completeTask (hoàn thành 100% chiến dịch).
+    const finalBalance = isInstantRewardEnabled ? user.avaliveCoins + finalReward : user.avaliveCoins;
+
     const updatedUser: UserProfileWallet = {
       ...user,
-      avaliveCoins: newCoins,
-      totalEarnedCoins: (user.totalEarnedCoins || 0) + finalReward,
-      coinsValueVND: `${newCoins.toLocaleString()}đ`,
-      completedTasksCount: nextCompletedTasks,
-      firstTaskCompleted: true,
-      transactions: [newTx, ...user.transactions]
+      avaliveCoins: finalBalance,
+      totalEarnedCoins: isInstantRewardEnabled ? (user.totalEarnedCoins || 0) + finalReward : user.totalEarnedCoins,
+      coinsValueVND: `${finalBalance.toLocaleString()}đ`,
+      completedTasksCount: isInstantRewardEnabled ? nextCompletedTasks : (user.completedTasksCount || 0),
+      firstTaskCompleted: isInstantRewardEnabled ? true : user.firstTaskCompleted,
+      transactions: isInstantRewardEnabled ? [newTx, ...user.transactions] : user.transactions
     };
 
     setUser(updatedUser);
@@ -5392,7 +5412,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const nextCoins = user.avaliveCoins + addedWelcomeBonus;
 
-    const finalAvatar = avatarUrl || user.tiktokAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle.replace(/^@/, ''))}&background=010101&color=fff&bold=true`;
+    const finalAvatar = avatarUrl || user.tiktokAvatar || '';
 
     saveConnectionsForUser(userEmail, {
       tiktokConnected: cleanHandle,
@@ -5579,7 +5599,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       } catch {}
     }
 
-    const finalFbAvatar = avatarUrl || user.facebookAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=1877F2&color=fff&bold=true`;
+    const finalFbAvatar = avatarUrl || user.facebookAvatar || '';
     const finalFbUrl = urlOrHandle.startsWith('http') ? urlOrHandle : `https://facebook.com/${clean}`;
 
     saveConnectionsForUser(userEmail, {
@@ -5752,7 +5772,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       } catch {}
     }
 
-    const finalYtAvatar = avatarUrl || user.youtubeAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=FF0000&color=fff&bold=true`;
+    const finalYtAvatar = avatarUrl || user.youtubeAvatar || '';
     const finalYtUrl = urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean}`;
 
     saveConnectionsForUser(userEmail, {
@@ -8366,6 +8386,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         logout,
         commissionSettings,
         updateCommissionSettings,
+        isInstantRewardEnabled,
+        toggleInstantReward,
         isKocModalOpen,
         openKocModal,
         closeKocModal,

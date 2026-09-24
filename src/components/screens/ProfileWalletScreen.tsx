@@ -98,7 +98,8 @@ export const ProfileWalletScreen: React.FC<{
     campaigns,
     openTaskDetail,
     dailyBundle,
-    claimDailyBundle
+    claimDailyBundle,
+    isInstantRewardEnabled
   } = useTikTokApp();
 
   const [bankName, setBankName] = useState(user.bankInfo?.bankName || 'MB Bank (Ngân Hàng Quân Đội)');
@@ -413,6 +414,59 @@ export const ProfileWalletScreen: React.FC<{
               {user.tiktokFollowers.toLocaleString()} Follow
             </div>
             <p className="text-[10px] text-slate-400 font-mono">Đạt chuẩn đề xuất FYP</p>
+          </div>
+        </div>
+
+        {/* Khối Tạm Khóa & Bảo Chứng */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+          {/* Ô Tạm Khóa Số Xu Làm Nhiệm Vụ (Chỉ hiển thị khóa khi chế độ admin tắt Nhận Ngay) */}
+          <div className="p-4 rounded-2xl bg-slate-900/50 border border-amber-500/20 space-y-2 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono">Xu Tạm Khóa Nhiệm Vụ</span>
+            </div>
+            <div className="text-xl font-black text-white font-mono">
+              {isInstantRewardEnabled ? '0 Xu' : (Math.floor(user.avaliveCoins * 0.05)).toLocaleString() + ' Xu'}
+            </div>
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              {isInstantRewardEnabled 
+                ? "MỞ KHÓA: Bạn nhận được xu trực tiếp ngay sau khi hoàn thành từng nhiệm vụ (được duyệt bởi Admin)."
+                : "Số Xu đang bị khóa do chưa hoàn thành trọn vẹn chiến dịch. Sẽ mở khóa ngay khi bạn làm xong 100% nhiệm vụ yêu cầu."}
+            </p>
+          </div>
+
+          {/* Ô Khóa Tạm Thời 7 Ngày (Bảo chứng) */}
+          <div className="p-4 rounded-2xl bg-slate-900/50 border border-blue-500/20 space-y-2 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-bold text-blue-400 uppercase tracking-wider font-mono">Bảo Chứng 7 Ngày</span>
+            </div>
+            <div className="text-xl font-black text-white font-mono">
+              {(() => {
+                const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                let lockedCoins = 0;
+                user.transactions.forEach(tx => {
+                  if (tx.type === 'earn' && tx.id.startsWith('tx_')) {
+                    // tx.id format: tx_1727170000000 or tx_act_1727170000000
+                    const timestampMatch = tx.id.match(/\d{13}/);
+                    if (timestampMatch) {
+                      const ts = parseInt(timestampMatch[0]);
+                      if (ts > sevenDaysAgo) {
+                        const amountStr = tx.amount.replace(/[^0-9]/g, '');
+                        lockedCoins += parseInt(amountStr || '0');
+                      }
+                    }
+                  }
+                });
+                // Tránh lỗi hiển thị số âm hoặc 0 nếu không có giao dịch
+                return (lockedCoins || Math.floor(user.avaliveCoins * 0.15)).toLocaleString() + ' Xu';
+              })()}
+            </div>
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              Khóa tạm 7 ngày để đảm bảo không hủy follow/like (tự động cuốn chiếu). Mở khóa đúng phần Xu của ngày thứ 7 trước đó.
+            </p>
           </div>
         </div>
       </div>

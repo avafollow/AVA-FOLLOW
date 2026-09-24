@@ -61,16 +61,16 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
       return;
     }
 
-    // Nếu là shortlink, thử gọi oEmbed để lấy video ID thật
+    // Nếu là shortlink, gọi API nội bộ để resolve tránh CORS
     if (directUrl.includes('vt.tiktok.com') || directUrl.includes('vm.tiktok.com') || directUrl.includes('tiktok.com/t')) {
       setIsResolving(true);
-      fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(directUrl)}`)
+      fetch(`/api/tiktok-resolve?url=${encodeURIComponent(directUrl)}`)
         .then(res => res.json())
         .then(data => {
-          if (data && data.html) {
-            const match = data.html.match(/data-video-id="(\d+)"/) || data.html.match(/\/video\/(\d+)/);
-            if (match && match[1]) {
-              setResolvedId(match[1]);
+          if (data && data.resolved) {
+            const extracted = extractTikTokVideoId(data.resolved);
+            if (extracted) {
+              setResolvedId(extracted);
             }
           }
         })

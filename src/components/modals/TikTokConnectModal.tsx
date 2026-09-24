@@ -103,14 +103,14 @@ export const TikTokConnectModal: React.FC = () => {
       return;
     }
 
-    let cleanHandle = (rawInput || user.tiktokConnected || '@nguoidung_tiktok')
+    let cleanHandle = rawInput
       .replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, '')
       .replace(/\?.*$/, '')
       .replace(/\/$/, '')
-      .replace(/^@/, '') || 'nguoidung_tiktok';
+      .replace(/^@/, '');
 
-    const formattedHandle = `@${cleanHandle}`;
-    const parsedFollowers = parseInt(ttFollowers.replace(/\D/g, ''), 10) || (user.tiktokFollowers > 0 ? user.tiktokFollowers : 0);
+    const formattedHandle = cleanHandle ? `@${cleanHandle}` : '';
+    const parsedFollowers = ttFollowers.trim() === '' ? 0 : (parseInt(ttFollowers.replace(/\D/g, ''), 10) || 0);
 
     if (isDirectOAuth) {
       const authUrl = `https://www.tiktok.com/@${cleanHandle}`;
@@ -126,7 +126,7 @@ export const TikTokConnectModal: React.FC = () => {
     setTimeout(() => {
       setIsVerifying(false);
       setVerifyingPlatform(null);
-      const finalTtAvatar = ttAvatar.trim() || getTikTokAvatar(cleanHandle) || `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=010101&color=fff&bold=true`;
+      const finalTtAvatar = ttAvatar.trim() || getTikTokAvatar(cleanHandle);
       connectTikTok(formattedHandle, parsedFollowers, finalTtAvatar);
       setIsTtEditing(false);
       setSuccessBanner(`Đã kết nối & đồng bộ kênh TikTok ${formattedHandle} thành công!`);
@@ -142,12 +142,12 @@ export const TikTokConnectModal: React.FC = () => {
       return;
     }
 
-    let cleanFb = (rawFb || user.facebookConnected || 'nguoidung_fb')
+    let cleanFb = rawFb
       .replace(/^https?:\/\/(www\.)?facebook\.com\//, '')
       .replace(/\?.*$/, '')
-      .replace(/\/$/, '') || 'nguoidung_fb';
+      .replace(/\/$/, '');
 
-    const parsedFollowers = parseInt(fbFollowers.replace(/\D/g, ''), 10) || ((user.facebookFollowers && user.facebookFollowers > 0) ? user.facebookFollowers : 0);
+    const parsedFollowers = fbFollowers.trim() === '' ? 0 : (parseInt(fbFollowers.replace(/\D/g, ''), 10) || 0);
 
     if (isDirectOAuth) {
       const authUrl = `https://www.facebook.com/${cleanFb}`;
@@ -163,7 +163,7 @@ export const TikTokConnectModal: React.FC = () => {
     setTimeout(() => {
       setIsFbVerifying(false);
       setVerifyingPlatform(null);
-      const finalFbAvatar = fbAvatar.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanFb)}&background=1877F2&color=fff&bold=true`;
+      const finalFbAvatar = fbAvatar.trim();
       connectFacebook(cleanFb, 'personal', parsedFollowers, finalFbAvatar);
       setIsFbEditing(false);
       setSuccessBanner(`Đã kết nối & đồng bộ tài khoản Facebook fb.com/${cleanFb} thành công!`);
@@ -179,14 +179,14 @@ export const TikTokConnectModal: React.FC = () => {
       return;
     }
 
-    let cleanYt = (rawYt || user.youtubeConnected || '@nguoidung_yt')
+    let cleanYt = rawYt
       .replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '')
       .replace(/\?.*$/, '')
       .replace(/\/$/, '')
-      .replace(/^@/, '') || 'nguoidung_yt';
+      .replace(/^@/, '');
 
-    const formattedYt = `@${cleanYt}`;
-    const parsedSubs = parseInt(ytSubscribers.replace(/\D/g, ''), 10) || ((user.youtubeSubscribers && user.youtubeSubscribers > 0) ? user.youtubeSubscribers : 0);
+    const formattedYt = cleanYt ? `@${cleanYt}` : '';
+    const parsedSubs = ytSubscribers.trim() === '' ? 0 : (parseInt(ytSubscribers.replace(/\D/g, ''), 10) || 0);
 
     if (isDirectOAuth) {
       const authUrl = `https://www.youtube.com/@${cleanYt}`;
@@ -202,7 +202,7 @@ export const TikTokConnectModal: React.FC = () => {
     setTimeout(() => {
       setIsYtVerifying(false);
       setVerifyingPlatform(null);
-      const finalYtAvatar = ytAvatar.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanYt)}&background=FF0000&color=fff&bold=true`;
+      const finalYtAvatar = ytAvatar.trim();
       connectYoutube(cleanYt, parsedSubs, finalYtAvatar);
       setIsYtEditing(false);
       setSuccessBanner(`Đã kết nối & đồng bộ kênh YouTube ${formattedYt} thành công!`);

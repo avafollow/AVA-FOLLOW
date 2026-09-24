@@ -42,9 +42,11 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   mode = 'preview',
   hideHud = false
 }) => {
+  const [resolvedHandle, setResolvedHandle] = useState<string | null>(null);
+  
   // Trích xuất @handle chính xác từ URL người dùng dán vào
   const rawHandle = extractTikTokHandle(targetUrl || channelHandle || '');
-  const cleanHandle = (rawHandle || channelHandle || '').replace(/^@+/, '').trim();
+  const cleanHandle = resolvedHandle || (rawHandle || channelHandle || '').replace(/^@+/, '').trim();
 
   // URL thật đến phiên live của creator
   const directLiveUrl = targetUrl && targetUrl.startsWith('http')
@@ -54,6 +56,23 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const [viewers, setViewers] = useState<number>(viewersCount);
   const [hearts, setHearts] = useState<{ id: number; x: number; color: string }[]>([]);
+
+  useEffect(() => {
+    const url = targetUrl || '';
+    if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com') || url.includes('tiktok.com/t')) {
+      fetch(`/api/tiktok-resolve?url=${encodeURIComponent(url)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.resolved) {
+            const extracted = extractTikTokHandle(data.resolved);
+            if (extracted) {
+              setResolvedHandle(extracted.replace(/^@+/, '').trim());
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [targetUrl]);
 
   useEffect(() => { setInternalMuted(isMuted); }, [isMuted]);
 
@@ -94,7 +113,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const avatarUrl = getTikTokAvatar(cleanHandle);
   const displayName = channelName || `@${cleanHandle}`;
   const livePlayerUrl = cleanHandle
-    ? `https://www.tiktok.com/embed/@${encodeURIComponent(cleanHandle)}/live?autoplay=1`
+    ? `https://www.tiktok.com/embed/@${encodeURIComponent(cleanHandle)}/live?autoplay=1&muted=${isMuted ? 1 : 0}`
     : null;
   return (
     <div

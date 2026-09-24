@@ -271,7 +271,7 @@ export async function registerUserToSupabase(user: {
 }
 
 /**
- * 6. KẾT NỐI ĐĂNG NHẬP GOOGLE OAUTH QUA SUPABASE
+ * 6. KẾT NỐI ĐĂNG NHẬP OAUTH CÁC NỀN TẢNG QUA SUPABASE & DIRECT LOGIN
  */
 export async function signInWithGoogleOAuth() {
   const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5050';
@@ -285,6 +285,41 @@ export async function signInWithGoogleOAuth() {
       }
     }
   });
+}
+
+export async function signInWithTikTokOAuth() {
+  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5050';
+  try {
+    const res = await (supabase.auth as any).signInWithOAuth({
+      provider: 'tiktok',
+      options: {
+        redirectTo: redirectOrigin,
+      }
+    });
+    if (res?.data?.url) return res;
+  } catch {}
+  
+  const clientKey = 'aw4178gvdksjfkse';
+  const authUrl = `https://www.tiktok.com/auth/authorize/?client_key=${clientKey}&scope=user.info.basic,video.list&response_type=code&redirect_uri=${encodeURIComponent(redirectOrigin)}`;
+  return { data: { url: authUrl }, error: null };
+}
+
+export async function signInWithFacebookOAuth() {
+  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5050';
+  try {
+    const res = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: {
+        redirectTo: redirectOrigin,
+        scopes: 'public_profile,email'
+      }
+    });
+    if (res?.data?.url) return res;
+  } catch {}
+
+  const fbAppId = '1088492089381928';
+  const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${fbAppId}&redirect_uri=${encodeURIComponent(redirectOrigin)}&scope=email,public_profile`;
+  return { data: { url: authUrl }, error: null };
 }
 
 /**

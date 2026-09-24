@@ -16,7 +16,7 @@ export interface FacebookEmbedPlayerProps {
 export const FacebookEmbedPlayer: React.FC<FacebookEmbedPlayerProps> = ({
   url,
   title = 'Facebook Video',
-  isMuted = false,
+  isMuted = true,
   className = ''
 }) => {
   const [hasError, setHasError] = useState<boolean>(false);

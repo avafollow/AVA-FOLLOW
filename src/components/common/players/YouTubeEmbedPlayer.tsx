@@ -15,7 +15,7 @@ export interface YouTubeEmbedPlayerProps {
 export const YouTubeEmbedPlayer: React.FC<YouTubeEmbedPlayerProps> = ({
   youtubeId,
   title = 'YouTube Video',
-  isMuted = false,
+  isMuted = true,
   className = ''
 }) => {
   const [hasError, setHasError] = useState<boolean>(false);

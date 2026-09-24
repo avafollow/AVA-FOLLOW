@@ -83,7 +83,7 @@ export const LivestreamRunnerModal: React.FC = () => {
   const [isOpenedOnTikTok, setIsOpenedOnTikTok] = useState<boolean>(false);
   const [showRoomSwitcher, setShowRoomSwitcher] = useState<boolean>(false);
   const [showShopProduct, setShowShopProduct] = useState<boolean>(false);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(true);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 

@@ -16,7 +16,7 @@ export interface YouTubeLiveEmbedPlayerProps {
 export const YouTubeLiveEmbedPlayer: React.FC<YouTubeLiveEmbedPlayerProps> = ({
   youtubeId,
   title = 'YouTube Live Stream',
-  isMuted = false,
+  isMuted = true,
   onToggleMute,
   className = ''
 }) => {

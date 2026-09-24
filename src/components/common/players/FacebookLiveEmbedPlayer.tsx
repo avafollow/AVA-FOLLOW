@@ -16,7 +16,7 @@ export interface FacebookLiveEmbedPlayerProps {
 export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = ({
   url,
   title = 'Facebook Live Stream',
-  isMuted = false,
+  isMuted = true,
   onToggleMute,
   className = ''
 }) => {

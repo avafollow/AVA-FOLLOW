@@ -120,7 +120,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(15);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const [isMuted, setIsMuted] = useState<boolean>(false); // Luôn phát video kèm âm thanh ngay lập tức
+  const [isMuted, setIsMuted] = useState<boolean>(true); // Khởi động muted=true để autoplay 100% trên Safari/Chrome Mobile & Desktop
   const [autoAdvance, setAutoAdvance] = useState<boolean>(false); // GIỮ NGUYÊN VIDEO PHÁT HẾT ĐỘ DÀI, KHÔNG TỰ Ý CHUYỂN
   const [sessionCoinsEarned, setSessionCoinsEarned] = useState<number>(0);
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; x: number; y: number }[]>([]);

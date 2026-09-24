@@ -23,7 +23,7 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   videoId,
   directUrl,
   title = 'TikTok Video',
-  isMuted = false,
+  isMuted = true,
   className = ''
 }) => {
   const [resolvedId, setResolvedId] = useState<string | null>(videoId || null);

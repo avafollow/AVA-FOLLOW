@@ -123,11 +123,15 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
     };
 
     window.addEventListener('touchstart', handleUserInteraction, { passive: true, once: true });
+    window.addEventListener('touchend', handleUserInteraction, { passive: true, once: true });
     window.addEventListener('click', handleUserInteraction, { passive: true, once: true });
+    window.addEventListener('pointerdown', handleUserInteraction, { passive: true, once: true });
 
     return () => {
       window.removeEventListener('touchstart', handleUserInteraction);
+      window.removeEventListener('touchend', handleUserInteraction);
       window.removeEventListener('click', handleUserInteraction);
+      window.removeEventListener('pointerdown', handleUserInteraction);
     };
   }, [activeSrc, isPlaying, internalMuted]);
 
@@ -145,8 +149,8 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
 
   const handleVideoError = () => {
     // Tự động fallback sang sample video nếu link ngoài bị lỗi
-    if (activeSrc !== '/videos/sample1.mp4') {
-      setActiveSrc('/videos/sample1.mp4');
+    if (activeSrc !== '/videos/sample2.mp4') {
+      setActiveSrc('/videos/sample2.mp4');
     }
   };
 
@@ -173,6 +177,11 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
         playsInline
         {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
         preload="auto"
+        onCanPlay={() => {
+          if (videoRef.current && isPlaying && videoRef.current.paused) {
+            videoRef.current.play().catch(() => {});
+          }
+        }}
         onPlaying={() => setHasStartedPlaying(true)}
         onError={handleVideoError}
         className="absolute inset-0 w-full h-full object-cover z-0"

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Loader2, VolumeX } from 'lucide-react';
+import { Loader2, VolumeX, Volume2, Play, Pause } from 'lucide-react';
 
 export interface DirectVideoPlayerProps {
   src: string;
@@ -15,12 +15,13 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
   src,
   poster,
   autoPlay = true,
-  isMuted = false,
+  isMuted = true,
   isPlaying = true,
   onTogglePlay,
   className = ''
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  
   const resolveValidSrc = (input?: string) => {
     if (!input) return '/videos/sample1.mp4';
     if (input.endsWith('.mp4') || input.endsWith('.webm') || input.startsWith('/videos/') || input.includes('blob:')) {
@@ -50,7 +51,7 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
     }
   }, [isMuted]);
 
-  // Xử lý tự động phát video ngay lập tức với cơ chế tương thích 100% Mobile (iOS/Android) & Desktop
+  // Xử lý tự động phát video ngay lập tức với cơ chế tương thích 100% Mobile (iOS Safari / Android Chrome) & Desktop
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -69,7 +70,7 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
               setHasStartedPlaying(true);
             })
             .catch(() => {
-              // Mobile Safari chặn autoplay có tiếng -> ép muted và phát ngay
+              // Mobile Safari chặn autoplay có tiếng -> ép muted và phát ngay tức thì
               video.muted = true;
               video.defaultMuted = true;
               setInternalMuted(true);
@@ -91,18 +92,25 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
     // Lắng nghe tương tác đầu tiên của người dùng trên điện thoại để kích hoạt play nếu bị trình duyệt chặn
     const handleFirstUserInteraction = () => {
       if (video.paused && (autoPlay || isPlaying)) {
-        video.play().catch(() => {});
+        video.play().then(() => {
+          setIsBuffering(false);
+          setHasStartedPlaying(true);
+        }).catch(() => {});
       }
     };
 
     window.addEventListener('touchstart', handleFirstUserInteraction, { passive: true, once: true });
+    window.addEventListener('touchend', handleFirstUserInteraction, { passive: true, once: true });
     window.addEventListener('click', handleFirstUserInteraction, { passive: true, once: true });
+    window.addEventListener('pointerdown', handleFirstUserInteraction, { passive: true, once: true });
 
     return () => {
       window.removeEventListener('touchstart', handleFirstUserInteraction);
+      window.removeEventListener('touchend', handleFirstUserInteraction);
       window.removeEventListener('click', handleFirstUserInteraction);
+      window.removeEventListener('pointerdown', handleFirstUserInteraction);
     };
-  }, [currentSrc, isPlaying, autoPlay]);
+  }, [currentSrc, isPlaying, autoPlay, internalMuted]);
 
   // Tự động chuyển sang video mẫu chuẩn nếu video hiện tại bị lỗi mạng
   const handleVideoError = () => {
@@ -113,7 +121,10 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
   };
 
   const handleVideoWaiting = () => {
-    setIsBuffering(true);
+    // Chỉ kích hoạt buffering nếu video chưa phát
+    if (!hasStartedPlaying) {
+      setIsBuffering(true);
+    }
   };
 
   const handleVideoPlaying = () => {
@@ -161,16 +172,21 @@ export const DirectVideoPlayer: React.FC<DirectVideoPlayerProps> = ({
         preload="auto"
         onWaiting={handleVideoWaiting}
         onPlaying={handleVideoPlaying}
-        onCanPlay={() => setIsBuffering(false)}
+        onCanPlay={() => {
+          setIsBuffering(false);
+          if (videoRef.current && (autoPlay || isPlaying) && videoRef.current.paused) {
+            videoRef.current.play().catch(() => {});
+          }
+        }}
         onError={handleVideoError}
         className="w-full h-full object-cover rounded-3xl z-10"
       />
 
       {/* Loading Spinner mượt mà khi video đang buffer */}
-      {isBuffering && (
+      {isBuffering && !hasStartedPlaying && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[1px] pointer-events-none">
-          <Loader2 className="w-10 h-10 text-rose-500 animate-spin" />
-          <span className="text-[11px] font-mono font-bold text-white mt-2 drop-shadow-md">
+          <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
+          <span className="text-[10px] font-mono font-bold text-white mt-1.5 drop-shadow-md">
             Đang tải video...
           </span>
         </div>

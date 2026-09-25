@@ -17,16 +17,22 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing url parameter' });
   }
 
+  let targetUrl = url;
+  if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+    const cleanHandle = targetUrl.replace(/^@+/, '').trim();
+    targetUrl = `https://www.tiktok.com/@${cleanHandle}/live`;
+  }
+
   try {
     // 1. Dùng Mobile UA để resolve vt.tiktok.com (tránh bị redirect về trang chủ)
-    const mobileResponse = await fetch(url, {
+    const mobileResponse = await fetch(targetUrl, {
       redirect: 'manual',
       headers: {
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
       }
     });
 
-    let finalUrl = url;
+    let finalUrl = targetUrl;
     if (mobileResponse.status >= 300 && mobileResponse.status < 400) {
       finalUrl = mobileResponse.headers.get('location') || url;
     } else {

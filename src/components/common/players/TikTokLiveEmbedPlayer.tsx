@@ -223,8 +223,18 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         ) : possibleVideoId ? (
           <iframe
             key={`tt-vid-embed-${possibleVideoId}`}
-            src={`https://www.tiktok.com/embed/v2/${possibleVideoId}`}
+            src={`https://www.tiktok.com/embed/v2/${possibleVideoId}?lang=vi-VN&autoplay=1&muted=${internalMuted ? 1 : 0}&playsinline=1`}
             title={`TikTok Video: @${cleanHandle}`}
+            allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
+            allowFullScreen
+            className="w-full h-full border-0 bg-black pointer-events-auto"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+          />
+        ) : cleanHandle ? (
+          <iframe
+            key={`tt-live-player-${cleanHandle}`}
+            src={`https://www.tiktok.com/player/v1/live?author=${encodeURIComponent(cleanHandle)}&lang=vi-VN&autoplay=1&muted=${internalMuted ? 1 : 0}`}
+            title={`TikTok Live: @${cleanHandle}`}
             allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
             allowFullScreen
             className="w-full h-full border-0 bg-black pointer-events-auto"

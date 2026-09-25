@@ -32,15 +32,17 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const [isPlayingFallback, setIsPlayingFallback] = useState<boolean>(true);
 
+  const handle = directUrl ? extractTikTokHandle(directUrl) : '@creator';
+  const cleanHandle = handle.replace(/^@+/, '');
+  const finalOpenUrl = directUrl && directUrl.startsWith('http') ? directUrl : `https://www.tiktok.com/@${cleanHandle}`;
+
   const effectiveId = resolvedId || videoId || (directUrl ? extractTikTokVideoId(directUrl) : null);
   const isValidNumericId = Boolean(effectiveId && /^\d{10,24}$/.test(effectiveId));
   const iframeSrc = isValidNumericId
     ? `https://www.tiktok.com/embed/v2/${effectiveId}?lang=vi-VN&autoplay=1&muted=${internalMuted ? 1 : 0}&playsinline=1`
-    : null;
-
-  const handle = directUrl ? extractTikTokHandle(directUrl) : '@creator';
-  const cleanHandle = handle.replace(/^@+/, '');
-  const finalOpenUrl = directUrl && directUrl.startsWith('http') ? directUrl : `https://www.tiktok.com/@${cleanHandle}`;
+    : cleanHandle && cleanHandle !== 'creator' && cleanHandle !== 'creator_vietnam'
+      ? `https://www.tiktok.com/player/v1/live?author=${encodeURIComponent(cleanHandle)}&lang=vi-VN&autoplay=1&muted=${internalMuted ? 1 : 0}`
+      : null;
 
   useEffect(() => {
     setInternalMuted(isMuted);

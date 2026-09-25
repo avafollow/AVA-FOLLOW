@@ -22,7 +22,11 @@ export const FacebookEmbedPlayer: React.FC<FacebookEmbedPlayerProps> = ({
   const [hasError, setHasError] = useState<boolean>(false);
   if (!url) return null;
 
-  const handle = extractTikTokHandle(url);
+  const normalizedUrl = url
+    .replace('facebook.com/@', 'facebook.com/')
+    .replace('m.facebook.com', 'www.facebook.com');
+
+  const handle = extractTikTokHandle(normalizedUrl);
   const cleanHandle = handle.replace(/^@+/, '');
 
   if (hasError) {

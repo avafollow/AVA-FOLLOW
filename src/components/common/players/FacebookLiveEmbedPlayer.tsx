@@ -24,12 +24,17 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
   onToggleMute,
   className = ''
 }) => {
-  const directUrl = url && url.startsWith('http')
-    ? url
-    : (channelHandle ? `https://www.facebook.com/${channelHandle.replace(/^@+/, '')}` : 'https://www.facebook.com');
-
-  const handle = channelHandle || extractTikTokHandle(directUrl);
+  const handle = channelHandle || extractTikTokHandle(url);
   const cleanHandle = (handle || '').replace(/^@+/, '');
+
+  let normalizedUrl = url && url.startsWith('http')
+    ? url
+    : (cleanHandle ? `https://www.facebook.com/${cleanHandle}/live` : 'https://www.facebook.com');
+
+  // Chuẩn hóa Facebook URL loại bỏ @ và thay thế m.facebook.com thành www.facebook.com
+  normalizedUrl = normalizedUrl.replace('facebook.com/@', 'facebook.com/').replace('m.facebook.com', 'www.facebook.com');
+
+  const directUrl = normalizedUrl;
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const [isHlsStream, setIsHlsStream] = useState<boolean>(Boolean(url && (url.includes('.m3u8') || url.includes('.mp4'))));
   

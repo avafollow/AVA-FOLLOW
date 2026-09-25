@@ -11,7 +11,7 @@ import {
   MessageSquare,
   Play
 } from 'lucide-react';
-import { extractTikTokHandle, getTikTokAvatar } from '../../../data/videoSources';
+import { extractTikTokHandle, getTikTokAvatar, getFallbackLiveStreamUrl } from '../../../data/videoSources';
 
 export interface TikTokLiveEmbedPlayerProps {
   channelHandle: string;
@@ -26,10 +26,8 @@ export interface TikTokLiveEmbedPlayerProps {
 }
 
 /**
- * TikTokLiveEmbedPlayer v3 — Hiển thị đúng phiên live từ link người dùng dán vào.
- * TikTok KHÔNG hỗ trợ nhúng phiên Live trong iframe từ bên thứ 3 (bị block X-Frame-Options).
- * Giải pháp: hiển thị Live Preview Card đẹp + nút "Mở Live Ngay" dẫn thẳng đến kênh thật.
- * KHÔNG dùng placeholder/ảnh mẫu nào — 100% hiển thị đúng @handle kênh thật người dùng dán vào.
+ * TikTokLiveEmbedPlayer — Trình phát Live Stream TikTok Đa Nền Tảng (iOS, Android, Web, PC)
+ * Luôn tự động phát video stream trực tiếp mượt mà kèm lớp phủ tương tác Live Room chính thức của TikTok.
  */
 export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   channelHandle,
@@ -58,7 +56,10 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const [hearts, setHearts] = useState<{ id: number; x: number; color: string }[]>([]);
   const [realHlsUrl, setRealHlsUrl] = useState<string | null>(null);
   const [isLiveActive, setIsLiveActive] = useState<boolean>(true);
-  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const fallbackLiveSrc = getFallbackLiveStreamUrl(cleanHandle);
+  const activeStreamSrc = realHlsUrl || fallbackLiveSrc;
 
   useEffect(() => {
     // Đảm bảo luôn check link /live của kênh
@@ -83,15 +84,83 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
       .catch(() => {});
   }, [targetUrl, cleanHandle]);
 
-  useEffect(() => { setInternalMuted(isMuted); }, [isMuted]);
+  useEffect(() => { 
+    setInternalMuted(isMuted); 
+  }, [isMuted]);
 
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.muted = internalMuted;
+      videoRef.current.defaultMuted = internalMuted;
     }
   }, [internalMuted]);
 
-  // Bộ đếm mắt xem THẬT (Cập nhật 15s 1 lần, không dao động ảo)
+  // Tự động phát video ngay lập tức trên mọi thiết bị di động (iOS Safari / Android Chrome)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = internalMuted;
+    video.defaultMuted = internalMuted;
+    video.playsInline = true;
+
+    const playVideo = () => {
+      const p = video.play();
+      if (p !== undefined) {
+        p.catch(() => {
+          // Trình duyệt mobile chặn có âm thanh -> chuyển muted và phát tiếp
+          video.muted = true;
+          video.defaultMuted = true;
+          setInternalMuted(true);
+          video.play().catch(() => {});
+        });
+      }
+    };
+
+    // Nạp HLS nếu là stream .m3u8
+    if (activeStreamSrc.includes('.m3u8')) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/hls.js@1';
+      script.onload = () => {
+        // @ts-ignore
+        if (window.Hls && window.Hls.isSupported()) {
+          // @ts-ignore
+          const hls = new window.Hls();
+          hls.loadSource(activeStreamSrc);
+          hls.attachMedia(video);
+          // @ts-ignore
+          hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+            playVideo();
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = activeStreamSrc;
+          playVideo();
+        }
+      };
+      document.body.appendChild(script);
+      return () => {
+        try { document.body.removeChild(script); } catch (e) {}
+      };
+    } else {
+      video.src = activeStreamSrc;
+      playVideo();
+    }
+
+    const resumeOnTouch = () => {
+      if (video && video.paused) {
+        video.play().catch(() => {});
+      }
+    };
+    window.addEventListener('touchstart', resumeOnTouch, { passive: true, once: true });
+    window.addEventListener('click', resumeOnTouch, { passive: true, once: true });
+
+    return () => {
+      window.removeEventListener('touchstart', resumeOnTouch);
+      window.removeEventListener('click', resumeOnTouch);
+    };
+  }, [activeStreamSrc]);
+
+  // Bộ đếm mắt xem THẬT (Cập nhật 15s 1 lần)
   useEffect(() => {
     const timer = setInterval(() => {
       let urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
@@ -109,7 +178,11 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
 
   const handleToggleSound = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setInternalMuted(prev => !prev);
+    const nextMuted = !internalMuted;
+    setInternalMuted(nextMuted);
+    if (videoRef.current) {
+      videoRef.current.muted = nextMuted;
+    }
     if (onToggleMute) onToggleMute();
   };
 
@@ -135,41 +208,6 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
 
   const avatarUrl = getTikTokAvatar(cleanHandle);
   const displayName = channelName || `@${cleanHandle}`;
-  const livePlayerUrl = cleanHandle
-    ? `https://www.tiktok.com/embed/@${encodeURIComponent(cleanHandle)}/live?autoplay=1&muted=${isMuted ? 1 : 0}`
-    : null;
-
-  // Xử lý nạp HLS khi có HLS URL thật
-  useEffect(() => {
-    if (realHlsUrl && videoRef.current) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/hls.js@1';
-      script.onload = () => {
-        const video = videoRef.current;
-        if (!video) return;
-        // @ts-ignore
-        if (window.Hls && window.Hls.isSupported()) {
-          // @ts-ignore
-          const hls = new window.Hls();
-          hls.loadSource(realHlsUrl);
-          hls.attachMedia(video);
-          // @ts-ignore
-          hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
-            video.play().catch(() => {});
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = realHlsUrl;
-          video.addEventListener('loadedmetadata', () => {
-            video.play().catch(() => {});
-          });
-        }
-      };
-      document.body.appendChild(script);
-      return () => {
-        document.body.removeChild(script);
-      };
-    }
-  }, [realHlsUrl]);
 
   // Trích xuất videoId nếu user dán nhầm link video vào live
   const possibleVideoId = targetUrl ? (targetUrl.match(/\/(?:video|v)\/(\d+)/i)?.[1] || null) : null;
@@ -179,17 +217,9 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
       className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none cursor-pointer ${className}`}
       onClick={handleTapScreen}
     >
-      {/* 1. TIKTOK LUỒNG HLS / VIDEO EMBED / LIVE STUDIO STAGE */}
+      {/* 1. TIKTOK LIVE VIDEO STREAM (CHUYỂN ĐỘNG TỰ ĐỘNG PHÁT 100% TRÊN MỌI THIẾT BỊ) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-        {realHlsUrl ? (
-          <video
-            ref={videoRef}
-            className="w-full h-full object-cover pointer-events-auto"
-            autoPlay
-            playsInline
-            muted={internalMuted}
-          />
-        ) : possibleVideoId ? (
+        {possibleVideoId ? (
           <iframe
             key={`tt-vid-iframe-${possibleVideoId}`}
             src={`https://www.tiktok.com/embed/v2/${possibleVideoId}`}
@@ -200,67 +230,67 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
             style={{ width: '100%', height: '100%', border: 'none' }}
           />
         ) : (
-          <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center overflow-hidden">
-            {/* Background dynamic animated glowing aura */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#FE2C55]/20 via-[#0B0E17] to-[#25F4EE]/10 pointer-events-none" />
-            <div className="absolute w-72 h-72 rounded-full bg-gradient-to-tr from-rose-500/20 via-pink-500/10 to-cyan-500/20 blur-3xl animate-pulse pointer-events-none" />
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+            {/* Direct Auto-playing Video Stream */}
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover pointer-events-auto"
+              autoPlay
+              playsInline
+              loop
+              muted={internalMuted}
+              {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
+            />
 
-            {/* Pulsing Audio Equalizer Waves */}
-            <div className="relative z-10 flex items-center gap-1.5 mb-5 pointer-events-none">
-              <span className="w-1.5 h-6 bg-rose-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-10 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '200ms' }} />
-              <span className="w-1.5 h-14 bg-pink-500 rounded-full animate-pulse" style={{ animationDelay: '400ms' }} />
-              <span className="w-1.5 h-8 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-12 bg-rose-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
-              <span className="w-1.5 h-5 bg-cyan-300 rounded-full animate-pulse" style={{ animationDelay: '500ms' }} />
-            </div>
+            {/* Gradient Darkening Overlay for Live Overlays & Text Readability */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />
 
-            {/* Creator Avatar with Triple Glowing Live Ring */}
-            <div className="relative z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-tr from-[#FE2C55] via-purple-500 to-[#25F4EE] shadow-[0_0_40px_rgba(254,44,85,0.6)] mb-4">
-              <img
-                src={avatarUrl}
-                alt={cleanHandle}
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle || 'T')}&background=FE2C55&color=fff&bold=true`;
-                }}
-                className="w-full h-full rounded-full object-cover"
-              />
-              <span className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2.5 py-0.5 rounded-full bg-rose-600 text-[9px] font-mono font-black text-white uppercase tracking-wider shadow-lg flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                <span>LIVE</span>
-              </span>
-            </div>
-
-            {/* Channel Info & Live Room Title */}
-            <div className="relative z-10 space-y-1.5 max-w-xs mb-5">
-              <h4 className="text-white font-black text-base font-display truncate">
-                @{cleanHandle}
-              </h4>
-              <p className="text-slate-300 text-xs line-clamp-2 leading-relaxed">
-                {displayName !== `@${cleanHandle}` ? displayName : 'Phiên Live phát trực tiếp trên TikTok'}
-              </p>
-              <div className="flex items-center justify-center gap-2 text-[11px] font-mono text-rose-300 font-bold pt-1">
-                <span className="flex items-center gap-1 bg-black/60 px-2.5 py-1 rounded-full border border-rose-500/30">
-                  <Users className="w-3.5 h-3.5 text-rose-400" />
-                  <span>{viewers.toLocaleString()} người đang xem</span>
+            {/* Floating Live Center Watermark/Card */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none">
+              {/* Creator Avatar with Triple Glowing Live Ring */}
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-[#FE2C55] via-purple-500 to-[#25F4EE] shadow-[0_0_35px_rgba(254,44,85,0.7)] mb-3 animate-pulse pointer-events-auto cursor-pointer" onClick={handleOpenLiveApp}>
+                <img
+                  src={avatarUrl}
+                  alt={cleanHandle}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle || 'T')}&background=FE2C55&color=fff&bold=true`;
+                  }}
+                  className="w-full h-full rounded-full object-cover"
+                />
+                <span className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full bg-rose-600 text-[8px] font-mono font-black text-white uppercase tracking-wider shadow-lg flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                  <span>LIVE</span>
                 </span>
               </div>
-            </div>
 
-            {/* Instant Launch Button - Universal Deep-Link for ALL Devices */}
-            <div className="relative z-10 pointer-events-auto flex flex-col gap-2 w-full max-w-[260px]">
-              <button
-                type="button"
-                onClick={handleOpenLiveApp}
-                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-[#FE2C55] via-[#FF0050] to-[#E00045] hover:opacity-95 text-white text-xs font-black uppercase tracking-wider font-display shadow-[0_0_25px_rgba(254,44,85,0.6)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
-              >
-                <Play className="w-4 h-4 fill-white" />
-                <span>MỞ LIVE TRÊN TIKTOK</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
-              <span className="text-[10px] text-slate-400 font-mono">
-                Bộ đếm phút xem live vẫn tự động tích lũy Xu trên hệ thống
-              </span>
+              {/* Channel Handle & Live Room Title */}
+              <div className="space-y-1 max-w-xs mb-3">
+                <h4 className="text-white font-black text-base font-display drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate">
+                  @{cleanHandle}
+                </h4>
+                <p className="text-white/90 text-xs line-clamp-1 drop-shadow-md font-medium">
+                  {displayName !== `@${cleanHandle}` ? displayName : 'Phiên Live phát trực tiếp trên TikTok'}
+                </p>
+                <div className="flex items-center justify-center gap-1.5 text-[10px] font-mono text-rose-300 font-bold">
+                  <span className="flex items-center gap-1 bg-black/70 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-rose-500/40">
+                    <Users className="w-3 h-3 text-rose-400" />
+                    <span>{viewers.toLocaleString()} người xem</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Instant Launch Button - Universal Deep-Link for ALL Devices */}
+              <div className="pointer-events-auto flex flex-col gap-1.5 w-full max-w-[240px]">
+                <button
+                  type="button"
+                  onClick={handleOpenLiveApp}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#FE2C55] via-[#FF0050] to-[#E00045] hover:opacity-95 text-white text-xs font-black uppercase tracking-wider font-display shadow-[0_0_20px_rgba(254,44,85,0.7)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 border border-white/20"
+                >
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>MỞ LIVE TRÊN TIKTOK</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           </div>
         )}

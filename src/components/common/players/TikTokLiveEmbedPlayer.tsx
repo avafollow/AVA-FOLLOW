@@ -230,24 +230,15 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
             className="w-full h-full border-0 bg-black pointer-events-auto"
             style={{ width: '100%', height: '100%', border: 'none' }}
           />
-        ) : cleanHandle ? (
-          <iframe
-            key={`tt-live-player-${cleanHandle}`}
-            src={`https://www.tiktok.com/player/v1/live?author=${encodeURIComponent(cleanHandle)}&lang=vi-VN&autoplay=1&muted=${internalMuted ? 1 : 0}`}
-            title={`TikTok Live: @${cleanHandle}`}
-            allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
-            allowFullScreen
-            className="w-full h-full border-0 bg-black pointer-events-auto"
-            style={{ width: '100%', height: '100%', border: 'none' }}
-          />
         ) : (
-          <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center overflow-hidden">
+          <div className="relative w-full h-full flex flex-col justify-between p-5 overflow-hidden select-none bg-gradient-to-b from-[#0F1422] via-[#0A0D18] to-black">
             {/* Ambient Dynamic Background Glowing Rays */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#FE2C55]/20 via-[#0B0E17] to-[#25F4EE]/15 pointer-events-none" />
-            <div className="absolute w-80 h-80 rounded-full bg-gradient-to-tr from-rose-600/25 via-pink-500/15 to-cyan-500/20 blur-3xl animate-pulse pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#FE2C55]/25 via-transparent to-[#25F4EE]/20 pointer-events-none" />
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full bg-gradient-to-tr from-rose-600/30 via-pink-500/20 to-cyan-500/25 blur-3xl animate-pulse pointer-events-none" />
+            <div className="absolute bottom-1/3 -left-10 w-48 h-48 rounded-full bg-cyan-500/20 blur-2xl animate-pulse pointer-events-none" style={{ animationDelay: '1s' }} />
 
-            {/* Equalizer Audio Waves */}
-            <div className="relative z-10 flex items-center gap-1.5 mb-6 pointer-events-none">
+            {/* Top Live Equalizer Waves */}
+            <div className="relative z-10 flex items-center justify-center gap-1.5 pt-6 pointer-events-none">
               <span className="w-1.5 h-6 bg-rose-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
               <span className="w-1.5 h-11 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '200ms' }} />
               <span className="w-1.5 h-16 bg-pink-500 rounded-full animate-pulse" style={{ animationDelay: '400ms' }} />
@@ -256,54 +247,69 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
               <span className="w-1.5 h-6 bg-cyan-300 rounded-full animate-pulse" style={{ animationDelay: '500ms' }} />
             </div>
 
-            {/* Creator Avatar with Triple Glowing Live Ring */}
-            <div 
-              className="relative z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-tr from-[#FE2C55] via-purple-500 to-[#25F4EE] shadow-[0_0_40px_rgba(254,44,85,0.7)] mb-4 pointer-events-auto cursor-pointer animate-pulse"
-              onClick={handleOpenLiveApp}
-            >
-              <img
-                src={avatarUrl}
-                alt={cleanHandle}
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle || 'T')}&background=FE2C55&color=fff&bold=true`;
-                }}
-                className="w-full h-full rounded-full object-cover"
-              />
-              <span className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2.5 py-0.5 rounded-full bg-rose-600 text-[9px] font-mono font-black text-white uppercase tracking-wider shadow-lg flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                <span>LIVE</span>
-              </span>
+            {/* Center Creator Avatar & Live Room Title */}
+            <div className="relative z-10 flex flex-col items-center justify-center text-center my-auto pointer-events-auto">
+              <div 
+                className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-tr from-[#FE2C55] via-purple-500 to-[#25F4EE] shadow-[0_0_45px_rgba(254,44,85,0.7)] mb-3.5 cursor-pointer transition-transform hover:scale-105 active:scale-95 animate-pulse"
+                onClick={handleOpenLiveApp}
+                title="Bấm để mở Live trên TikTok"
+              >
+                <img
+                  src={avatarUrl}
+                  alt={cleanHandle}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle || 'T')}&background=FE2C55&color=fff&bold=true`;
+                  }}
+                  className="w-full h-full rounded-full object-cover border-2 border-black"
+                />
+                <span className="absolute -bottom-2 inset-x-0 mx-auto w-max px-3 py-0.5 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 text-[9px] font-mono font-black text-white uppercase tracking-wider shadow-lg flex items-center gap-1 border border-white/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                  <span>LIVE</span>
+                </span>
+              </div>
+
+              <div className="space-y-1.5 max-w-xs mb-3">
+                <h4 className="text-white font-black text-lg sm:text-xl font-display tracking-wide drop-shadow-lg truncate flex items-center justify-center gap-1.5">
+                  <span>@{cleanHandle}</span>
+                  <span className="text-cyan-400 text-sm">✓</span>
+                </h4>
+                <p className="text-slate-200 text-xs line-clamp-2 leading-relaxed px-2 font-medium drop-shadow-md">
+                  {displayName !== `@${cleanHandle}` ? displayName : 'Phiên Live đang phát trực tiếp trên TikTok'}
+                </p>
+                <div className="flex items-center justify-center gap-2 text-xs font-mono text-rose-300 font-bold pt-1">
+                  <span className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3.5 py-1 rounded-full border border-rose-500/40 shadow-xl">
+                    <Users className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                    <span>{viewers.toLocaleString()} người đang xem</span>
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Channel Handle & Live Room Title */}
-            <div className="relative z-10 space-y-1.5 max-w-xs mb-5">
-              <h4 className="text-white font-black text-lg font-display tracking-wide drop-shadow-md truncate">
-                @{cleanHandle}
-              </h4>
-              <p className="text-slate-300 text-xs line-clamp-2 leading-relaxed">
-                {displayName !== `@${cleanHandle}` ? displayName : 'Phiên Live phát trực tiếp trên TikTok'}
-              </p>
-              <div className="flex items-center justify-center gap-2 text-xs font-mono text-rose-300 font-bold pt-1">
-                <span className="flex items-center gap-1.5 bg-black/60 px-3 py-1 rounded-full border border-rose-500/40 shadow-md">
-                  <Users className="w-3.5 h-3.5 text-rose-400" />
-                  <span>{viewers.toLocaleString()} người xem</span>
-                </span>
+            {/* Simulated Live Comments Feed (Like real TikTok Live Stream) */}
+            <div className="relative z-10 w-full max-w-xs mx-auto space-y-1.5 mb-3 pointer-events-none text-left">
+              <div className="bg-black/40 backdrop-blur-md rounded-xl px-3 py-1.5 border border-white/10 text-[11px] text-white flex items-center gap-1.5">
+                <span className="text-rose-400 font-bold">@tiktok_fan:</span>
+                <span className="text-slate-200 truncate">Chào idol, phiên live cuốn quá! 🔥</span>
+              </div>
+              <div className="bg-black/40 backdrop-blur-md rounded-xl px-3 py-1.5 border border-white/10 text-[11px] text-white flex items-center gap-1.5">
+                <span className="text-cyan-400 font-bold">@vietnam_user:</span>
+                <span className="text-slate-200 truncate">Đã thả tim và share phiên live rồi nhé ❤️</span>
               </div>
             </div>
 
             {/* Instant Launch Button - Universal Deep-Link for ALL Devices */}
-            <div className="relative z-10 pointer-events-auto flex flex-col gap-2 w-full max-w-[260px]">
+            <div className="relative z-10 pointer-events-auto flex flex-col gap-2 w-full max-w-[280px] mx-auto pb-2">
               <button
                 type="button"
                 onClick={handleOpenLiveApp}
-                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-[#FE2C55] via-[#FF0050] to-[#E00045] hover:opacity-95 text-white text-xs font-black uppercase tracking-wider font-display shadow-[0_0_25px_rgba(254,44,85,0.7)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 border border-white/20"
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#FE2C55] via-[#FF0050] to-[#E00045] hover:opacity-95 text-white text-xs font-black uppercase tracking-wider font-display shadow-[0_0_30px_rgba(254,44,85,0.7)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 border border-white/30"
               >
                 <Play className="w-4 h-4 fill-white" />
                 <span>MỞ LIVE TRÊN TIKTOK</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[10px] text-slate-400 font-mono">
-                Bộ đếm phút xem live vẫn tự động tích lũy Xu trên hệ thống
+              <span className="text-[10px] text-slate-400 font-mono text-center">
+                Hệ thống tự động đồng bộ mắt xem & tích lũy Xu trên mọi thiết bị
               </span>
             </div>
           </div>

@@ -134,16 +134,22 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
       ) : (
         /* 2. NẾU LÀ SHORTLINK HOẶC CHỜ PHÂN GIẢI: HIỂN THỊ THẺ KÊNH & VIDEO TIKTOK THẬT */
         <div className="relative w-full h-full bg-gradient-to-b from-[#0F1420] via-[#090D16] to-black flex flex-col items-center justify-between p-4 overflow-hidden rounded-3xl select-none">
-          {/* Background Auto-Playing Video Stream */}
+          {/* Background Auto-Playing Video Stream with Multi-Source Fallback */}
           <video
-            src={getFallbackVideoUrl(cleanHandle)}
             autoPlay
             loop
             muted={internalMuted}
             playsInline
+            preload="auto"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
             className="absolute inset-0 w-full h-full object-cover"
-          />
+          >
+            <source src={getFallbackVideoUrl(cleanHandle)} type="video/mp4" />
+            <source src="/videos/sample3.mp4" type="video/mp4" />
+            <source src="/videos/sample1.mp4" type="video/mp4" />
+            <source src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4" />
+          </video>
 
           {/* Glow and darkening effects */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/90 pointer-events-none" />

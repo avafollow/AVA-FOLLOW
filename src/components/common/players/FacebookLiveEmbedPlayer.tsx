@@ -134,11 +134,10 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
 
       {/* 2. AUTO-PLAYING LIVE STREAM VIDEO WITH INTERACTIVE OVERLAY */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-        {/* Live Stream Video */}
+        {/* Live Stream Video with Multi-Source Fallback */}
         <video
           ref={videoRef}
           key={fallbackLiveSrc}
-          src={fallbackLiveSrc}
           className="absolute inset-0 w-full h-full object-cover pointer-events-auto"
           autoPlay
           playsInline
@@ -148,8 +147,14 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
           onCanPlay={(e) => {
             e.currentTarget.play().catch(() => {});
           }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
-        />
+        >
+          <source src={fallbackLiveSrc} type="video/mp4" />
+          <source src="/videos/sample2.mp4" type="video/mp4" />
+          <source src="/videos/sample1.mp4" type="video/mp4" />
+          <source src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4" />
+        </video>
 
         {/* Ambient Darkening */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />

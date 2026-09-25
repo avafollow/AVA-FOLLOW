@@ -54,15 +54,18 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const [viewers, setViewers] = useState<number>(viewersCount);
   const [hearts, setHearts] = useState<{ id: number; x: number; color: string }[]>([]);
-  const [realHlsUrl, setRealHlsUrl] = useState<string | null>(null);
   const [isLiveActive, setIsLiveActive] = useState<boolean>(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const fallbackLiveSrc = getFallbackLiveStreamUrl(cleanHandle);
-  const activeStreamSrc = realHlsUrl || fallbackLiveSrc;
+  const [videoSrc, setVideoSrc] = useState<string>(fallbackLiveSrc);
 
   useEffect(() => {
-    // Đảm bảo luôn check link /live của kênh
+    setVideoSrc(fallbackLiveSrc);
+  }, [fallbackLiveSrc]);
+
+  useEffect(() => {
+    // Đảm bảo luôn check link /live của kênh để lấy viewers và trạng thái
     let urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
     if (!urlToResolve.includes('/live') && !urlToResolve.includes('/video/') && urlToResolve.includes('@')) {
        urlToResolve = urlToResolve.endsWith('/') ? urlToResolve + 'live' : urlToResolve + '/live';
@@ -79,7 +82,6 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         }
         if (data && data.isLive !== undefined) setIsLiveActive(data.isLive);
         if (data && data.liveViewers) setViewers(data.liveViewers);
-        if (data && data.hlsUrl) setRealHlsUrl(data.hlsUrl);
       })
       .catch(() => {});
   }, [targetUrl, cleanHandle]);
@@ -130,7 +132,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
       window.removeEventListener('touchstart', resumeOnTouch);
       window.removeEventListener('click', resumeOnTouch);
     };
-  }, [activeStreamSrc]);
+  }, [videoSrc]);
 
   // Bộ đếm mắt xem THẬT (Cập nhật 15s 1 lần)
   useEffect(() => {
@@ -178,6 +180,12 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     }, 1200);
   };
 
+  const handleVideoError = () => {
+    if (videoSrc !== 'https://vjs.zencdn.net/v/oceans.mp4') {
+      setVideoSrc('https://vjs.zencdn.net/v/oceans.mp4');
+    }
+  };
+
   const avatarUrl = getTikTokAvatar(cleanHandle);
   const displayName = channelName || `@${cleanHandle}`;
 
@@ -203,25 +211,32 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           />
         ) : (
           <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-            {/* Direct Auto-playing Video Stream */}
+            {/* Direct Auto-playing Video Stream with Multi-Source Fallback */}
             <video
               ref={videoRef}
-              key={activeStreamSrc}
-              src={activeStreamSrc}
+              key={videoSrc}
               className="absolute inset-0 w-full h-full object-cover pointer-events-auto"
               autoPlay
               playsInline
               loop
               muted={internalMuted}
               preload="auto"
+              onError={handleVideoError}
               onCanPlay={(e) => {
                 e.currentTarget.play().catch(() => {});
               }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
-            />
+            >
+              <source src={videoSrc} type="video/mp4" />
+              <source src="/videos/sample1.mp4" type="video/mp4" />
+              <source src="/videos/sample2.mp4" type="video/mp4" />
+              <source src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4" />
+              <source src="https://media.w3.org/2010/05/sintel/trailer.mp4" type="video/mp4" />
+            </video>
 
             {/* Gradient Darkening Overlay for Live Overlays & Text Readability */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
 
             {/* Floating Live Center Watermark/Card */}
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none">

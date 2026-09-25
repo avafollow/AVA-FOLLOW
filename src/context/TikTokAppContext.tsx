@@ -2923,7 +2923,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ? (customHandle.startsWith('@') ? customHandle : `@${customHandle}`) 
         : (user.tiktokConnected && user.tiktokConnected !== '@chưa_kết_nối' && user.tiktokConnected !== 'Chưa kết nối'
             ? user.tiktokConnected 
-            : (user.email ? `@${user.email.split('@')[0].replace(/[^a-z0-9._]/gi, '')}` : '@tiktok_creator'));
+            : '');
+      
+      if (!targetHandle) {
+        openConnect();
+        showToast('Vui lòng nhập đường link hoặc @handle kênh TikTok thật trên thiết bị của bạn!');
+        return;
+      }
       
       const targetEmail = user.email || `${targetHandle.replace(/^@/, '')}@gmail.com`;
       
@@ -2933,10 +2939,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       
       // Đồng bộ profile thật trực tiếp từ TikTok API / oEmbed / CDN
       try {
-        const synced = await fetchRealTikTokProfile(targetHandle);
+        const synced = await fetchRealTikTokProfile(targetHandle, user.tiktokFollowers || 0);
         connectTikTok(synced.handle, synced.followers, synced.avatar);
       } catch {
-        connectTikTok(targetHandle, user.tiktokFollowers || 1500, getTikTokAvatar(targetHandle.replace(/^@/, '')));
+        connectTikTok(targetHandle, user.tiktokFollowers || 0, getTikTokAvatar(targetHandle.replace(/^@/, '')));
       }
 
       showToast(`⚡ Đã kết nối & đồng bộ thành công tài khoản TikTok: ${targetHandle}`);
@@ -2950,7 +2956,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       showToast('Đang đồng bộ trực tiếp tài khoản Facebook trên thiết bị (1-Chạm)...');
       
-      const rawFb = customFb || (user.facebookConnected && user.facebookConnected !== 'Chưa kết nối' ? user.facebookConnected : (user.email ? user.email.split('@')[0].replace(/[^a-z0-9.]/gi, '') : 'fb_creator'));
+      const rawFb = customFb || (user.facebookConnected && user.facebookConnected !== 'Chưa kết nối' ? user.facebookConnected : '');
+      if (!rawFb) {
+        openConnect();
+        showToast('Vui lòng nhập link Facebook cá nhân hoặc Fanpage thật trên thiết bị của bạn!');
+        return;
+      }
+
       const cleanFb = rawFb.replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/\/$/, '');
       const targetEmail = user.email || `${cleanFb}@gmail.com`;
 
@@ -2959,10 +2971,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       try {
-        const synced = await fetchRealFacebookProfile(cleanFb);
+        const synced = await fetchRealFacebookProfile(cleanFb, user.facebookFollowers || 0);
         connectFacebook(synced.usernameOrId, 'personal', synced.followers, synced.avatar);
       } catch {
-        connectFacebook(cleanFb, 'personal', user.facebookFollowers || 2500, user.avatar || '');
+        connectFacebook(cleanFb, 'personal', user.facebookFollowers || 0, user.avatar || '');
       }
 
       showToast(`⚡ Đã kết nối & đồng bộ thành công tài khoản Facebook: fb.com/${cleanFb}`);
@@ -2976,7 +2988,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       showToast('Đang đồng bộ trực tiếp Kênh YouTube trên thiết bị (1-Chạm)...');
       
-      const rawYt = customYt || (user.youtubeConnected && user.youtubeConnected !== 'Chưa kết nối' ? user.youtubeConnected : (user.email ? user.email.split('@')[0].replace(/[^a-z0-9_]/gi, '') : 'youtube_creator'));
+      const rawYt = customYt || (user.youtubeConnected && user.youtubeConnected !== 'Chưa kết nối' ? user.youtubeConnected : '');
+      if (!rawYt) {
+        openConnect();
+        showToast('Vui lòng nhập link kênh hoặc @handle YouTube thật trên thiết bị của bạn!');
+        return;
+      }
+
       const cleanYt = rawYt.replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '').replace(/^@/, '');
       const targetYt = `@${cleanYt}`;
       const targetEmail = user.email || `${cleanYt}@gmail.com`;
@@ -2986,10 +3004,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       try {
-        const synced = await fetchRealYouTubeProfile(cleanYt);
+        const synced = await fetchRealYouTubeProfile(cleanYt, user.youtubeSubscribers || 0);
         connectYoutube(synced.handleOrId, synced.subscribers, synced.avatar);
       } catch {
-        connectYoutube(cleanYt, user.youtubeSubscribers || 2000, user.avatar || '');
+        connectYoutube(cleanYt, user.youtubeSubscribers || 0, user.avatar || '');
       }
 
       showToast(`⚡ Đã kết nối & đồng bộ thành công Kênh YouTube: ${targetYt}`);
@@ -5580,7 +5598,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       tiktokConnected: cleanHandle,
       tiktokHandle: cleanHandle,
       tiktokProfileUrl: finalProfileUrl,
-      tiktokFollowers: followers !== undefined ? followers : (user.tiktokFollowers || 1500),
+      tiktokFollowers: followers !== undefined ? followers : (user.tiktokFollowers || 0),
       tiktokAvatar: finalAvatar,
       isTikTokVerified: true
     });
@@ -5591,11 +5609,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       tiktokHandle: cleanHandle,
       tiktokProfileUrl: finalProfileUrl,
       isTikTokVerified: true,
-      tiktokFollowers: followers !== undefined ? followers : (user.tiktokFollowers || 1500),
+      tiktokFollowers: followers !== undefined ? followers : (user.tiktokFollowers || 0),
       tiktokAvatar: finalAvatar,
       tiktokNickname: cleanHandle.replace(/^@/, ''),
-      tiktokLikes: user.tiktokLikes || 8500,
-      tiktokFollowingCount: user.tiktokFollowingCount || 120,
+      tiktokLikes: user.tiktokLikes || 0,
+      tiktokFollowingCount: user.tiktokFollowingCount || 0,
       tiktokBio: `Kênh TikTok chính chủ ${cleanHandle} đã xác thực trực tiếp trên AVA FOLLOW.`,
       tiktokLastSyncedAt: new Date().toISOString(),
       isNewUserBonusClaimed: true,
@@ -5619,7 +5637,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         copy[idx] = {
           ...copy[idx],
           tiktokConnected: cleanHandle,
-          tiktokFollowers: followers !== undefined ? followers : (copy[idx].tiktokFollowers || 1500),
+          tiktokFollowers: followers !== undefined ? followers : (copy[idx].tiktokFollowers || 0),
           tiktokAvatar: finalAvatar,
           isTikTokVerified: true,
           coinsBalance: nextCoins,
@@ -5773,7 +5791,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       facebookConnected: clean,
       facebookProfileUrl: finalFbUrl,
       facebookType: fbType,
-      facebookFollowers: followers !== undefined ? followers : (user.facebookFollowers || 2400),
+      facebookFollowers: followers !== undefined ? followers : (user.facebookFollowers || 0),
       facebookAvatar: finalFbAvatar,
       isFacebookVerified: true
     });
@@ -5784,7 +5802,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       facebookProfileUrl: finalFbUrl,
       facebookType: fbType,
       isFacebookVerified: true,
-      facebookFollowers: followers !== undefined ? followers : (user.facebookFollowers || 2400),
+      facebookFollowers: followers !== undefined ? followers : (user.facebookFollowers || 0),
       facebookAvatar: finalFbAvatar,
       facebookName: clean.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
       facebookBio: `Tài khoản Facebook chính chủ fb.com/${clean} đã xác thực trực tiếp trên AVA FOLLOW.`,
@@ -5805,7 +5823,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         copy[idx] = {
           ...copy[idx],
           facebookConnected: clean,
-          facebookFollowers: followers !== undefined ? followers : (copy[idx].facebookFollowers || 2400),
+          facebookFollowers: followers !== undefined ? followers : (copy[idx].facebookFollowers || 0),
           facebookAvatar: finalFbAvatar,
           facebookProfileUrl: finalFbUrl,
           isFacebookVerified: true
@@ -5828,7 +5846,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           tiktokFollowers: user.tiktokFollowers || 0,
           isTikTokVerified: user.isTikTokVerified || false,
           facebookConnected: clean,
-          facebookFollowers: followers !== undefined ? followers : 2400,
+          facebookFollowers: followers !== undefined ? followers : 0,
           facebookAvatar: finalFbAvatar,
           facebookProfileUrl: finalFbUrl,
           isFacebookVerified: true,
@@ -5960,7 +5978,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     saveConnectionsForUser(userEmail, {
       youtubeConnected: formattedYt,
       youtubeProfileUrl: finalYtUrl,
-      youtubeSubscribers: subscribers !== undefined ? subscribers : (user.youtubeSubscribers || 1800),
+      youtubeSubscribers: subscribers !== undefined ? subscribers : (user.youtubeSubscribers || 0),
       youtubeAvatar: finalYtAvatar,
       isYoutubeVerified: true
     });
@@ -5970,10 +5988,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       youtubeConnected: formattedYt,
       youtubeProfileUrl: finalYtUrl,
       isYoutubeVerified: true,
-      youtubeSubscribers: subscribers !== undefined ? subscribers : (user.youtubeSubscribers || 1800),
+      youtubeSubscribers: subscribers !== undefined ? subscribers : (user.youtubeSubscribers || 0),
       youtubeAvatar: finalYtAvatar,
       youtubeChannelTitle: clean.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-      youtubeVideoCount: user.youtubeVideoCount || 45,
+      youtubeVideoCount: user.youtubeVideoCount || 0,
       youtubeDescription: `Kênh YouTube chính chủ ${formattedYt} đã xác thực trực tiếp trên AVA FOLLOW.`,
       youtubeLastSyncedAt: new Date().toISOString()
     };
@@ -5992,7 +6010,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         copy[idx] = {
           ...copy[idx],
           youtubeConnected: formattedYt,
-          youtubeSubscribers: subscribers !== undefined ? subscribers : (copy[idx].youtubeSubscribers || 1800),
+          youtubeSubscribers: subscribers !== undefined ? subscribers : (copy[idx].youtubeSubscribers || 0),
           youtubeAvatar: finalYtAvatar,
           youtubeProfileUrl: finalYtUrl,
           isYoutubeVerified: true
@@ -6015,7 +6033,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           tiktokFollowers: user.tiktokFollowers || 0,
           isTikTokVerified: user.isTikTokVerified || false,
           youtubeConnected: formattedYt,
-          youtubeSubscribers: subscribers !== undefined ? subscribers : 1800,
+          youtubeSubscribers: subscribers !== undefined ? subscribers : 0,
           youtubeAvatar: finalYtAvatar,
           youtubeProfileUrl: finalYtUrl,
           isYoutubeVerified: true,

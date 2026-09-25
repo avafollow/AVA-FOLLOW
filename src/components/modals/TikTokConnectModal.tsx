@@ -103,6 +103,10 @@ export const TikTokConnectModal: React.FC = () => {
     let rawInput = handle.trim();
     
     if (isDirectOAuth) {
+      if (!rawInput && !user.tiktokConnected) {
+        showToast('Vui lòng nhập @handle hoặc dán link TikTok thật của bạn vào ô bên dưới!');
+        return;
+      }
       setIsVerifying(true);
       setVerifyingPlatform('tiktok');
       try {
@@ -130,7 +134,7 @@ export const TikTokConnectModal: React.FC = () => {
       .replace(/^@/, '');
 
     const formattedHandle = cleanHandle ? `@${cleanHandle}` : `@${user.name?.replace(/\s+/g, '_').toLowerCase() || 'tiktok_user'}`;
-    const parsedFollowers = ttFollowers.trim() === '' ? (user.tiktokFollowers || 1250) : (parseInt(ttFollowers.replace(/\D/g, ''), 10) || 1250);
+    const parsedFollowers = ttFollowers.trim() === '' ? (user.tiktokFollowers || 0) : (parseInt(ttFollowers.replace(/\D/g, ''), 10) || 0);
 
     setIsVerifying(true);
     setVerifyingPlatform('tiktok');
@@ -152,6 +156,10 @@ export const TikTokConnectModal: React.FC = () => {
     let rawFb = fbUrl.trim();
     
     if (isDirectOAuth) {
+      if (!rawFb && !user.facebookConnected) {
+        showToast('Vui lòng dán link Facebook cá nhân hoặc Fanpage thật của bạn vào ô bên dưới!');
+        return;
+      }
       setIsFbVerifying(true);
       setVerifyingPlatform('facebook');
       try {
@@ -177,7 +185,7 @@ export const TikTokConnectModal: React.FC = () => {
       .replace(/\?.*$/, '')
       .replace(/\/$/, '');
 
-    const parsedFollowers = fbFollowers.trim() === '' ? (user.facebookFollowers || 2400) : (parseInt(fbFollowers.replace(/\D/g, ''), 10) || 2400);
+    const parsedFollowers = fbFollowers.trim() === '' ? (user.facebookFollowers || 0) : (parseInt(fbFollowers.replace(/\D/g, ''), 10) || 0);
 
     setIsFbVerifying(true);
     setVerifyingPlatform('facebook');
@@ -199,6 +207,10 @@ export const TikTokConnectModal: React.FC = () => {
     let rawYt = ytUrl.trim();
     
     if (isDirectOAuth) {
+      if (!rawYt && !user.youtubeConnected) {
+        showToast('Vui lòng dán link kênh hoặc @handle YouTube thật của bạn vào ô bên dưới!');
+        return;
+      }
       setIsYtVerifying(true);
       setVerifyingPlatform('youtube');
       try {
@@ -226,7 +238,7 @@ export const TikTokConnectModal: React.FC = () => {
       .replace(/^@/, '');
 
     const formattedYt = cleanYt ? `@${cleanYt}` : `@${user.name?.replace(/\s+/g, '') || 'youtube_channel'}`;
-    const parsedSubs = ytSubscribers.trim() === '' ? (user.youtubeSubscribers || 1800) : (parseInt(ytSubscribers.replace(/\D/g, ''), 10) || 1800);
+    const parsedSubs = ytSubscribers.trim() === '' ? (user.youtubeSubscribers || 0) : (parseInt(ytSubscribers.replace(/\D/g, ''), 10) || 0);
 
     setIsYtVerifying(true);
     setVerifyingPlatform('youtube');

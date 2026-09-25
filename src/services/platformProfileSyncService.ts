@@ -79,7 +79,7 @@ export function validateRealAccountName(input: string): { isValid: boolean; reas
 /**
  * 1. ĐỒNG BỘ TRỰC TIẾP HỒ SƠ TIKTOK QUA API THẬT
  */
-export async function fetchRealTikTokProfile(inputHandleOrUrl: string): Promise<SyncedTikTokProfile> {
+export async function fetchRealTikTokProfile(inputHandleOrUrl: string, customFollowers?: number): Promise<SyncedTikTokProfile> {
   const cleanInput = (inputHandleOrUrl || '').trim();
   
   // Trích xuất @username sạch
@@ -100,10 +100,10 @@ export async function fetchRealTikTokProfile(inputHandleOrUrl: string): Promise<
   
   let nickname = cleanHandle.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   let avatar = getTikTokAvatar(cleanHandle);
-  let followers = 1500;
-  let following = 120;
-  let likes = 8500;
-  let videoCount = 24;
+  let followers = customFollowers !== undefined && customFollowers > 0 ? customFollowers : 0;
+  let following = 0;
+  let likes = 0;
+  let videoCount = 0;
   let bio = `Kênh TikTok chính chủ ${formattedHandle} đã xác thực trực tiếp trên AVA FOLLOW.`;
   let isValidRealAccount = true;
 
@@ -151,7 +151,7 @@ export async function fetchRealTikTokProfile(inputHandleOrUrl: string): Promise<
 /**
  * 2. ĐỒNG BỘ TRỰC TIẾP HỒ SƠ FACEBOOK QUA API THẬT
  */
-export async function fetchRealFacebookProfile(inputUrlOrHandle: string): Promise<SyncedFacebookProfile> {
+export async function fetchRealFacebookProfile(inputUrlOrHandle: string, customFollowers?: number): Promise<SyncedFacebookProfile> {
   const cleanInput = (inputUrlOrHandle || '').trim();
   
   let cleanFb = cleanInput
@@ -172,7 +172,7 @@ export async function fetchRealFacebookProfile(inputUrlOrHandle: string): Promis
     usernameOrId: cleanFb,
     name: displayName,
     avatar,
-    followers: 2400,
+    followers: customFollowers !== undefined && customFollowers > 0 ? customFollowers : 0,
     bio: `Tài khoản Facebook chính chủ fb.com/${cleanFb} đã xác thực trực tiếp trên AVA FOLLOW.`,
     profileUrl,
     isVerified: true,
@@ -184,7 +184,7 @@ export async function fetchRealFacebookProfile(inputUrlOrHandle: string): Promis
 /**
  * 3. ĐỒNG BỘ TRỰC TIẾP KÊNH YOUTUBE QUA API THẬT
  */
-export async function fetchRealYouTubeProfile(inputUrlOrHandle: string): Promise<SyncedYouTubeProfile> {
+export async function fetchRealYouTubeProfile(inputUrlOrHandle: string, customSubs?: number): Promise<SyncedYouTubeProfile> {
   const cleanInput = (inputUrlOrHandle || '').trim();
   
   let cleanYt = cleanInput
@@ -204,8 +204,8 @@ export async function fetchRealYouTubeProfile(inputUrlOrHandle: string): Promise
   
   let channelTitle = cleanYt.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   let avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(channelTitle)}&background=FF0000&color=fff&bold=true`;
-  let subscribers = 1800;
-  let videoCount = 45;
+  let subscribers = customSubs !== undefined && customSubs > 0 ? customSubs : 0;
+  let videoCount = 0;
   let description = `Kênh YouTube chính chủ ${formattedHandle} | Tương tác & Kiếm tiền cùng AVA FOLLOW Growth OS`;
 
   // Thử gọi YouTube oEmbed để lấy thông tin kênh thật

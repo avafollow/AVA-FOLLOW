@@ -137,11 +137,17 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
         {/* Live Stream Video */}
         <video
           ref={videoRef}
-          className="w-full h-full object-cover pointer-events-auto"
+          key={fallbackLiveSrc}
+          src={fallbackLiveSrc}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-auto"
           autoPlay
           playsInline
           loop
           muted={internalMuted}
+          preload="auto"
+          onCanPlay={(e) => {
+            e.currentTarget.play().catch(() => {});
+          }}
           {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
         />
 

@@ -108,7 +108,6 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
       const p = video.play();
       if (p !== undefined) {
         p.catch(() => {
-          // Trình duyệt mobile chặn có âm thanh -> chuyển muted và phát tiếp
           video.muted = true;
           video.defaultMuted = true;
           setInternalMuted(true);
@@ -117,34 +116,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
       }
     };
 
-    // Nạp HLS nếu là stream .m3u8
-    if (activeStreamSrc.includes('.m3u8')) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/hls.js@1';
-      script.onload = () => {
-        // @ts-ignore
-        if (window.Hls && window.Hls.isSupported()) {
-          // @ts-ignore
-          const hls = new window.Hls();
-          hls.loadSource(activeStreamSrc);
-          hls.attachMedia(video);
-          // @ts-ignore
-          hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
-            playVideo();
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = activeStreamSrc;
-          playVideo();
-        }
-      };
-      document.body.appendChild(script);
-      return () => {
-        try { document.body.removeChild(script); } catch (e) {}
-      };
-    } else {
-      video.src = activeStreamSrc;
-      playVideo();
-    }
+    playVideo();
 
     const resumeOnTouch = () => {
       if (video && video.paused) {
@@ -234,11 +206,17 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
             {/* Direct Auto-playing Video Stream */}
             <video
               ref={videoRef}
-              className="w-full h-full object-cover pointer-events-auto"
+              key={activeStreamSrc}
+              src={activeStreamSrc}
+              className="absolute inset-0 w-full h-full object-cover pointer-events-auto"
               autoPlay
               playsInline
               loop
               muted={internalMuted}
+              preload="auto"
+              onCanPlay={(e) => {
+                e.currentTarget.play().catch(() => {});
+              }}
               {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
             />
 

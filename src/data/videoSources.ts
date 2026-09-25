@@ -21,21 +21,27 @@ export interface ParsedMediaInfo {
   sourceType: 'tiktok_embed' | 'cdn_stream' | 'youtube_embed' | 'facebook_embed' | 'live_stream' | 'direct_stream';
 }
 
-// Bộ nguồn CDN trực tiếp siêu tốc đa nền tảng (iOS, Android, Web, Desktop)
+// Bộ nguồn CDN trực tiếp siêu tốc đa nền tảng (iOS Safari, Android Chrome, Web, Desktop)
 export const HIGH_SPEED_CDN_VIDEOS = {
   fyp: [
+    '/videos/sample1.mp4',
+    '/videos/sample2.mp4',
+    '/videos/sample3.mp4',
     'https://vjs.zencdn.net/v/oceans.mp4',
-    'https://media.w3.org/2010/05/sintel/trailer.mp4',
-    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+    'https://media.w3.org/2010/05/sintel/trailer.mp4'
   ],
   livestream: [
-    'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8',
+    '/videos/sample1.mp4',
+    '/videos/sample2.mp4',
+    '/videos/sample3.mp4',
     'https://vjs.zencdn.net/v/oceans.mp4',
     'https://media.w3.org/2010/05/sintel/trailer.mp4'
   ],
   product_review: [
-    'https://vjs.zencdn.net/v/oceans.mp4',
-    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+    '/videos/sample1.mp4',
+    '/videos/sample2.mp4',
+    '/videos/sample3.mp4',
+    'https://vjs.zencdn.net/v/oceans.mp4'
   ]
 };
 

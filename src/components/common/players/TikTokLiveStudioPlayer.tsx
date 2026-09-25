@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { 
+import { getFallbackLiveStreamUrl } from '../../../data/videoSources';
+import {
   Users, 
   ExternalLink, 
   ShoppingBag, 
@@ -58,14 +59,14 @@ export const TikTokLiveStudioPlayer: React.FC<TikTokLiveStudioPlayerProps> = ({
   );
 
   const [activeSrc, setActiveSrc] = useState<string>(
-    hasDirectStream && streamUrl ? streamUrl : ''
+    hasDirectStream && streamUrl ? streamUrl : getFallbackLiveStreamUrl(cleanHandle)
   );
 
   useEffect(() => {
     if (hasDirectStream && streamUrl) {
       setActiveSrc(streamUrl);
     } else {
-      setActiveSrc('');
+      setActiveSrc(getFallbackLiveStreamUrl(cleanHandle));
     }
   }, [streamUrl, hasDirectStream]);
 

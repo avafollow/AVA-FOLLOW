@@ -132,75 +132,38 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
         </div>
       </div>
 
-      {/* 2. AUTO-PLAYING LIVE STREAM VIDEO WITH INTERACTIVE OVERLAY */}
+      {/* 2. REAL-TIME FACEBOOK LIVE EMBED IFRAME (THẬT 100% TỪ FACEBOOK) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-        {/* Live Stream Video with Multi-Source Fallback */}
-        <video
-          ref={videoRef}
-          key={fallbackLiveSrc}
-          className="absolute inset-0 w-full h-full object-cover pointer-events-auto"
-          autoPlay
-          playsInline
-          loop
-          muted={internalMuted}
-          preload="auto"
-          onCanPlay={(e) => {
-            e.currentTarget.play().catch(() => {});
-          }}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
-        >
-          <source src={fallbackLiveSrc} type="video/mp4" />
-          <source src="/videos/sample2.mp4" type="video/mp4" />
-          <source src="/videos/sample1.mp4" type="video/mp4" />
-          <source src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4" />
-        </video>
-
-        {/* Ambient Darkening */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />
-
-        {/* Center Live Stage Overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none">
-          <div 
-            className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 shadow-[0_0_35px_rgba(37,99,235,0.7)] mb-3 animate-pulse pointer-events-auto cursor-pointer"
-            onClick={() => window.open(directUrl, '_blank')}
-          >
-            <img
-              src={avatarUrl}
-              alt={cleanHandle}
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle || 'F')}&background=1877F2&color=fff&bold=true`;
-              }}
-              className="w-full h-full rounded-full object-cover"
-            />
-            <span className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full bg-blue-600 text-[8px] font-mono font-black text-white uppercase tracking-wider shadow-lg flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-              <span>LIVE</span>
-            </span>
-          </div>
-
-          <div className="space-y-1 max-w-xs mb-3">
-            <h4 className="text-white font-black text-base font-display drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate">
-              Fanpage @{cleanHandle}
-            </h4>
-            <p className="text-white/90 text-xs line-clamp-1 drop-shadow-md font-medium">
-              {title || `Phiên Live Facebook: ${cleanHandle}`}
+        {directUrl ? (
+          <iframe
+            key={`fb-live-${encodeURIComponent(directUrl)}`}
+            src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(directUrl)}&show_text=0&autoplay=1&muted=${internalMuted ? 1 : 0}&allowfullscreen=true`}
+            title={title}
+            allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
+            allowFullScreen
+            className="w-full h-full border-0 bg-black pointer-events-auto object-cover"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center p-6 text-center text-white space-y-3 pointer-events-auto">
+            <div className="w-16 h-16 rounded-full bg-blue-600/20 border-2 border-blue-500/50 flex items-center justify-center animate-pulse">
+              <Radio className="w-8 h-8 text-blue-500" />
+            </div>
+            <div className="text-sm font-bold text-white">{title}</div>
+            <p className="text-xs text-slate-400 max-w-xs">
+              Trang Facebook @{cleanHandle} đang phát trực tiếp. Bấm mở Facebook để xem trực tiếp và bình luận.
             </p>
-          </div>
-
-          <div className="pointer-events-auto flex flex-col gap-1.5 w-full max-w-[240px]">
             <a
               href={directUrl}
               target="_blank"
               rel="noreferrer"
-              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:opacity-95 text-white text-xs font-black uppercase tracking-wider font-display shadow-[0_0_20px_rgba(37,99,235,0.7)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 border border-white/20"
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg flex items-center gap-2"
             >
-              <Play className="w-3.5 h-3.5 fill-white" />
-              <span>MỞ LIVE TRÊN FACEBOOK</span>
-              <ExternalLink className="w-3 h-3" />
+              <Play className="w-4 h-4 fill-current" />
+              <span>Xem Trực Tiếp Trên Facebook</span>
             </a>
           </div>
-        </div>
+        )}
       </div>
 
       {/* 3. BOTTOM INFO BAR */}

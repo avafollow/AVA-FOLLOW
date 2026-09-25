@@ -21,42 +21,19 @@ export interface ParsedMediaInfo {
   sourceType: 'tiktok_embed' | 'cdn_stream' | 'youtube_embed' | 'facebook_embed' | 'live_stream' | 'direct_stream';
 }
 
-// Bộ nguồn CDN trực tiếp siêu tốc đa nền tảng (iOS Safari, Android Chrome, Web, Desktop)
+// Bộ nguồn CDN trực tiếp (Không dùng video cục bộ / demo mẫu)
 export const HIGH_SPEED_CDN_VIDEOS = {
-  fyp: [
-    '/videos/sample1.mp4',
-    '/videos/sample2.mp4',
-    '/videos/sample3.mp4',
-    'https://vjs.zencdn.net/v/oceans.mp4',
-    'https://media.w3.org/2010/05/sintel/trailer.mp4'
-  ],
-  livestream: [
-    '/videos/sample1.mp4',
-    '/videos/sample2.mp4',
-    '/videos/sample3.mp4',
-    'https://vjs.zencdn.net/v/oceans.mp4',
-    'https://media.w3.org/2010/05/sintel/trailer.mp4'
-  ],
-  product_review: [
-    '/videos/sample1.mp4',
-    '/videos/sample2.mp4',
-    '/videos/sample3.mp4',
-    'https://vjs.zencdn.net/v/oceans.mp4'
-  ]
+  fyp: [] as string[],
+  livestream: [] as string[],
+  product_review: [] as string[]
 };
 
 export function getFallbackLiveStreamUrl(channelHandle?: string): string {
-  const clean = (channelHandle || 'stream').replace(/[^a-zA-Z0-9]/g, '');
-  const hash = clean.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const pool = HIGH_SPEED_CDN_VIDEOS.livestream;
-  return pool[hash % pool.length] || pool[0];
+  return '';
 }
 
 export function getFallbackVideoUrl(channelHandle?: string): string {
-  const clean = (channelHandle || 'video').replace(/[^a-zA-Z0-9]/g, '');
-  const hash = clean.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const pool = HIGH_SPEED_CDN_VIDEOS.fyp;
-  return pool[hash % pool.length] || pool[0];
+  return '';
 }
 
 /**

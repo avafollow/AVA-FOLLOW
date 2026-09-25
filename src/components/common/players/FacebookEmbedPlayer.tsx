@@ -28,22 +28,7 @@ export const FacebookEmbedPlayer: React.FC<FacebookEmbedPlayerProps> = ({
   if (hasError) {
     return (
       <div className={`relative w-full h-full bg-[#0B0F19] flex flex-col items-center justify-center overflow-hidden rounded-3xl group select-none ${className}`}>
-        {/* Background Auto-Playing Video Stream */}
-        <video
-          autoPlay
-          loop
-          muted={isMuted}
-          playsInline
-          preload="auto"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
-          className="absolute inset-0 w-full h-full object-cover"
-        >
-          <source src="/videos/sample2.mp4" type="video/mp4" />
-          <source src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4" />
-        </video>
-
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/90 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0B1528] via-[#080D1A] to-[#040812]" />
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-xs w-full">

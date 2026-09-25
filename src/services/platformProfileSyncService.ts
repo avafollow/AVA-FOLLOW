@@ -12,6 +12,11 @@
 import { getTikTokAvatar } from '../data/videoSources';
 import { UserProfileWallet } from '../types';
 import { fetchYouTubeChannelProfile } from './youtubeApiService';
+import { 
+  verifyTikTokGmailPair, 
+  verifyFacebookGmailPair, 
+  verifyYouTubeGmailPair 
+} from './antiFraudEngine';
 
 export interface SyncedTikTokProfile {
   handle: string;
@@ -327,13 +332,15 @@ export function verifyPlatformAccountForTask(
   platform: 'tiktok' | 'facebook' | 'youtube',
   user: UserProfileWallet
 ): { canExecute: boolean; requiredAccountName: string; reason?: string } {
+  const userEmail = (user.email || '').toLowerCase().trim();
+
   if (platform === 'facebook') {
     const fb = (user.facebookConnected || '').trim();
     if (!fb || fb === 'Chưa kết nối' || fb.includes('chưa_kết_nối')) {
       return {
         canExecute: false,
         requiredAccountName: 'Facebook',
-        reason: 'Bạn cần kết nối và xác thực tài khoản Facebook thật trước khi thực hiện nhiệm vụ Facebook!'
+        reason: 'Bạn cần kết nối và xác thực tài khoản Facebook chính chủ trước khi làm nhiệm vụ Facebook!'
       };
     }
     const val = validateRealAccountName(fb);
@@ -344,6 +351,19 @@ export function verifyPlatformAccountForTask(
         reason: val.reason || 'Tài khoản Facebook không hợp lệ!'
       };
     }
+
+    // Kiểm tra ràng buộc cố định 1 Gmail = 1 Facebook
+    if (userEmail) {
+      const pairCheck = verifyFacebookGmailPair(userEmail, fb);
+      if (!pairCheck.valid && pairCheck.reason) {
+        return {
+          canExecute: false,
+          requiredAccountName: fb,
+          reason: pairCheck.reason
+        };
+      }
+    }
+
     return { canExecute: true, requiredAccountName: fb };
   }
 
@@ -353,7 +373,7 @@ export function verifyPlatformAccountForTask(
       return {
         canExecute: false,
         requiredAccountName: 'YouTube',
-        reason: 'Bạn cần kết nối và xác thực Kênh YouTube thật trước khi thực hiện nhiệm vụ YouTube!'
+        reason: 'Bạn cần kết nối và xác thực Kênh YouTube chính chủ trước khi làm nhiệm vụ YouTube!'
       };
     }
     const val = validateRealAccountName(yt);
@@ -364,6 +384,19 @@ export function verifyPlatformAccountForTask(
         reason: val.reason || 'Kênh YouTube không hợp lệ!'
       };
     }
+
+    // Kiểm tra ràng buộc cố định 1 Gmail = 1 YouTube
+    if (userEmail) {
+      const pairCheck = verifyYouTubeGmailPair(userEmail, yt);
+      if (!pairCheck.valid && pairCheck.reason) {
+        return {
+          canExecute: false,
+          requiredAccountName: yt,
+          reason: pairCheck.reason
+        };
+      }
+    }
+
     return { canExecute: true, requiredAccountName: yt };
   }
 
@@ -373,7 +406,7 @@ export function verifyPlatformAccountForTask(
     return {
       canExecute: false,
       requiredAccountName: 'TikTok',
-      reason: 'Bạn cần kết nối và xác thực kênh TikTok thật trước khi thực hiện nhiệm vụ!'
+      reason: 'Bạn cần kết nối và xác thực kênh TikTok chính chủ trước khi thực hiện nhiệm vụ!'
     };
   }
   const val = validateRealAccountName(tt);
@@ -384,6 +417,19 @@ export function verifyPlatformAccountForTask(
       reason: val.reason || 'Kênh TikTok không hợp lệ!'
     };
   }
+
+  // Kiểm tra ràng buộc cố định 1 Gmail = 1 TikTok
+  if (userEmail) {
+    const pairCheck = verifyTikTokGmailPair(userEmail, tt);
+    if (!pairCheck.valid && pairCheck.reason) {
+      return {
+        canExecute: false,
+        requiredAccountName: tt,
+        reason: pairCheck.reason
+      };
+    }
+  }
+
   return { canExecute: true, requiredAccountName: tt };
 }
 

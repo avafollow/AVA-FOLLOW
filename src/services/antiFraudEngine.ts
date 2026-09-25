@@ -2056,3 +2056,171 @@ export function removePermanentTikTokGmailPair(tiktokHandle: string): void {
     localStorage.setItem(PERMANENT_TIKTOK_GMAIL_PAIR_KEY, JSON.stringify(updated));
   } catch {}
 }
+
+// ==========================================
+// 1 GMAIL = 1 YOUTUBE CHANNEL PERMANENT BINDING
+// ==========================================
+export const PERMANENT_YOUTUBE_GMAIL_PAIR_KEY = 'ava_permanent_youtube_gmail_pair';
+
+export interface YouTubeGmailPair {
+  email: string;
+  youtubeHandle: string;
+  boundAt: string;
+  ipAddress?: string;
+  isLocked?: boolean;
+}
+
+export function getPermanentYouTubeGmailPairs(): YouTubeGmailPair[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(PERMANENT_YOUTUBE_GMAIL_PAIR_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function verifyYouTubeGmailPair(email: string, youtubeHandle: string): {
+  valid: boolean;
+  reason?: string;
+  boundYouTube?: string;
+  boundEmail?: string;
+} {
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanYouTube = (youtubeHandle || '').toLowerCase().replace(/^https?:\/\/(www\.)?youtube\.com\/(channel\/|c\/|user\/|@)?/i, '').replace(/^@+/, '').trim();
+
+  if (!cleanEmail || !cleanYouTube) {
+    return { valid: false, reason: 'Vui lòng nhập đúng kênh YouTube của bạn trên thiết bị.' };
+  }
+
+  const pairs = getPermanentYouTubeGmailPairs();
+  const existingPairByYouTube = pairs.find(p => p.youtubeHandle.toLowerCase().replace(/^@+/, '').trim() === cleanYouTube);
+  if (existingPairByYouTube) {
+    const existingEmail = existingPairByYouTube.email.toLowerCase().trim();
+    if (existingEmail !== cleanEmail && existingEmail !== 'quocthiencr90@gmail.com') {
+      return {
+        valid: false,
+        reason: `Kênh YouTube @${cleanYouTube} đã liên kết với Gmail "${existingPairByYouTube.email}". Vui lòng đăng nhập đúng Gmail đó hoặc liên kết kênh YouTube chính chủ khác!`,
+        boundEmail: existingPairByYouTube.email
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
+export function lockYouTubeGmailBinding(email: string, youtubeHandle: string, ipAddress?: string): void {
+  if (typeof window === 'undefined') return;
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanYouTube = (youtubeHandle || '').toLowerCase().replace(/^https?:\/\/(www\.)?youtube\.com\/(channel\/|c\/|user\/|@)?/i, '').replace(/^@+/, '').trim();
+  if (!cleanEmail || !cleanYouTube) return;
+
+  try {
+    const pairs = getPermanentYouTubeGmailPairs();
+    const otherPairs = pairs.filter(p => p.email.toLowerCase() !== cleanEmail);
+    const updated = [
+      ...otherPairs,
+      {
+        email: cleanEmail,
+        youtubeHandle: `@${cleanYouTube}`,
+        ipAddress: ipAddress || '127.0.0.1',
+        boundAt: new Date().toISOString()
+      }
+    ];
+    localStorage.setItem(PERMANENT_YOUTUBE_GMAIL_PAIR_KEY, JSON.stringify(updated));
+  } catch {}
+}
+
+export function removePermanentYouTubeGmailPair(youtubeHandle: string): void {
+  if (typeof window === 'undefined') return;
+  const cleanYouTube = (youtubeHandle || '').toLowerCase().replace(/^@+/, '').trim();
+  try {
+    const pairs = getPermanentYouTubeGmailPairs();
+    const updated = pairs.filter(p => p.youtubeHandle.toLowerCase().replace(/^@+/, '').trim() !== cleanYouTube);
+    localStorage.setItem(PERMANENT_YOUTUBE_GMAIL_PAIR_KEY, JSON.stringify(updated));
+  } catch {}
+}
+
+// ==========================================
+// 1 GMAIL = 1 FACEBOOK ACCOUNT PERMANENT BINDING
+// ==========================================
+export const PERMANENT_FACEBOOK_GMAIL_PAIR_KEY = 'ava_permanent_facebook_gmail_pair';
+
+export interface FacebookGmailPair {
+  email: string;
+  facebookHandle: string;
+  boundAt: string;
+  ipAddress?: string;
+  isLocked?: boolean;
+}
+
+export function getPermanentFacebookGmailPairs(): FacebookGmailPair[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(PERMANENT_FACEBOOK_GMAIL_PAIR_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function verifyFacebookGmailPair(email: string, facebookHandle: string): {
+  valid: boolean;
+  reason?: string;
+  boundFacebook?: string;
+  boundEmail?: string;
+} {
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanFb = (facebookHandle || '').toLowerCase().replace(/^https?:\/\/(www\.)?facebook\.com\//i, '').replace(/^@+/, '').trim();
+
+  if (!cleanEmail || !cleanFb) {
+    return { valid: false, reason: 'Vui lòng nhập đúng tài khoản Facebook của bạn trên thiết bị.' };
+  }
+
+  const pairs = getPermanentFacebookGmailPairs();
+  const existingPairByFb = pairs.find(p => p.facebookHandle.toLowerCase().replace(/^@+/, '').trim() === cleanFb);
+  if (existingPairByFb) {
+    const existingEmail = existingPairByFb.email.toLowerCase().trim();
+    if (existingEmail !== cleanEmail && existingEmail !== 'quocthiencr90@gmail.com') {
+      return {
+        valid: false,
+        reason: `Tài khoản Facebook "${cleanFb}" đã liên kết với Gmail "${existingPairByFb.email}". Vui lòng đăng nhập đúng Gmail đó!`,
+        boundEmail: existingPairByFb.email
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
+export function lockFacebookGmailBinding(email: string, facebookHandle: string, ipAddress?: string): void {
+  if (typeof window === 'undefined') return;
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanFb = (facebookHandle || '').toLowerCase().replace(/^https?:\/\/(www\.)?facebook\.com\//i, '').replace(/^@+/, '').trim();
+  if (!cleanEmail || !cleanFb) return;
+
+  try {
+    const pairs = getPermanentFacebookGmailPairs();
+    const otherPairs = pairs.filter(p => p.email.toLowerCase() !== cleanEmail);
+    const updated = [
+      ...otherPairs,
+      {
+        email: cleanEmail,
+        facebookHandle: cleanFb,
+        ipAddress: ipAddress || '127.0.0.1',
+        boundAt: new Date().toISOString()
+      }
+    ];
+    localStorage.setItem(PERMANENT_FACEBOOK_GMAIL_PAIR_KEY, JSON.stringify(updated));
+  } catch {}
+}
+
+export function removePermanentFacebookGmailPair(facebookHandle: string): void {
+  if (typeof window === 'undefined') return;
+  const cleanFb = (facebookHandle || '').toLowerCase().replace(/^@+/, '').trim();
+  try {
+    const pairs = getPermanentFacebookGmailPairs();
+    const updated = pairs.filter(p => p.facebookHandle.toLowerCase().replace(/^@+/, '').trim() !== cleanFb);
+    localStorage.setItem(PERMANENT_FACEBOOK_GMAIL_PAIR_KEY, JSON.stringify(updated));
+  } catch {}
+}

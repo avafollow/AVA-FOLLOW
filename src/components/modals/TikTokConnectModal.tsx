@@ -22,7 +22,14 @@ import {
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { getTikTokAvatar } from '../../data/videoSources';
-import { getPermanentTikTokGmailPairs, removePermanentTikTokGmailPair } from '../../services/antiFraudEngine';
+import { 
+  getPermanentTikTokGmailPairs, 
+  removePermanentTikTokGmailPair,
+  getPermanentYouTubeGmailPairs,
+  removePermanentYouTubeGmailPair,
+  getPermanentFacebookGmailPairs,
+  removePermanentFacebookGmailPair
+} from '../../services/antiFraudEngine';
 
 export const TikTokConnectModal: React.FC = () => {
   const { 
@@ -39,9 +46,14 @@ export const TikTokConnectModal: React.FC = () => {
     loginWithFacebookOAuth,
     loginWithYoutubeOAuth,
     showToast,
+    clientIp,
     connectedAccountsOnIp,
     switchActiveTikTokAccount,
-    removeAccountFromIp
+    removeAccountFromIp,
+    switchActiveYouTubeAccount,
+    removeYouTubeAccountFromIp,
+    switchActiveFacebookAccount,
+    removeFacebookAccountFromIp
   } = useTikTokApp();
 
   const [activeTab, setActiveTab] = useState<'tiktok' | 'facebook' | 'youtube'>('tiktok');
@@ -156,6 +168,140 @@ export const TikTokConnectModal: React.FC = () => {
     setHandle(accHandle);
     setIsTtEditing(true);
     showToast(`✏️ Hãy nhập tên/link kênh mới rồi bấm "Xác nhận & Liên kết"`);
+  };
+
+  // ============================================================
+  // DANH SÁCH KÊNH YOUTUBE TRÊN THIẾT BỊ NÀY
+  // ============================================================
+  const permanentYtPairs = getPermanentYouTubeGmailPairs();
+  const allDeviceYtMap = new Map<string, { handle: string; boundEmail?: string; isUnlocked: boolean; subscribers?: number; avatar?: string }>();
+
+  if (user.youtubeConnected && user.youtubeConnected !== 'Chưa kết nối') {
+    allDeviceYtMap.set(user.youtubeConnected.toLowerCase(), {
+      handle: user.youtubeConnected,
+      boundEmail: currentEmail,
+      isUnlocked: true,
+      subscribers: user.youtubeSubscribers || 0,
+      avatar: user.youtubeAvatar
+    });
+  }
+
+  permanentYtPairs.forEach(p => {
+    const cleanH = p.youtubeHandle.startsWith('@') ? p.youtubeHandle : `@${p.youtubeHandle}`;
+    const isUnlocked = p.email.toLowerCase().trim() === currentEmail || currentEmail === 'quocthiencr90@gmail.com';
+    const key = cleanH.toLowerCase();
+    if (!allDeviceYtMap.has(key)) {
+      allDeviceYtMap.set(key, {
+        handle: cleanH,
+        boundEmail: p.email,
+        isUnlocked,
+        subscribers: 0,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanH.replace(/^@/, ''))}&background=FF0000&color=fff&bold=true`
+      });
+    }
+  });
+
+  try {
+    const ipYtKey = `ava_ip_yt_${clientIp}`;
+    const saved = localStorage.getItem(ipYtKey);
+    if (saved) {
+      const list: string[] = JSON.parse(saved);
+      list.forEach(yt => {
+        const cleanH = yt.startsWith('@') ? yt : `@${yt}`;
+        const key = cleanH.toLowerCase();
+        if (!allDeviceYtMap.has(key)) {
+          const matched = permanentYtPairs.find(p => p.youtubeHandle.toLowerCase().replace(/^@/, '') === cleanH.toLowerCase().replace(/^@/, ''));
+          const boundEmail = matched ? matched.email : currentEmail;
+          const isUnlocked = boundEmail.toLowerCase().trim() === currentEmail || currentEmail === 'quocthiencr90@gmail.com';
+          allDeviceYtMap.set(key, {
+            handle: cleanH,
+            boundEmail,
+            isUnlocked,
+            subscribers: 0,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanH.replace(/^@/, ''))}&background=FF0000&color=fff&bold=true`
+          });
+        }
+      });
+    }
+  } catch {}
+
+  const deviceYouTubeAccounts = Array.from(allDeviceYtMap.values());
+
+  const handleDeleteDeviceYouTubeAccount = (handleToDelete: string) => {
+    removeYouTubeAccountFromIp(handleToDelete);
+  };
+
+  const handleEditDeviceYouTubeAccount = (accHandle: string) => {
+    setYtUrl(accHandle);
+    setIsYtEditing(true);
+    showToast(`✏️ Hãy nhập link/handle YouTube mới rồi bấm "Xác nhận & Liên kết"`);
+  };
+
+  // ============================================================
+  // DANH SÁCH TÀI KHOẢN FACEBOOK TRÊN THIẾT BỊ NÀY
+  // ============================================================
+  const permanentFbPairs = getPermanentFacebookGmailPairs();
+  const allDeviceFbMap = new Map<string, { handle: string; boundEmail?: string; isUnlocked: boolean; followers?: number; avatar?: string }>();
+
+  if (user.facebookConnected && user.facebookConnected !== 'Chưa kết nối') {
+    allDeviceFbMap.set(user.facebookConnected.toLowerCase(), {
+      handle: user.facebookConnected,
+      boundEmail: currentEmail,
+      isUnlocked: true,
+      followers: user.facebookFollowers || 0,
+      avatar: user.facebookAvatar
+    });
+  }
+
+  permanentFbPairs.forEach(p => {
+    const cleanH = p.facebookHandle;
+    const isUnlocked = p.email.toLowerCase().trim() === currentEmail || currentEmail === 'quocthiencr90@gmail.com';
+    const key = cleanH.toLowerCase();
+    if (!allDeviceFbMap.has(key)) {
+      allDeviceFbMap.set(key, {
+        handle: cleanH,
+        boundEmail: p.email,
+        isUnlocked,
+        followers: 0,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanH)}&background=1877F2&color=fff&bold=true`
+      });
+    }
+  });
+
+  try {
+    const ipFbKey = `ava_ip_fb_${clientIp}`;
+    const saved = localStorage.getItem(ipFbKey);
+    if (saved) {
+      const list: string[] = JSON.parse(saved);
+      list.forEach(fb => {
+        const cleanH = fb;
+        const key = cleanH.toLowerCase();
+        if (!allDeviceFbMap.has(key)) {
+          const matched = permanentFbPairs.find(p => p.facebookHandle.toLowerCase() === cleanH.toLowerCase());
+          const boundEmail = matched ? matched.email : currentEmail;
+          const isUnlocked = boundEmail.toLowerCase().trim() === currentEmail || currentEmail === 'quocthiencr90@gmail.com';
+          allDeviceFbMap.set(key, {
+            handle: cleanH,
+            boundEmail,
+            isUnlocked,
+            followers: 0,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanH)}&background=1877F2&color=fff&bold=true`
+          });
+        }
+      });
+    }
+  } catch {}
+
+  const deviceFacebookAccounts = Array.from(allDeviceFbMap.values());
+
+  const handleDeleteDeviceFacebookAccount = (handleToDelete: string) => {
+    removeFacebookAccountFromIp(handleToDelete);
+  };
+
+  const handleEditDeviceFacebookAccount = (accHandle: string) => {
+    setFbUrl(accHandle);
+    setIsFbEditing(true);
+    showToast(`✏️ Hãy nhập link/tên Facebook mới rồi bấm "Xác nhận & Liên kết"`);
   };
 
   const bioCode = user.bioVerificationCode || 'TIKTOK-VERIFY-8899';
@@ -1032,6 +1178,123 @@ export const TikTokConnectModal: React.FC = () => {
                   </div>
                 </div>
 
+                {/* DANH SÁCH TÀI KHOẢN FACEBOOK TRÊN THIẾT BỊ NÀY */}
+                {deviceFacebookAccounts.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-blue-950/20 border border-blue-500/30 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-blue-300 uppercase font-mono flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Tài Khoản Facebook Trên Thiết Bị Này ({deviceFacebookAccounts.length}/5)</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        1 Gmail = 1 Facebook
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {deviceFacebookAccounts.map((acc, idx) => {
+                        const isCurrentActive = user.facebookConnected?.toLowerCase() === acc.handle.toLowerCase();
+                        const isMatchedGmail = acc.isUnlocked;
+
+                        return (
+                          <div 
+                            key={idx}
+                            className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                              isCurrentActive
+                                ? 'bg-blue-950/40 border-blue-500/60 shadow-md shadow-blue-950/30'
+                                : isMatchedGmail
+                                  ? 'bg-slate-900/80 border-white/10 hover:border-white/20'
+                                  : 'bg-black/60 border-amber-500/30 opacity-75'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={acc.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.handle)}&background=1877F2&color=fff&bold=true`}
+                                alt="avatar"
+                                className="w-10 h-10 rounded-xl object-cover border border-white/10 shrink-0"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.handle)}&background=1877F2&color=fff&bold=true`;
+                                }}
+                              />
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-white text-xs font-display">
+                                    fb.com/{acc.handle}
+                                  </span>
+                                  {isMatchedGmail ? (
+                                    <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold border border-emerald-500/30 flex items-center gap-1">
+                                      <Unlock className="w-2.5 h-2.5" />
+                                      Mở khóa (Khớp Gmail)
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono font-bold border border-amber-500/30 flex items-center gap-1">
+                                      <Lock className="w-2.5 h-2.5" />
+                                      Đã khóa (Thuộc Gmail khác)
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  {acc.boundEmail ? `Gắn với Gmail: ${acc.boundEmail}` : `Đang dùng trên thiết bị`}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 self-end sm:self-center">
+                              {/* Nút Sửa / Đổi tên */}
+                              <button
+                                type="button"
+                                onClick={() => handleEditDeviceFacebookAccount(acc.handle)}
+                                title="Đổi tên / Sửa tài khoản này"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-sky-500/20 text-slate-400 hover:text-sky-300 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Sửa</span>
+                              </button>
+
+                              {/* Nút Xóa tài khoản */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDeviceFacebookAccount(acc.handle)}
+                                title="Xóa tài khoản này khỏi thiết bị"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Xóa</span>
+                              </button>
+
+                              {isCurrentActive ? (
+                                <span className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Đang Dùng</span>
+                                </span>
+                              ) : isMatchedGmail ? (
+                                <button
+                                  type="button"
+                                  onClick={() => switchActiveFacebookAccount(acc.handle)}
+                                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white text-xs font-mono font-bold shadow-md shadow-blue-600/30 transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Zap className="w-3 h-3 text-amber-300" />
+                                  <span>Chọn Kênh</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled
+                                  title={`Đăng nhập Gmail ${acc.boundEmail} để mở khóa kênh này`}
+                                  className="px-2.5 py-1.5 rounded-xl bg-white/5 text-slate-500 text-xs font-mono font-semibold border border-white/5 cursor-not-allowed flex items-center gap-1"
+                                >
+                                  <Lock className="w-3 h-3 text-amber-400" />
+                                  <span>Khóa</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={closeConnect}
                   className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold font-mono transition-all cursor-pointer"
@@ -1042,6 +1305,134 @@ export const TikTokConnectModal: React.FC = () => {
             ) : (
               /* Connect Facebook Form */
               <div className="space-y-4">
+                
+                {/* 1 GMAIL = 1 FACEBOOK SECURITY BANNER */}
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5">
+                  <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    <p className="font-bold text-amber-300 font-mono">
+                      🔒 CHÍNH SÁCH BẢO MẬT: 1 GMAIL = 1 TÀI KHOẢN FACEBOOK DUY NHẤT
+                    </p>
+                    <p className="text-slate-300 mt-0.5">
+                      Mỗi tài khoản Gmail chỉ được liên kết cố định với 1 tài khoản Facebook. Hệ thống đối soát chuẩn xác và chỉ ghi nhận cộng Xu cho tài khoản chính chủ đã đồng bộ.
+                    </p>
+                  </div>
+                </div>
+
+                {/* DANH SÁCH TÀI KHOẢN FACEBOOK TRÊN THIẾT BỊ NÀY (CHO FORM KẾT NỐI) */}
+                {deviceFacebookAccounts.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-blue-950/20 border border-blue-500/30 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-blue-300 uppercase font-mono flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Tài Khoản Facebook Trên Thiết Bị Này ({deviceFacebookAccounts.length}/5)</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        1 Gmail = 1 Facebook
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {deviceFacebookAccounts.map((acc, idx) => {
+                        const isCurrentActive = user.facebookConnected?.toLowerCase() === acc.handle.toLowerCase();
+                        const isMatchedGmail = acc.isUnlocked;
+
+                        return (
+                          <div 
+                            key={idx}
+                            className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                              isCurrentActive
+                                ? 'bg-blue-950/40 border-blue-500/60 shadow-md shadow-blue-950/30'
+                                : isMatchedGmail
+                                  ? 'bg-slate-900/80 border-white/10 hover:border-white/20'
+                                  : 'bg-black/60 border-amber-500/30 opacity-75'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={acc.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.handle)}&background=1877F2&color=fff&bold=true`}
+                                alt="avatar"
+                                className="w-10 h-10 rounded-xl object-cover border border-white/10 shrink-0"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.handle)}&background=1877F2&color=fff&bold=true`;
+                                }}
+                              />
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-white text-xs font-display">
+                                    fb.com/{acc.handle}
+                                  </span>
+                                  {isMatchedGmail ? (
+                                    <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold border border-emerald-500/30 flex items-center gap-1">
+                                      <Unlock className="w-2.5 h-2.5" />
+                                      Mở khóa (Khớp Gmail)
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono font-bold border border-amber-500/30 flex items-center gap-1">
+                                      <Lock className="w-2.5 h-2.5" />
+                                      Đã khóa (Thuộc Gmail khác)
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  {acc.boundEmail ? `Gắn với Gmail: ${acc.boundEmail}` : `Đang dùng trên thiết bị`}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 self-end sm:self-center">
+                              <button
+                                type="button"
+                                onClick={() => handleEditDeviceFacebookAccount(acc.handle)}
+                                title="Đổi tên / Sửa tài khoản này"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-sky-500/20 text-slate-400 hover:text-sky-300 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Sửa</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDeviceFacebookAccount(acc.handle)}
+                                title="Xóa tài khoản này khỏi thiết bị"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Xóa</span>
+                              </button>
+
+                              {isCurrentActive ? (
+                                <span className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Đang Dùng</span>
+                                </span>
+                              ) : isMatchedGmail ? (
+                                <button
+                                  type="button"
+                                  onClick={() => switchActiveFacebookAccount(acc.handle)}
+                                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white text-xs font-mono font-bold shadow-md shadow-blue-600/30 transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Zap className="w-3 h-3 text-amber-300" />
+                                  <span>Chọn Kênh</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled
+                                  title={`Đăng nhập Gmail ${acc.boundEmail} để mở khóa kênh này`}
+                                  className="px-2.5 py-1.5 rounded-xl bg-white/5 text-slate-500 text-xs font-mono font-semibold border border-white/5 cursor-not-allowed flex items-center gap-1"
+                                >
+                                  <Lock className="w-3 h-3 text-amber-400" />
+                                  <span>Khóa</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 
                 {/* 1-Touch Direct Connect Facebook */}
                 <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-950/60 via-slate-900 to-indigo-950/60 border border-blue-500/40 space-y-3 shadow-xl">
@@ -1248,6 +1639,123 @@ export const TikTokConnectModal: React.FC = () => {
                   </div>
                 </div>
 
+                {/* DANH SÁCH KÊNH YOUTUBE TRÊN THIẾT BỊ NÀY */}
+                {deviceYouTubeAccounts.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-red-950/20 border border-red-500/30 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-red-300 uppercase font-mono flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-red-400" />
+                        <span>Kênh YouTube Trên Thiết Bị Này ({deviceYouTubeAccounts.length}/5)</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        1 Gmail = 1 YouTube
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {deviceYouTubeAccounts.map((acc, idx) => {
+                        const isCurrentActive = user.youtubeConnected?.toLowerCase().replace(/^@+/, '') === acc.handle.toLowerCase().replace(/^@+/, '');
+                        const isMatchedGmail = acc.isUnlocked;
+
+                        return (
+                          <div 
+                            key={idx}
+                            className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                              isCurrentActive
+                                ? 'bg-red-950/40 border-red-500/60 shadow-md shadow-red-950/30'
+                                : isMatchedGmail
+                                  ? 'bg-slate-900/80 border-white/10 hover:border-white/20'
+                                  : 'bg-black/60 border-amber-500/30 opacity-75'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={acc.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.handle.replace(/^@/, ''))}&background=FF0000&color=fff&bold=true`}
+                                alt="avatar"
+                                className="w-10 h-10 rounded-xl object-cover border border-white/10 shrink-0"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.handle.replace(/^@/, ''))}&background=FF0000&color=fff&bold=true`;
+                                }}
+                              />
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-white text-xs font-display">
+                                    {acc.handle}
+                                  </span>
+                                  {isMatchedGmail ? (
+                                    <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold border border-emerald-500/30 flex items-center gap-1">
+                                      <Unlock className="w-2.5 h-2.5" />
+                                      Mở khóa (Khớp Gmail)
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono font-bold border border-amber-500/30 flex items-center gap-1">
+                                      <Lock className="w-2.5 h-2.5" />
+                                      Đã khóa (Thuộc Gmail khác)
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  {acc.boundEmail ? `Gắn với Gmail: ${acc.boundEmail}` : `Đang dùng trên thiết bị`}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 self-end sm:self-center">
+                              {/* Nút Sửa / Đổi tên */}
+                              <button
+                                type="button"
+                                onClick={() => handleEditDeviceYouTubeAccount(acc.handle)}
+                                title="Đổi tên / Sửa kênh này"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-sky-500/20 text-slate-400 hover:text-sky-300 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Sửa</span>
+                              </button>
+
+                              {/* Nút Xóa tài khoản */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDeviceYouTubeAccount(acc.handle)}
+                                title="Xóa kênh này khỏi thiết bị"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Xóa</span>
+                              </button>
+
+                              {isCurrentActive ? (
+                                <span className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Đang Dùng</span>
+                                </span>
+                              ) : isMatchedGmail ? (
+                                <button
+                                  type="button"
+                                  onClick={() => switchActiveYouTubeAccount(acc.handle)}
+                                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:opacity-90 text-white text-xs font-mono font-bold shadow-md shadow-red-600/30 transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Zap className="w-3 h-3 text-amber-300" />
+                                  <span>Chọn Kênh</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled
+                                  title={`Đăng nhập Gmail ${acc.boundEmail} để mở khóa kênh này`}
+                                  className="px-2.5 py-1.5 rounded-xl bg-white/5 text-slate-500 text-xs font-mono font-semibold border border-white/5 cursor-not-allowed flex items-center gap-1"
+                                >
+                                  <Lock className="w-3 h-3 text-amber-400" />
+                                  <span>Khóa</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={closeConnect}
                   className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold font-mono transition-all cursor-pointer"
@@ -1258,6 +1766,134 @@ export const TikTokConnectModal: React.FC = () => {
             ) : (
               /* Connect YouTube Form */
               <div className="space-y-4">
+                
+                {/* 1 GMAIL = 1 YOUTUBE SECURITY BANNER */}
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5">
+                  <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    <p className="font-bold text-amber-300 font-mono">
+                      🔒 CHÍNH SÁCH BẢO MẬT: 1 GMAIL = 1 KÊNH YOUTUBE DUY NHẤT
+                    </p>
+                    <p className="text-slate-300 mt-0.5">
+                      Mỗi tài khoản Gmail chỉ được liên kết cố định với 1 kênh YouTube. Hệ thống đối soát nhiệm vụ (Đăng ký, Like, Bình luận, Xem video) để duyệt Xu chuẩn xác và chống gian lận tuyệt đối.
+                    </p>
+                  </div>
+                </div>
+
+                {/* DANH SÁCH KÊNH YOUTUBE TRÊN THIẾT BỊ NÀY (CHO FORM KẾT NỐI) */}
+                {deviceYouTubeAccounts.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-red-950/20 border border-red-500/30 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-red-300 uppercase font-mono flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-red-400" />
+                        <span>Kênh YouTube Trên Thiết Bị Này ({deviceYouTubeAccounts.length}/5)</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        1 Gmail = 1 YouTube
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {deviceYouTubeAccounts.map((acc, idx) => {
+                        const isCurrentActive = user.youtubeConnected?.toLowerCase().replace(/^@+/, '') === acc.handle.toLowerCase().replace(/^@+/, '');
+                        const isMatchedGmail = acc.isUnlocked;
+
+                        return (
+                          <div 
+                            key={idx}
+                            className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                              isCurrentActive
+                                ? 'bg-red-950/40 border-red-500/60 shadow-md shadow-red-950/30'
+                                : isMatchedGmail
+                                  ? 'bg-slate-900/80 border-white/10 hover:border-white/20'
+                                  : 'bg-black/60 border-amber-500/30 opacity-75'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={acc.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.handle.replace(/^@/, ''))}&background=FF0000&color=fff&bold=true`}
+                                alt="avatar"
+                                className="w-10 h-10 rounded-xl object-cover border border-white/10 shrink-0"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.handle.replace(/^@/, ''))}&background=FF0000&color=fff&bold=true`;
+                                }}
+                              />
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-white text-xs font-display">
+                                    {acc.handle}
+                                  </span>
+                                  {isMatchedGmail ? (
+                                    <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold border border-emerald-500/30 flex items-center gap-1">
+                                      <Unlock className="w-2.5 h-2.5" />
+                                      Mở khóa (Khớp Gmail)
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono font-bold border border-amber-500/30 flex items-center gap-1">
+                                      <Lock className="w-2.5 h-2.5" />
+                                      Đã khóa (Thuộc Gmail khác)
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  {acc.boundEmail ? `Gắn với Gmail: ${acc.boundEmail}` : `Đang dùng trên thiết bị`}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 self-end sm:self-center">
+                              <button
+                                type="button"
+                                onClick={() => handleEditDeviceYouTubeAccount(acc.handle)}
+                                title="Đổi tên / Sửa kênh này"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-sky-500/20 text-slate-400 hover:text-sky-300 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Sửa</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDeviceYouTubeAccount(acc.handle)}
+                                title="Xóa kênh này khỏi thiết bị"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Xóa</span>
+                              </button>
+
+                              {isCurrentActive ? (
+                                <span className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Đang Dùng</span>
+                                </span>
+                              ) : isMatchedGmail ? (
+                                <button
+                                  type="button"
+                                  onClick={() => switchActiveYouTubeAccount(acc.handle)}
+                                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:opacity-90 text-white text-xs font-mono font-bold shadow-md shadow-red-600/30 transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Zap className="w-3 h-3 text-amber-300" />
+                                  <span>Chọn Kênh</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled
+                                  title={`Đăng nhập Gmail ${acc.boundEmail} để mở khóa kênh này`}
+                                  className="px-2.5 py-1.5 rounded-xl bg-white/5 text-slate-500 text-xs font-mono font-semibold border border-white/5 cursor-not-allowed flex items-center gap-1"
+                                >
+                                  <Lock className="w-3 h-3 text-amber-400" />
+                                  <span>Khóa</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 
                 {/* 1-Touch Direct Connect Google / YouTube */}
                 <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-red-950/60 via-slate-900 to-rose-950/60 border border-red-500/40 space-y-3 shadow-xl">

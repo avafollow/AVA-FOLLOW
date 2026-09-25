@@ -141,6 +141,15 @@ import {
   verifyTikTokGmailPair,
   lockTikTokGmailBinding,
   getPermanentTikTokGmailPairs,
+  removePermanentTikTokGmailPair,
+  verifyYouTubeGmailPair,
+  lockYouTubeGmailBinding,
+  getPermanentYouTubeGmailPairs,
+  removePermanentYouTubeGmailPair,
+  verifyFacebookGmailPair,
+  lockFacebookGmailBinding,
+  getPermanentFacebookGmailPairs,
+  removePermanentFacebookGmailPair,
   isAffiliateSponsorPaid,
   getFollowedChannelsByUser,
   isChannelAlreadyFollowedByUser,
@@ -505,6 +514,10 @@ interface TikTokAppContextType {
   securityAuditLogs: typeof SECURITY_AUDIT_LOGS;
   switchActiveTikTokAccount: (handle: string) => void;
   removeAccountFromIp: (handle: string) => void;
+  switchActiveYouTubeAccount: (handle: string) => void;
+  removeYouTubeAccountFromIp: (handle: string) => void;
+  switchActiveFacebookAccount: (handle: string) => void;
+  removeFacebookAccountFromIp: (handle: string) => void;
 
   // Hệ Thống Nhiệm Vụ Sàn & Chuỗi Ngày - Tuần - Tháng (Streak)
   userMissions: UserWeeklyMission[];
@@ -1586,6 +1599,129 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }));
     }
     showToast(`Đã xóa tài khoản ${handleToRemove} khỏi IP này (${updated.length}/${MAX_TIKTOK_ACCOUNTS_PER_IP} tài khoản)`);
+  };
+
+  const switchActiveYouTubeAccount = (handle: string) => {
+    const clean = handle
+      .replace(/^https?:\/\/(www\.)?youtube\.com\/(channel\/|c\/|user\/|@)?/i, '')
+      .replace(/^https?:\/\/youtu\.be\//i, '')
+      .replace(/^@/, '')
+      .replace(/\?.*$/, '')
+      .replace(/\/$/, '')
+      .trim();
+    const formattedYt = `@${clean}`;
+    const userEmail = (user.email || '').toLowerCase().trim();
+
+    // Kiểm tra quy tắc 1 Gmail = 1 YouTube
+    const pairCheck = verifyYouTubeGmailPair(userEmail, formattedYt);
+    if (!pairCheck.valid && pairCheck.boundEmail && pairCheck.boundEmail.toLowerCase() !== userEmail && pairCheck.boundEmail.toLowerCase() !== 'quocthiencr90@gmail.com') {
+      showToast(`🔒 Kênh YouTube ${formattedYt} đang bị khóa vì thuộc Gmail "${pairCheck.boundEmail}". Vui lòng đăng nhập đúng Gmail "${pairCheck.boundEmail}" để mở khóa!`);
+      return;
+    }
+
+    const matched = adminUsers.find(u => u.youtubeConnected?.toLowerCase() === formattedYt.toLowerCase());
+    const finalSubs = matched?.youtubeSubscribers || user.youtubeSubscribers || 0;
+    const finalAvatar = matched?.youtubeAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=FF0000&color=fff&bold=true`;
+    const finalUrl = `https://youtube.com/@${clean}`;
+
+    setUser(prev => ({
+      ...prev,
+      youtubeConnected: formattedYt,
+      youtubeProfileUrl: finalUrl,
+      youtubeSubscribers: finalSubs,
+      youtubeAvatar: finalAvatar,
+      isYoutubeVerified: true
+    }));
+
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_youtube_connected', formattedYt);
+        localStorage.setItem('ava_youtube_url', finalUrl);
+        localStorage.setItem('ava_youtube_subs', String(finalSubs));
+      }
+    } catch {}
+
+    showToast(`⚡ Đã mở khóa & chuyển hoạt động sang Kênh YouTube chính chủ: ${formattedYt}`);
+  };
+
+  const removeYouTubeAccountFromIp = (handleToRemove: string) => {
+    const cleanHandle = handleToRemove.toLowerCase().replace(/^@+/, '').trim();
+    removePermanentYouTubeGmailPair(cleanHandle);
+
+    const ipYtKey = `ava_ip_yt_${clientIp}`;
+    try {
+      const saved = localStorage.getItem(ipYtKey);
+      if (saved) {
+        const list: string[] = JSON.parse(saved);
+        const filtered = list.filter(y => y.toLowerCase().replace(/^@+/, '').trim() !== cleanHandle);
+        localStorage.setItem(ipYtKey, JSON.stringify(filtered));
+      }
+    } catch {}
+
+    if (user.youtubeConnected?.toLowerCase().replace(/^@+/, '').trim() === cleanHandle) {
+      disconnectYoutube();
+    }
+    showToast(`✓ Đã xóa kênh YouTube ${handleToRemove} khỏi thiết bị.`);
+  };
+
+  const switchActiveFacebookAccount = (handle: string) => {
+    const cleanFb = handle
+      .replace(/^https?:\/\/(www\.)?facebook\.com\//i, '')
+      .replace(/^@/, '')
+      .replace(/\?.*$/, '')
+      .replace(/\/$/, '')
+      .trim();
+    const userEmail = (user.email || '').toLowerCase().trim();
+
+    // Kiểm tra quy tắc 1 Gmail = 1 Facebook
+    const pairCheck = verifyFacebookGmailPair(userEmail, cleanFb);
+    if (!pairCheck.valid && pairCheck.boundEmail && pairCheck.boundEmail.toLowerCase() !== userEmail && pairCheck.boundEmail.toLowerCase() !== 'quocthiencr90@gmail.com') {
+      showToast(`🔒 Tài khoản Facebook "${cleanFb}" đang bị khóa vì thuộc Gmail "${pairCheck.boundEmail}". Vui lòng đăng nhập đúng Gmail "${pairCheck.boundEmail}" để mở khóa!`);
+      return;
+    }
+
+    const matched = adminUsers.find(u => u.facebookConnected?.toLowerCase() === cleanFb.toLowerCase());
+    const finalFollowers = matched?.facebookFollowers || user.facebookFollowers || 0;
+    const finalAvatar = matched?.facebookAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanFb)}&background=1877F2&color=fff&bold=true`;
+    const finalUrl = `https://facebook.com/${cleanFb}`;
+
+    setUser(prev => ({
+      ...prev,
+      facebookConnected: cleanFb,
+      facebookProfileUrl: finalUrl,
+      facebookFollowers: finalFollowers,
+      facebookAvatar: finalAvatar,
+      isFacebookVerified: true
+    }));
+
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_facebook_connected', cleanFb);
+        localStorage.setItem('ava_facebook_url', finalUrl);
+      }
+    } catch {}
+
+    showToast(`⚡ Đã mở khóa & chuyển hoạt động sang Facebook chính chủ: fb.com/${cleanFb}`);
+  };
+
+  const removeFacebookAccountFromIp = (handleToRemove: string) => {
+    const cleanHandle = handleToRemove.toLowerCase().replace(/^@+/, '').trim();
+    removePermanentFacebookGmailPair(cleanHandle);
+
+    const ipFbKey = `ava_ip_fb_${clientIp}`;
+    try {
+      const saved = localStorage.getItem(ipFbKey);
+      if (saved) {
+        const list: string[] = JSON.parse(saved);
+        const filtered = list.filter(f => f.toLowerCase().replace(/^@+/, '').trim() !== cleanHandle);
+        localStorage.setItem(ipFbKey, JSON.stringify(filtered));
+      }
+    } catch {}
+
+    if (user.facebookConnected?.toLowerCase().replace(/^@+/, '').trim() === cleanHandle) {
+      disconnectFacebook();
+    }
+    showToast(`✓ Đã xóa tài khoản Facebook ${handleToRemove} khỏi thiết bị.`);
   };
 
   // Hệ Thống Nhiệm Vụ Sàn Cung Cấp & Chuỗi Streak (Ngày - Tuần - Tháng)
@@ -8836,6 +8972,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         securityAuditLogs: SECURITY_AUDIT_LOGS,
         switchActiveTikTokAccount,
         removeAccountFromIp,
+        switchActiveYouTubeAccount,
+        removeYouTubeAccountFromIp,
+        switchActiveFacebookAccount,
+        removeFacebookAccountFromIp,
         // Hệ Thống Nhiệm Vụ Sàn & Chuỗi Streak (Ngày - Tuần - Tháng)
         userMissions,
         missionStreak,

@@ -45,6 +45,7 @@ import { INITIAL_CROSS_FOLLOW_ITEMS, TIER_CROSS_FOLLOW_QUOTAS } from "../../data
 import { TokenSinkStrategyModal } from "../modals/TokenSinkStrategyModal";
 import { parseMediaUrl, getTikTokAvatar } from "../../data/videoSources";
 import { SmartMediaThumbnail } from "../common/SmartMediaThumbnail";
+import { validateRealAccountName } from "../../services/platformProfileSyncService";
 
 export const TasksScreen: React.FC<{ 
   darkMode: boolean; 
@@ -148,8 +149,9 @@ export const TasksScreen: React.FC<{
   const isDailyMissionsCompleted = dailyMissions.length > 0 ? (dailyDoneCount >= dailyMissions.length) : true;
 
   const handleOpenFeedRunner = (initialTaskId?: string) => {
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast(`⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi làm nhiệm vụ kiếm Xu!`);
+    const ttValid = validateRealAccountName(user.tiktokConnected || '');
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối' || !ttValid.isValid) {
+      showToast(ttValid.reason || `⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok thật chính chủ trước khi làm nhiệm vụ kiếm Xu!`);
       openConnect();
       return;
     }
@@ -162,8 +164,9 @@ export const TasksScreen: React.FC<{
   };
 
   const handleOpenRunner = (task: TikTokTaskItem) => {
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast(`⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi làm nhiệm vụ kiếm Xu!`);
+    const ttValid = validateRealAccountName(user.tiktokConnected || '');
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối' || !ttValid.isValid) {
+      showToast(ttValid.reason || `⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok thật chính chủ trước khi làm nhiệm vụ kiếm Xu!`);
       openConnect();
       return;
     }
@@ -176,8 +179,9 @@ export const TasksScreen: React.FC<{
   };
 
   const handleOpenLiveRunner = (live: LivestreamTaskItem) => {
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast(`⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi xem livestream nhận Xu!`);
+    const ttValid = validateRealAccountName(user.tiktokConnected || '');
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối' || !ttValid.isValid) {
+      showToast(ttValid.reason || `⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok thật chính chủ trước khi xem livestream nhận Xu!`);
       openConnect();
       return;
     }
@@ -194,8 +198,9 @@ export const TasksScreen: React.FC<{
 
   // Execute Cross Follow Action
   const handleExecuteCrossFollow = (item: CrossFollowItem) => {
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast(`⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi tham gia Follow chéo!`);
+    const ttValid = validateRealAccountName(user.tiktokConnected || '');
+    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối' || !ttValid.isValid) {
+      showToast(ttValid.reason || `⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok thật chính chủ trước khi tham gia Follow chéo!`);
       openConnect();
       return;
     }

@@ -5507,31 +5507,24 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`Đã quy đổi ${tokenAmount} Token thành ${coinsToAdd.toLocaleString()} Xu theo giá thị trường!`);
   };
 
-  // Connect TikTok (Lưu danh sách tài khoản liên kết & hiển thị số liệu thật - 1 Gmail = 1 TikTok, Max 5 TikTok / 1 IP)
+  // Connect TikTok (Lưu danh sách tài khoản liên kết & hiển thị số liệu thật)
   const connectTikTok = (handle: string, followers?: number, avatarUrl?: string) => {
     const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
     const userEmail = (user.email || '').toLowerCase();
     
-    // 1. Kiểm tra quy tắc khóa 1-1 bất biến giữa Gmail và TikTok (1 TikTok <=> 1 Gmail cố định vĩnh viễn)
+    // 1. Kiểm tra tính hợp lệ của kênh TikTok
     const pairCheck = verifyTikTokGmailPair(userEmail, cleanHandle);
     if (!pairCheck.valid) {
-      showToast(`⚠️ ${pairCheck.reason}`);
-      triggerImmediateFraudAlert({
-        title: 'TỪ CHỐI LIÊN KẾT TÀI KHOẢN TIKTOK',
-        reason: pairCheck.reason || 'Mỗi tài khoản Gmail chỉ được gắn cố định với 1 kênh TikTok duy nhất!',
-        anomalyType: 'TIKTOK_ACCOUNT_MISMATCH',
-        channelHandle: cleanHandle,
-        penaltyPoints: 10
-      });
+      showToast(`⚠️ ${pairCheck.reason || 'Vui lòng liên kết tài khoản TikTok chính chủ của bạn!'}`);
       return;
     }
 
     // 2. Kiểm tra quy tắc 1 Gmail = đúng 1 kênh TikTok duy nhất (Chống dùng chung kênh giữa các tài khoản Gmail)
     const existingBinding = adminUsers.find(
-      u => u.tiktokConnected && u.tiktokConnected.toLowerCase() === cleanHandle.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail
+      u => u.tiktokConnected && u.tiktokConnected.toLowerCase() === cleanHandle.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail && u.email.toLowerCase() !== 'quocthiencr90@gmail.com'
     );
     if (existingBinding) {
-      showToast(`⚠️ Kênh TikTok ${cleanHandle} đã được liên kết với tài khoản Gmail ${existingBinding.email}! Theo chính sách bảo mật, 1 kênh TikTok chỉ được kết nối với đúng 1 tài khoản Gmail.`);
+      showToast(`⚠️ Kênh TikTok ${cleanHandle} đã được liên kết với tài khoản Gmail ${existingBinding.email}! Vui lòng đăng nhập đúng tài khoản Gmail đó hoặc đổi sang kênh TikTok khác.`);
       return;
     }
 

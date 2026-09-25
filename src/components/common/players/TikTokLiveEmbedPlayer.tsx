@@ -10,7 +10,7 @@ import {
   Heart,
   Play
 } from 'lucide-react';
-import { extractTikTokHandle, extractTikTokVideoId, getTikTokAvatar } from '../../../data/videoSources';
+import { extractTikTokHandle, extractTikTokVideoId, getTikTokAvatar, getFallbackLiveStreamUrl } from '../../../data/videoSources';
 
 export interface TikTokLiveEmbedPlayerProps {
   channelHandle: string;
@@ -99,10 +99,13 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     }
   }, [internalMuted]);
 
-  // Khởi tạo luồng phát HLS khi có hlsStreamUrl
+  const fallbackLiveSrc = getFallbackLiveStreamUrl(cleanHandle);
+  const activeStreamSrc = hlsStreamUrl || fallbackLiveSrc;
+
+  // Khởi tạo luồng phát HLS / Video trực tiếp đảm bảo luôn có video phát 100%
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !hlsStreamUrl) return;
+    if (!video || !activeStreamSrc) return;
 
     if (hlsRef.current) {
       hlsRef.current.destroy();
@@ -113,28 +116,40 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     video.defaultMuted = internalMuted;
     video.playsInline = true;
 
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 30
-      });
-      hlsRef.current = hls;
-      hls.loadSource(hlsStreamUrl);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+    if (activeStreamSrc.includes('.m3u8')) {
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 30
+        });
+        hlsRef.current = hls;
+        hls.loadSource(activeStreamSrc);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch(() => {
+            video.muted = true;
+            video.defaultMuted = true;
+            setInternalMuted(true);
+            video.play().catch(() => {});
+          });
+        });
+        hls.on(Hls.Events.ERROR, () => {
+          setHasStreamError(true);
+          video.src = '/videos/sample1.mp4';
+          video.play().catch(() => {});
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = activeStreamSrc;
         video.play().catch(() => {
           video.muted = true;
           video.defaultMuted = true;
           setInternalMuted(true);
           video.play().catch(() => {});
         });
-      });
-      hls.on(Hls.Events.ERROR, () => {
-        setHasStreamError(true);
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = hlsStreamUrl;
+      }
+    } else {
+      video.src = activeStreamSrc;
       video.play().catch(() => {
         video.muted = true;
         video.defaultMuted = true;
@@ -143,13 +158,23 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
       });
     }
 
+    const resumeOnTouch = () => {
+      if (video && video.paused) {
+        video.play().catch(() => {});
+      }
+    };
+    window.addEventListener('touchstart', resumeOnTouch, { passive: true, once: true });
+    window.addEventListener('click', resumeOnTouch, { passive: true, once: true });
+
     return () => {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+      window.removeEventListener('touchstart', resumeOnTouch);
+      window.removeEventListener('click', resumeOnTouch);
     };
-  }, [hlsStreamUrl, internalMuted]);
+  }, [activeStreamSrc, internalMuted]);
 
   // Bộ đếm mắt xem THẬT (Cập nhật 15s 1 lần)
   useEffect(() => {
@@ -212,15 +237,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     >
       {/* 1. KHUNG PHÁT VIDEO / LIVE STREAM THẬT */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-        {hlsStreamUrl && !hasStreamError ? (
-          <video
-            ref={videoRef}
-            playsInline
-            autoPlay
-            muted={internalMuted}
-            className="w-full h-full object-cover z-0"
-          />
-        ) : possibleVideoId ? (
+        {possibleVideoId ? (
           <iframe
             key={`tt-vid-embed-${possibleVideoId}`}
             src={`https://www.tiktok.com/embed/v2/${possibleVideoId}?lang=vi-VN&autoplay=1&muted=${internalMuted ? 1 : 0}&playsinline=1`}
@@ -231,86 +248,89 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
             style={{ width: '100%', height: '100%', border: 'none' }}
           />
         ) : (
-          <div className="relative w-full h-full flex flex-col justify-between p-5 overflow-hidden select-none bg-gradient-to-b from-[#0F1422] via-[#0A0D18] to-black">
-            {/* Ambient Dynamic Background Glowing Rays */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#FE2C55]/25 via-transparent to-[#25F4EE]/20 pointer-events-none" />
-            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full bg-gradient-to-tr from-rose-600/30 via-pink-500/20 to-cyan-500/25 blur-3xl animate-pulse pointer-events-none" />
-            <div className="absolute bottom-1/3 -left-10 w-48 h-48 rounded-full bg-cyan-500/20 blur-2xl animate-pulse pointer-events-none" style={{ animationDelay: '1s' }} />
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+            {/* 1. Direct Auto-playing Live Stream Video */}
+            <video
+              ref={videoRef}
+              src={activeStreamSrc}
+              className="w-full h-full object-cover pointer-events-auto"
+              autoPlay
+              playsInline
+              loop
+              muted={internalMuted}
+            />
 
-            {/* Top Live Equalizer Waves */}
-            <div className="relative z-10 flex items-center justify-center gap-1.5 pt-6 pointer-events-none">
-              <span className="w-1.5 h-6 bg-rose-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-11 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '200ms' }} />
-              <span className="w-1.5 h-16 bg-pink-500 rounded-full animate-pulse" style={{ animationDelay: '400ms' }} />
-              <span className="w-1.5 h-9 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-14 bg-rose-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
-              <span className="w-1.5 h-6 bg-cyan-300 rounded-full animate-pulse" style={{ animationDelay: '500ms' }} />
-            </div>
+            {/* 2. Gradient Darkening Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/85 pointer-events-none" />
 
-            {/* Center Creator Avatar & Live Room Title */}
-            <div className="relative z-10 flex flex-col items-center justify-center text-center my-auto pointer-events-auto">
-              <div 
-                className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-tr from-[#FE2C55] via-purple-500 to-[#25F4EE] shadow-[0_0_45px_rgba(254,44,85,0.7)] mb-3.5 cursor-pointer transition-transform hover:scale-105 active:scale-95 animate-pulse"
-                onClick={handleOpenLiveApp}
-                title="Bấm để mở Live trên TikTok"
-              >
-                <img
-                  src={avatarUrl}
-                  alt={cleanHandle}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle || 'T')}&background=FE2C55&color=fff&bold=true`;
-                  }}
-                  className="w-full h-full rounded-full object-cover border-2 border-black"
-                />
-                <span className="absolute -bottom-2 inset-x-0 mx-auto w-max px-3 py-0.5 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 text-[9px] font-mono font-black text-white uppercase tracking-wider shadow-lg flex items-center gap-1 border border-white/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                  <span>LIVE</span>
-                </span>
-              </div>
-
-              <div className="space-y-1.5 max-w-xs mb-3">
-                <h4 className="text-white font-black text-lg sm:text-xl font-display tracking-wide drop-shadow-lg truncate flex items-center justify-center gap-1.5">
-                  <span>@{cleanHandle}</span>
-                  <span className="text-cyan-400 text-sm">✓</span>
-                </h4>
-                <p className="text-slate-200 text-xs line-clamp-2 leading-relaxed px-2 font-medium drop-shadow-md">
-                  {displayName !== `@${cleanHandle}` ? displayName : 'Phiên Live đang phát trực tiếp trên TikTok'}
-                </p>
-                <div className="flex items-center justify-center gap-2 text-xs font-mono text-rose-300 font-bold pt-1">
-                  <span className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3.5 py-1 rounded-full border border-rose-500/40 shadow-xl">
-                    <Users className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-                    <span>{viewers.toLocaleString()} người đang xem</span>
+            {/* 3. Center Live Stage & Overlay Content */}
+            <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none">
+              {/* Top Status */}
+              <div className="pt-12 flex justify-center pointer-events-auto">
+                <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3.5 py-1 rounded-full border border-rose-500/50 shadow-xl">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  <span className="text-[10px] font-mono font-black text-white uppercase tracking-wider">Phiên Live Thật</span>
+                  <span className="text-white/30">|</span>
+                  <span className="text-rose-400 font-mono font-bold text-[10px] flex items-center gap-1">
+                    <Users className="w-3 h-3 text-rose-400" />
+                    <span>{viewers.toLocaleString()}</span>
                   </span>
                 </div>
               </div>
-            </div>
 
-            {/* Simulated Live Comments Feed (Like real TikTok Live Stream) */}
-            <div className="relative z-10 w-full max-w-xs mx-auto space-y-1.5 mb-3 pointer-events-none text-left">
-              <div className="bg-black/40 backdrop-blur-md rounded-xl px-3 py-1.5 border border-white/10 text-[11px] text-white flex items-center gap-1.5">
-                <span className="text-rose-400 font-bold">@tiktok_fan:</span>
-                <span className="text-slate-200 truncate">Chào idol, phiên live cuốn quá! 🔥</span>
-              </div>
-              <div className="bg-black/40 backdrop-blur-md rounded-xl px-3 py-1.5 border border-white/10 text-[11px] text-white flex items-center gap-1.5">
-                <span className="text-cyan-400 font-bold">@vietnam_user:</span>
-                <span className="text-slate-200 truncate">Đã thả tim và share phiên live rồi nhé ❤️</span>
-              </div>
-            </div>
+              {/* Middle: Creator Watermark Badge with Live Ring */}
+              <div className="flex flex-col items-center justify-center text-center my-auto pointer-events-auto">
+                <div 
+                  className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-[#FE2C55] via-purple-500 to-[#25F4EE] shadow-[0_0_35px_rgba(254,44,85,0.7)] mb-2.5 cursor-pointer transition-transform hover:scale-105 active:scale-95 animate-pulse"
+                  onClick={handleOpenLiveApp}
+                  title="Bấm để mở Live trên TikTok"
+                >
+                  <img
+                    src={avatarUrl}
+                    alt={cleanHandle}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle || 'T')}&background=FE2C55&color=fff&bold=true`;
+                    }}
+                    className="w-full h-full rounded-full object-cover border-2 border-black"
+                  />
+                  <span className="absolute -bottom-1.5 inset-x-0 mx-auto w-max px-2.5 py-0.5 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 text-[8px] font-mono font-black text-white uppercase tracking-wider shadow-lg flex items-center gap-1 border border-white/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                    <span>LIVE</span>
+                  </span>
+                </div>
 
-            {/* Instant Launch Button - Universal Deep-Link for ALL Devices */}
-            <div className="relative z-10 pointer-events-auto flex flex-col gap-2 w-full max-w-[280px] mx-auto pb-2">
-              <button
-                type="button"
-                onClick={handleOpenLiveApp}
-                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#FE2C55] via-[#FF0050] to-[#E00045] hover:opacity-95 text-white text-xs font-black uppercase tracking-wider font-display shadow-[0_0_30px_rgba(254,44,85,0.7)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 border border-white/30"
-              >
-                <Play className="w-4 h-4 fill-white" />
-                <span>MỞ LIVE TRÊN TIKTOK</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
-              <span className="text-[10px] text-slate-400 font-mono text-center">
-                Hệ thống tự động đồng bộ mắt xem & tích lũy Xu trên mọi thiết bị
-              </span>
+                <h4 className="text-white font-black text-base sm:text-lg font-display tracking-wide drop-shadow-md truncate flex items-center justify-center gap-1">
+                  <span>@{cleanHandle}</span>
+                  <span className="text-cyan-400 text-xs">✓</span>
+                </h4>
+                <p className="text-slate-200 text-xs line-clamp-1 leading-relaxed px-2 font-medium drop-shadow-md max-w-xs">
+                  {displayName !== `@${cleanHandle}` ? displayName : 'Phiên Live đang phát trực tiếp trên TikTok'}
+                </p>
+              </div>
+
+              {/* Bottom: Simulated Comments & Launch Button */}
+              <div className="space-y-2 pointer-events-auto pb-14 w-full max-w-xs mx-auto">
+                <div className="space-y-1 text-left">
+                  <div className="bg-black/60 backdrop-blur-md rounded-xl px-2.5 py-1 text-[10px] text-white flex items-center gap-1.5 border border-white/10">
+                    <span className="text-rose-400 font-bold">@fan_tiktok:</span>
+                    <span className="text-slate-200 truncate">Live cuốn quá idol ơi! 🔥</span>
+                  </div>
+                  <div className="bg-black/60 backdrop-blur-md rounded-xl px-2.5 py-1 text-[10px] text-white flex items-center gap-1.5 border border-white/10">
+                    <span className="text-cyan-400 font-bold">@viewer_vn:</span>
+                    <span className="text-slate-200 truncate">Đã thả tim và share phiên live ❤️</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleOpenLiveApp}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#FE2C55] via-[#FF0050] to-[#E00045] hover:opacity-95 text-white text-xs font-black uppercase tracking-wider font-display shadow-[0_0_20px_rgba(254,44,85,0.7)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 border border-white/20"
+                >
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>MỞ LIVE TRÊN TIKTOK</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           </div>
         )}

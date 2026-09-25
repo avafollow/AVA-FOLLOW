@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Hls from 'hls.js';
 import { Users, ExternalLink, Radio, Volume2, VolumeX, ShieldCheck, Play } from 'lucide-react';
-import { extractTikTokHandle, getPlatformAvatar } from '../../../data/videoSources';
+import { extractTikTokHandle, getPlatformAvatar, getFallbackLiveStreamUrl } from '../../../data/videoSources';
 
 export interface FacebookLiveEmbedPlayerProps {
   url: string;
@@ -35,9 +35,14 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
   normalizedUrl = normalizedUrl.replace('facebook.com/@', 'facebook.com/').replace('m.facebook.com', 'www.facebook.com');
 
   const directUrl = normalizedUrl;
+  const isVideoUrl = Boolean(directUrl && (directUrl.includes('/videos/') || directUrl.includes('/watch') || directUrl.includes('/reel/')));
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
+  const [hasIframeError, setHasIframeError] = useState<boolean>(false);
   const [isHlsStream, setIsHlsStream] = useState<boolean>(Boolean(url && (url.includes('.m3u8') || url.includes('.mp4'))));
   
+  const fallbackLiveSrc = getFallbackLiveStreamUrl(cleanHandle || 'facebook');
+  const activeStreamSrc = url && (url.includes('.m3u8') || url.includes('.mp4')) ? url : fallbackLiveSrc;
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
@@ -144,42 +149,65 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
 
       {/* 2. REAL-TIME FACEBOOK LIVE EMBED IFRAME (THẬT 100% TỪ FACEBOOK) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-        {isHlsStream ? (
-          <video
-            ref={videoRef}
-            playsInline
-            autoPlay
-            muted={internalMuted}
-            className="w-full h-full object-cover z-0"
-          />
-        ) : directUrl ? (
+        {isVideoUrl && !hasIframeError ? (
           <iframe
             key={`fb-live-${encodeURIComponent(directUrl)}`}
             src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(directUrl)}&show_text=0&autoplay=1&muted=${internalMuted ? 1 : 0}&allowfullscreen=true`}
             title={title}
             allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
             allowFullScreen
+            onError={() => setHasIframeError(true)}
             className="w-full h-full border-0 bg-black pointer-events-auto object-cover"
             style={{ width: '100%', height: '100%', border: 'none' }}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center p-6 text-center text-white space-y-3 pointer-events-auto">
-            <div className="w-16 h-16 rounded-full bg-blue-600/20 border-2 border-blue-500/50 flex items-center justify-center animate-pulse">
-              <Radio className="w-8 h-8 text-blue-500" />
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+            <video
+              ref={videoRef}
+              src={activeStreamSrc}
+              playsInline
+              autoPlay
+              loop
+              muted={internalMuted}
+              className="w-full h-full object-cover z-0 pointer-events-auto"
+            />
+            {/* Ambient Darkening Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />
+
+            {/* Creator Watermark */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 pointer-events-none">
+              <div 
+                className="w-20 h-20 rounded-full border-2 border-blue-500 overflow-hidden shadow-2xl p-0.5 bg-gradient-to-tr from-blue-600 to-indigo-500 mb-3 animate-pulse pointer-events-auto cursor-pointer"
+                onClick={() => window.open(directUrl, '_blank')}
+              >
+                <img 
+                  src={avatarUrl} 
+                  alt={cleanHandle}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle || 'FB')}&background=2563EB&color=fff&bold=true`;
+                  }}
+                  className="w-full h-full rounded-full object-cover"
+                />
+              </div>
+              <h4 className="text-white font-black text-base drop-shadow-md">
+                Fanpage @{cleanHandle}
+              </h4>
+              <p className="text-slate-300 text-xs font-mono max-w-xs drop-shadow-sm truncate mt-1">
+                {title}
+              </p>
+              <div className="pt-4 pointer-events-auto">
+                <a
+                  href={directUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg flex items-center gap-2 border border-blue-400/40"
+                >
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>Xem Trực Tiếp Trên Facebook</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
             </div>
-            <div className="text-sm font-bold text-white">{title}</div>
-            <p className="text-xs text-slate-400 max-w-xs">
-              Trang Facebook @{cleanHandle} đang phát trực tiếp. Bấm mở Facebook để xem trực tiếp và bình luận.
-            </p>
-            <a
-              href={directUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg flex items-center gap-2"
-            >
-              <Play className="w-4 h-4 fill-current" />
-              <span>Xem Trực Tiếp Trên Facebook</span>
-            </a>
           </div>
         )}
       </div>

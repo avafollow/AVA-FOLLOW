@@ -1987,9 +1987,9 @@ export function getPermanentTikTokGmailPairs(): TikTokGmailPair[] {
 }
 
 /**
- * Kiểm tra tính hợp lệ của cặp Gmail - TikTok:
- * 1. Gmail này đã từng đăng ký kênh TikTok nào chưa? Nếu đã đăng ký kênh A mà cố tình nhập kênh B -> Từ chối.
- * 2. Kênh TikTok này đã được đăng ký bởi Gmail khác chưa? Nếu đã thuộc Gmail X mà Gmail Y cố kết nối -> Từ chối.
+ * Kiểm tra tính hợp lệ của cặp Gmail - TikTok (Bảo Lưu Cố Định 1-1):
+ * 1. Gmail này đã từng liên kết kênh TikTok nào chưa? Nếu đã liên kết kênh A thì KHÔNG ĐƯỢC liên kết thêm kênh B thứ 2.
+ * 2. Kênh TikTok này đã được liên kết bởi Gmail khác chưa? Nếu đã thuộc Gmail X thì Gmail Y không được kết nối.
  */
 export function verifyTikTokGmailPair(email: string, tiktokHandle: string): {
   valid: boolean;
@@ -2006,14 +2006,28 @@ export function verifyTikTokGmailPair(email: string, tiktokHandle: string): {
 
   const pairs = getPermanentTikTokGmailPairs();
 
-  // 1. Kiểm tra nếu kênh TikTok này đã được một Gmail KHÁC đăng ký từ trước (tránh dùng chung nick giữa nhiều người)
+  // 1. KIỂM TRA NẾU GMAIL NÀY ĐÃ TỪNG LIÊN KẾT KÊNH TIKTOK NÀO TRƯỚC ĐÂY (BẢO LƯU 1 GMAIL = 1 TIKTOK DUY NHẤT)
+  const existingPairByEmail = pairs.find(p => p.email.toLowerCase().trim() === cleanEmail);
+  if (existingPairByEmail) {
+    const boundHandle = existingPairByEmail.tiktokHandle.toLowerCase().replace(/^@+/, '').trim();
+    if (boundHandle !== cleanTikTok && cleanEmail !== 'quocthiencr90@gmail.com') {
+      return {
+        valid: false,
+        reason: `🔒 CHÍNH SÁCH BẢO LƯU: Gmail "${cleanEmail}" đã được liên kết cố định duy nhất với kênh TikTok @${existingPairByEmail.tiktokHandle}. Mỗi Gmail chỉ được kết nối đúng 1 kênh TikTok duy nhất và không thể thay đổi. Vui lòng đăng nhập Gmail khác nếu muốn kết nối kênh TikTok này!`,
+        boundTikTok: existingPairByEmail.tiktokHandle,
+        boundEmail: existingPairByEmail.email
+      };
+    }
+  }
+
+  // 2. KIỂM TRA NẾU KÊNH TIKTOK NÀY ĐÃ ĐƯỢC MỘT GMAIL KHÁC ĐĂNG KÝ
   const existingPairByTikTok = pairs.find(p => p.tiktokHandle.toLowerCase().replace(/^@+/, '').trim() === cleanTikTok);
   if (existingPairByTikTok) {
     const existingEmail = existingPairByTikTok.email.toLowerCase().trim();
     if (existingEmail !== cleanEmail && existingEmail !== 'quocthiencr90@gmail.com') {
       return {
         valid: false,
-        reason: `Kênh TikTok @${cleanTikTok} đã liên kết với Gmail "${existingPairByTikTok.email}". Vui lòng đăng nhập đúng Gmail đó hoặc liên kết kênh TikTok chính chủ khác của bạn!`,
+        reason: `Kênh TikTok @${cleanTikTok} đã liên kết cố định với Gmail "${existingPairByTikTok.email}". Vui lòng đăng nhập đúng Gmail đó để sử dụng!`,
         boundEmail: existingPairByTikTok.email
       };
     }
@@ -2023,7 +2037,7 @@ export function verifyTikTokGmailPair(email: string, tiktokHandle: string): {
 }
 
 /**
- * Khóa chặt cặp Gmail <=> TikTok vào cơ sở dữ liệu và cho phép cập nhật khi đổi kênh
+ * Khóa chặt cặp Gmail <=> TikTok vào cơ sở dữ liệu (Bảo lưu vĩnh viễn)
  */
 export function lockTikTokGmailBinding(email: string, tiktokHandle: string, ipAddress?: string): void {
   if (typeof window === 'undefined') return;
@@ -2033,6 +2047,11 @@ export function lockTikTokGmailBinding(email: string, tiktokHandle: string, ipAd
 
   try {
     const pairs = getPermanentTikTokGmailPairs();
+    const existing = pairs.find(p => p.email.toLowerCase().trim() === cleanEmail);
+    if (existing && cleanEmail !== 'quocthiencr90@gmail.com') {
+      // Đã có binding bảo lưu rồi -> Giữ nguyên, không ghi đè
+      return;
+    }
     const otherPairs = pairs.filter(p => p.email.toLowerCase() !== cleanEmail);
     const updated = [
       ...otherPairs,
@@ -2094,13 +2113,29 @@ export function verifyYouTubeGmailPair(email: string, youtubeHandle: string): {
   }
 
   const pairs = getPermanentYouTubeGmailPairs();
+
+  // 1. KIỂM TRA NẾU GMAIL NÀY ĐÃ TỪNG LIÊN KẾT KÊNH YOUTUBE NÀO TRƯỚC ĐÂY (BẢO LƯU 1 GMAIL = 1 YOUTUBE DUY NHẤT)
+  const existingPairByEmail = pairs.find(p => p.email.toLowerCase().trim() === cleanEmail);
+  if (existingPairByEmail) {
+    const boundHandle = existingPairByEmail.youtubeHandle.toLowerCase().replace(/^https?:\/\/(www\.)?youtube\.com\/(channel\/|c\/|user\/|@)?/i, '').replace(/^@+/, '').trim();
+    if (boundHandle !== cleanYouTube && cleanEmail !== 'quocthiencr90@gmail.com') {
+      return {
+        valid: false,
+        reason: `🔒 CHÍNH SÁCH BẢO LƯU: Gmail "${cleanEmail}" đã được liên kết cố định duy nhất với Kênh YouTube ${existingPairByEmail.youtubeHandle}. Mỗi Gmail chỉ được kết nối đúng 1 kênh YouTube duy nhất và không thể thay đổi. Vui lòng đăng nhập Gmail khác nếu muốn kết nối kênh YouTube này!`,
+        boundYouTube: existingPairByEmail.youtubeHandle,
+        boundEmail: existingPairByEmail.email
+      };
+    }
+  }
+
+  // 2. KIỂM TRA NẾU KÊNH YOUTUBE NÀY ĐÃ ĐƯỢC MỘT GMAIL KHÁC ĐĂNG KÝ
   const existingPairByYouTube = pairs.find(p => p.youtubeHandle.toLowerCase().replace(/^@+/, '').trim() === cleanYouTube);
   if (existingPairByYouTube) {
     const existingEmail = existingPairByYouTube.email.toLowerCase().trim();
     if (existingEmail !== cleanEmail && existingEmail !== 'quocthiencr90@gmail.com') {
       return {
         valid: false,
-        reason: `Kênh YouTube @${cleanYouTube} đã liên kết với Gmail "${existingPairByYouTube.email}". Vui lòng đăng nhập đúng Gmail đó hoặc liên kết kênh YouTube chính chủ khác!`,
+        reason: `Kênh YouTube @${cleanYouTube} đã liên kết cố định với Gmail "${existingPairByYouTube.email}". Vui lòng đăng nhập đúng Gmail đó để sử dụng!`,
         boundEmail: existingPairByYouTube.email
       };
     }
@@ -2117,6 +2152,11 @@ export function lockYouTubeGmailBinding(email: string, youtubeHandle: string, ip
 
   try {
     const pairs = getPermanentYouTubeGmailPairs();
+    const existing = pairs.find(p => p.email.toLowerCase().trim() === cleanEmail);
+    if (existing && cleanEmail !== 'quocthiencr90@gmail.com') {
+      // Đã có binding bảo lưu rồi -> Giữ nguyên, không ghi đè
+      return;
+    }
     const otherPairs = pairs.filter(p => p.email.toLowerCase() !== cleanEmail);
     const updated = [
       ...otherPairs,
@@ -2178,13 +2218,29 @@ export function verifyFacebookGmailPair(email: string, facebookHandle: string): 
   }
 
   const pairs = getPermanentFacebookGmailPairs();
+
+  // 1. KIỂM TRA NẾU GMAIL NÀY ĐÃ TỪNG LIÊN KẾT TÀI KHOẢN FACEBOOK NÀO TRƯỚC ĐÂY (BẢO LƯU 1 GMAIL = 1 FACEBOOK DUY NHẤT)
+  const existingPairByEmail = pairs.find(p => p.email.toLowerCase().trim() === cleanEmail);
+  if (existingPairByEmail) {
+    const boundHandle = existingPairByEmail.facebookHandle.toLowerCase().replace(/^https?:\/\/(www\.)?facebook\.com\//i, '').replace(/^@+/, '').trim();
+    if (boundHandle !== cleanFb && cleanEmail !== 'quocthiencr90@gmail.com') {
+      return {
+        valid: false,
+        reason: `🔒 CHÍNH SÁCH BẢO LƯU: Gmail "${cleanEmail}" đã được liên kết cố định duy nhất với tài khoản Facebook fb.com/${existingPairByEmail.facebookHandle}. Mỗi Gmail chỉ được kết nối đúng 1 tài khoản Facebook duy nhất và không thể thay đổi. Vui lòng đăng nhập Gmail khác nếu muốn kết nối tài khoản này!`,
+        boundFacebook: existingPairByEmail.facebookHandle,
+        boundEmail: existingPairByEmail.email
+      };
+    }
+  }
+
+  // 2. KIỂM TRA NẾU TÀI KHOẢN FACEBOOK NÀY ĐÃ ĐƯỢC MỘT GMAIL KHÁC ĐĂNG KÝ
   const existingPairByFb = pairs.find(p => p.facebookHandle.toLowerCase().replace(/^@+/, '').trim() === cleanFb);
   if (existingPairByFb) {
     const existingEmail = existingPairByFb.email.toLowerCase().trim();
     if (existingEmail !== cleanEmail && existingEmail !== 'quocthiencr90@gmail.com') {
       return {
         valid: false,
-        reason: `Tài khoản Facebook "${cleanFb}" đã liên kết với Gmail "${existingPairByFb.email}". Vui lòng đăng nhập đúng Gmail đó!`,
+        reason: `Tài khoản Facebook "${cleanFb}" đã liên kết cố định với Gmail "${existingPairByFb.email}". Vui lòng đăng nhập đúng Gmail đó để sử dụng!`,
         boundEmail: existingPairByFb.email
       };
     }
@@ -2201,6 +2257,11 @@ export function lockFacebookGmailBinding(email: string, facebookHandle: string, 
 
   try {
     const pairs = getPermanentFacebookGmailPairs();
+    const existing = pairs.find(p => p.email.toLowerCase().trim() === cleanEmail);
+    if (existing && cleanEmail !== 'quocthiencr90@gmail.com') {
+      // Đã có binding bảo lưu rồi -> Giữ nguyên, không ghi đè
+      return;
+    }
     const otherPairs = pairs.filter(p => p.email.toLowerCase() !== cleanEmail);
     const updated = [
       ...otherPairs,

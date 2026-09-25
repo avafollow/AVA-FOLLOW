@@ -5903,9 +5903,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       .replace(/\/$/, '');
     const userEmail = (user.email || '').toLowerCase();
 
-    // 1. Kiểm tra 1 Gmail = đúng 1 tài khoản Facebook
+    // 1. Kiểm tra 1 Gmail = đúng 1 tài khoản Facebook (Đối soát bất biến)
+    const pairCheck = verifyFacebookGmailPair(userEmail, clean);
+    if (!pairCheck.valid) {
+      showToast(`⚠️ ${pairCheck.reason || 'Vui lòng liên kết tài khoản Facebook chính chủ của bạn!'}`);
+      return;
+    }
+
     const existingBinding = adminUsers.find(
-      u => u.facebookConnected && u.facebookConnected.toLowerCase() === clean.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail
+      u => u.facebookConnected && u.facebookConnected.toLowerCase() === clean.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail && u.email.toLowerCase() !== 'quocthiencr90@gmail.com'
     );
     if (existingBinding) {
       showToast(`⚠️ Tài khoản Facebook "${clean}" đã được liên kết với Gmail ${existingBinding.email}! Mỗi Facebook chỉ gắn với 1 tài khoản Gmail.`);
@@ -5930,6 +5936,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         localStorage.setItem(ipFbKey, JSON.stringify(ipFbList));
       } catch {}
     }
+
+    lockFacebookGmailBinding(userEmail, clean, clientIp);
 
     const finalFbAvatar = avatarUrl || user.facebookAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=1877F2&color=fff&bold=true`;
     const finalFbUrl = urlOrHandle.startsWith('http') ? urlOrHandle : `https://facebook.com/${clean}`;
@@ -6094,9 +6102,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const formattedYt = clean ? `@${clean}` : `@${user.name?.replace(/\s+/g, '').toLowerCase() || 'youtube_channel'}`;
     const userEmail = (user.email || '').toLowerCase();
 
-    // 1. Kiểm tra 1 Gmail = đúng 1 tài khoản YouTube
+    // 1. Kiểm tra 1 Gmail = đúng 1 tài khoản YouTube (Đối soát bất biến)
+    const pairCheck = verifyYouTubeGmailPair(userEmail, formattedYt);
+    if (!pairCheck.valid) {
+      showToast(`⚠️ ${pairCheck.reason || 'Vui lòng liên kết Kênh YouTube chính chủ của bạn!'}`);
+      return;
+    }
+
     const existingBinding = adminUsers.find(
-      u => u.youtubeConnected && u.youtubeConnected.toLowerCase() === formattedYt.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail
+      u => u.youtubeConnected && u.youtubeConnected.toLowerCase() === formattedYt.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail && u.email.toLowerCase() !== 'quocthiencr90@gmail.com'
     );
     if (existingBinding) {
       showToast(`⚠️ Kênh YouTube "${formattedYt}" đã được liên kết với Gmail ${existingBinding.email}! Mỗi YouTube chỉ gắn với 1 tài khoản Gmail.`);
@@ -6121,6 +6135,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         localStorage.setItem(ipYtKey, JSON.stringify(ipYtList));
       } catch {}
     }
+
+    lockYouTubeGmailBinding(userEmail, formattedYt, clientIp);
 
     const finalYtAvatar = avatarUrl || user.youtubeAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean || 'YT')}&background=FF0000&color=fff&bold=true`;
     const finalYtUrl = urlOrHandle && urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean || 'channel'}`;

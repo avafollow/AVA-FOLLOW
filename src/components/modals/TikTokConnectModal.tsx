@@ -304,6 +304,18 @@ export const TikTokConnectModal: React.FC = () => {
     showToast(`✏️ Hãy nhập link/tên Facebook mới rồi bấm "Xác nhận & Liên kết"`);
   };
 
+  const boundTikTokPair = permanentPairs.find(p => p.email.toLowerCase().trim() === currentEmail);
+  const isTikTokBound = (!!boundTikTokPair || (user.isTikTokVerified && !!user.tiktokConnected && user.tiktokConnected !== '@chưa_kết_nối' && user.tiktokConnected !== 'Chưa kết nối')) && currentEmail !== 'quocthiencr90@gmail.com';
+  const boundTikTokHandle = boundTikTokPair?.tiktokHandle || (user.tiktokConnected !== '@chưa_kết_nối' && user.tiktokConnected !== 'Chưa kết nối' ? user.tiktokConnected : '');
+
+  const boundFbPair = permanentFbPairs.find(p => p.email.toLowerCase().trim() === currentEmail);
+  const isFbBound = (!!boundFbPair || (user.isFacebookVerified && !!user.facebookConnected && user.facebookConnected !== 'Chưa kết nối')) && currentEmail !== 'quocthiencr90@gmail.com';
+  const boundFbHandle = boundFbPair?.facebookHandle || (user.facebookConnected !== 'Chưa kết nối' ? user.facebookConnected : '');
+
+  const boundYtPair = permanentYtPairs.find(p => p.email.toLowerCase().trim() === currentEmail);
+  const isYtBound = (!!boundYtPair || (user.isYoutubeVerified && !!user.youtubeConnected && user.youtubeConnected !== 'Chưa kết nối')) && currentEmail !== 'quocthiencr90@gmail.com';
+  const boundYtHandle = boundYtPair?.youtubeHandle || (user.youtubeConnected !== 'Chưa kết nối' ? user.youtubeConnected : '');
+
   const bioCode = user.bioVerificationCode || 'TIKTOK-VERIFY-8899';
 
   const handleCopyCode = () => {
@@ -576,6 +588,49 @@ export const TikTokConnectModal: React.FC = () => {
           </button>
         </div>
 
+        {/* 1-1-1 Trinity Binding Summary Banner */}
+        <div className="p-3 rounded-2xl bg-black/60 border border-indigo-500/30 space-y-2 relative z-10 shadow-lg">
+          <div className="flex items-center justify-between text-[11px] font-mono">
+            <span className="text-indigo-300 flex items-center gap-1.5 font-bold">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>ĐỐI SOÁT 1 GMAIL = 1 TIKTOK, 1 FACEBOOK, 1 YOUTUBE</span>
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[9px] font-bold border border-emerald-500/30 flex items-center gap-1">
+              <Lock className="w-2.5 h-2.5" />
+              BẢO LƯU BẤT BIẾN
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 text-[10px] font-mono">
+            <div className={`p-2 rounded-xl border flex flex-col items-center text-center transition-all ${isTikTokBound ? 'bg-rose-950/40 border-rose-500/40 text-rose-300 shadow-sm' : 'bg-slate-900/50 border-white/5 text-slate-400'}`}>
+              <span className="font-bold flex items-center gap-1 text-[10px]">
+                {isTikTokBound ? <Lock className="w-2.5 h-2.5 text-rose-400" /> : <Unlock className="w-2.5 h-2.5 text-slate-500" />}
+                TikTok
+              </span>
+              <span className="truncate max-w-full font-semibold text-[9px] mt-0.5">
+                {boundTikTokHandle || 'Chưa liên kết'}
+              </span>
+            </div>
+            <div className={`p-2 rounded-xl border flex flex-col items-center text-center transition-all ${isFbBound ? 'bg-blue-950/40 border-blue-500/40 text-blue-300 shadow-sm' : 'bg-slate-900/50 border-white/5 text-slate-400'}`}>
+              <span className="font-bold flex items-center gap-1 text-[10px]">
+                {isFbBound ? <Lock className="w-2.5 h-2.5 text-blue-400" /> : <Unlock className="w-2.5 h-2.5 text-slate-500" />}
+                Facebook
+              </span>
+              <span className="truncate max-w-full font-semibold text-[9px] mt-0.5">
+                {boundFbHandle ? `fb.com/${boundFbHandle}` : 'Chưa liên kết'}
+              </span>
+            </div>
+            <div className={`p-2 rounded-xl border flex flex-col items-center text-center transition-all ${isYtBound ? 'bg-red-950/40 border-red-500/40 text-red-300 shadow-sm' : 'bg-slate-900/50 border-white/5 text-slate-400'}`}>
+              <span className="font-bold flex items-center gap-1 text-[10px]">
+                {isYtBound ? <Lock className="w-2.5 h-2.5 text-red-400" /> : <Unlock className="w-2.5 h-2.5 text-slate-500" />}
+                YouTube
+              </span>
+              <span className="truncate max-w-full font-semibold text-[9px] mt-0.5">
+                {boundYtHandle || 'Chưa liên kết'}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* ========================================================================= */}
         {/* TAB 1: TIKTOK CONNECTION                                                  */}
         {/* ========================================================================= */}
@@ -585,6 +640,19 @@ export const TikTokConnectModal: React.FC = () => {
             {user.isTikTokVerified && user.tiktokConnected && !isTtEditing ? (
               /* Already verified state */
               <div className="space-y-4">
+                {/* 🔒 IMMUTABLE LOCKED BANNER */}
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 shadow-md">
+                  <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    <p className="font-bold text-emerald-300 font-mono flex items-center gap-1.5 uppercase">
+                      <span>🔒 ĐÃ BẢO LƯU BẤT BIẾN: 1 GMAIL = 1 KÊNH TIKTOK DUY NHẤT</span>
+                    </p>
+                    <p className="text-slate-300 mt-0.5">
+                      Gmail <strong className="text-white">{currentEmail}</strong> đã được bảo lưu cố định với kênh TikTok <strong className="text-rose-400">{user.tiktokConnected}</strong>. Mọi nhiệm vụ TikTok kiếm Xu sẽ đối soát chuẩn xác theo kênh này. Hệ thống không cho phép liên kết thêm tài khoản thứ 2 trên Gmail này!
+                    </p>
+                  </div>
+                </div>
+
                 <div className="p-5 rounded-3xl bg-gradient-to-br from-rose-950/40 via-slate-900 to-black border border-rose-500/40 shadow-xl space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3.5">
@@ -643,30 +711,17 @@ export const TikTokConnectModal: React.FC = () => {
                     <button
                       onClick={() => handleConnectTikTok(true)}
                       disabled={isVerifying}
-                      className="px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 flex items-center gap-1.5 transition-all text-[11px] font-mono font-bold cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 flex items-center gap-1.5 transition-all text-xs font-mono font-bold cursor-pointer"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin' : ''}`} />
-                      <span>Đồng Bộ Lại Số Liệu Thật</span>
+                      <span>Đồng Bộ Lại Số Liệu Kênh Thật</span>
                     </button>
 
                     <button
-                      onClick={() => {
-                        setHandle(user.tiktokConnected || '');
-                        setTtFollowers(String(user.tiktokFollowers || ''));
-                        setTtAvatar(user.tiktokAvatar || user.avatar || '');
-                        setIsTtEditing(true);
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all text-[11px] font-mono font-bold"
+                      onClick={closeConnect}
+                      className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-mono font-bold transition-all cursor-pointer"
                     >
-                      <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Cập Nhật Thủ Công</span>
-                    </button>
-
-                    <button
-                      onClick={disconnectTikTok}
-                      className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-mono font-bold transition-all"
-                    >
-                      Hủy kết nối
+                      Đã Khóa Bảo Lưu (Đóng)
                     </button>
                   </div>
                 </div>
@@ -677,7 +732,7 @@ export const TikTokConnectModal: React.FC = () => {
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-cyan-300 flex items-center gap-1.5 font-mono uppercase tracking-wider">
                         <Users className="h-4 w-4 text-cyan-400" />
-                        <span>Kênh TikTok Trên Thiết Bị ({deviceTikTokAccounts.length})</span>
+                        <span>Kênh TikTok Trên Thiết BỊ ({deviceTikTokAccounts.length})</span>
                       </span>
                       <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 text-[10px] font-mono border border-cyan-500/30">
                         1 Gmail = 1 TikTok
@@ -733,28 +788,6 @@ export const TikTokConnectModal: React.FC = () => {
                             </div>
 
                             <div className="flex items-center gap-1.5 self-end sm:self-center">
-                              {/* Nút Sửa / Đổi tên */}
-                              <button
-                                type="button"
-                                onClick={() => handleEditDeviceAccount(acc.handle)}
-                                title="Đổi tên / Sửa kênh này"
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-sky-500/20 text-slate-400 hover:text-sky-300 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                <span className="hidden xs:inline font-mono">Sửa</span>
-                              </button>
-
-                              {/* Nút Xóa tài khoản */}
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteDeviceAccount(acc.handle)}
-                                title="Xóa tài khoản này khỏi thiết bị"
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span className="hidden xs:inline font-mono">Xóa</span>
-                              </button>
-
                               {isCurrentActive ? (
                                 <span className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -797,19 +830,53 @@ export const TikTokConnectModal: React.FC = () => {
                   </button>
                 </div>
               </div>
+            ) : isTikTokBound ? (
+              /* Gmail already has a locked TikTok binding */
+              <div className="p-5 rounded-3xl bg-gradient-to-br from-rose-950/40 via-slate-900 to-black border border-rose-500/40 space-y-4 shadow-xl text-center">
+                <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto shadow-lg">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-black text-white text-sm font-display uppercase tracking-wider">
+                    TÀI KHOẢN GMAIL ĐÃ ĐƯỢC KHÓA BẢO LƯU TIKTOK
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed max-w-md mx-auto">
+                    Gmail <strong className="text-white">{currentEmail}</strong> đã liên kết duy nhất với kênh TikTok <strong className="text-rose-400">{boundTikTokHandle}</strong>.
+                  </p>
+                  <div className="text-xs text-amber-300/90 font-mono leading-relaxed bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 text-left space-y-1 shadow-inner">
+                    <p className="font-bold flex items-center gap-1.5 text-amber-300">
+                      <ShieldCheck className="w-4 h-4 text-amber-400" />
+                      <span>CHÍNH SÁCH BẢO LƯU BẤT BIẾN:</span>
+                    </p>
+                    <p className="text-slate-300">
+                      Mỗi tài khoản Gmail chỉ được liên kết với 1 kênh TikTok duy nhất nhằm chống gian lận nhiệm vụ và bảo vệ số dư Xu của bạn.
+                    </p>
+                    <p className="text-amber-400 font-bold pt-1">
+                      👉 Muốn sử dụng tài khoản TikTok khác, bạn bắt buộc phải đăng nhập bằng tài khoản Gmail khác!
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsTtEditing(false)}
+                  className="py-2.5 px-6 rounded-xl bg-gradient-to-r from-[#FF0050] to-rose-600 text-white font-bold text-xs font-mono shadow-lg shadow-rose-600/30 cursor-pointer"
+                >
+                  Quay Lại Kênh TikTok Đã Bảo Lưu
+                </button>
+              </div>
             ) : (
               /* Connect TikTok Form */
               <div className="space-y-4">
                 
-                {/* 1 GMAIL = 1 TIKTOK SECURITY BANNER */}
-                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5">
+                {/* 1 GMAIL = 1 TIKTOK SECURITY WARNING BANNER */}
+                <div className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 flex items-start gap-3 shadow-lg">
                   <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                  <div className="text-[11px] leading-relaxed">
-                    <p className="font-bold text-amber-300 font-mono">
-                      🔒 CHÍNH SÁCH BẢO MẬT: 1 GMAIL = 1 KÊNH TIKTOK DUY NHẤT
+                  <div className="text-xs leading-relaxed space-y-1">
+                    <p className="font-black text-amber-300 font-mono uppercase tracking-wide">
+                      ⚠️ CẢNH BÁO QUAN TRỌNG: KHÓA BẢO LƯU CỐ ĐỊNH (1 GMAIL = 1 TIKTOK)
                     </p>
-                    <p className="text-slate-300 mt-0.5">
-                      Mỗi tài khoản Gmail chỉ được liên kết cố định với 1 tài khoản TikTok. Dữ liệu này được bảo lưu vĩnh viễn trên hệ thống đối soát chống gian lận nhằm bảo vệ quyền lợi nhận Xu của bạn.
+                    <p className="text-slate-200">
+                      Hãy chắc chắn chọn đúng tài khoản TikTok chính chủ bạn đang dùng. Sau khi kết nối, hệ thống sẽ <strong>khóa bảo lưu vĩnh viễn</strong> và <strong>không thể thay đổi hay liên kết thêm tài khoản TikTok thứ 2</strong> trên Gmail này!
                     </p>
                   </div>
                 </div>
@@ -1094,6 +1161,19 @@ export const TikTokConnectModal: React.FC = () => {
             {user.isFacebookVerified && user.facebookConnected && !isFbEditing ? (
               /* Already verified state */
               <div className="space-y-4">
+                {/* 🔒 IMMUTABLE LOCKED BANNER */}
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 shadow-md">
+                  <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    <p className="font-bold text-emerald-300 font-mono flex items-center gap-1.5 uppercase">
+                      <span>🔒 ĐÃ BẢO LƯU BẤT BIẾN: 1 GMAIL = 1 FACEBOOK DUY NHẤT</span>
+                    </p>
+                    <p className="text-slate-300 mt-0.5">
+                      Gmail <strong className="text-white">{currentEmail}</strong> đã được bảo lưu cố định với Facebook <strong className="text-blue-400">fb.com/{cleanFb}</strong>. Mọi nhiệm vụ tương tác Facebook kiếm Xu sẽ đối soát chính xác theo tài khoản này. Không thể liên kết thêm Facebook thứ 2 trên Gmail này!
+                    </p>
+                  </div>
+                </div>
+
                 <div className="p-5 rounded-3xl bg-gradient-to-br from-blue-950/40 via-slate-900 to-black border border-blue-500/40 shadow-xl space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3.5">
@@ -1150,30 +1230,17 @@ export const TikTokConnectModal: React.FC = () => {
                     <button
                       onClick={() => handleConnectFacebook(true)}
                       disabled={isFbVerifying}
-                      className="px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 flex items-center gap-1.5 transition-all text-[11px] font-mono font-bold cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 flex items-center gap-1.5 transition-all text-xs font-mono font-bold cursor-pointer"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isFbVerifying ? 'animate-spin' : ''}`} />
-                      <span>Đồng Bộ Lại Số Liệu Thật</span>
+                      <span>Đồng Bộ Lại Số Liệu Trang Thật</span>
                     </button>
 
                     <button
-                      onClick={() => {
-                        setFbUrl(user.facebookProfileUrl || user.facebookConnected || '');
-                        setFbFollowers(String(user.facebookFollowers || ''));
-                        setFbAvatar(user.facebookAvatar || user.avatar || '');
-                        setIsFbEditing(true);
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all text-[11px] font-mono font-bold"
+                      onClick={closeConnect}
+                      className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-mono font-bold transition-all cursor-pointer"
                     >
-                      <Edit3 className="w-3.5 h-3.5 text-blue-400" />
-                      <span>Cập Nhật Thủ Công</span>
-                    </button>
-
-                    <button
-                      onClick={disconnectFacebook}
-                      className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-mono font-bold transition-all"
-                    >
-                      Hủy kết nối
+                      Đã Khóa Bảo Lưu (Đóng)
                     </button>
                   </div>
                 </div>
@@ -1240,28 +1307,6 @@ export const TikTokConnectModal: React.FC = () => {
                             </div>
 
                             <div className="flex items-center gap-1.5 self-end sm:self-center">
-                              {/* Nút Sửa / Đổi tên */}
-                              <button
-                                type="button"
-                                onClick={() => handleEditDeviceFacebookAccount(acc.handle)}
-                                title="Đổi tên / Sửa tài khoản này"
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-sky-500/20 text-slate-400 hover:text-sky-300 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                <span className="hidden xs:inline font-mono">Sửa</span>
-                              </button>
-
-                              {/* Nút Xóa tài khoản */}
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteDeviceFacebookAccount(acc.handle)}
-                                title="Xóa tài khoản này khỏi thiết bị"
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span className="hidden xs:inline font-mono">Xóa</span>
-                              </button>
-
                               {isCurrentActive ? (
                                 <span className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1302,19 +1347,53 @@ export const TikTokConnectModal: React.FC = () => {
                   Hoàn Tất &amp; Đóng
                 </button>
               </div>
+            ) : isFbBound ? (
+              /* Gmail already has a locked Facebook binding */
+              <div className="p-5 rounded-3xl bg-gradient-to-br from-blue-950/40 via-slate-900 to-black border border-blue-500/40 space-y-4 shadow-xl text-center">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/40 text-blue-400 flex items-center justify-center mx-auto shadow-lg">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-black text-white text-sm font-display uppercase tracking-wider">
+                    TÀI KHOẢN GMAIL ĐÃ ĐƯỢC KHÓA BẢO LƯU FACEBOOK
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed max-w-md mx-auto">
+                    Gmail <strong className="text-white">{currentEmail}</strong> đã liên kết duy nhất với Facebook <strong className="text-blue-400">fb.com/{boundFbHandle}</strong>.
+                  </p>
+                  <div className="text-xs text-amber-300/90 font-mono leading-relaxed bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 text-left space-y-1 shadow-inner">
+                    <p className="font-bold flex items-center gap-1.5 text-amber-300">
+                      <ShieldCheck className="w-4 h-4 text-amber-400" />
+                      <span>CHÍNH SÁCH BẢO LƯU BẤT BIẾN:</span>
+                    </p>
+                    <p className="text-slate-300">
+                      Mỗi tài khoản Gmail chỉ được liên kết với 1 tài khoản Facebook duy nhất nhằm chống gian lận nhiệm vụ và bảo vệ số dư Xu của bạn.
+                    </p>
+                    <p className="text-amber-400 font-bold pt-1">
+                      👉 Muốn sử dụng tài khoản Facebook khác, bạn bắt buộc phải đăng nhập bằng tài khoản Gmail khác!
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFbEditing(false)}
+                  className="py-2.5 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs font-mono shadow-lg shadow-blue-600/30 cursor-pointer"
+                >
+                  Quay Lại Facebook Đã Bảo Lưu
+                </button>
+              </div>
             ) : (
               /* Connect Facebook Form */
               <div className="space-y-4">
                 
-                {/* 1 GMAIL = 1 FACEBOOK SECURITY BANNER */}
-                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5">
+                {/* 1 GMAIL = 1 FACEBOOK SECURITY WARNING BANNER */}
+                <div className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 flex items-start gap-3 shadow-lg">
                   <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                  <div className="text-[11px] leading-relaxed">
-                    <p className="font-bold text-amber-300 font-mono">
-                      🔒 CHÍNH SÁCH BẢO MẬT: 1 GMAIL = 1 TÀI KHOẢN FACEBOOK DUY NHẤT
+                  <div className="text-xs leading-relaxed space-y-1">
+                    <p className="font-black text-amber-300 font-mono uppercase tracking-wide">
+                      ⚠️ CẢNH BÁO QUAN TRỌNG: KHÓA BẢO LƯU CỐ ĐỊNH (1 GMAIL = 1 FACEBOOK)
                     </p>
-                    <p className="text-slate-300 mt-0.5">
-                      Mỗi tài khoản Gmail chỉ được liên kết cố định với 1 tài khoản Facebook. Hệ thống đối soát chuẩn xác và chỉ ghi nhận cộng Xu cho tài khoản chính chủ đã đồng bộ.
+                    <p className="text-slate-200">
+                      Hãy chắc chắn chọn đúng tài khoản Facebook chính chủ bạn đang dùng. Sau khi kết nối, hệ thống sẽ <strong>khóa bảo lưu vĩnh viễn</strong> và <strong>không thể thay đổi hay liên kết thêm tài khoản Facebook thứ 2</strong> trên Gmail này!
                     </p>
                   </div>
                 </div>
@@ -1554,6 +1633,19 @@ export const TikTokConnectModal: React.FC = () => {
             {user.isYoutubeVerified && user.youtubeConnected && !isYtEditing ? (
               /* Already verified state */
               <div className="space-y-4">
+                {/* 🔒 IMMUTABLE LOCKED BANNER */}
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 shadow-md">
+                  <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    <p className="font-bold text-emerald-300 font-mono flex items-center gap-1.5 uppercase">
+                      <span>🔒 ĐÃ BẢO LƯU BẤT BIẾN: 1 GMAIL = 1 KÊNH YOUTUBE DUY NHẤT</span>
+                    </p>
+                    <p className="text-slate-300 mt-0.5">
+                      Gmail <strong className="text-white">{currentEmail}</strong> đã được bảo lưu cố định với kênh YouTube <strong className="text-red-400">{user.youtubeConnected}</strong>. Mọi nhiệm vụ đăng ký kênh, like, comment, xem video sẽ đối soát chính xác theo kênh này để cộng Xu. Không thể liên kết thêm kênh YouTube thứ 2 trên Gmail này!
+                    </p>
+                  </div>
+                </div>
+
                 <div className="p-5 rounded-3xl bg-gradient-to-br from-red-950/40 via-slate-900 to-black border border-red-500/40 shadow-xl space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3.5">
@@ -1611,30 +1703,17 @@ export const TikTokConnectModal: React.FC = () => {
                     <button
                       onClick={() => handleConnectYoutube(true)}
                       disabled={isYtVerifying}
-                      className="px-3 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 flex items-center gap-1.5 transition-all text-[11px] font-mono font-bold cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 flex items-center gap-1.5 transition-all text-xs font-mono font-bold cursor-pointer"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isYtVerifying ? 'animate-spin' : ''}`} />
-                      <span>Đồng Bộ Lại Số Liệu Thật</span>
+                      <span>Đồng Bộ Lại Số Liệu Kênh Thật</span>
                     </button>
 
                     <button
-                      onClick={() => {
-                        setYtUrl(user.youtubeProfileUrl || user.youtubeConnected || '');
-                        setYtSubscribers(String(user.youtubeSubscribers || ''));
-                        setYtAvatar(user.youtubeAvatar || user.avatar || '');
-                        setIsYtEditing(true);
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all text-[11px] font-mono font-bold"
+                      onClick={closeConnect}
+                      className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-mono font-bold transition-all cursor-pointer"
                     >
-                      <Edit3 className="w-3.5 h-3.5 text-red-400" />
-                      <span>Cập Nhật Thủ Công</span>
-                    </button>
-
-                    <button
-                      onClick={disconnectYoutube}
-                      className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-mono font-bold transition-all"
-                    >
-                      Hủy kết nối
+                      Đã Khóa Bảo Lưu (Đóng)
                     </button>
                   </div>
                 </div>
@@ -1701,28 +1780,6 @@ export const TikTokConnectModal: React.FC = () => {
                             </div>
 
                             <div className="flex items-center gap-1.5 self-end sm:self-center">
-                              {/* Nút Sửa / Đổi tên */}
-                              <button
-                                type="button"
-                                onClick={() => handleEditDeviceYouTubeAccount(acc.handle)}
-                                title="Đổi tên / Sửa kênh này"
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-sky-500/20 text-slate-400 hover:text-sky-300 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                <span className="hidden xs:inline font-mono">Sửa</span>
-                              </button>
-
-                              {/* Nút Xóa tài khoản */}
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteDeviceYouTubeAccount(acc.handle)}
-                                title="Xóa kênh này khỏi thiết bị"
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span className="hidden xs:inline font-mono">Xóa</span>
-                              </button>
-
                               {isCurrentActive ? (
                                 <span className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1763,19 +1820,53 @@ export const TikTokConnectModal: React.FC = () => {
                   Hoàn Tất &amp; Đóng
                 </button>
               </div>
+            ) : isYtBound ? (
+              /* Gmail already has a locked YouTube binding */
+              <div className="p-5 rounded-3xl bg-gradient-to-br from-red-950/40 via-slate-900 to-black border border-red-500/40 space-y-4 shadow-xl text-center">
+                <div className="w-12 h-12 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto shadow-lg">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-black text-white text-sm font-display uppercase tracking-wider">
+                    TÀI KHOẢN GMAIL ĐÃ ĐƯỢC KHÓA BẢO LƯU YOUTUBE
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed max-w-md mx-auto">
+                    Gmail <strong className="text-white">{currentEmail}</strong> đã liên kết duy nhất với kênh YouTube <strong className="text-red-400">{boundYtHandle}</strong>.
+                  </p>
+                  <div className="text-xs text-amber-300/90 font-mono leading-relaxed bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 text-left space-y-1 shadow-inner">
+                    <p className="font-bold flex items-center gap-1.5 text-amber-300">
+                      <ShieldCheck className="w-4 h-4 text-amber-400" />
+                      <span>CHÍNH SÁCH BẢO LƯU BẤT BIẾN:</span>
+                    </p>
+                    <p className="text-slate-300">
+                      Mỗi tài khoản Gmail chỉ được liên kết với 1 kênh YouTube duy nhất nhằm chống gian lận nhiệm vụ và bảo vệ số dư Xu của bạn.
+                    </p>
+                    <p className="text-amber-400 font-bold pt-1">
+                      👉 Muốn sử dụng kênh YouTube khác, bạn bắt buộc phải đăng nhập bằng tài khoản Gmail khác!
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsYtEditing(false)}
+                  className="py-2.5 px-6 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold text-xs font-mono shadow-lg shadow-red-600/30 cursor-pointer"
+                >
+                  Quay Lại Kênh YouTube Đã Bảo Lưu
+                </button>
+              </div>
             ) : (
               /* Connect YouTube Form */
               <div className="space-y-4">
                 
-                {/* 1 GMAIL = 1 YOUTUBE SECURITY BANNER */}
-                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5">
+                {/* 1 GMAIL = 1 YOUTUBE SECURITY WARNING BANNER */}
+                <div className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 flex items-start gap-3 shadow-lg">
                   <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                  <div className="text-[11px] leading-relaxed">
-                    <p className="font-bold text-amber-300 font-mono">
-                      🔒 CHÍNH SÁCH BẢO MẬT: 1 GMAIL = 1 KÊNH YOUTUBE DUY NHẤT
+                  <div className="text-xs leading-relaxed space-y-1">
+                    <p className="font-black text-amber-300 font-mono uppercase tracking-wide">
+                      ⚠️ CẢNH BÁO QUAN TRỌNG: KHÓA BẢO LƯU CỐ ĐỊNH (1 GMAIL = 1 YOUTUBE)
                     </p>
-                    <p className="text-slate-300 mt-0.5">
-                      Mỗi tài khoản Gmail chỉ được liên kết cố định với 1 kênh YouTube. Hệ thống đối soát nhiệm vụ (Đăng ký, Like, Bình luận, Xem video) để duyệt Xu chuẩn xác và chống gian lận tuyệt đối.
+                    <p className="text-slate-200">
+                      Hãy chắc chắn chọn đúng Kênh YouTube chính chủ bạn đang dùng. Sau khi kết nối, hệ thống sẽ <strong>khóa bảo lưu vĩnh viễn</strong> và <strong>không thể thay đổi hay liên kết thêm Kênh YouTube thứ 2</strong> trên Gmail này!
                     </p>
                   </div>
                 </div>

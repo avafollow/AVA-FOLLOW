@@ -994,6 +994,26 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, []);
 
+  // TỰ ĐỘNG ĐỒNG BỘ MÃ REF TIẾP THỊ LIÊN KẾT THEO ĐÚNG GMAIL CỦA TỪNG NGƯỜI DÙNG
+  useEffect(() => {
+    if (user && user.email) {
+      const emailKey = user.email.toLowerCase().trim();
+      const customCode = typeof window !== 'undefined' ? localStorage.getItem(`ava_custom_ref_code_${emailKey}`) : null;
+      const gmailPrefix = emailKey.split('@')[0].toUpperCase().replace(/[^A-Z0-9_-]/g, '') || 'USER';
+      const targetCode = customCode || gmailPrefix;
+      const originUrl = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://avafollow.vn';
+
+      setAffiliateData(prev => {
+        if (prev.refCode === targetCode && prev.refLink === `${originUrl}/?ref=${targetCode}`) return prev;
+        return {
+          ...prev,
+          refCode: targetCode,
+          refLink: `${originUrl}/?ref=${targetCode}`
+        };
+      });
+    }
+  }, [user.email]);
+
   // TỰ ĐỒNG BỘ DỮ LIỆU THỜI GIAN THỰC TỪ USER PROFILE VÀO TRANG ADMIN DASHBOARD & DANH SÁCH THÀNH VIÊN
   useEffect(() => {
     if (!user || !user.email) return;

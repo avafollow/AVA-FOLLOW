@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { getTikTokAvatar } from '../../data/videoSources';
-import { getPermanentTikTokGmailPairs } from '../../services/antiFraudEngine';
+import { getPermanentTikTokGmailPairs, removePermanentTikTokGmailPair } from '../../services/antiFraudEngine';
 
 export const TikTokConnectModal: React.FC = () => {
   const { 
@@ -142,6 +142,21 @@ export const TikTokConnectModal: React.FC = () => {
   });
 
   const deviceTikTokAccounts = Array.from(allDeviceAccountsMap.values());
+
+  const handleDeleteDeviceAccount = (handleToDelete: string) => {
+    removePermanentTikTokGmailPair(handleToDelete);
+    removeAccountFromIp(handleToDelete);
+    if (user.tiktokConnected?.toLowerCase() === handleToDelete.toLowerCase()) {
+      disconnectTikTok();
+    }
+    showToast(`✓ Đã xóa tài khoản TikTok ${handleToDelete} khỏi thiết bị.`);
+  };
+
+  const handleEditDeviceAccount = (accHandle: string) => {
+    setHandle(accHandle);
+    setIsTtEditing(true);
+    showToast(`✏️ Hãy nhập tên/link kênh mới rồi bấm "Xác nhận & Liên kết"`);
+  };
 
   const bioCode = user.bioVerificationCode || 'TIKTOK-VERIFY-8899';
 
@@ -574,30 +589,52 @@ export const TikTokConnectModal: React.FC = () => {
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2 self-end sm:self-center">
+                            <div className="flex items-center gap-1.5 self-end sm:self-center">
+                              {/* Nút Sửa / Đổi tên */}
+                              <button
+                                type="button"
+                                onClick={() => handleEditDeviceAccount(acc.handle)}
+                                title="Đổi tên / Sửa kênh này"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-sky-500/20 text-slate-400 hover:text-sky-300 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Sửa</span>
+                              </button>
+
+                              {/* Nút Xóa tài khoản */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDeviceAccount(acc.handle)}
+                                title="Xóa tài khoản này khỏi thiết bị"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Xóa</span>
+                              </button>
+
                               {isCurrentActive ? (
-                                <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
+                                <span className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5" />
-                                  Đang Sử Dụng
+                                  <span>Đang Dùng</span>
                                 </span>
                               ) : isMatchedGmail ? (
                                 <button
                                   type="button"
                                   onClick={() => switchActiveTikTokAccount(acc.handle)}
-                                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FF0050] to-rose-600 hover:opacity-90 text-white text-xs font-mono font-bold shadow-md shadow-rose-600/30 transition-all cursor-pointer flex items-center gap-1"
+                                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-[#FF0050] to-rose-600 hover:opacity-90 text-white text-xs font-mono font-bold shadow-md shadow-rose-600/30 transition-all cursor-pointer flex items-center gap-1"
                                 >
                                   <Zap className="w-3 h-3 text-amber-300" />
-                                  <span>Chọn Kênh Này</span>
+                                  <span>Chọn Kênh</span>
                                 </button>
                               ) : (
                                 <button
                                   type="button"
                                   disabled
                                   title={`Đăng nhập Gmail ${acc.boundEmail} để mở khóa kênh này`}
-                                  className="px-3 py-1.5 rounded-xl bg-white/5 text-slate-500 text-xs font-mono font-semibold border border-white/5 cursor-not-allowed flex items-center gap-1"
+                                  className="px-2.5 py-1.5 rounded-xl bg-white/5 text-slate-500 text-xs font-mono font-semibold border border-white/5 cursor-not-allowed flex items-center gap-1"
                                 >
                                   <Lock className="w-3 h-3 text-amber-400" />
-                                  <span>Khóa (Sai Gmail)</span>
+                                  <span>Khóa</span>
                                 </button>
                               )}
                             </div>
@@ -730,30 +767,52 @@ export const TikTokConnectModal: React.FC = () => {
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2 self-end sm:self-center">
+                            <div className="flex items-center gap-1.5 self-end sm:self-center">
+                              {/* Nút Sửa / Đổi tên */}
+                              <button
+                                type="button"
+                                onClick={() => handleEditDeviceAccount(acc.handle)}
+                                title="Đổi tên / Sửa kênh này"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-sky-500/20 text-slate-400 hover:text-sky-300 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Sửa</span>
+                              </button>
+
+                              {/* Nút Xóa tài khoản */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDeviceAccount(acc.handle)}
+                                title="Xóa tài khoản này khỏi thiết bị"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-all cursor-pointer flex items-center gap-1 text-[11px]"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span className="hidden xs:inline font-mono">Xóa</span>
+                              </button>
+
                               {isCurrentActive ? (
-                                <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
+                                <span className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5" />
-                                  Đang Sử Dụng
+                                  <span>Đang Dùng</span>
                                 </span>
                               ) : isMatchedGmail ? (
                                 <button
                                   type="button"
                                   onClick={() => switchActiveTikTokAccount(acc.handle)}
-                                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FF0050] to-rose-600 hover:opacity-90 text-white text-xs font-mono font-bold shadow-md shadow-rose-600/30 transition-all cursor-pointer flex items-center gap-1"
+                                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-[#FF0050] to-rose-600 hover:opacity-90 text-white text-xs font-mono font-bold shadow-md shadow-rose-600/30 transition-all cursor-pointer flex items-center gap-1"
                                 >
                                   <Zap className="w-3 h-3 text-amber-300" />
-                                  <span>Chọn Kênh Này</span>
+                                  <span>Chọn Kênh</span>
                                 </button>
                               ) : (
                                 <button
                                   type="button"
                                   disabled
                                   title={`Đăng nhập Gmail ${acc.boundEmail} để mở khóa kênh này`}
-                                  className="px-3 py-1.5 rounded-xl bg-white/5 text-slate-500 text-xs font-mono font-semibold border border-white/5 cursor-not-allowed flex items-center gap-1"
+                                  className="px-2.5 py-1.5 rounded-xl bg-white/5 text-slate-500 text-xs font-mono font-semibold border border-white/5 cursor-not-allowed flex items-center gap-1"
                                 >
                                   <Lock className="w-3 h-3 text-amber-400" />
-                                  <span>Khóa (Sai Gmail)</span>
+                                  <span>Khóa</span>
                                 </button>
                               )}
                             </div>

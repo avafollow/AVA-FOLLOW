@@ -2046,3 +2046,13 @@ export function lockTikTokGmailBinding(email: string, tiktokHandle: string, ipAd
     localStorage.setItem(PERMANENT_TIKTOK_GMAIL_PAIR_KEY, JSON.stringify(updated));
   } catch {}
 }
+
+export function removePermanentTikTokGmailPair(tiktokHandle: string): void {
+  if (typeof window === 'undefined') return;
+  const cleanTikTok = (tiktokHandle || '').toLowerCase().replace(/^@+/, '').trim();
+  try {
+    const pairs = getPermanentTikTokGmailPairs();
+    const updated = pairs.filter(p => p.tiktokHandle.toLowerCase().replace(/^@+/, '').trim() !== cleanTikTok);
+    localStorage.setItem(PERMANENT_TIKTOK_GMAIL_PAIR_KEY, JSON.stringify(updated));
+  } catch {}
+}

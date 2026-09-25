@@ -723,10 +723,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return EMPTY_GUEST_USER;
   });
 
-  // Tự động dọn sạch 100% dữ liệu demo cũ từ localStorage
+  // Tự động dọn sạch 100% dữ liệu demo cũ từ localStorage (Bao gồm TikTok, Facebook, YouTube demo)
   if (typeof window !== 'undefined') {
     try {
-      const hasPurged = localStorage.getItem('ava_purged_demo_v5');
+      const hasPurged = localStorage.getItem('ava_purged_demo_v7_clean_real_only');
       if (!hasPurged) {
         localStorage.removeItem('ava_tasks');
         localStorage.removeItem('ava_livestream_tasks');
@@ -740,7 +740,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         localStorage.removeItem('ava_friends');
         localStorage.removeItem('ava_chat_conversations');
         localStorage.removeItem('ava_koc_profiles');
-        localStorage.setItem('ava_purged_demo_v5', 'true');
+        localStorage.setItem('ava_purged_demo_v7_clean_real_only', 'true');
       }
     } catch {}
   }
@@ -756,6 +756,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               !t.id.startsWith('task_') && 
               !t.id.startsWith('mock_') && 
               !t.id.startsWith('demo_') &&
+              !t.id.startsWith('sample_') &&
+              !t.id.startsWith('fake_') &&
               t.channelHandle !== '@zenskin_vietnam' &&
               t.channelHandle !== '@auraboutique.vn' &&
               t.channelHandle !== '@homie_vietnam'
@@ -786,6 +788,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             !l.id.startsWith('mock_') && 
             !l.id.startsWith('sched_') && 
             !l.id.startsWith('live_old_') &&
+            !l.id.startsWith('sample_') &&
+            !l.id.startsWith('fake_') &&
             l.channelHandle !== '@milynxi' &&
             l.channelHandle !== '@giauhuy' &&
             l.channelHandle !== '@coptrontech' &&
@@ -808,6 +812,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             !c.id.startsWith('demo_') && 
             !c.id.startsWith('mock_') &&
             !c.id.startsWith('task_') &&
+            !c.id.startsWith('sample_') &&
+            !c.id.startsWith('fake_') &&
             c.status !== 'completed' &&
             c.channelHandle !== '@milynxi' &&
             c.channelHandle !== '@giauhuy' &&

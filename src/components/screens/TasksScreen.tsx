@@ -45,7 +45,7 @@ import { INITIAL_CROSS_FOLLOW_ITEMS, TIER_CROSS_FOLLOW_QUOTAS } from "../../data
 import { TokenSinkStrategyModal } from "../modals/TokenSinkStrategyModal";
 import { parseMediaUrl, getTikTokAvatar } from "../../data/videoSources";
 import { SmartMediaThumbnail } from "../common/SmartMediaThumbnail";
-import { validateRealAccountName } from "../../services/platformProfileSyncService";
+import { validateRealAccountName, verifyPlatformAccountForTask } from "../../services/platformProfileSyncService";
 
 export const TasksScreen: React.FC<{ 
   darkMode: boolean; 
@@ -149,9 +149,9 @@ export const TasksScreen: React.FC<{
   const isDailyMissionsCompleted = dailyMissions.length > 0 ? (dailyDoneCount >= dailyMissions.length) : true;
 
   const handleOpenFeedRunner = (initialTaskId?: string) => {
-    const ttValid = validateRealAccountName(user.tiktokConnected || '');
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối' || !ttValid.isValid) {
-      showToast(ttValid.reason || `⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok thật chính chủ trước khi làm nhiệm vụ kiếm Xu!`);
+    const platCheck = verifyPlatformAccountForTask('tiktok', user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok thật chính chủ trước khi làm nhiệm vụ kiếm Xu!`);
       openConnect();
       return;
     }
@@ -164,9 +164,10 @@ export const TasksScreen: React.FC<{
   };
 
   const handleOpenRunner = (task: TikTokTaskItem) => {
-    const ttValid = validateRealAccountName(user.tiktokConnected || '');
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối' || !ttValid.isValid) {
-      showToast(ttValid.reason || `⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok thật chính chủ trước khi làm nhiệm vụ kiếm Xu!`);
+    const taskPlatform = task.platform || 'tiktok';
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${taskPlatform.toUpperCase()}: Bạn cần liên kết tài khoản thật chính chủ trước khi làm nhiệm vụ kiếm Xu!`);
       openConnect();
       return;
     }
@@ -179,9 +180,10 @@ export const TasksScreen: React.FC<{
   };
 
   const handleOpenLiveRunner = (live: LivestreamTaskItem) => {
-    const ttValid = validateRealAccountName(user.tiktokConnected || '');
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối' || !ttValid.isValid) {
-      showToast(ttValid.reason || `⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok thật chính chủ trước khi xem livestream nhận Xu!`);
+    const livePlatform = live.platform || 'tiktok';
+    const platCheck = verifyPlatformAccountForTask(livePlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${livePlatform.toUpperCase()}: Bạn cần liên kết tài khoản thật chính chủ trước khi xem livestream nhận Xu!`);
       openConnect();
       return;
     }

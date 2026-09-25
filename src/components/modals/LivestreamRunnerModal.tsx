@@ -552,18 +552,21 @@ export const LivestreamRunnerModal: React.FC = () => {
           onClick={handleScreenTap}
         >
           {/* 3 TRÌNH PHÁT LIVE THẬT 100% (TAB CODE RIÊNG BIỆT CHO YOUTUBE, FACEBOOK, TIKTOK) */}
-          {isYouTube && mediaInfo?.youtubeId ? (
+          {isYouTube ? (
             <YouTubeLiveEmbedPlayer
-              key={activeLiveTask.id + '_yt_live_' + mediaInfo.youtubeId}
-              youtubeId={mediaInfo.youtubeId}
+              key={activeLiveTask.id + '_yt_live_' + (mediaInfo?.youtubeId || activeLiveTask.channelHandle)}
+              youtubeId={mediaInfo?.youtubeId}
+              targetUrl={activeLiveTask.targetUrl}
+              channelHandle={activeLiveTask.channelHandle}
               title={activeLiveTask.roomTitle}
               isMuted={isMuted}
               onToggleMute={() => setIsMuted(!isMuted)}
             />
-          ) : mediaInfo?.isFacebook ? (
+          ) : isFacebook ? (
             <FacebookLiveEmbedPlayer
-              key={activeLiveTask.id + '_fb_live_' + encodeURIComponent(activeLiveTask.targetUrl)}
+              key={activeLiveTask.id + '_fb_live_' + encodeURIComponent(activeLiveTask.targetUrl || activeLiveTask.channelHandle)}
               url={activeLiveTask.targetUrl}
+              channelHandle={activeLiveTask.channelHandle}
               title={activeLiveTask.roomTitle}
               isMuted={isMuted}
               onToggleMute={() => setIsMuted(!isMuted)}

@@ -1,8 +1,11 @@
 import React from 'react';
-import { Users, ExternalLink, Radio, Volume2, VolumeX, ShieldCheck } from 'lucide-react';
+import { Users, ExternalLink, Radio, Volume2, VolumeX, ShieldCheck, Play } from 'lucide-react';
+import { extractYouTubeVideoId, extractTikTokHandle } from '../../../data/videoSources';
 
 export interface YouTubeLiveEmbedPlayerProps {
-  youtubeId: string;
+  youtubeId?: string;
+  targetUrl?: string;
+  channelHandle?: string;
   title?: string;
   isMuted?: boolean;
   onToggleMute?: () => void;
@@ -10,17 +13,29 @@ export interface YouTubeLiveEmbedPlayerProps {
 }
 
 /**
- * Component chuyên biệt: Trình phát LIVE YOUTUBE THẬT 100% (Tab Code Riêng Biệt)
- * Nhúng trực tiếp luồng Live YouTube chính thức của creator.
+ * Component chuyên biệt: Trình phát LIVE YOUTUBE THẬT 100% (Đa thiết bị: iOS, Android, PC)
+ * Hỗ trợ URL video live, URL kênh @handle/live, hoặc ID video 11 ký tự.
  */
 export const YouTubeLiveEmbedPlayer: React.FC<YouTubeLiveEmbedPlayerProps> = ({
   youtubeId,
+  targetUrl,
+  channelHandle,
   title = 'YouTube Live Stream',
   isMuted = true,
   onToggleMute,
   className = ''
 }) => {
-  if (!youtubeId) return null;
+  const resolvedId = youtubeId || (targetUrl ? extractYouTubeVideoId(targetUrl) : null);
+  const handle = channelHandle || (targetUrl ? extractTikTokHandle(targetUrl) : '@creator');
+  const cleanHandle = (handle || '').replace(/^@+/, '');
+
+  const directUrl = targetUrl || (resolvedId ? `https://www.youtube.com/watch?v=${resolvedId}` : (cleanHandle ? `https://www.youtube.com/@${cleanHandle}/live` : 'https://www.youtube.com'));
+
+  const embedSrc = resolvedId
+    ? `https://www.youtube.com/embed/${resolvedId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${resolvedId}&modestbranding=1&rel=0&enablejsapi=1`
+    : (cleanHandle
+      ? `https://www.youtube.com/embed/live_stream?channel=${cleanHandle}&autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1`
+      : null);
 
   return (
     <div className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none ${className}`}>
@@ -58,7 +73,7 @@ export const YouTubeLiveEmbedPlayer: React.FC<YouTubeLiveEmbedPlayerProps> = ({
           )}
 
           <a
-            href={`https://www.youtube.com/watch?v=${youtubeId}`}
+            href={directUrl}
             target="_blank"
             rel="noreferrer"
             className="px-3 py-1.5 rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-[10px] font-mono font-bold border border-red-400/40 shadow-lg flex items-center gap-1 cursor-pointer transition-transform active:scale-95 font-display"
@@ -70,16 +85,38 @@ export const YouTubeLiveEmbedPlayer: React.FC<YouTubeLiveEmbedPlayerProps> = ({
         </div>
       </div>
 
-      {/* 2. REAL-TIME YOUTUBE EMBED IFRAME (TRÀN VIỀN, CĂN CHÍNH GIỮA) */}
+      {/* 2. REAL-TIME YOUTUBE EMBED IFRAME */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-        <iframe
-          key={`yt-live-${youtubeId}-${isMuted}`}
-          src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`}
-          title={title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          className="w-full h-full border-0 bg-black pointer-events-auto object-cover"
-        />
+        {embedSrc ? (
+          <iframe
+            key={`yt-live-${resolvedId || cleanHandle}-${isMuted}`}
+            src={embedSrc}
+            title={title}
+            allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
+            allowFullScreen
+            className="w-full h-full border-0 bg-black pointer-events-auto object-cover"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center p-6 text-center text-white space-y-3 pointer-events-auto">
+            <div className="w-16 h-16 rounded-full bg-red-600/20 border-2 border-red-500/50 flex items-center justify-center animate-pulse">
+              <Radio className="w-8 h-8 text-red-500" />
+            </div>
+            <div className="text-sm font-bold text-white">{title}</div>
+            <p className="text-xs text-slate-400 max-w-xs">
+              Kênh YouTube @{cleanHandle} đang phát trực tiếp. Bấm mở ứng dụng YouTube để xem trọn vẹn chất lượng cao.
+            </p>
+            <a
+              href={directUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-lg flex items-center gap-2"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>Xem Trực Tiếp Trên YouTube</span>
+            </a>
+          </div>
+        )}
       </div>
 
       {/* 3. BOTTOM INFO BAR */}

@@ -1,8 +1,10 @@
 import React from 'react';
-import { Users, ExternalLink, Radio, Volume2, VolumeX, ShieldCheck } from 'lucide-react';
+import { Users, ExternalLink, Radio, Volume2, VolumeX, ShieldCheck, Play } from 'lucide-react';
+import { extractTikTokHandle } from '../../../data/videoSources';
 
 export interface FacebookLiveEmbedPlayerProps {
   url: string;
+  channelHandle?: string;
   title?: string;
   isMuted?: boolean;
   onToggleMute?: () => void;
@@ -10,17 +12,23 @@ export interface FacebookLiveEmbedPlayerProps {
 }
 
 /**
- * Component chuyên biệt: Trình phát LIVE FACEBOOK THẬT 100% (Tab Code Riêng Biệt)
+ * Component chuyên biệt: Trình phát LIVE FACEBOOK THẬT 100% (Đa thiết bị: iOS, Android, PC)
  * Nhúng trực tiếp luồng Live Facebook chính thức của creator qua Plugin.
  */
 export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = ({
   url,
+  channelHandle,
   title = 'Facebook Live Stream',
   isMuted = true,
   onToggleMute,
   className = ''
 }) => {
-  if (!url) return null;
+  const directUrl = url && url.startsWith('http')
+    ? url
+    : (channelHandle ? `https://www.facebook.com/${channelHandle.replace(/^@+/, '')}` : 'https://www.facebook.com');
+
+  const handle = channelHandle || extractTikTokHandle(directUrl);
+  const cleanHandle = (handle || '').replace(/^@+/, '');
 
   return (
     <div className={`relative w-full h-full bg-black flex flex-col overflow-hidden select-none ${className}`}>
@@ -58,7 +66,7 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
           )}
 
           <a
-            href={url}
+            href={directUrl}
             target="_blank"
             rel="noreferrer"
             className="px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[10px] font-mono font-bold border border-blue-400/40 shadow-lg flex items-center gap-1 cursor-pointer transition-transform active:scale-95 font-display"
@@ -70,16 +78,38 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
         </div>
       </div>
 
-      {/* 2. REAL-TIME FACEBOOK EMBED IFRAME (TRÀN VIỀN, CĂN CHÍNH GIỮA) */}
+      {/* 2. REAL-TIME FACEBOOK EMBED IFRAME */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-        <iframe
-          key={`fb-live-${encodeURIComponent(url)}`}
-          src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=${isMuted ? 1 : 0}&allowfullscreen=true`}
-          title={title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          className="w-full h-full border-0 bg-black pointer-events-auto object-cover"
-        />
+        {directUrl ? (
+          <iframe
+            key={`fb-live-${encodeURIComponent(directUrl)}`}
+            src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(directUrl)}&show_text=0&autoplay=1&muted=${isMuted ? 1 : 0}&allowfullscreen=true`}
+            title={title}
+            allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
+            allowFullScreen
+            className="w-full h-full border-0 bg-black pointer-events-auto object-cover"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center p-6 text-center text-white space-y-3 pointer-events-auto">
+            <div className="w-16 h-16 rounded-full bg-blue-600/20 border-2 border-blue-500/50 flex items-center justify-center animate-pulse">
+              <Radio className="w-8 h-8 text-blue-500" />
+            </div>
+            <div className="text-sm font-bold text-white">{title}</div>
+            <p className="text-xs text-slate-400 max-w-xs">
+              Trang Facebook @{cleanHandle} đang phát trực tiếp. Bấm mở Facebook để xem trực tiếp và bình luận.
+            </p>
+            <a
+              href={directUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg flex items-center gap-2"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>Xem Trực Tiếp Trên Facebook</span>
+            </a>
+          </div>
+        )}
       </div>
 
       {/* 3. BOTTOM INFO BAR */}

@@ -298,3 +298,135 @@ export async function syncAllPlatformsRealtime(user: UserProfileWallet): Promise
   await Promise.allSettled(promises);
   return updates;
 }
+
+/**
+ * 5. SỔ CÁI VÀ GHI NHẬN HÀNH ĐỘNG NHIỆM VỤ ĐA NỀN TẢNG (TASK LEDGER PER PLATFORM)
+ */
+export const MULTIPLATFORM_LEDGER_STORAGE_KEY = 'ava_multiplatform_task_ledger';
+
+export interface MultiPlatformTaskRecordInput {
+  taskId: string;
+  taskTitle: string;
+  platform: 'tiktok' | 'facebook' | 'youtube';
+  actionType: 'follow' | 'like' | 'comment' | 'share' | 'watch' | 'subscribe';
+  actionLabel: string;
+  targetHandleOrUrl: string;
+  performerAccount: string;
+  coinsEarned: number;
+  amountVND: number;
+  txHash?: string;
+  syncMethod?: 'api_direct' | 'oauth_realtime' | 'oembed_verified';
+}
+
+export function getMultiPlatformTaskRecords(): any[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(MULTIPLATFORM_LEDGER_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function recordMultiPlatformTaskAction(input: MultiPlatformTaskRecordInput): any {
+  if (typeof window === 'undefined') return null;
+  try {
+    const now = new Date();
+    const verifiedAt = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+    const txHash = input.txHash || `TX_${input.platform.toUpperCase()}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    
+    const record = {
+      id: `mpt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      taskId: input.taskId,
+      taskTitle: input.taskTitle,
+      platform: input.platform,
+      actionType: input.actionType,
+      actionLabel: input.actionLabel,
+      targetHandleOrUrl: input.targetHandleOrUrl,
+      performerAccount: input.performerAccount,
+      coinsEarned: input.coinsEarned,
+      amountVND: input.amountVND || (input.coinsEarned * 10),
+      txHash,
+      verifiedAt,
+      status: 'verified',
+      syncMethod: input.syncMethod || 'api_direct'
+    };
+
+    const existing = getMultiPlatformTaskRecords();
+    const updated = [record, ...existing].slice(0, 200);
+    localStorage.setItem(MULTIPLATFORM_LEDGER_STORAGE_KEY, JSON.stringify(updated));
+
+    return record;
+  } catch (e) {
+    console.warn('[PlatformSync] Error recording task ledger:', e);
+    return null;
+  }
+}
+
+/**
+ * 6. KIỂM TRA ĐIỀU KIỆN TÀI KHOẢN NỀN TẢNG TRƯỚC KHI THỰC HIỆN NHIỆM VỤ
+ */
+export function verifyPlatformAccountForTask(
+  platform: 'tiktok' | 'facebook' | 'youtube',
+  user: UserProfileWallet
+): { canExecute: boolean; requiredAccountName: string; reason?: string } {
+  if (platform === 'facebook') {
+    const fb = (user.facebookConnected || '').trim();
+    if (!fb || fb === 'Chưa kết nối' || fb.includes('chưa_kết_nối')) {
+      return {
+        canExecute: false,
+        requiredAccountName: 'Facebook',
+        reason: 'Bạn cần kết nối và xác thực tài khoản Facebook thật trước khi thực hiện nhiệm vụ Facebook!'
+      };
+    }
+    const val = validateRealAccountName(fb);
+    if (!val.isValid) {
+      return {
+        canExecute: false,
+        requiredAccountName: 'Facebook',
+        reason: val.reason || 'Tài khoản Facebook không hợp lệ!'
+      };
+    }
+    return { canExecute: true, requiredAccountName: fb };
+  }
+
+  if (platform === 'youtube') {
+    const yt = (user.youtubeConnected || '').trim();
+    if (!yt || yt === 'Chưa kết nối' || yt.includes('chưa_kết_nối')) {
+      return {
+        canExecute: false,
+        requiredAccountName: 'YouTube',
+        reason: 'Bạn cần kết nối và xác thực Kênh YouTube thật trước khi thực hiện nhiệm vụ YouTube!'
+      };
+    }
+    const val = validateRealAccountName(yt);
+    if (!val.isValid) {
+      return {
+        canExecute: false,
+        requiredAccountName: 'YouTube',
+        reason: val.reason || 'Kênh YouTube không hợp lệ!'
+      };
+    }
+    return { canExecute: true, requiredAccountName: yt };
+  }
+
+  // Mặc định TikTok
+  const tt = (user.tiktokConnected || '').trim();
+  if (!tt || tt === '@chưa_kết_nối' || tt === 'Chưa kết nối' || tt.includes('chưa_kết_nối')) {
+    return {
+      canExecute: false,
+      requiredAccountName: 'TikTok',
+      reason: 'Bạn cần kết nối và xác thực kênh TikTok thật trước khi thực hiện nhiệm vụ!'
+    };
+  }
+  const val = validateRealAccountName(tt);
+  if (!val.isValid) {
+    return {
+      canExecute: false,
+      requiredAccountName: 'TikTok',
+      reason: val.reason || 'Kênh TikTok không hợp lệ!'
+    };
+  }
+  return { canExecute: true, requiredAccountName: tt };
+}
+

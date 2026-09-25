@@ -92,7 +92,9 @@ import { getTikTokAvatar } from '../data/videoSources';
 import { 
   fetchRealTikTokProfile, 
   fetchRealFacebookProfile, 
-  fetchRealYouTubeProfile 
+  fetchRealYouTubeProfile,
+  recordMultiPlatformTaskAction,
+  verifyPlatformAccountForTask
 } from '../services/platformProfileSyncService';
 import { 
   supabase,
@@ -3774,26 +3776,17 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Complete task
   const completeTask = (taskId: string, actions: TaskActionDetails) => {
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi làm nhiệm vụ kiếm Xu!');
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return { coinsEarned: 0, vndEarned: 0 };
+
+    const taskPlatform = task.platform || 'tiktok';
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${taskPlatform.toUpperCase()}: Bạn cần liên kết tài khoản thật chính chủ trước khi làm nhiệm vụ!`);
       openConnect();
       return { coinsEarned: 0, vndEarned: 0 };
     }
-
-    const userIdentifier = user.id || user.name || 'current_user';
-    const lockout = isUserNextTasksLocked(user.tiktokConnected || userIdentifier);
-    if (lockout.isLocked) {
-      triggerImmediateFraudAlert({
-        title: 'CHUỖI NHIỆM VỤ ĐANG BỊ ĐÓNG BĂNG',
-        reason: lockout.reason || `Tài khoản của bạn đang bị tạm khóa chuỗi nhiệm vụ ${lockout.durationMinutes || 30} phút do phát hiện hành vi gian lận trước đó.`,
-        anomalyType: lockout.fraudAnomaly || 'CASCADING_TASK_LOCKOUT',
-        penaltyPoints: 0
-      });
-      return { coinsEarned: 0, vndEarned: 0 };
-    }
-
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return { coinsEarned: 0, vndEarned: 0 };
 
     let baseCoins = task.rewardCoins;
     
@@ -3905,6 +3898,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const finalBalance = newCoins + dailyFullBonusCoins;
     const now = new Date();
     const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+    const methodLabel = taskPlatform === 'facebook' ? 'Nhiệm Vụ Facebook' : taskPlatform === 'youtube' ? 'Nhiệm Vụ YouTube' : 'Nhiệm Vụ TikTok';
 
     const newTx: TransactionRecord = {
       id: `tx_${Date.now()}`,
@@ -3917,9 +3911,23 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       balanceAfter: finalBalance,
       missionType: task.type || 'follow',
       missionName: task.title,
-      method: 'Nhiệm Vụ TikTok',
+      method: methodLabel,
       status: 'success'
     };
+
+    recordMultiPlatformTaskAction({
+      taskId,
+      taskTitle: task.title,
+      platform: taskPlatform,
+      actionType: (task.type as any) || 'follow',
+      actionLabel: task.title,
+      targetHandleOrUrl: task.channelHandle,
+      performerAccount: platCheck.requiredAccountName,
+      coinsEarned: totalCoins,
+      amountVND: totalVND,
+      txHash: newTx.id,
+      syncMethod: 'api_direct'
+    });
 
     setUser(prev => ({
       ...prev,
@@ -4176,31 +4184,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // 1. Tính điểm từng hành động đơn lẻ (Chính sách chuẩn xác 100% - Mỗi hành động tính 1 lượt duy nhất chống trùng lặp)
   const claimTaskAction = (taskId: string, actionType: 'follow' | 'like' | 'comment' | 'share' | 'bookmark' | 'watch') => {
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok của mình trước khi làm nhiệm vụ nhận Xu!');
+    const taskObj = tasks.find(t => t.id === taskId) || livestreamTasks.find(l => l.id === taskId);
+    const targetChannelHandle = taskObj?.channelHandle || '';
+    const taskPlatform = (taskObj && 'platform' in taskObj && taskObj.platform) ? taskObj.platform : 'tiktok';
+
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${taskPlatform.toUpperCase()}: Bạn cần liên kết đúng tài khoản thật để làm nhiệm vụ!`);
       openConnect();
       return 0;
     }
 
     const userIdentifier = user.id || user.name || 'current_user';
-    const taskObj = tasks.find(t => t.id === taskId) || livestreamTasks.find(l => l.id === taskId);
-    const targetChannelHandle = taskObj?.channelHandle || '';
-
-    // BẮT BUỘC ĐỒNG BỘ TÀI KHOẢN TIKTOK CHÍNH CHỦ ĐÃ ĐĂNG KÝ
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết đúng tài khoản TikTok chính chủ để làm nhiệm vụ và nhận Xu!');
-      triggerImmediateFraudAlert({
-        title: 'CHƯA LIÊN KẾT TÀI KHOẢN TIKTOK',
-        reason: 'Hệ thống yêu cầu phải sử dụng đúng tài khoản TikTok chính chủ đã đăng ký để làm nhiệm vụ. Tài khoản chưa liên kết sẽ không được tính Xu!',
-        anomalyType: 'UNLINKED_TIKTOK_ACCOUNT',
-        channelHandle: targetChannelHandle,
-        penaltyPoints: 0
-      });
-      return 0;
-    }
 
     // 0. Kiểm tra khóa chuỗi nhiệm vụ (Cascading Lockout)
-    const lockout = isUserNextTasksLocked(user.tiktokConnected || userIdentifier);
+    const lockout = isUserNextTasksLocked(platCheck.requiredAccountName || userIdentifier);
     if (lockout.isLocked) {
       triggerImmediateFraudAlert({
         title: 'CHUỖI NHIỆM VỤ ĐANG BỊ ĐÓNG BĂNG',
@@ -4267,13 +4265,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     let label = 'Tương tác video';
     if (actionType === 'follow') {
       baseReward = TASK_ACTION_REWARDS.FOLLOW; // 200
-      label = 'Follow kênh TikTok';
+      label = taskPlatform === 'facebook' ? 'Theo dõi Trang Facebook' : taskPlatform === 'youtube' ? 'Đăng ký Kênh YouTube' : 'Follow kênh TikTok';
     } else if (actionType === 'like') {
       baseReward = TASK_ACTION_REWARDS.LIKE; // 100
-      label = 'Thả tim video';
+      label = taskPlatform === 'facebook' ? 'Thích bài viết Facebook' : taskPlatform === 'youtube' ? 'Thích video YouTube' : 'Thả tim video';
     } else if (actionType === 'comment') {
       baseReward = TASK_ACTION_REWARDS.COMMENT; // 200
-      label = 'Bình luận seeding';
+      label = 'Bình luận tương tác';
     } else if (actionType === 'share') {
       baseReward = TASK_ACTION_REWARDS.SHARE; // 240
       label = 'Chia sẻ video';
@@ -4282,7 +4280,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       label = 'Lưu vào yêu thích';
     } else if (actionType === 'watch') {
       baseReward = TASK_ACTION_REWARDS.WATCH_15S; // 200 Xu
-      label = 'Xem đủ 15s FYP';
+      label = 'Xem đủ 15s video';
     }
 
     if (actionType === 'bookmark' || baseReward === 0) {
@@ -4295,6 +4293,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newCoins = user.avaliveCoins + finalReward;
     const now = new Date();
     const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+    const methodLabel = taskPlatform === 'facebook' ? 'Nhiệm Vụ Facebook' : taskPlatform === 'youtube' ? 'Nhiệm Vụ YouTube' : 'Nhiệm Vụ TikTok';
 
     const newTx: TransactionRecord = {
       id: `tx_act_${Date.now()}`,
@@ -4307,7 +4306,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       balanceAfter: newCoins,
       missionType: actionType,
       missionName: label,
-      method: 'Nhiệm Vụ TikTok',
+      method: methodLabel,
       status: 'success'
     };
 
@@ -4328,6 +4327,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       transactions: isInstantRewardEnabled ? [newTx, ...user.transactions] : user.transactions
     };
 
+    // Ghi nhận sổ cái đa nền tảng
+    recordMultiPlatformTaskAction({
+      taskId,
+      taskTitle: (taskObj && 'title' in taskObj ? taskObj.title : (taskObj ? taskObj.channelName : label)) || label,
+      platform: taskPlatform,
+      actionType: actionType as any,
+      actionLabel: label,
+      targetHandleOrUrl: targetChannelHandle,
+      performerAccount: platCheck.requiredAccountName,
+      coinsEarned: finalReward,
+      amountVND: finalReward * 10,
+      txHash: newTx.id,
+      syncMethod: 'api_direct'
+    });
+
     setUser(updatedUser);
     try {
       if (typeof window !== 'undefined') {
@@ -4347,7 +4361,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           amountVND: finalReward * 10,
           txHash: newTx.id,
           timestamp: exactTime,
-          userHandle: user.tiktokConnected,
+          userHandle: platCheck.requiredAccountName,
+          platform: taskPlatform,
           status: 'success'
         };
         localStorage.setItem('ava_task_history_logs', JSON.stringify([newHistItem, ...histList].slice(0, 300)));

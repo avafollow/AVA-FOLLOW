@@ -68,6 +68,27 @@ export interface UserTaskActionHistory {
   shared: boolean;
   totalCoinsEarned: number;
   completedAt: string;
+  platform?: 'tiktok' | 'facebook' | 'youtube';
+  performerAccount?: string;
+  txHash?: string;
+}
+
+// Sổ cái ghi nhận nhiệm vụ đa nền tảng thời gian thực (TikTok, Facebook, YouTube)
+export interface MultiPlatformTaskSyncRecord {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  platform: 'tiktok' | 'facebook' | 'youtube';
+  actionType: 'follow' | 'like' | 'comment' | 'share' | 'watch' | 'subscribe';
+  actionLabel: string;
+  targetHandleOrUrl: string;
+  performerAccount: string; // Tên tài khoản thật của user trên nền tảng đó
+  coinsEarned: number;
+  amountVND: number;
+  txHash: string;
+  verifiedAt: string;
+  status: 'verified' | 'success' | 'pending';
+  syncMethod: 'api_direct' | 'oauth_realtime' | 'oembed_verified';
 }
 
 // Báo cáo hoạt động người dùng theo kỳ (Ngày, Tuần, Tháng)

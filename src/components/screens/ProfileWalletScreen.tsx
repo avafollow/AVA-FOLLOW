@@ -61,6 +61,7 @@ import { EscrowIncidentModal } from '../modals/EscrowIncidentModal';
 import { EscrowChatModal } from '../modals/EscrowChatModal';
 import { EscrowBookingContract } from '../../types';
 import { getTikTokSyncLogs, TikTokSyncLog } from '../../services/tiktokActionSync';
+import { getMultiPlatformTaskRecords } from '../../services/platformProfileSyncService';
 import { LegalSecurityComplianceView } from '../profile/LegalSecurityComplianceView';
 
 export const ProfileWalletScreen: React.FC<{
@@ -1964,15 +1965,34 @@ export const ProfileWalletScreen: React.FC<{
         </div>
       )}
 
-      {/* TAB 5: Lịch sử biến động số dư & Đồng bộ TikTok */}
+      {/* TAB 5: Lịch sử biến động số dư & Sổ Cái Đa Nền Tảng */}
       {activeProfileTab === 'transactions' && (() => {
-        const syncLogs = getTikTokSyncLogs();
+        const ttSyncLogs = getTikTokSyncLogs();
+        const multiPlatformRecords = getMultiPlatformTaskRecords();
+
+        const syncLogs = [
+          ...multiPlatformRecords.map((m: any) => ({
+            id: m.id,
+            actionType: m.actionType,
+            targetHandle: m.targetHandleOrUrl,
+            userHandle: m.performerAccount,
+            platform: m.platform || 'tiktok',
+            coinsEarned: m.coinsEarned,
+            txHash: m.txHash,
+            createdAt: m.verifiedAt,
+            note: `Đồng bộ nhiệm vụ ${m.platform?.toUpperCase() || 'TIKTOK'} từ tài khoản ${m.performerAccount}`
+          })),
+          ...ttSyncLogs.filter(t => !multiPlatformRecords.some((m: any) => m.txHash === t.txHash)).map(t => ({
+            ...t,
+            platform: 'tiktok' as const
+          }))
+        ];
 
         // Lọc giao dịch theo danh mục
         const filteredTransactions = user.transactions.filter(tx => {
           if (txCategoryFilter === 'all') return true;
           if (txCategoryFilter === 'tasks') {
-            return tx.method === 'Nhiệm Vụ TikTok' || ['follow', 'like', 'comment', 'share', 'watch'].includes(tx.missionType || '') || tx.title.toLowerCase().includes('nhiệm vụ');
+            return tx.method === 'Nhiệm Vụ TikTok' || tx.method === 'Nhiệm Vụ Facebook' || tx.method === 'Nhiệm Vụ YouTube' || ['follow', 'like', 'comment', 'share', 'watch', 'subscribe'].includes(tx.missionType || '') || tx.title.toLowerCase().includes('nhiệm vụ');
           }
           if (txCategoryFilter === 'live') {
             return tx.method === 'Xem Livestream' || tx.missionType === 'livestream' || tx.title.toLowerCase().includes('live');
@@ -2068,7 +2088,7 @@ export const ProfileWalletScreen: React.FC<{
                   </h3>
                 </div>
 
-                {/* Sub-tabs: Biến động số dư vs Nhật ký đồng bộ TikTok */}
+                {/* Sub-tabs: Biến động số dư vs Sổ cái Đa Nền Tảng */}
                 <div className="flex rounded-xl bg-black/60 p-1 border border-white/10 gap-1 text-xs font-mono">
                   <button
                     type="button"
@@ -2090,7 +2110,7 @@ export const ProfileWalletScreen: React.FC<{
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    <span>Đồng Bộ TikTok</span>
+                    <span>Sổ Cái Đa Nền Tảng (TikTok/FB/YT)</span>
                     <span className="px-1.5 py-0.2 rounded-full bg-cyan-400/30 text-white text-[10px]">
                       {syncLogs.length}
                     </span>
@@ -2251,21 +2271,22 @@ export const ProfileWalletScreen: React.FC<{
                 <div className="space-y-2.5 max-h-[480px] overflow-y-auto">
                   {syncLogs.length === 0 ? (
                     <div className="text-center py-10 text-slate-500 text-xs font-mono">
-                      Chưa có nhật ký đồng bộ tương tác TikTok nào. Hãy lướt video và làm nhiệm vụ để kiếm Xu!
+                      Chưa có nhật ký đồng bộ nhiệm vụ nào. Hãy hoàn thành nhiệm vụ TikTok, Facebook hoặc YouTube để ghi nhận vào sổ cái!
                     </div>
                   ) : (
-                    syncLogs.map((log) => {
+                    syncLogs.map((log: any) => {
                       const clean = (log.targetHandle || '').trim();
                       const matchedCamp = campaigns?.find(c => c.id === clean || clean.includes(c.id));
                       const matchedTask = tasks?.find(t => t.id === clean || clean.includes(t.id));
                       const channel = matchedCamp?.channelHandle || matchedTask?.channelHandle || (clean.startsWith('@') ? clean : (clean.startsWith('camp_') || clean.startsWith('task_') ? '@vtv24news' : `@${clean.replace(/^@+/, '')}`));
+                      const logPlatform = log.platform || 'tiktok';
                       
                       const actionLabel = 
-                        log.actionType === 'follow' ? `Theo Dõi Kênh ${channel}` :
-                        log.actionType === 'like' ? `Thả Tim Video ${channel}` :
-                        log.actionType === 'comment' ? `Bình Luận Video ${channel}` :
-                        log.actionType === 'share' ? `Chia Sẻ Video ${channel}` :
-                        `Xem Livestream ${channel}`;
+                        log.actionType === 'follow' || log.actionType === 'subscribe' ? `Theo Dõi / Đăng Ký ${channel}` :
+                        log.actionType === 'like' ? `Thả Tim / Thích ${channel}` :
+                        log.actionType === 'comment' ? `Bình Luận ${channel}` :
+                        log.actionType === 'share' ? `Chia Sẻ ${channel}` :
+                        `Xem Video / Live ${channel}`;
 
                       return (
                         <div
@@ -2281,28 +2302,37 @@ export const ProfileWalletScreen: React.FC<{
                               actionLabel: actionLabel,
                               coinsEarned: log.coinsEarned || 500,
                               amountVND: (log.coinsEarned || 500) * 10,
-                              timestamp: new Date(log.createdAt).toLocaleString('vi-VN'),
+                              timestamp: log.createdAt || new Date().toLocaleString('vi-VN'),
                               status: 'success',
-                              userHandle: user.tiktokConnected || user.handle || '@user',
-                              followed: log.actionType === 'follow',
+                              userHandle: log.userHandle || user.tiktokConnected || user.handle || '@user',
+                              followed: log.actionType === 'follow' || log.actionType === 'subscribe',
                               liked: log.actionType === 'like',
                               commented: log.actionType === 'comment',
                               shared: log.actionType === 'share',
-                              viewed: log.actionType === 'watch_live',
+                              viewed: log.actionType === 'watch_live' || log.actionType === 'watch',
                               txHash: log.txHash || `TX-SYNC-${log.id.slice(-8).toUpperCase()}`
                             });
                           }}
                           className="p-3.5 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between gap-3 text-xs font-mono hover:border-cyan-500/40 hover:bg-white/[0.03] transition-all cursor-pointer group"
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
+                            {/* Platform badge */}
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase shrink-0 ${
+                              logPlatform === 'facebook' ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40' :
+                              logPlatform === 'youtube' ? 'bg-red-600/30 text-red-300 border border-red-500/40' :
+                              'bg-rose-600/30 text-rose-300 border border-rose-500/40'
+                            }`}>
+                              {logPlatform === 'facebook' ? 'FB' : logPlatform === 'youtube' ? 'YT' : 'TIKTOK'}
+                            </span>
+
                             <span className={`px-2 py-1 rounded-lg text-[10px] font-bold shrink-0 ${
-                              log.actionType === 'follow' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                              log.actionType === 'follow' || log.actionType === 'subscribe' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
                               log.actionType === 'like' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30' :
                               log.actionType === 'comment' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
                               log.actionType === 'share' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
                               'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                             }`}>
-                              {log.actionType === 'follow' ? 'FOLLOW' :
+                              {log.actionType === 'follow' || log.actionType === 'subscribe' ? 'FOLLOW / SUB' :
                                log.actionType === 'like' ? 'THẢ TIM' :
                                log.actionType === 'comment' ? 'BÌNH LUẬN' :
                                log.actionType === 'share' ? 'CHIA SẺ' : 'XEM LIVE'}
@@ -2311,20 +2341,16 @@ export const ProfileWalletScreen: React.FC<{
                               <div className="font-bold text-white flex items-center gap-1.5 flex-wrap">
                                 <span className="group-hover:text-cyan-300 transition-colors">{actionLabel}</span>
                                 <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-sans font-semibold">
-                                  Đã xác thực ✓
+                                  Đã xác thực API ✓
                                 </span>
                               </div>
                               <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                                <span className="text-cyan-300 font-bold">Nick: {log.userHandle || user.tiktokConnected}</span>
+                                <span>•</span>
                                 <span className="text-slate-500">Mã GD: {log.txHash}</span>
                                 <span>•</span>
-                                <span>{new Date(log.createdAt).toLocaleString('vi-VN')}</span>
-                                {log.note && (
-                                  <>
-                                    <span>•</span>
-                                    <span className="text-slate-300">{log.note}</span>
-                                  </>
-                                )}
-                                <span className="text-cyan-400/80 group-hover:text-cyan-300 font-bold ml-auto text-[9px]">🔍 Báo cáo chi tiết ➔</span>
+                                <span>{log.createdAt}</span>
+                                <span className="text-cyan-400/80 group-hover:text-cyan-300 font-bold ml-auto text-[9px]">🔍 Chi tiết đối soát ➔</span>
                               </div>
                             </div>
                           </div>

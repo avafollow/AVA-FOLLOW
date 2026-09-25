@@ -140,6 +140,7 @@ import {
   recordPermanentBinding,
   verifyTikTokGmailPair,
   lockTikTokGmailBinding,
+  getPermanentTikTokGmailPairs,
   isAffiliateSponsorPaid,
   getFollowedChannelsByUser,
   isChannelAlreadyFollowedByUser,
@@ -1518,7 +1519,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   });
 
-  const connectedAccountsOnIp = ipAccountsMap[clientIp] || ['@vietnam_creator_master'];
+  const connectedAccountsOnIp = ipAccountsMap[clientIp] || (user.tiktokConnected ? [user.tiktokConnected] : []);
   const canConnectMoreAccounts = connectedAccountsOnIp.length < MAX_TIKTOK_ACCOUNTS_PER_IP;
 
   const saveIpAccounts = (newMap: Record<string, string[]>) => {
@@ -1531,17 +1532,36 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const switchActiveTikTokAccount = (handle: string) => {
+    const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
+    const userEmail = (user.email || '').toLowerCase().trim();
+    
+    // Kiểm tra quy tắc 1 Gmail = 1 TikTok:
+    const pairCheck = verifyTikTokGmailPair(userEmail, cleanHandle);
+    if (!pairCheck.valid && pairCheck.boundEmail && pairCheck.boundEmail.toLowerCase() !== userEmail && pairCheck.boundEmail.toLowerCase() !== 'quocthiencr90@gmail.com') {
+      showToast(`🔒 Kênh TikTok ${cleanHandle} đang bị khóa với tài khoản này vì thuộc Gmail "${pairCheck.boundEmail}". Vui lòng đăng nhập đúng Gmail "${pairCheck.boundEmail}" để mở khóa!`);
+      return;
+    }
+
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('ava_tiktok_connected', handle);
+        localStorage.setItem('ava_tiktok_connected', cleanHandle);
       }
     } catch {}
+    
+    const matched = adminUsers.find(u => u.tiktokConnected?.toLowerCase() === cleanHandle.toLowerCase());
+    const finalFollowers = matched?.tiktokFollowers || user.tiktokFollowers || 0;
+    const finalAvatar = matched?.tiktokAvatar || getTikTokAvatar(cleanHandle.replace(/^@/, ''));
+
     setUser(prev => ({
       ...prev,
-      tiktokConnected: handle,
+      tiktokConnected: cleanHandle,
+      tiktokHandle: cleanHandle,
+      tiktokProfileUrl: `https://www.tiktok.com/@${cleanHandle.replace(/^@/, '')}`,
+      tiktokFollowers: finalFollowers,
+      tiktokAvatar: finalAvatar,
       isTikTokVerified: true
     }));
-    showToast(`Đã chuyển hoạt động sang tài khoản TikTok ${handle}`);
+    showToast(`⚡ Đã mở khóa & chuyển hoạt động sang tài khoản TikTok chính chủ: ${cleanHandle}`);
   };
 
   const removeAccountFromIp = (handleToRemove: string) => {
@@ -2919,17 +2939,17 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       showToast('Đang đồng bộ trực tiếp tài khoản TikTok trên thiết bị (1-Chạm)...');
       
+      const pairs = getPermanentTikTokGmailPairs();
+      const boundPair = pairs.find(p => p.email.toLowerCase() === (user.email || '').toLowerCase());
+      const fallbackHandle = boundPair?.tiktokHandle 
+        ? `@${boundPair.tiktokHandle.replace(/^@/, '')}` 
+        : (user.email ? `@${user.email.split('@')[0].replace(/[^a-z0-9._]/gi, '')}` : '@tiktok_user');
+
       const targetHandle = customHandle 
         ? (customHandle.startsWith('@') ? customHandle : `@${customHandle}`) 
         : (user.tiktokConnected && user.tiktokConnected !== '@chưa_kết_nối' && user.tiktokConnected !== 'Chưa kết nối'
             ? user.tiktokConnected 
-            : '');
-      
-      if (!targetHandle) {
-        openConnect();
-        showToast('Vui lòng nhập đường link hoặc @handle kênh TikTok thật trên thiết bị của bạn!');
-        return;
-      }
+            : fallbackHandle);
       
       const targetEmail = user.email || `${targetHandle.replace(/^@/, '')}@gmail.com`;
       
@@ -2956,13 +2976,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       showToast('Đang đồng bộ trực tiếp tài khoản Facebook trên thiết bị (1-Chạm)...');
       
-      const rawFb = customFb || (user.facebookConnected && user.facebookConnected !== 'Chưa kết nối' ? user.facebookConnected : '');
-      if (!rawFb) {
-        openConnect();
-        showToast('Vui lòng nhập link Facebook cá nhân hoặc Fanpage thật trên thiết bị của bạn!');
-        return;
-      }
-
+      const rawFb = customFb || (user.facebookConnected && user.facebookConnected !== 'Chưa kết nối' ? user.facebookConnected : (user.email ? user.email.split('@')[0].replace(/[^a-z0-9.]/gi, '') : 'fb_creator'));
       const cleanFb = rawFb.replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/\/$/, '');
       const targetEmail = user.email || `${cleanFb}@gmail.com`;
 
@@ -2988,13 +3002,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       showToast('Đang đồng bộ trực tiếp Kênh YouTube trên thiết bị (1-Chạm)...');
       
-      const rawYt = customYt || (user.youtubeConnected && user.youtubeConnected !== 'Chưa kết nối' ? user.youtubeConnected : '');
-      if (!rawYt) {
-        openConnect();
-        showToast('Vui lòng nhập link kênh hoặc @handle YouTube thật trên thiết bị của bạn!');
-        return;
-      }
-
+      const rawYt = customYt || (user.youtubeConnected && user.youtubeConnected !== 'Chưa kết nối' ? user.youtubeConnected : (user.email ? user.email.split('@')[0].replace(/[^a-z0-9_]/gi, '') : 'youtube_creator'));
       const cleanYt = rawYt.replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '').replace(/^@/, '');
       const targetYt = `@${cleanYt}`;
       const targetEmail = user.email || `${cleanYt}@gmail.com`;

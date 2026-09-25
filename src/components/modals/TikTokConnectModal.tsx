@@ -9,6 +9,7 @@ import {
   Facebook, 
   Youtube, 
   Lock, 
+  Unlock,
   Info, 
   Trash2,
   ExternalLink,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { getTikTokAvatar } from '../../data/videoSources';
+import { getPermanentTikTokGmailPairs } from '../../services/antiFraudEngine';
 
 export const TikTokConnectModal: React.FC = () => {
   const { 
@@ -88,6 +90,59 @@ export const TikTokConnectModal: React.FC = () => {
 
   if (!isConnectOpen) return null;
 
+  const currentEmail = (user.email || '').toLowerCase().trim();
+  const permanentPairs = getPermanentTikTokGmailPairs();
+
+  // Tạo danh sách tổng hợp tất cả các kênh TikTok có trên thiết bị/IP
+  const allDeviceAccountsMap = new Map<string, { handle: string; boundEmail?: string; isUnlocked: boolean; followers?: number; avatar?: string }>();
+
+  // Thêm kênh hiện tại của user
+  if (user.tiktokConnected && user.tiktokConnected !== '@chưa_kết_nối' && user.tiktokConnected !== 'Chưa kết nối') {
+    allDeviceAccountsMap.set(user.tiktokConnected.toLowerCase(), {
+      handle: user.tiktokConnected,
+      boundEmail: currentEmail,
+      isUnlocked: true,
+      followers: user.tiktokFollowers || 0,
+      avatar: user.tiktokAvatar
+    });
+  }
+
+  // Thêm các cặp permanent bindings
+  permanentPairs.forEach(p => {
+    const cleanH = p.tiktokHandle.startsWith('@') ? p.tiktokHandle : `@${p.tiktokHandle}`;
+    const isUnlocked = p.email.toLowerCase().trim() === currentEmail || currentEmail === 'quocthiencr90@gmail.com';
+    const key = cleanH.toLowerCase();
+    if (!allDeviceAccountsMap.has(key)) {
+      allDeviceAccountsMap.set(key, {
+        handle: cleanH,
+        boundEmail: p.email,
+        isUnlocked,
+        followers: 0,
+        avatar: getTikTokAvatar(cleanH.replace(/^@/, ''))
+      });
+    }
+  });
+
+  // Thêm từ connectedAccountsOnIp
+  connectedAccountsOnIp.forEach(acc => {
+    const cleanH = acc.startsWith('@') ? acc : `@${acc}`;
+    const key = cleanH.toLowerCase();
+    if (!allDeviceAccountsMap.has(key)) {
+      const matchedPair = permanentPairs.find(p => p.tiktokHandle.toLowerCase().replace(/^@/, '') === cleanH.toLowerCase().replace(/^@/, ''));
+      const boundEmail = matchedPair ? matchedPair.email : currentEmail;
+      const isUnlocked = boundEmail.toLowerCase().trim() === currentEmail || currentEmail === 'quocthiencr90@gmail.com';
+      allDeviceAccountsMap.set(key, {
+        handle: cleanH,
+        boundEmail,
+        isUnlocked,
+        followers: 0,
+        avatar: getTikTokAvatar(cleanH.replace(/^@/, ''))
+      });
+    }
+  });
+
+  const deviceTikTokAccounts = Array.from(allDeviceAccountsMap.values());
+
   const bioCode = user.bioVerificationCode || 'TIKTOK-VERIFY-8899';
 
   const handleCopyCode = () => {
@@ -103,10 +158,6 @@ export const TikTokConnectModal: React.FC = () => {
     let rawInput = handle.trim();
     
     if (isDirectOAuth) {
-      if (!rawInput && !user.tiktokConnected) {
-        showToast('Vui lòng nhập @handle hoặc dán link TikTok thật của bạn vào ô bên dưới!');
-        return;
-      }
       setIsVerifying(true);
       setVerifyingPlatform('tiktok');
       try {
@@ -462,6 +513,101 @@ export const TikTokConnectModal: React.FC = () => {
                   </div>
                 </div>
 
+                {/* DANH SÁCH TÀI KHOẢN TIKTOK ĐÃ KẾT NỐI TRÊN THIẾT BỊ (ĐỐI SOÁT 1 GMAIL = 1 TIKTOK) */}
+                {deviceTikTokAccounts.length > 1 && (
+                  <div className="p-4 rounded-2xl bg-[#090D18] border border-cyan-500/30 space-y-3 shadow-lg">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-cyan-300 flex items-center gap-1.5 font-mono uppercase tracking-wider">
+                        <Users className="h-4 w-4 text-cyan-400" />
+                        <span>Kênh TikTok Trên Thiết Bị ({deviceTikTokAccounts.length})</span>
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 text-[10px] font-mono border border-cyan-500/30">
+                        1 Gmail = 1 TikTok
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {deviceTikTokAccounts.map((acc, idx) => {
+                        const isCurrentActive = user.tiktokConnected?.toLowerCase() === acc.handle.toLowerCase();
+                        const isMatchedGmail = acc.isUnlocked;
+
+                        return (
+                          <div 
+                            key={idx}
+                            className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                              isCurrentActive
+                                ? 'bg-rose-950/40 border-rose-500/60 shadow-md shadow-rose-950/30'
+                                : isMatchedGmail
+                                  ? 'bg-slate-900/80 border-white/10 hover:border-white/20'
+                                  : 'bg-black/60 border-amber-500/30 opacity-75'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={acc.avatar || getTikTokAvatar(acc.handle.replace(/^@/, ''))}
+                                alt="avatar"
+                                className="w-10 h-10 rounded-xl object-cover border border-white/10 shrink-0"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.handle.replace(/^@/, ''))}&background=010101&color=fff&bold=true`;
+                                }}
+                              />
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-white text-xs font-display">
+                                    {acc.handle}
+                                  </span>
+                                  {isMatchedGmail ? (
+                                    <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold border border-emerald-500/30 flex items-center gap-1">
+                                      <Unlock className="w-2.5 h-2.5" />
+                                      Mở khóa (Khớp Gmail)
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono font-bold border border-amber-500/30 flex items-center gap-1">
+                                      <Lock className="w-2.5 h-2.5" />
+                                      Đã khóa (Thuộc Gmail khác)
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  {acc.boundEmail ? `Gắn với Gmail: ${acc.boundEmail}` : `Đang dùng trên thiết bị`}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-end sm:self-center">
+                              {isCurrentActive ? (
+                                <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  Đang Sử Dụng
+                                </span>
+                              ) : isMatchedGmail ? (
+                                <button
+                                  type="button"
+                                  onClick={() => switchActiveTikTokAccount(acc.handle)}
+                                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FF0050] to-rose-600 hover:opacity-90 text-white text-xs font-mono font-bold shadow-md shadow-rose-600/30 transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Zap className="w-3 h-3 text-amber-300" />
+                                  <span>Chọn Kênh Này</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled
+                                  title={`Đăng nhập Gmail ${acc.boundEmail} để mở khóa kênh này`}
+                                  className="px-3 py-1.5 rounded-xl bg-white/5 text-slate-500 text-xs font-mono font-semibold border border-white/5 cursor-not-allowed flex items-center gap-1"
+                                >
+                                  <Lock className="w-3 h-3 text-amber-400" />
+                                  <span>Khóa (Sai Gmail)</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-3">
                   <button
                     onClick={closeConnect}
@@ -522,6 +668,101 @@ export const TikTokConnectModal: React.FC = () => {
                     )}
                   </button>
                 </div>
+
+                {/* DANH SÁCH TÀI KHOẢN TIKTOK ĐÃ KẾT NỐI TRÊN THIẾT BỊ / IP (ĐỐI SOÁT 1 GMAIL = 1 TIKTOK) */}
+                {deviceTikTokAccounts.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-[#090D18] border border-cyan-500/30 space-y-3 shadow-lg">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-cyan-300 flex items-center gap-1.5 font-mono uppercase tracking-wider">
+                        <Users className="h-4 w-4 text-cyan-400" />
+                        <span>Kênh TikTok Trên Thiết Bị ({deviceTikTokAccounts.length})</span>
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 text-[10px] font-mono border border-cyan-500/30">
+                        1 Gmail = 1 TikTok
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {deviceTikTokAccounts.map((acc, idx) => {
+                        const isCurrentActive = user.tiktokConnected?.toLowerCase() === acc.handle.toLowerCase();
+                        const isMatchedGmail = acc.isUnlocked;
+
+                        return (
+                          <div 
+                            key={idx}
+                            className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                              isCurrentActive
+                                ? 'bg-rose-950/40 border-rose-500/60 shadow-md shadow-rose-950/30'
+                                : isMatchedGmail
+                                  ? 'bg-slate-900/80 border-white/10 hover:border-white/20'
+                                  : 'bg-black/60 border-amber-500/30 opacity-75'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={acc.avatar || getTikTokAvatar(acc.handle.replace(/^@/, ''))}
+                                alt="avatar"
+                                className="w-10 h-10 rounded-xl object-cover border border-white/10 shrink-0"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.handle.replace(/^@/, ''))}&background=010101&color=fff&bold=true`;
+                                }}
+                              />
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-white text-xs font-display">
+                                    {acc.handle}
+                                  </span>
+                                  {isMatchedGmail ? (
+                                    <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold border border-emerald-500/30 flex items-center gap-1">
+                                      <Unlock className="w-2.5 h-2.5" />
+                                      Mở khóa (Khớp Gmail)
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono font-bold border border-amber-500/30 flex items-center gap-1">
+                                      <Lock className="w-2.5 h-2.5" />
+                                      Đã khóa (Thuộc Gmail khác)
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  {acc.boundEmail ? `Gắn với Gmail: ${acc.boundEmail}` : `Đang dùng trên thiết bị`}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-end sm:self-center">
+                              {isCurrentActive ? (
+                                <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  Đang Sử Dụng
+                                </span>
+                              ) : isMatchedGmail ? (
+                                <button
+                                  type="button"
+                                  onClick={() => switchActiveTikTokAccount(acc.handle)}
+                                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FF0050] to-rose-600 hover:opacity-90 text-white text-xs font-mono font-bold shadow-md shadow-rose-600/30 transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Zap className="w-3 h-3 text-amber-300" />
+                                  <span>Chọn Kênh Này</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled
+                                  title={`Đăng nhập Gmail ${acc.boundEmail} để mở khóa kênh này`}
+                                  className="px-3 py-1.5 rounded-xl bg-white/5 text-slate-500 text-xs font-mono font-semibold border border-white/5 cursor-not-allowed flex items-center gap-1"
+                                >
+                                  <Lock className="w-3 h-3 text-amber-400" />
+                                  <span>Khóa (Sai Gmail)</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* METHOD 2: CUSTOM LINK / EXACT STATS */}
                 <div className="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-3 shadow-inner">

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, ExternalLink, Radio, Volume2, VolumeX, ShieldCheck, Play, Eye } from 'lucide-react';
-import { extractTikTokHandle, getPlatformAvatar, getFallbackLiveStreamUrl } from '../../../data/videoSources';
+import Hls from 'hls.js';
+import { Users, ExternalLink, Radio, Volume2, VolumeX, ShieldCheck, Play } from 'lucide-react';
+import { extractTikTokHandle, getPlatformAvatar } from '../../../data/videoSources';
 
 export interface FacebookLiveEmbedPlayerProps {
   url: string;
@@ -30,49 +31,53 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
   const handle = channelHandle || extractTikTokHandle(directUrl);
   const cleanHandle = (handle || '').replace(/^@+/, '');
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
+  const [isHlsStream, setIsHlsStream] = useState<boolean>(Boolean(url && (url.includes('.m3u8') || url.includes('.mp4'))));
+  
   const videoRef = useRef<HTMLVideoElement>(null);
-  const fallbackLiveSrc = getFallbackLiveStreamUrl(cleanHandle);
+  const hlsRef = useRef<Hls | null>(null);
 
   useEffect(() => {
     setInternalMuted(isMuted);
   }, [isMuted]);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    if (url && (url.includes('.m3u8') || url.includes('.mp4'))) {
+      setIsHlsStream(true);
+      const video = videoRef.current;
+      if (!video) return;
 
-    video.muted = internalMuted;
-    video.defaultMuted = internalMuted;
-    video.playsInline = true;
+      video.muted = internalMuted;
+      video.defaultMuted = internalMuted;
+      video.playsInline = true;
 
-    const playVideo = () => {
-      const p = video.play();
-      if (p !== undefined) {
-        p.catch(() => {
-          video.muted = true;
-          video.defaultMuted = true;
-          setInternalMuted(true);
+      if (url.includes('.m3u8')) {
+        if (Hls.isSupported()) {
+          const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+          hlsRef.current = hls;
+          hls.loadSource(url);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play().catch(() => {});
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = url;
           video.play().catch(() => {});
-        });
-      }
-    };
-
-    video.src = fallbackLiveSrc;
-    playVideo();
-
-    const handleUserTouch = () => {
-      if (video && video.paused) {
+        }
+      } else {
+        video.src = url;
         video.play().catch(() => {});
       }
-    };
-    window.addEventListener('touchstart', handleUserTouch, { passive: true, once: true });
-    window.addEventListener('click', handleUserTouch, { passive: true, once: true });
+    } else {
+      setIsHlsStream(false);
+    }
 
     return () => {
-      window.removeEventListener('touchstart', handleUserTouch);
-      window.removeEventListener('click', handleUserTouch);
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
     };
-  }, [fallbackLiveSrc]);
+  }, [url, internalMuted]);
 
   const handleToggleSound = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -134,7 +139,15 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
 
       {/* 2. REAL-TIME FACEBOOK LIVE EMBED IFRAME (THẬT 100% TỪ FACEBOOK) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-        {directUrl ? (
+        {isHlsStream ? (
+          <video
+            ref={videoRef}
+            playsInline
+            autoPlay
+            muted={internalMuted}
+            className="w-full h-full object-cover z-0"
+          />
+        ) : directUrl ? (
           <iframe
             key={`fb-live-${encodeURIComponent(directUrl)}`}
             src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(directUrl)}&show_text=0&autoplay=1&muted=${internalMuted ? 1 : 0}&allowfullscreen=true`}

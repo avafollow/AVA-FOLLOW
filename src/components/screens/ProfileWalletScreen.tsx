@@ -242,14 +242,19 @@ export const ProfileWalletScreen: React.FC<{
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  const userGmailRef = user.email ? user.email.split('@')[0].toUpperCase().replace(/[^A-Z0-9_-]/g, '') : '';
+  const currentRefCode = (affiliateData.refCode && affiliateData.refCode !== 'THIENVUAAPP88' && affiliateData.refCode !== 'AVA_VIP')
+    ? affiliateData.refCode
+    : (userGmailRef || 'AVA2026');
+
   const currentRefLink = typeof window !== 'undefined' && window.location?.origin
-    ? `${window.location.origin}/?ref=${affiliateData.refCode}`
-    : (affiliateData.refLink || `https://avafollow.vn/?ref=${affiliateData.refCode}`);
+    ? `${window.location.origin}/?ref=${currentRefCode}`
+    : `https://avafollow.vn/?ref=${currentRefCode}`;
 
   const handleCopyRef = () => {
     if (navigator.clipboard) navigator.clipboard.writeText(currentRefLink);
     setCopiedRef(true);
-    showToast('Đã sao chép link tiếp thị liên kết vào bộ nhớ tạm!');
+    showToast(`Đã sao chép link tiếp thị liên kết (?ref=${currentRefCode}) vào bộ nhớ tạm!`);
     setTimeout(() => setCopiedRef(false), 2000);
   };
 

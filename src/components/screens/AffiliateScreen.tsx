@@ -34,18 +34,27 @@ export const AffiliateScreen: React.FC<{
   } = useTikTokApp();
   const [copied, setCopied] = useState(false);
   const [isEditingSlug, setIsEditingSlug] = useState(false);
-  const [customSlugInput, setCustomSlugInput] = useState(affiliateData.refCode || '');
+  
+  // Mã Ref gắn liền trực tiếp với tài khoản Gmail của từng người dùng
+  const userGmailRef = user.email ? user.email.split('@')[0].toUpperCase().replace(/[^A-Z0-9_-]/g, '') : '';
+  const effectiveRefCode = (affiliateData.refCode && affiliateData.refCode !== 'THIENVUAAPP88' && affiliateData.refCode !== 'AVA_VIP')
+    ? affiliateData.refCode
+    : (userGmailRef || 'AVA2026');
 
-  const currentRefLink = typeof window !== 'undefined' && window.location?.origin
-    ? `${window.location.origin}/?ref=${affiliateData.refCode}`
-    : (affiliateData.refLink || `https://avafollow.vn/?ref=${affiliateData.refCode}`);
+  const [customSlugInput, setCustomSlugInput] = useState(effectiveRefCode);
+
+  const originUrl = typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : 'https://avafollow.vn';
+
+  const currentRefLink = `${originUrl}/?ref=${effectiveRefCode}`;
 
   const handleCopyLink = () => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(currentRefLink);
     }
     setCopied(true);
-    showToast('✓ Đã sao chép link tiếp thị liên kết (đã bao gồm mã bảo trợ)!');
+    showToast(`✓ Đã sao chép link tiếp thị liên kết cá nhân (?ref=${effectiveRefCode})!`);
     setTimeout(() => setCopied(false), 2000);
   };
 

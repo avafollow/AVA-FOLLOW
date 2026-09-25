@@ -945,6 +945,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           const realCount = realOrders.length;
           let userRes: AdminUserManagementItem = {
             ...u,
+            status: 'active', // Mở khóa toàn bộ tài khoản hiện tại theo yêu cầu
             orders: realOrders,
             purchasedPackagesCount: realCount,
             escrowLockedAmountVND: realCount > 0 ? (u.escrowLockedAmountVND || '0đ') : '0đ'
@@ -958,7 +959,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return healed;
       }
     } catch {}
-    return ADMIN_USERS_LIST;
+    return ADMIN_USERS_LIST.map(u => ({ ...u, status: 'active' as const }));
   });
 
   // TỰ ĐỘNG LƯU VĨNH VIỄN VÀO LOCALSTORAGE VÀ ĐỒNG BỘ SUPABASE CLOUD (KHÔNG MẤT DỮ LIỆU)
@@ -976,6 +977,22 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       syncUserProfileToSupabase(user);
     } catch {}
   }, [user]);
+
+  // MỞ KHÓA TOÀN BỘ TÀI KHOẢN HIỆN TẠI THEO YÊU CẦU QUẢN TRỊ
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('ava_task_lockout_') || k.startsWith('ava_fraud_lockout_'))) {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch {}
+    }
+  }, []);
 
   // TỰ ĐỒNG BỘ DỮ LIỆU THỜI GIAN THỰC TỪ USER PROFILE VÀO TRANG ADMIN DASHBOARD & DANH SÁCH THÀNH VIÊN
   useEffect(() => {

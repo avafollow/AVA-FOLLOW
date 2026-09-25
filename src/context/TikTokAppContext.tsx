@@ -623,10 +623,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const effFbAvatar = userConn?.facebookAvatar || (effFb ? `https://ui-avatars.com/api/?name=${encodeURIComponent(effFb)}&background=1877F2&color=fff&bold=true` : (parsed.facebookAvatar || ''));
         const effFbUrl = userConn?.facebookProfileUrl || parsed.facebookProfileUrl || (effFb ? (effFb.startsWith('http') ? effFb : `https://facebook.com/${effFb}`) : '');
 
-        const effYt = userConn?.youtubeConnected !== undefined ? userConn.youtubeConnected : (parsed.youtubeConnected || '');
-        const effYtSubs = userConn?.youtubeSubscribers !== undefined ? userConn.youtubeSubscribers : (parsed.youtubeSubscribers || 0);
+        const savedYt = (typeof window !== 'undefined' ? localStorage.getItem('ava_youtube_connected') : null);
+        const savedYtUrl = (typeof window !== 'undefined' ? localStorage.getItem('ava_youtube_url') : null);
+        const savedYtSubs = (typeof window !== 'undefined' ? localStorage.getItem('ava_youtube_subs') : null);
+        const effYt = userConn?.youtubeConnected !== undefined ? userConn.youtubeConnected : (savedYt !== null ? savedYt : (parsed.youtubeConnected || ''));
+        const effYtSubs = userConn?.youtubeSubscribers !== undefined ? userConn.youtubeSubscribers : (savedYtSubs !== null ? (parseInt(savedYtSubs, 10) || 0) : (parsed.youtubeSubscribers || 0));
         const effYtAvatar = userConn?.youtubeAvatar || (effYt ? `https://ui-avatars.com/api/?name=${encodeURIComponent(effYt.replace(/^@/, ''))}&background=FF0000&color=fff&bold=true` : (parsed.youtubeAvatar || ''));
-        const effYtUrl = userConn?.youtubeProfileUrl || parsed.youtubeProfileUrl || (effYt ? (effYt.startsWith('http') ? effYt : `https://youtube.com/@${effYt.replace(/^@/, '')}`) : '');
+        const effYtUrl = userConn?.youtubeProfileUrl || parsed.youtubeProfileUrl || savedYtUrl || (effYt ? (effYt.startsWith('http') ? effYt : `https://youtube.com/@${effYt.replace(/^@/, '')}`) : '');
 
         const cleanAvatar = (parsed.avatar && !parsed.avatar.includes('unsplash')) 
           ? parsed.avatar 
@@ -5944,12 +5947,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Connect YouTube (Kênh YouTube - 1 Gmail = 1 YouTube, Max 5 YT / 1 IP)
   const connectYoutube = (urlOrHandle: string, subscribers?: number, avatarUrl?: string) => {
-    const clean = urlOrHandle
-      .replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '')
+    const clean = (urlOrHandle || '')
+      .replace(/^https?:\/\/(www\.)?youtube\.com\/(channel\/|c\/|user\/|@)?/i, '')
+      .replace(/^https?:\/\/youtu\.be\//i, '')
       .replace(/^@/, '')
-      .replace(/\/$/, '');
+      .replace(/\?.*$/, '')
+      .replace(/\/$/, '')
+      .trim();
 
-    const formattedYt = `@${clean}`;
+    const formattedYt = clean ? `@${clean}` : `@${user.name?.replace(/\s+/g, '').toLowerCase() || 'youtube_channel'}`;
     const userEmail = (user.email || '').toLowerCase();
 
     // 1. Kiểm tra 1 Gmail = đúng 1 tài khoản YouTube
@@ -5980,13 +5986,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       } catch {}
     }
 
-    const finalYtAvatar = avatarUrl || user.youtubeAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=FF0000&color=fff&bold=true`;
-    const finalYtUrl = urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean}`;
+    const finalYtAvatar = avatarUrl || user.youtubeAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean || 'YT')}&background=FF0000&color=fff&bold=true`;
+    const finalYtUrl = urlOrHandle && urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean || 'channel'}`;
+    const finalSubs = subscribers !== undefined ? subscribers : (user.youtubeSubscribers || 0);
 
     saveConnectionsForUser(userEmail, {
       youtubeConnected: formattedYt,
       youtubeProfileUrl: finalYtUrl,
-      youtubeSubscribers: subscribers !== undefined ? subscribers : (user.youtubeSubscribers || 0),
+      youtubeSubscribers: finalSubs,
       youtubeAvatar: finalYtAvatar,
       isYoutubeVerified: true
     });
@@ -5996,9 +6003,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       youtubeConnected: formattedYt,
       youtubeProfileUrl: finalYtUrl,
       isYoutubeVerified: true,
-      youtubeSubscribers: subscribers !== undefined ? subscribers : (user.youtubeSubscribers || 0),
+      youtubeSubscribers: finalSubs,
       youtubeAvatar: finalYtAvatar,
-      youtubeChannelTitle: clean.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      youtubeChannelTitle: (clean || 'Kênh YouTube').replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
       youtubeVideoCount: user.youtubeVideoCount || 0,
       youtubeDescription: `Kênh YouTube chính chủ ${formattedYt} đã xác thực trực tiếp trên AVA FOLLOW.`,
       youtubeLastSyncedAt: new Date().toISOString()
@@ -6007,6 +6014,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setUser(updatedUser);
     try {
       if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_youtube_connected', formattedYt);
+        localStorage.setItem('ava_youtube_url', finalYtUrl);
+        localStorage.setItem('ava_youtube_subs', String(finalSubs));
         localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
       }
     } catch {}
@@ -6109,6 +6119,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setUser(updatedUser);
     try {
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('ava_youtube_connected');
+        localStorage.removeItem('ava_youtube_url');
+        localStorage.removeItem('ava_youtube_subs');
         localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
       }
     } catch {}

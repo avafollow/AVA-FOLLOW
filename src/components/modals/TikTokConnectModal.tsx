@@ -273,10 +273,6 @@ export const TikTokConnectModal: React.FC = () => {
     let rawYt = ytUrl.trim();
     
     if (isDirectOAuth) {
-      if (!rawYt && !user.youtubeConnected) {
-        showToast('Vui lòng dán link kênh hoặc @handle YouTube thật của bạn vào ô bên dưới!');
-        return;
-      }
       setIsYtVerifying(true);
       setVerifyingPlatform('youtube');
       try {
@@ -298,7 +294,8 @@ export const TikTokConnectModal: React.FC = () => {
     }
 
     let cleanYt = rawYt
-      .replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '')
+      .replace(/^https?:\/\/(www\.)?youtube\.com\/(channel\/|c\/|user\/|@)?/i, '')
+      .replace(/^https?:\/\/youtu\.be\//i, '')
       .replace(/\?.*$/, '')
       .replace(/\/$/, '')
       .replace(/^@/, '');
@@ -316,7 +313,7 @@ export const TikTokConnectModal: React.FC = () => {
       connectYoutube(cleanYt, parsedSubs, finalYtAvatar);
       setIsYtEditing(false);
       setSuccessBanner(`⚡ Đã xác thực Google OAuth 2.0 & kết nối thành công kênh YouTube ${formattedYt}!`);
-      showToast(`✓ Đã đồng bộ kênh YouTube 1-chạm: ${formattedYt}`);
+      showToast(`✓ Đã đồng bộ kênh YouTube: ${formattedYt}`);
       setTimeout(() => setSuccessBanner(null), 4000);
     }, 800);
   };

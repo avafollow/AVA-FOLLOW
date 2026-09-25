@@ -11,6 +11,7 @@
 
 import { getTikTokAvatar } from '../data/videoSources';
 import { UserProfileWallet } from '../types';
+import { fetchYouTubeChannelProfile } from './youtubeApiService';
 
 export interface SyncedTikTokProfile {
   handle: string;
@@ -185,60 +186,16 @@ export async function fetchRealFacebookProfile(inputUrlOrHandle: string, customF
  * 3. ĐỒNG BỘ TRỰC TIẾP KÊNH YOUTUBE QUA API THẬT
  */
 export async function fetchRealYouTubeProfile(inputUrlOrHandle: string, customSubs?: number): Promise<SyncedYouTubeProfile> {
-  const cleanInput = (inputUrlOrHandle || '').trim();
+  const profile = await fetchYouTubeChannelProfile(inputUrlOrHandle);
   
-  let cleanYt = cleanInput
-    .replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '')
-    .replace(/^https?:\/\/youtu\.be\//, '')
-    .replace(/\?.*$/, '')
-    .replace(/\/$/, '')
-    .replace(/^@+/, '')
-    .trim();
-
-  if (!cleanYt) {
-    cleanYt = 'youtube_creator';
-  }
-
-  const formattedHandle = `@${cleanYt}`;
-  const profileUrl = `https://www.youtube.com/@${cleanYt}`;
-  
-  let channelTitle = cleanYt.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  let avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(channelTitle)}&background=FF0000&color=fff&bold=true`;
-  let subscribers = customSubs !== undefined && customSubs > 0 ? customSubs : 0;
-  let videoCount = 0;
-  let description = `Kênh YouTube chính chủ ${formattedHandle} | Tương tác & Kiếm tiền cùng AVA FOLLOW Growth OS`;
-
-  // Thử gọi YouTube oEmbed để lấy thông tin kênh thật
-  try {
-    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(profileUrl)}&format=json`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-    const res = await fetch(oembedUrl, { signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data.author_name) {
-        channelTitle = data.author_name;
-      }
-      if (data.thumbnail_url) {
-        avatar = data.thumbnail_url;
-      }
-      if (data.title) {
-        description = data.title;
-      }
-    }
-  } catch (err) {}
-
   return {
-    handleOrId: formattedHandle,
-    channelTitle: channelTitle || formattedHandle,
-    avatar: avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanYt)}&background=FF0000&color=fff&bold=true`,
-    subscribers,
-    videoCount,
-    description,
-    profileUrl,
+    handleOrId: profile.handle,
+    channelTitle: profile.title,
+    avatar: profile.avatar,
+    subscribers: customSubs !== undefined && customSubs > 0 ? customSubs : profile.subscribers,
+    videoCount: profile.videoCount,
+    description: profile.description,
+    profileUrl: profile.customUrl || `https://www.youtube.com/${profile.handle}`,
     isVerified: true,
     isValidRealAccount: true,
     syncedAt: new Date().toISOString()

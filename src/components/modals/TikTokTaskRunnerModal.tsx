@@ -35,6 +35,12 @@ import {
   DirectVideoPlayer
 } from '../common/players';
 import { verifyPlatformAccountForTask } from '../../services/platformProfileSyncService';
+import { 
+  verifyYouTubeSubscription, 
+  verifyYouTubeVideoLike, 
+  verifyYouTubeComment 
+} from '../../services/youtubeApiService';
+import { verifyFacebookTaskAction } from '../../services/facebookApiService';
 
 export const TikTokTaskRunnerModal: React.FC = () => {
   const { 
@@ -155,11 +161,20 @@ export const TikTokTaskRunnerModal: React.FC = () => {
   const [isTabInactive, setIsTabInactive] = useState<boolean>(false);
   const [pendingFraudAction, setPendingFraudAction] = useState<'follow' | 'like' | 'comment' | 'share' | null>(null);
   const [pendingActionStartTime, setPendingActionStartTime] = useState<number>(0);
+  const [pendingCommentText, setPendingCommentText] = useState<string>('');
+
+  // Lấy chính xác tài khoản đang làm nhiệm vụ theo nền tảng
+  const performerAccount = taskPlatform === 'youtube'
+    ? (user.youtubeConnected || 'Chưa kết nối')
+    : taskPlatform === 'facebook'
+      ? (user.facebookConnected || 'Chưa kết nối')
+      : (user.tiktokConnected || 'Chưa kết nối');
+  const isAccountConnected = Boolean(performerAccount && performerAccount !== 'Chưa kết nối' && !performerAccount.includes('chưa_kết_nối'));
 
   // Lắng nghe trạng thái Tab để đóng băng bộ đếm ngay khi user chuyển sang ứng dụng khác
   useEffect(() => {
     if (!isRunnerOpen) return;
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       const isHidden = typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()));
       setIsTabInactive(isHidden);
       
@@ -174,17 +189,49 @@ export const TikTokTaskRunnerModal: React.FC = () => {
         if (timeSpentAway < requiredTime) {
            triggerImmediateFraudAlert({
              title: 'PHÁT HIỆN GIAN LẬN',
-             reason: `Thời gian thao tác quá nhanh (${(timeSpentAway/1000).toFixed(1)}s). Bạn phải THỰC SỰ MỞ ${platformDisplayName.toUpperCase()} và ${actionName} để nhận xu!`,
+             reason: `Thời gian thao tác quá nhanh (${(timeSpentAway/1000).toFixed(1)}s). Bạn phải THỰC SỰ MỞ ${platformDisplayName.toUpperCase()} bằng tài khoản chính chủ [${performerAccount}] và ${actionName} để nhận xu!`,
              anomalyType: 'BOT_SPEED_DETECTED',
              channelHandle: runnerTask.channelHandle,
              penaltyPoints: 10
            });
-        } else {
-           const earned = claimTaskAction(runnerTask.id, pendingFraudAction);
-           if (earned > 0) {
-             setClaimedActions(prev => ({ ...prev, [pendingFraudAction]: true }));
-             showToast(`🎉 Xác minh ${actionName} thành công: +${earned} Xu`);
-           }
+           setPendingFraudAction(null);
+           return;
+        }
+
+        // KIỂM TRA & XÁC THỰC THEO TỪNG NỀN TẢNG (YOUTUBE, FACEBOOK, TIKTOK)
+        let isVerified = true;
+        let verifyMsg = '';
+
+        if (taskPlatform === 'youtube') {
+          if (pendingFraudAction === 'follow') {
+            const res = await verifyYouTubeSubscription(runnerTask.channelHandle, undefined, user.youtubeConnected);
+            isVerified = res.success;
+            verifyMsg = res.message;
+          } else if (pendingFraudAction === 'like') {
+            const res = await verifyYouTubeVideoLike(runnerTask.targetUrl || runnerTask.id, undefined, user.youtubeConnected);
+            isVerified = res.success;
+            verifyMsg = res.message;
+          } else if (pendingFraudAction === 'comment') {
+            const res = await verifyYouTubeComment(runnerTask.targetUrl || runnerTask.id, user.youtubeConnected || '', 5, pendingCommentText);
+            isVerified = res.success;
+            verifyMsg = res.message;
+          }
+        } else if (taskPlatform === 'facebook') {
+          const res = await verifyFacebookTaskAction(pendingFraudAction, runnerTask.targetUrl || runnerTask.channelHandle, user.facebookConnected || '', { commentText: pendingCommentText });
+          isVerified = res.success;
+          verifyMsg = res.message;
+        }
+
+        if (!isVerified) {
+          showToast(`❌ XÁC THỰC THẤT BẠI: ${verifyMsg || 'Hệ thống chưa tìm thấy tương tác thực tế từ tài khoản của bạn!'}`);
+          setPendingFraudAction(null);
+          return;
+        }
+
+        const earned = claimTaskAction(runnerTask.id, pendingFraudAction);
+        if (earned > 0) {
+          setClaimedActions(prev => ({ ...prev, [pendingFraudAction]: true }));
+          showToast(`🎉 Xác minh ${actionName} thành công: +${earned} Xu (Tài khoản: ${performerAccount})`);
         }
         setPendingFraudAction(null);
       }
@@ -199,7 +246,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       window.removeEventListener('blur', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
     };
-  }, [isRunnerOpen, pendingFraudAction, pendingActionStartTime, runnerTask, claimTaskAction, triggerImmediateFraudAlert, actionFollowName, actionLikeName, actionCommentName, platformDisplayName]);
+  }, [isRunnerOpen, pendingFraudAction, pendingActionStartTime, pendingCommentText, runnerTask, claimTaskAction, triggerImmediateFraudAlert, actionFollowName, actionLikeName, actionCommentName, platformDisplayName, taskPlatform, performerAccount, user.youtubeConnected, user.facebookConnected]);
 
   // 15-second countdown timer (ĐÓNG BĂNG 100% KHI ẨN TAB / RỜI APP / NHẬN CUỘC GỌI)
   useEffect(() => {
@@ -336,6 +383,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       setIsSubmitting(false);
       setShowCommentSheet(false);
       
+      setPendingCommentText(commentText);
       setPendingFraudAction('comment');
       setPendingActionStartTime(Date.now());
       showToast(`Đã Copy bình luận! Đang mở ${platformDisplayName}, vui lòng DÁN (Paste) bình luận vào video nhé.`);
@@ -510,9 +558,37 @@ export const TikTokTaskRunnerModal: React.FC = () => {
           </span>
         </div>
 
+        {/* BADGE TÀI KHOẢN THỰC HIỆN NHIỆM VỤ THEO NỀN TẢNG (CHỐNG DÙNG SAI TÀI KHOẢN) */}
+        <div className="absolute top-27 inset-x-3 z-30 px-3 py-1.5 rounded-2xl bg-black/85 border border-cyan-500/40 backdrop-blur-md flex items-center justify-between text-xs shadow-lg">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase ${
+              taskPlatform === 'youtube' ? 'bg-red-600 text-white' :
+              taskPlatform === 'facebook' ? 'bg-blue-600 text-white' :
+              'bg-zinc-800 text-pink-400 border border-pink-500/40'
+            }`}>
+              {platformDisplayName}
+            </span>
+            <span className="text-[11px] text-zinc-300 truncate">
+              Tài khoản: <strong className={isAccountConnected ? "text-emerald-400 font-mono font-bold" : "text-rose-400 font-mono font-bold"}>{performerAccount}</strong>
+            </span>
+          </div>
+          {!isAccountConnected ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); openConnect(); }}
+              className="px-2 py-0.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold shrink-0 animate-pulse cursor-pointer shadow"
+            >
+              Kết nối ngay
+            </button>
+          ) : (
+            <span className="flex items-center gap-1 text-[10px] text-emerald-400 shrink-0 font-bold">
+              <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Chính chủ
+            </span>
+          )}
+        </div>
+
         {/* THÔNG BÁO BẢO VỆ QUYỀN LỢI KHÁCH HÀNG (ANTI-DUPLICATION) NẾU ĐÃ TỪNG LÀM */}
         {previousCompletion && (
-          <div className="absolute top-28 inset-x-3 z-30 px-3 py-2 rounded-2xl bg-amber-950/90 border border-amber-500/60 backdrop-blur-md flex items-center gap-2 shadow-xl animate-in slide-in-from-top-1">
+          <div className="absolute top-37 inset-x-3 z-30 px-3 py-2 rounded-2xl bg-amber-950/90 border border-amber-500/60 backdrop-blur-md flex items-center gap-2 shadow-xl animate-in slide-in-from-top-1">
             <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
             <div className="text-[10px] text-amber-200 leading-tight">
               <strong>Bảo vệ khách hàng:</strong> Bạn đã từng hoàn thành kênh này (+{previousCompletion.totalCoinsEarned.toLocaleString()} Xu). Lượt tương tác lại sẽ không tính thêm Xu.

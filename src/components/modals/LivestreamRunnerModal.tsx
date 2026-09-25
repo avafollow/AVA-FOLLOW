@@ -49,6 +49,8 @@ import {
   FacebookLiveEmbedPlayer
 } from '../common/players';
 import { verifyPlatformAccountForTask } from '../../services/platformProfileSyncService';
+import { verifyYouTubeSubscription, verifyYouTubeComment } from '../../services/youtubeApiService';
+import { verifyFacebookTaskAction } from '../../services/facebookApiService';
 
 export const LivestreamRunnerModal: React.FC = () => {
   const { 
@@ -94,6 +96,12 @@ export const LivestreamRunnerModal: React.FC = () => {
   const taskPlatform = activeLiveTask?.platform || (isYouTube ? 'youtube' : isFacebook ? 'facebook' : 'tiktok');
   const platformDisplayName = isYouTube ? 'YouTube' : isFacebook ? 'Facebook' : 'TikTok';
   const actionFollowName = isYouTube ? 'Đăng ký Kênh' : isFacebook ? 'Theo dõi Kênh' : 'Follow Kênh';
+  const performerAccount = taskPlatform === 'youtube'
+    ? (user.youtubeConnected || 'Chưa kết nối')
+    : taskPlatform === 'facebook'
+      ? (user.facebookConnected || 'Chưa kết nối')
+      : (user.tiktokConnected || 'Chưa kết nối');
+  const isAccountConnected = Boolean(performerAccount && performerAccount !== 'Chưa kết nối' && !performerAccount.includes('chưa_kết_nối'));
 
   const togglePlayLive = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -262,6 +270,7 @@ export const LivestreamRunnerModal: React.FC = () => {
   const [isTabInactive, setIsTabInactive] = useState<boolean>(false);
   const [pendingFraudAction, setPendingFraudAction] = useState<'comment' | 'share' | 'eye' | null>(null);
   const [pendingActionStartTime, setPendingActionStartTime] = useState<number>(0);
+  const [pendingCommentText, setPendingCommentText] = useState<string>('');
 
   // Lắng nghe trạng thái Tab / Ẩn ứng dụng để tạm dừng bộ đếm ngay lập tức
   useEffect(() => {
@@ -285,7 +294,7 @@ export const LivestreamRunnerModal: React.FC = () => {
   
   useEffect(() => {
     if (!isLiveRunnerOpen || !activeLiveTask) return;
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       const isHidden = typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()));
       setIsTabInactive(isHidden);
       
@@ -299,21 +308,44 @@ export const LivestreamRunnerModal: React.FC = () => {
         if (timeSpentAway < requiredTime) {
            triggerImmediateFraudAlert({
              title: 'PHÁT HIỆN GIAN LẬN',
-             reason: `Thời gian thao tác quá nhanh (${(timeSpentAway/1000).toFixed(1)}s). Bạn phải MỞ ${platformDisplayName.toUpperCase()} và ${actionName} để nhận xu!`,
+             reason: `Thời gian thao tác quá nhanh (${(timeSpentAway/1000).toFixed(1)}s). Bạn phải THỰC SỰ MỞ ${platformDisplayName.toUpperCase()} bằng tài khoản [${performerAccount}] và ${actionName} để nhận xu!`,
              anomalyType: 'BOT_SPEED_DETECTED',
              channelHandle: activeLiveTask.channelHandle,
              penaltyPoints: 10
            });
-        } else {
-           if (pendingFraudAction === 'comment' && !claimedCommentReward) {
-             setClaimedCommentReward(true);
-             interactWithLiveBroadcast(activeLiveTask.id, 'comment');
-             showToast('💬 Đã gửi bình luận seeding! Nhận ngay +350 Xu thưởng.');
-           } else if (pendingFraudAction === 'share' && !claimedShareReward) {
-             setClaimedShareReward(true);
-             interactWithLiveBroadcast(activeLiveTask.id, 'share');
-             showToast('🚀 Đã chia sẻ phòng Live! Nhận ngay +300 Xu.');
-           }
+           setPendingFraudAction(null);
+           return;
+        }
+
+        // KIỂM TRA & XÁC THỰC API THẬT
+        let isVerified = true;
+        let verifyMsg = '';
+        if (pendingFraudAction === 'comment') {
+          if (taskPlatform === 'youtube') {
+            const res = await verifyYouTubeComment(activeLiveTask.targetUrl || activeLiveTask.id, user.youtubeConnected || '', 3, pendingCommentText);
+            isVerified = res.success;
+            verifyMsg = res.message;
+          } else if (taskPlatform === 'facebook') {
+            const res = await verifyFacebookTaskAction('comment', activeLiveTask.targetUrl || activeLiveTask.channelHandle, user.facebookConnected || '', { commentText: pendingCommentText });
+            isVerified = res.success;
+            verifyMsg = res.message;
+          }
+        }
+
+        if (!isVerified) {
+          showToast(`❌ XÁC THỰC BÌNH LUẬN THẤT BẠI: ${verifyMsg || 'Hệ thống chưa tìm thấy tương tác thực tế từ tài khoản của bạn!'}`);
+          setPendingFraudAction(null);
+          return;
+        }
+
+        if (pendingFraudAction === 'comment' && !claimedCommentReward) {
+          setClaimedCommentReward(true);
+          interactWithLiveBroadcast(activeLiveTask.id, 'comment');
+          showToast(`💬 Đã gửi bình luận seeding! Nhận ngay +350 Xu thưởng (Tài khoản: ${performerAccount}).`);
+        } else if (pendingFraudAction === 'share' && !claimedShareReward) {
+          setClaimedShareReward(true);
+          interactWithLiveBroadcast(activeLiveTask.id, 'share');
+          showToast(`🚀 Đã chia sẻ phòng Live! Nhận ngay +300 Xu (Tài khoản: ${performerAccount}).`);
         }
         setPendingFraudAction(null);
       }
@@ -326,7 +358,7 @@ export const LivestreamRunnerModal: React.FC = () => {
       window.removeEventListener('blur', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
     };
-  }, [isLiveRunnerOpen, pendingFraudAction, pendingActionStartTime, activeLiveTask, claimedCommentReward, claimedShareReward, interactWithLiveBroadcast, triggerImmediateFraudAlert, platformDisplayName]);
+  }, [isLiveRunnerOpen, pendingFraudAction, pendingActionStartTime, pendingCommentText, activeLiveTask, claimedCommentReward, claimedShareReward, interactWithLiveBroadcast, triggerImmediateFraudAlert, platformDisplayName, taskPlatform, performerAccount, user.youtubeConnected, user.facebookConnected]);
 
 
   // Main tick loop (ĐÓNG BĂNG 100% KHI ẨN TAB HOẶC RỜI ỨNG DỤNG)
@@ -437,6 +469,7 @@ export const LivestreamRunnerModal: React.FC = () => {
     setChatMessages(prev => [...prev, `${user.name}: ${msg}`]);
     setInputMsg('');
     setIdleSeconds(0);
+    setPendingCommentText(msg);
     syncTikTokComment(activeLiveTask.id, msg, user.tiktokConnected || user.email || '@user');
 
     if (!claimedCommentReward) {
@@ -930,6 +963,34 @@ export const LivestreamRunnerModal: React.FC = () => {
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
+        </div>
+
+        {/* BADGE TÀI KHOẢN THỰC HIỆN NHIỆM VỤ THEO NỀN TẢNG (CHỐNG DÙNG SAI TÀI KHOẢN) */}
+        <div className="absolute top-[max(env(safe-area-inset-top,0px),3rem)] inset-x-2 z-30 px-3 py-1 rounded-2xl bg-black/85 border border-cyan-500/40 backdrop-blur-md flex items-center justify-between text-xs shadow-lg pointer-events-auto">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase ${
+              taskPlatform === 'youtube' ? 'bg-red-600 text-white' :
+              taskPlatform === 'facebook' ? 'bg-blue-600 text-white' :
+              'bg-zinc-800 text-pink-400 border border-pink-500/40'
+            }`}>
+              {platformDisplayName}
+            </span>
+            <span className="text-[10px] text-zinc-300 truncate">
+              Tài khoản: <strong className={isAccountConnected ? "text-emerald-400 font-mono font-bold" : "text-rose-400 font-mono font-bold"}>{performerAccount}</strong>
+            </span>
+          </div>
+          {!isAccountConnected ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); openConnect(); }}
+              className="px-2 py-0.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[9px] font-bold shrink-0 animate-pulse cursor-pointer shadow"
+            >
+              Kết nối ngay
+            </button>
+          ) : (
+            <span className="flex items-center gap-1 text-[9px] text-emerald-400 shrink-0 font-bold">
+              <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Chính chủ
+            </span>
+          )}
         </div>
 
         {/* MISSION COMPLETE BANNER OR BOTTOM WATCH PROGRESS & CHAT BAR (OVERLAY TRÊN VIDEO) */}

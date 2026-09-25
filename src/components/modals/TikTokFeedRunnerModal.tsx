@@ -63,6 +63,9 @@ import {
   MIN_TAB_TIME_MS,
   type FraudActionType
 } from '../../services/antiFraudEngine';
+import { verifyPlatformAccountForTask } from '../../services/platformProfileSyncService';
+import { verifyYouTubeSubscription, verifyYouTubeVideoLike, verifyYouTubeComment } from '../../services/youtubeApiService';
+import { verifyFacebookTaskAction } from '../../services/facebookApiService';
 
 
 interface UnifiedFeedItem {
@@ -137,8 +140,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     commentText?: string;
     coinsToEarn: number;
     label: string;
-    openedAt: number;               // Timestamp khi mở TikTok
+    openedAt: number;               // Timestamp khi mở TikTok / Facebook / YouTube
     minConfirmAt: number;           // Thời điểm sớm nhất được bấm Confirm
+    platform?: 'tiktok' | 'youtube' | 'facebook';
   } | null>(null);
   // Countdown cho nút Confirm
   const [confirmCountdown, setConfirmCountdown] = useState<number>(0);
@@ -438,6 +442,17 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const currentMediaInfo = parseMediaUrl(currentItem?.targetUrl || currentItem?.videoUrl || '', currentItem?.channelHandle);
   const isLiveItem = currentItem?.kind === 'livestream' || currentItem?.type === 'livestream' || currentMediaInfo.isLive;
   const targetCampaignAction = currentItem?.type || 'follow';
+
+  const isYouTubeItem = Boolean(currentItem?.type === 'youtube' || (currentItem as any)?.platform === 'youtube' || currentMediaInfo?.isYouTube);
+  const isFacebookItem = Boolean(currentItem?.type === 'facebook' || (currentItem as any)?.platform === 'facebook' || currentMediaInfo?.isFacebook);
+  const itemPlatform: 'youtube' | 'facebook' | 'tiktok' = isYouTubeItem ? 'youtube' : isFacebookItem ? 'facebook' : 'tiktok';
+  const itemPlatformDisplayName = isYouTubeItem ? 'YouTube' : isFacebookItem ? 'Facebook' : 'TikTok';
+  const itemPerformerAccount = itemPlatform === 'youtube'
+    ? (user.youtubeConnected || 'Chưa kết nối')
+    : itemPlatform === 'facebook'
+      ? (user.facebookConnected || 'Chưa kết nối')
+      : (user.tiktokConnected || 'Chưa kết nối');
+  const isItemAccountConnected = Boolean(itemPerformerAccount && itemPerformerAccount !== 'Chưa kết nối' && !itemPerformerAccount.includes('chưa_kết_nối'));
 
   // Kiểm tra xem chiến dịch hiện tại có bắt buộc xem video / live không
   const isWatchRequired = currentItem 
@@ -760,19 +775,20 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     e?.stopPropagation();
     if (syncingAction) return;
 
-    const userHandle = user.tiktokConnected || user.email || '@user';
+    const platCheck = verifyPlatformAccountForTask(itemPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${itemPlatformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản chính chủ của bạn để nhận Xu!`);
+      openConnect();
+      return;
+    }
+
+    const userHandle = itemPerformerAccount;
 
     // ── Kiểm tra tài khoản có bị khóa không? ──
     const blockStatus = isUserBlocked(userHandle);
     if (blockStatus.blocked) {
       const unblockTime = blockStatus.unblockAt ? new Date(blockStatus.unblockAt).toLocaleTimeString('vi-VN') : 'sau 24h';
       setInModalAlert({ message: `🚫 Tài khoản bị tạm khóa do gian lận. Mở lại lúc ${unblockTime}.`, sub: blockStatus.reason });
-      return;
-    }
-
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok của bạn để nhận Xu nhiệm vụ!');
-      openConnect();
       return;
     }
 
@@ -793,16 +809,23 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
 
     const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
-    const realTikTokChannelUrl = currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com/@')
-      ? currentItem.targetUrl
-      : `https://www.tiktok.com/@${cleanHandle}`;
+    let realChannelUrl = currentItem.targetUrl || '';
+    if (itemPlatform === 'youtube') {
+      realChannelUrl = cleanHandle ? `https://www.youtube.com/@${cleanHandle}` : (currentItem.targetUrl || 'https://www.youtube.com');
+    } else if (itemPlatform === 'facebook') {
+      realChannelUrl = currentItem.targetUrl || (currentItem.channelHandle ? `https://www.facebook.com/${currentItem.channelHandle}` : 'https://www.facebook.com');
+    } else {
+      realChannelUrl = currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com/@')
+        ? currentItem.targetUrl
+        : `https://www.tiktok.com/@${cleanHandle}`;
+    }
 
     // ── Bắt đầu theo dõi tab (phát hiện user có rời tab không) ──
     tabTrackerRef.current.reset();
     tabTrackerRef.current.start();
 
     if (typeof window !== 'undefined') {
-      try { window.open(realTikTokChannelUrl, '_blank'); } catch (err) { console.warn('Could not open popup:', err); }
+      try { window.open(realChannelUrl, '_blank'); } catch (err) { console.warn('Could not open popup:', err); }
     }
 
     const openedAt = Date.now();
@@ -810,7 +833,17 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
     setSyncingAction('follow');
     try {
-      const res = await syncTikTokFollow(currentItem.channelHandle, userHandle);
+      let res: { success: boolean; coinsEarned?: number; txHash?: string; message: string };
+      if (itemPlatform === 'youtube') {
+        const ytRes = await verifyYouTubeSubscription(currentItem.channelHandle, undefined, user.youtubeConnected);
+        res = { success: ytRes.success, coinsEarned: 200, txHash: ytRes.txHash || 'YT_SUB', message: ytRes.message };
+      } else if (itemPlatform === 'facebook') {
+        const fbRes = await verifyFacebookTaskAction('follow', realChannelUrl, user.facebookConnected || '');
+        res = { success: fbRes.success, coinsEarned: 200, txHash: fbRes.txHash || 'FB_SUB', message: fbRes.message };
+      } else {
+        res = await syncTikTokFollow(currentItem.channelHandle, userHandle);
+      }
+
       if (res.success) {
         // Follow lập tức cộng Xu (mở TikTok, đợi xác nhận về sau)
         const reward = claimTaskAction(currentItem.id, 'follow');
@@ -821,15 +854,15 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           [currentItem.id]: { ...(prev[currentItem.id] || {}), follow: true }
         }));
         // Tạo cam kết 30 ngày
-        createFollowCommitment(userHandle, cleanHandle, earned, res.txHash || 'TT_FOLLOW');
+        createFollowCommitment(userHandle, cleanHandle, earned, res.txHash || `${itemPlatform.toUpperCase()}_FOLLOW`);
         applySuccessReward(userHandle);
         setInModalAlert({
           message: `✅ Đã mở kênh @${cleanHandle} & ghi nhận Follow! (+${earned} Xu)`,
-          sub: `📌 Cam kết 30 ngày: Không unfollow trong 30 ngày để giữ Xu • Mã: ${res.txHash || 'TT-FOLLOW'}`
+          sub: `📌 Tài khoản: ${itemPerformerAccount} • Cam kết 30 ngày không unfollow • Mã: ${res.txHash || 'VERIFIED'}`
         });
-        showToast(`✅ Mở TikTok → Follow @${cleanHandle} → nhận +${earned} Xu! (Cam kết 30 ngày)`);
+        showToast(`✅ Đã theo dõi kênh @${cleanHandle} trên ${itemPlatformDisplayName} (+${earned} Xu)!`);
       } else {
-        setInModalAlert({ message: res.message, sub: 'Thông báo từ hệ thống đồng bộ' });
+        setInModalAlert({ message: res.message, sub: 'Thông báo từ hệ thống đối soát' });
         showToast(res.message);
       }
     } finally {
@@ -838,18 +871,19 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   };
 
 
-  // 1-CLICK LIKE / THẢ TIM THẬT - MỞ TIKTOK THẬT + XÁC MINH ANTI-FRAUD + CỘNG XU
+  // 1-CLICK LIKE / THẢ TIM THẬT - MỞ ỨNG DỤNG THẬT + XÁC MINH ANTI-FRAUD + CỘNG XU
   const handleLikeAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (syncingAction) return;
 
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾN NỐI TIKTOK: Vui lòng kết nối kênh TikTok của bạn để nhận Xu nhiệm vụ!');
+    const platCheck = verifyPlatformAccountForTask(itemPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${itemPlatformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản chính chủ của bạn để nhận Xu!`);
       openConnect();
       return;
     }
 
-    const userHandle = user.tiktokConnected || user.email || '@user';
+    const userHandle = itemPerformerAccount;
     const blockStatus = isUserBlocked(userHandle);
     if (blockStatus.blocked) {
       setInModalAlert({ message: `🚫 Tài khoản bị tạm khóa do gian lận.`, sub: blockStatus.reason });
@@ -864,31 +898,42 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
     const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
     const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
-    const videoTikTokUrl = (currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com'))
-      ? currentItem.targetUrl
-      : (itemMedia.videoId && /^\d{18,21}$/.test(itemMedia.videoId))
-        ? `https://www.tiktok.com/@${cleanHandle}/video/${itemMedia.videoId}`
-        : `https://www.tiktok.com/@${cleanHandle}`;
+    
+    let videoTargetUrl = currentItem.targetUrl || '';
+    if (itemPlatform === 'youtube') {
+      videoTargetUrl = (itemMedia.isYouTube && itemMedia.youtubeId)
+        ? `https://www.youtube.com/watch?v=${itemMedia.youtubeId}`
+        : (currentItem.targetUrl || 'https://www.youtube.com');
+    } else if (itemPlatform === 'facebook') {
+      videoTargetUrl = currentItem.targetUrl || (currentItem.channelHandle ? `https://www.facebook.com/${currentItem.channelHandle}` : 'https://www.facebook.com');
+    } else {
+      videoTargetUrl = (currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com'))
+        ? currentItem.targetUrl
+        : (itemMedia.videoId && /^\d{18,21}$/.test(itemMedia.videoId))
+          ? `https://www.tiktok.com/@${cleanHandle}/video/${itemMedia.videoId}`
+          : `https://www.tiktok.com/@${cleanHandle}`;
+    }
 
-    // Bắt đầu Tab Tracker trước khi mở TikTok
+    // Bắt đầu Tab Tracker trước khi mở ứng dụng
     tabTrackerRef.current.reset();
     tabTrackerRef.current.start();
 
     if (typeof window !== 'undefined') {
-      try { window.open(videoTikTokUrl, '_blank'); } catch (err) { console.warn('Could not open TikTok video tab:', err); }
+      try { window.open(videoTargetUrl, '_blank'); } catch (err) { console.warn('Could not open video tab:', err); }
     }
 
     const openedAt = Date.now();
     setPendingVerification({
       action: 'like',
       itemId: currentItem.id,
-      tiktokUrl: videoTikTokUrl,
+      tiktokUrl: videoTargetUrl,
+      platform: itemPlatform,
       coinsToEarn: 100,
-      label: `Thả ❤️ tim video @${cleanHandle} trên TikTok`,
+      label: `Thích / Thả ❤️ video @${cleanHandle} trên ${itemPlatformDisplayName}`,
       openedAt,
       minConfirmAt: openedAt + MIN_CONFIRM_SECONDS['like'] * 1000
     });
-    showToast('❤️ Đã mở video TikTok! Thả tim xong (đợi 30s), bấm XÁC NHẬN để nhận +100 Xu.');
+    showToast(`❤️ Đã mở video ${itemPlatformDisplayName}! Thả tim xong (đợi 30s), bấm XÁC NHẬN để nhận +100 Xu.`);
   };
 
 
@@ -903,7 +948,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
 
     const pv = pendingVerification;
-    const userHandle = user.tiktokConnected || user.email || '@user';
+    const currentPlatform = pv.platform || itemPlatform;
+    const userHandle = currentPlatform === 'youtube'
+      ? (user.youtubeConnected || '@user')
+      : currentPlatform === 'facebook'
+        ? (user.facebookConnected || '@user')
+        : (user.tiktokConnected || user.email || '@user');
 
     // ── LẤY BẰNG CHỨNG TỪ TAB TRACKER ──
     const tabStats = tabTrackerRef.current.stop();
@@ -930,7 +980,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         applyFraudPenalty(userHandle, fraudCheck.fraudScore, fraudCheck.flags);
         triggerImmediateFraudAlert({
           title: 'CẢNH BÁO PHÁT HIỆN GIAN LẬN',
-          reason: fraudCheck.reason || 'Hệ thống phát hiện bạn vừa chuyển tab hoặc không thực hiện thao tác tương tác thực tế trên TikTok.',
+          reason: fraudCheck.reason || 'Hệ thống phát hiện bạn vừa chuyển tab hoặc không thực hiện thao tác tương tác thực tế.',
           anomalyType: 'TAB_SWITCH_BOUNCE',
           channelHandle: currentItem.channelHandle,
           penaltyPoints: fraudCheck.fraudScore || 15
@@ -940,7 +990,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         message: fraudCheck.reason,
         sub: fraudCheck.waitMoreMs
           ? `🔒 Nút xác nhận sẽ mở sau: ${formatCountdown(fraudCheck.waitMoreMs)}`
-          : `⚠️ Điểm tin cậy bị trừ. Hãy thực hiện thao tác thật trên TikTok.`
+          : `⚠️ Điểm tin cậy bị trừ. Hãy thực hiện thao tác thật trên ứng dụng.`
       });
       // Không đóng banner - để user có thể thử lại sau
       return;
@@ -951,43 +1001,64 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     setSyncingAction(pv.action);
     try {
       let res: { success: boolean; coinsEarned?: number; txHash?: string; message: string };
-      if (pv.action === 'like') {
-        res = await syncTikTokLike(pv.itemId, userHandle);
-      } else if (pv.action === 'comment') {
-        res = await syncTikTokComment(pv.itemId, pv.commentText || '', userHandle);
-      } else if (pv.action === 'share') {
-        res = syncShareToFacebook(pv.tiktokUrl, currentItem.channelHandle, userHandle);
+      if (currentPlatform === 'youtube') {
+        if (pv.action === 'like') {
+          const ytRes = await verifyYouTubeVideoLike(pv.itemId || currentItem.targetUrl, undefined, user.youtubeConnected);
+          res = { success: ytRes.success, coinsEarned: 100, txHash: ytRes.txHash || 'YT_LIKE', message: ytRes.message };
+        } else if (pv.action === 'comment') {
+          const ytRes = await verifyYouTubeComment(pv.itemId || currentItem.targetUrl, user.youtubeConnected || '', 5, pv.commentText);
+          res = { success: ytRes.success, coinsEarned: 200, txHash: ytRes.txHash || 'YT_CMT', message: ytRes.message };
+        } else if (pv.action === 'share') {
+          res = { success: true, coinsEarned: 240, txHash: 'YT_SHR', message: '✅ Đã xác nhận chia sẻ video YouTube!' };
+        } else {
+          res = { success: true, coinsEarned: pv.coinsToEarn, message: '✅ Xác nhận thành công!', txHash: 'VERIFIED' };
+        }
+      } else if (currentPlatform === 'facebook') {
+        const fbRes = await verifyFacebookTaskAction(pv.action, pv.tiktokUrl || currentItem.targetUrl || currentItem.channelHandle, user.facebookConnected || '', { commentText: pv.commentText });
+        res = { success: fbRes.success, coinsEarned: pv.coinsToEarn, txHash: fbRes.txHash || 'FB_ACT', message: fbRes.message };
       } else {
-        res = { success: true, coinsEarned: pv.coinsToEarn, message: '✅ Xác nhận thành công!', txHash: 'VERIFIED' };
+        if (pv.action === 'like') {
+          res = await syncTikTokLike(pv.itemId, userHandle);
+        } else if (pv.action === 'comment') {
+          res = await syncTikTokComment(pv.itemId, pv.commentText || '', userHandle);
+        } else if (pv.action === 'share') {
+          res = syncShareToFacebook(pv.tiktokUrl, currentItem.channelHandle, userHandle);
+        } else {
+          res = { success: true, coinsEarned: pv.coinsToEarn, message: '✅ Xác nhận thành công!', txHash: 'VERIFIED' };
+        }
       }
 
-      if (res.success) {
-        const actionKey = pv.action as 'like' | 'comment' | 'share';
-        const alreadyClaimed = taskClaimedMap[pv.itemId]?.[actionKey];
-        if (!alreadyClaimed) {
-          const reward = claimTaskAction(pv.itemId, actionKey);
-          const earned = reward || res.coinsEarned || pv.coinsToEarn;
-          setSessionCoinsEarned(prev => prev + earned);
-          setTaskClaimedMap(prev => ({
-            ...prev,
-            [pv.itemId]: { ...(prev[pv.itemId] || {}), [actionKey]: true }
-          }));
-          // Tăng điểm tin cậy sau hành động hợp lệ
-          applySuccessReward(userHandle);
-          const trustProfile = getTrustProfile(userHandle);
-          const badge = getTrustScoreBadge(trustProfile.trustScore);
-          const actionEmoji = pv.action === 'like' ? '❤️' : pv.action === 'comment' ? '💬' : '🔗';
-          setInModalAlert({
-            message: `${actionEmoji} Xác minh thành công! Đã cộng +${earned} Xu vào ví!`,
-            sub: `${pv.label} • ${badge.emoji} Tin cậy: ${trustProfile.trustScore}/100 • Mã: ${res.txHash || 'VERIFIED-OK'}`
-          });
-          showToast(`${actionEmoji} +${earned} Xu! Tin cậy: ${trustProfile.trustScore}/100 ${badge.emoji}`);
-        } else {
-          showToast('✅ Đã xác minh! (Bạn đã nhận thưởng trước đó rồi)');
-        }
+      if (!res.success) {
+        setInModalAlert({
+          message: `❌ XÁC MINH THẤT BẠI: ${res.message}`,
+          sub: `Hệ thống kiểm tra chưa thấy tương tác từ tài khoản chính chủ [${userHandle}]!`
+        });
+        showToast(`❌ ${res.message || 'Xác thực thất bại!'}`);
+        return;
+      }
+
+      const actionKey = pv.action as 'like' | 'comment' | 'share';
+      const alreadyClaimed = taskClaimedMap[pv.itemId]?.[actionKey];
+      if (!alreadyClaimed) {
+        const reward = claimTaskAction(pv.itemId, actionKey);
+        const earned = reward || res.coinsEarned || pv.coinsToEarn;
+        setSessionCoinsEarned(prev => prev + earned);
+        setTaskClaimedMap(prev => ({
+          ...prev,
+          [pv.itemId]: { ...(prev[pv.itemId] || {}), [actionKey]: true }
+        }));
+        // Tăng điểm tin cậy sau hành động hợp lệ
+        applySuccessReward(userHandle);
+        const trustProfile = getTrustProfile(userHandle);
+        const badge = getTrustScoreBadge(trustProfile.trustScore);
+        const actionEmoji = pv.action === 'like' ? '❤️' : pv.action === 'comment' ? '💬' : '🔗';
+        setInModalAlert({
+          message: `${actionEmoji} Xác minh thành công! Đã cộng +${earned} Xu vào ví!`,
+          sub: `${pv.label} • Tài khoản: ${userHandle} • ${badge.emoji} Tin cậy: ${trustProfile.trustScore}/100`
+        });
+        showToast(`${actionEmoji} +${earned} Xu! (Tài khoản: ${userHandle})`);
       } else {
-        setInModalAlert({ message: res.message });
-        showToast(res.message);
+        showToast('✅ Đã xác minh! (Bạn đã nhận thưởng trước đó rồi)');
       }
     } finally {
       setSyncingAction(null);
@@ -1013,19 +1084,20 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }, 1200);
   };
 
-  // 1-CLICK BÌNH LUẬN THẬT - COPY VÀO CLIPBOARD + MỞ VIDEO TIKTOK + XÁC MINH ANTI-FRAUD
+  // 1-CLICK BÌNH LUẬN THẬT - COPY VÀO CLIPBOARD + MỞ ỨNG DỤNG THẬT + XÁC MINH ANTI-FRAUD
   const handleCommentAction = async (commentText: string) => {
     const text = commentText.trim();
     if (!text) return;
     if (syncingAction) return;
 
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok của bạn để nhận Xu nhiệm vụ!');
+    const platCheck = verifyPlatformAccountForTask(itemPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${itemPlatformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản chính chủ của bạn để nhận Xu!`);
       openConnect();
       return;
     }
 
-    const userHandle = user.tiktokConnected || user.email || '@user';
+    const userHandle = itemPerformerAccount;
     const blockStatus = isUserBlocked(userHandle);
     if (blockStatus.blocked) {
       setInModalAlert({ message: `🚫 Tài khoản bị tạm khóa do gian lận.`, sub: blockStatus.reason });
@@ -1037,60 +1109,71 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
     const itemMedia = parseMediaUrl(currentItem.targetUrl || currentItem.videoUrl || '', currentItem.channelHandle);
     const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
-    const videoTikTokUrl = (currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com'))
-      ? currentItem.targetUrl
-      : (itemMedia.videoId && /^\d{18,21}$/.test(itemMedia.videoId))
-        ? `https://www.tiktok.com/@${cleanHandle}/video/${itemMedia.videoId}`
-        : `https://www.tiktok.com/@${cleanHandle}`;
+    
+    let videoTargetUrl = currentItem.targetUrl || '';
+    if (itemPlatform === 'youtube') {
+      videoTargetUrl = (itemMedia.isYouTube && itemMedia.youtubeId)
+        ? `https://www.youtube.com/watch?v=${itemMedia.youtubeId}`
+        : (currentItem.targetUrl || 'https://www.youtube.com');
+    } else if (itemPlatform === 'facebook') {
+      videoTargetUrl = currentItem.targetUrl || (currentItem.channelHandle ? `https://www.facebook.com/${currentItem.channelHandle}` : 'https://www.facebook.com');
+    } else {
+      videoTargetUrl = (currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com'))
+        ? currentItem.targetUrl
+        : (itemMedia.videoId && /^\d{18,21}$/.test(itemMedia.videoId))
+          ? `https://www.tiktok.com/@${cleanHandle}/video/${itemMedia.videoId}`
+          : `https://www.tiktok.com/@${cleanHandle}`;
+    }
 
     // 1. Tự động đính kèm Hashtag Sàn #AVALIVE + Hashtag Chiến Dịch để xác thực nguồn tương tác thật
     const cleanHandleTag = cleanHandle.replace(/[^a-zA-Z0-9_]/g, '');
     const requiredHashtags = `#AVALIVE #${cleanHandleTag}`;
     const fullCommentText = text.includes('#AVALIVE') ? text : `${text} ${requiredHashtags}`;
 
-    // 2. Copy bình luận hoàn chỉnh kèm hashtag vào clipboard để user dán thẳng trên TikTok
+    // 2. Copy bình luận hoàn chỉnh kèm hashtag vào clipboard để user dán thẳng trên ứng dụng
     try {
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(fullCommentText);
-        showToast('📋 Đã sao chép bình luận & Hashtag xác thực! Đang mở TikTok để dán...');
+        showToast(`📋 Đã sao chép bình luận & Hashtag xác thực! Đang mở ${itemPlatformDisplayName} để dán...`);
       }
     } catch {
       showToast('📋 Hãy dán bình luận: "' + fullCommentText.slice(0, 30) + '..."');
     }
 
-
-    // 2. Bắt đầu Tab Tracker + Mở TikTok
+    // 3. Bắt đầu Tab Tracker + Mở ứng dụng
     tabTrackerRef.current.reset();
     tabTrackerRef.current.start();
     if (typeof window !== 'undefined') {
-      try { window.open(videoTikTokUrl, '_blank'); } catch (err) { console.warn('Could not open TikTok tab:', err); }
+      try { window.open(videoTargetUrl, '_blank'); } catch (err) { console.warn('Could not open tab:', err); }
     }
 
     const openedAt = Date.now();
     setPendingVerification({
       action: 'comment',
       itemId: currentItem.id,
-      tiktokUrl: videoTikTokUrl,
+      tiktokUrl: videoTargetUrl,
       commentText: text,
+      platform: itemPlatform,
       coinsToEarn: 200,
-      label: `Bình luận thật trên video @${cleanHandle}`,
+      label: `Bình luận thật trên ${itemPlatformDisplayName} @${cleanHandle}`,
       openedAt,
       minConfirmAt: openedAt + MIN_CONFIRM_SECONDS['comment'] * 1000
     });
   };
 
 
-  // 1-CLICK CHIA SẺ THẬT - WEB SHARE API + MỞ FACEBOOK/TIKTOK + XÁC MINH ANTI-FRAUD
+  // 1-CLICK CHIA SẺ THẬT - WEB SHARE API + MỞ NỀN TẢNG + XÁC MINH ANTI-FRAUD
   const handleShareAction = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
 
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok của bạn để nhận Xu nhiệm vụ!');
+    const platCheck = verifyPlatformAccountForTask(itemPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${itemPlatformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản chính chủ của bạn để nhận Xu!`);
       openConnect();
       return;
     }
 
-    const userHandle = user.tiktokConnected || user.email || '@user';
+    const userHandle = itemPerformerAccount;
     const blockStatus = isUserBlocked(userHandle);
     if (blockStatus.blocked) {
       setInModalAlert({ message: `🚫 Tài khoản bị tạm khóa do gian lận.`, sub: blockStatus.reason });
@@ -1098,11 +1181,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
 
     const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
-    const targetUrl = (currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com'))
-      ? currentItem.targetUrl
-      : `https://www.tiktok.com/@${cleanHandle}`;
-    const shareTitle = currentItem.title || `Kênh TikTok @${cleanHandle}`;
-    const shareText = `🔥 Xem video hot của @${cleanHandle} trên TikTok! ${targetUrl}`;
+    const targetUrl = currentItem.targetUrl || `https://www.tiktok.com/@${cleanHandle}`;
+    const shareTitle = currentItem.title || `Nội dung ${itemPlatformDisplayName} @${cleanHandle}`;
+    const shareText = `🔥 Xem nội dung hot của @${cleanHandle} trên ${itemPlatformDisplayName}! ${targetUrl}`;
 
     // 1. Bắt đầu Tab Tracker
     tabTrackerRef.current.reset();
@@ -1127,7 +1208,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
     if (currentClaimed.share) {
       tabTrackerRef.current.stop();
-      showToast('🔗 Bạn đã chia sẻ video này rồi!');
+      showToast('🔗 Bạn đã chia sẻ nội dung này rồi!');
       return;
     }
 
@@ -1136,12 +1217,13 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       action: 'share',
       itemId: currentItem.id,
       tiktokUrl: targetUrl,
+      platform: itemPlatform,
       coinsToEarn: 240,
-      label: `Chia sẻ video @${cleanHandle} lên mạng xã hội`,
+      label: `Chia sẻ nội dung ${itemPlatformDisplayName} @${cleanHandle}`,
       openedAt,
       minConfirmAt: openedAt + MIN_CONFIRM_SECONDS['share'] * 1000
     });
-    showToast('🔗 Đã mở chia sẻ! Đợi 20s rồi xác nhận để nhận +240 Xu.');
+    showToast(`🔗 Đã mở chia sẻ ${itemPlatformDisplayName}! Đợi 20s rồi xác nhận để nhận +240 Xu.`);
   };
 
 
@@ -1433,11 +1515,40 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               <span>🔄 Follow Chéo ({countCross})</span>
             </button>
           </div>
+
+          {/* Row 3: BADGE TÀI KHOẢN THỰC HIỆN NHIỆM VỤ THEO NỀN TẢNG (CHỐNG DÙNG SAI TÀI KHOẢN) */}
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-2xl bg-black/80 border border-cyan-500/40 backdrop-blur-md text-[11px] font-mono shadow-md">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                itemPlatform === 'youtube' ? 'bg-red-600 text-white' :
+                itemPlatform === 'facebook' ? 'bg-blue-600 text-white' :
+                'bg-zinc-800 text-pink-400 border border-pink-500/40'
+              }`}>
+                {itemPlatformDisplayName}
+              </span>
+              <span className="text-zinc-300 truncate">
+                Tài khoản: <strong className={isItemAccountConnected ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>{itemPerformerAccount}</strong>
+              </span>
+            </div>
+            {!isItemAccountConnected ? (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); openConnect(); }}
+                className="px-2 py-0.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold shrink-0 animate-pulse cursor-pointer shadow"
+              >
+                Kết nối ngay
+              </button>
+            ) : (
+              <span className="flex items-center gap-1 text-[10px] text-emerald-400 shrink-0 font-bold">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Chính chủ
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Floating Inactive Tab Pause Alert Banner */}
         {isTabInactive && (
-          <div className="absolute top-28 inset-x-3 z-40 p-3 rounded-2xl bg-amber-950/95 border-2 border-amber-500 shadow-2xl flex items-center gap-3 animate-pulse pointer-events-auto backdrop-blur-xl">
+          <div className="absolute top-36 inset-x-3 z-40 p-3 rounded-2xl bg-amber-950/95 border-2 border-amber-500 shadow-2xl flex items-center gap-3 animate-pulse pointer-events-auto backdrop-blur-xl">
             <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 shrink-0">
               <Clock className="w-5 h-5 animate-spin" />
             </div>

@@ -4494,26 +4494,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // 1. Kiểm tra quy tắc 1 lần duy nhất: Kênh đã follow trên toàn hệ thống chưa
     if (actionType === 'follow' && targetChannelHandle) {
       if (isChannelFollowed(targetChannelHandle)) {
-        triggerImmediateFraudAlert({
-          title: 'TỪ CHỐI NHẬN XU TRÙNG LẶP',
-          reason: `Bạn đã từng Follow kênh ${targetChannelHandle} trước đây rồi. Theo quy tắc chống gian lận, mỗi kênh chỉ được nhận Xu Follow đúng 1 lần duy nhất trong đời!`,
-          anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
-          channelHandle: targetChannelHandle,
-          penaltyPoints: 10
-        });
+        showToast(`Bạn đã theo dõi kênh ${targetChannelHandle} trước đó rồi.`);
         return 0;
       }
     }
 
     // 2. Kiểm tra trong sổ cái bất biến đã nhận Xu action này chưa
     if (isTaskActionAlreadyClaimed(userIdentifier, taskId, actionType)) {
-      triggerImmediateFraudAlert({
-        title: 'TỪ CHỐI NHẬN XU TRÙNG LẶP',
-        reason: `Bạn đã hoàn thành và nhận Xu cho hành động "${actionType}" ở nhiệm vụ này rồi. Nghiêm cấm nhận Xu lặp lại!`,
-        anomalyType: 'DUPLICATE_TASK_ACTION',
-        channelHandle: targetChannelHandle,
-        penaltyPoints: 5
-      });
+      showToast(`Hành động "${actionType}" ở nhiệm vụ này bạn đã nhận thưởng rồi.`);
       return 0;
     }
 

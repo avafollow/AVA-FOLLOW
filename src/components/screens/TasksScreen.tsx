@@ -212,13 +212,7 @@ export const TasksScreen: React.FC<{
       return;
     }
     if (item.type === 'follow' && isChannelFollowed(item.channelHandle)) {
-      triggerImmediateFraudAlert({
-        title: 'TỪ CHỐI FOLLOW TRÙNG LẶP',
-        reason: `Bạn đã từng Follow kênh ${item.channelHandle} trên hệ thống rồi. Mỗi kênh chỉ được nhận thưởng follow 1 lần duy nhất trong đời!`,
-        anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
-        channelHandle: item.channelHandle,
-        penaltyPoints: 10
-      });
+      showToast(`ℹ️ Bạn đã từng theo dõi kênh ${item.channelHandle} trên hệ thống rồi.`);
       return;
     }
 
@@ -252,8 +246,11 @@ export const TasksScreen: React.FC<{
     showToast(`🎉 ĐÃ MUA THÊM +20 LƯỢT TƯƠNG TÁC! Đã triệt tiêu -${currentTierQuota.extraExpansionCostXu.toLocaleString()} Xu vào Quỹ Đốt Token.`);
   };
 
-  // Hàm kiểm tra nhiệm vụ đã hoàn thành toàn bộ yêu cầu chưa (Hỗ trợ Combo & Đa hành động)
+  // Hàm kiểm tra nhiệm vụ đã hoàn thành toàn bộ yêu cầu chưa (Hỗ trợ Combo & Đa hành động & Tự động ẩn khi đã làm)
   const isTaskFinishedByUser = (taskId: string, type: string, channelHandle?: string) => {
+    if (channelHandle && isChannelFollowed(channelHandle) && (type === 'follow' || type === 'cross_follow')) {
+      return true;
+    }
     const history = userCompletedActions?.[taskId];
     if (!history) return false;
 
@@ -265,13 +262,13 @@ export const TasksScreen: React.FC<{
     if (type === 'share') return !!history.shared;
     if (type === 'watch') return !!history.viewed;
     if (type === 'livestream' || type === 'livestream_viewers') {
-      return !!history.viewed || history.totalCoinsEarned > 0;
+      return !!history.viewed || (history.totalCoinsEarned !== undefined && history.totalCoinsEarned > 0);
     }
     if (type === 'multi_target') {
       return !!(history.followed && history.liked && history.commented);
     }
 
-    return !!(history.followed || history.viewed || history.liked || history.commented || history.shared);
+    return !!(history.followed || history.viewed || history.liked || history.commented || history.shared || ((history as any).totalCoinsEarned && (history as any).totalCoinsEarned > 0));
   };
 
   // Filtered & Sorted Partner Campaigns (Ẩn các nhiệm vụ đã hoàn thành toàn bộ hoặc hết suất)
@@ -536,8 +533,10 @@ export const TasksScreen: React.FC<{
   const feedCountPartner = allUnifiedCards.length;
   const feedCountCross = 0;
 
-  // Filtered cards according to feedCategoryFilter & feedPlatformFilter
+  // Filtered cards according to feedCategoryFilter & feedPlatformFilter (Tự động ẩn 100% nhiệm vụ đã làm xong hoặc kênh đã follow)
   const filteredFeedCards = allUnifiedCards.filter(card => {
+    if (userCompletedActions?.[card.id]) return false;
+    if (card.channelHandle && isChannelFollowed(card.channelHandle) && (card.taskType === 'follow' || (card.taskType as any) === 'combo' || card.taskType === 'multi_target')) return false;
     if (feedPlatformFilter !== 'all' && (card as any).platform && (card as any).platform !== feedPlatformFilter) return false;
     if (feedCategoryFilter === 'all') return true;
     if (feedCategoryFilter === 'missions') return card.category === 'partner' && card.taskType !== 'livestream' && card.taskType !== 'livestream_viewers';
@@ -547,8 +546,9 @@ export const TasksScreen: React.FC<{
     return true;
   });
 
-  // Filtered Cross Follow Items
+  // Filtered Cross Follow Items (Tự động ẩn kênh đã follow hoặc nhiệm vụ đã hoàn thành)
   const filteredCrossFollowItems = crossFollowItems.filter(item => {
+    if (item.isCompleted || userCompletedActions?.[item.id] || isChannelFollowed(item.channelHandle)) return false;
     if (crossFollowTypeFilter !== "all" && item.type !== crossFollowTypeFilter) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -1591,14 +1591,15 @@ export const TasksScreen: React.FC<{
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {filteredFeedCards.map((card) => {
                   const completed = userCompletedActions[card.id];
+                  const cardPlat = (card as any).platform || 'tiktok';
                   const typeLabels: Record<string, string> = {
-                    follow: '👤 Follow Kênh',
-                    watch: '⏱️ Xem Video 15s',
-                    like: '❤️ Thả Tim',
-                    comment: '💬 Bình Luận',
-                    share: '🚀 Chia Sẻ',
-                    livestream: '🔴 Xem Live Giữ Mắt',
-                    livestream_viewers: '🔴 Mắt Live Thật',
+                    follow: cardPlat === 'youtube' ? '🔔 Đăng Ký Kênh' : cardPlat === 'facebook' ? '👥 Theo Dõi Trang' : '👤 Follow Kênh',
+                    watch: cardPlat === 'youtube' ? '▶️ Xem YouTube' : cardPlat === 'facebook' ? '▶️ Xem Video Facebook' : '⏱️ Xem Video 15s',
+                    like: cardPlat === 'youtube' ? '👍 Thích Video' : cardPlat === 'facebook' ? '👍 Thích Bài Viết' : '❤️ Thả Tim',
+                    comment: cardPlat === 'youtube' ? '💬 Bình Luận YouTube' : cardPlat === 'facebook' ? '💬 Bình Luận Facebook' : '💬 Bình Luận',
+                    share: cardPlat === 'youtube' ? '↗️ Chia Sẻ YouTube' : cardPlat === 'facebook' ? '↗️ Chia Sẻ Facebook' : '🚀 Chia Sẻ',
+                    livestream: cardPlat === 'youtube' ? '🔴 Live YouTube' : cardPlat === 'facebook' ? '🔴 Live Facebook' : '🔴 Xem Live Giữ Mắt',
+                    livestream_viewers: cardPlat === 'youtube' ? '🔴 Mắt Live YouTube' : cardPlat === 'facebook' ? '🔴 Mắt Live Facebook' : '🔴 Mắt Live Thật',
                     mega_live: '🔴 Mega Live VIP',
                     multi_target: '⭐ Combo Đa Mục Tiêu',
                     combo: '⭐ Combo Đa Mục Tiêu',
@@ -1610,18 +1611,18 @@ export const TasksScreen: React.FC<{
                   const actionButtonText = completed 
                     ? "Đã Xong" 
                     : card.taskType === 'follow' 
-                      ? "Follow & Nhận Xu" 
+                      ? (cardPlat === 'youtube' ? "Đăng Ký & Nhận Xu" : cardPlat === 'facebook' ? "Theo Dõi & Nhận Xu" : "Follow & Nhận Xu")
                       : card.taskType === 'like' 
-                        ? "Thả Tim & Nhận Xu" 
+                        ? (cardPlat === 'youtube' ? "Thích & Nhận Xu" : cardPlat === 'facebook' ? "Thích & Nhận Xu" : "Thả Tim & Nhận Xu")
                         : card.taskType === 'comment' 
-                          ? "Bình Luận & Nhận Xu" 
+                          ? (cardPlat === 'youtube' ? "Bình Luận YouTube" : cardPlat === 'facebook' ? "Bình Luận Facebook" : "Bình Luận & Nhận Xu")
                           : card.taskType === 'share' 
-                            ? "Chia Sẻ & Nhận Xu" 
+                            ? (cardPlat === 'youtube' ? "Chia Sẻ YouTube" : cardPlat === 'facebook' ? "Chia Sẻ Facebook" : "Chia Sẻ & Nhận Xu")
                             : card.taskType === 'livestream' || card.taskType === 'livestream_viewers' 
                               ? "Vào Live & Nhận Xu" 
                               : card.taskType === 'multi_target' 
                                 ? "Làm Combo & Nhận Xu" 
-                                : "Xem & Nhận Xu";
+                                : (cardPlat === 'youtube' ? "Xem YouTube" : cardPlat === 'facebook' ? "Xem Facebook" : "Xem & Nhận Xu");
 
                   return (
                     <div

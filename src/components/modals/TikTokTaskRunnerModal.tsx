@@ -329,13 +329,8 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     }
 
     if (isChannelFollowed(runnerTask.channelHandle)) {
-      triggerImmediateFraudAlert({
-        title: `TỪ CHỐI ${actionFollowName.toUpperCase()} TRÙNG LẶP`,
-        reason: `Bạn đã từng ${actionFollowName} ${runnerTask.channelHandle} trên hệ thống rồi. Mỗi kênh chỉ được nhận thưởng 1 lần duy nhất trong đời để bảo vệ ngân sách nhà sáng tạo!`,
-        anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
-        channelHandle: runnerTask.channelHandle,
-        penaltyPoints: 10
-      });
+      showToast(`ℹ️ Bạn đã từng ${actionFollowName} kênh ${runnerTask.channelHandle} rồi. Thao tác đã được ghi nhận tự động!`);
+      claimTaskAction(runnerTask.id, 'follow');
       return;
     }
 
@@ -415,11 +410,27 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     });
   };
 
-  const sampleComments = runnerTask.sampleComments || [
-    'Sản phẩm dùng đỉnh chóp quá bạn ơi! Cho mình xin link bio với ❤️',
-    'Nội dung làm cuốn thực sự, mong bạn ra thêm nhiều clip như này nhé!',
-    'Đã theo dõi kênh và ủng hộ, chúc kênh sớm đạt 100k follow!'
-  ];
+  const defaultPlatformComments: Record<string, string[]> = {
+    youtube: [
+      'Nội dung video YouTube rất bổ ích và chất lượng! Đã Đăng ký kênh và bấm chuông ủng hộ bạn ❤️',
+      'Video làm rất chỉn chu, âm thanh hình ảnh sắc nét. Chúc kênh YouTube sớm đạt Nút Vàng!',
+      'Đã xem trọn vẹn video và Like ủng hộ! Mong bạn ra thêm nhiều video hay như này nhé.'
+    ],
+    facebook: [
+      'Bài viết / Video rất ý nghĩa và giá trị! Đã Thích và Theo dõi Fanpage để cập nhật bài mới ❤️',
+      'Nội dung chia sẻ rất thực tế và hữu ích. Chúc Trang ngày càng phát triển và nhiều tương tác!',
+      'Đã like và chia sẻ bài viết! Fanpage đầu tư nội dung chất lượng quá.'
+    ],
+    tiktok: [
+      'Sản phẩm dùng đỉnh chóp quá bạn ơi! Cho mình xin link bio với ❤️',
+      'Nội dung làm cuốn thực sự, mong bạn ra thêm nhiều clip như này nhé!',
+      'Đã theo dõi kênh và ủng hộ, chúc kênh sớm đạt 100k follow!'
+    ]
+  };
+
+  const sampleComments = runnerTask.sampleComments?.length 
+    ? runnerTask.sampleComments 
+    : (defaultPlatformComments[taskPlatform] || defaultPlatformComments.tiktok);
 
   // Calculate session total earned
   const totalEarnedInSession = 
@@ -461,7 +472,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
           <span className="font-bold">21:30</span>
           <div className="w-20 h-4 rounded-full bg-black/90 border border-white/10 shadow-inner flex items-center justify-center">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse mr-1.5" />
-            <span className="text-[8px] font-mono text-rose-400 font-black">FYP LIVE</span>
+            <span className="text-[8px] font-mono text-rose-400 font-black">{isYouTube ? 'YOUTUBE' : isFacebook ? 'FACEBOOK' : 'FYP LIVE'}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Wifi className="w-3 h-3" />
@@ -518,7 +529,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
             <button
               onClick={handleOpenTikTok}
               className="p-1.5 rounded-full bg-black/60 hover:bg-white/20 text-white transition-colors cursor-pointer"
-              title="Mở trên ứng dụng TikTok"
+              title={`Mở trên ứng dụng ${platformDisplayName}`}
             >
               <ExternalLink className="w-3.5 h-3.5" />
             </button>
@@ -925,7 +936,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
               }`}
             >
               <span className="text-[9px] font-mono font-bold text-slate-400 truncate w-full px-0.5">
-                {isYouTube ? 'Đăng Ký' : isFacebook ? 'Follow' : 'Follow'}
+                {isYouTube ? 'Đăng Ký' : isFacebook ? 'Theo Dõi' : 'Follow'}
               </span>
               <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
                 claimedActions.follow ? 'bg-emerald-500 text-white shadow-md' : 'bg-white/10 text-purple-400'
@@ -951,7 +962,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
               }`}
             >
               <span className="text-[9px] font-mono font-bold text-slate-400 truncate w-full px-0.5">
-                {isYouTube ? 'Thích' : 'Thả Tim'}
+                {isYouTube ? 'Thích' : isFacebook ? 'Thích' : 'Thả Tim'}
               </span>
               <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
                 claimedActions.like ? 'bg-rose-600 text-white shadow-md' : 'bg-white/10 text-rose-400'
@@ -1013,7 +1024,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
               <span className="text-slate-300 flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5 text-rose-400" />
                 {timeLeft > 0 ? (
-                  <span>Xem giữ chân FYP: <strong className="text-rose-400 font-bold">{timeLeft}s</strong> còn lại</span>
+                  <span>Xem giữ chân {isYouTube ? 'YouTube' : isFacebook ? 'Facebook' : 'FYP'}: <strong className="text-rose-400 font-bold">{timeLeft}s</strong> còn lại</span>
                 ) : (
                   <span className="text-emerald-400 font-bold flex items-center gap-1">
                     <CheckCircle2 className="h-3.5 w-3.5" /> Đã đạt 15s xem thật (+200 Xu đã vào ví)!

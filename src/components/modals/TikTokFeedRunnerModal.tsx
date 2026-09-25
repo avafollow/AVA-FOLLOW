@@ -181,7 +181,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const activeCampaigns = (campaigns || []).filter(c => 
     c.status !== 'completed' && 
     (c.completedQuantity || 0) < (c.targetQuantity || 100) &&
-    !userCompletedActions?.[c.id]
+    !userCompletedActions?.[c.id] &&
+    !(c.type === 'follow' && isChannelFollowed(c.channelHandle))
   );
 
   const createdCampaignFeedItems: UnifiedFeedItem[] = activeCampaigns.map((c) => {
@@ -312,9 +313,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     isBoosted: true
   } : null;
 
-  // 2. Toàn bộ Nhiệm Vụ Thật Từ Tasks & Livestream Tasks (Đồng bộ tức thì lên Feed)
+  // 2. Toàn bộ Nhiệm Vụ Thật Từ Tasks & Livestream Tasks (Đồng bộ tức thì lên Feed, tự động ẩn khi đã làm)
   const tasksFeedItems: UnifiedFeedItem[] = (tasks || [])
-    .filter(t => t.status === 'open' && (t.remainingSlots || 0) > 0 && !userCompletedActions?.[t.id])
+    .filter(t => t.status === 'open' && (t.remainingSlots || 0) > 0 && !userCompletedActions?.[t.id] && !(t.type === 'follow' && isChannelFollowed(t.channelHandle)))
     .map(t => {
       const parsed = parseMediaUrl(t.targetUrl || t.videoPreviewUrl || '', t.channelHandle);
       const isLive = t.type === 'livestream' || parsed.isLive;
@@ -383,7 +384,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     ...createdCampaignFeedItems,
     ...tasksFeedItems,
     ...liveTasksFeedItems
-  ];
+  ].filter(i => {
+    if (userCompletedActions?.[i.id]) return false;
+    if (i.type === 'follow' && isChannelFollowed(i.channelHandle)) return false;
+    return true;
+  });
 
   // CHỈ HIỂN THỊ 100% CHIẾN DỊCH & NHIỆM VỤ THẬT ĐANG CHẠY (ĐỒNG BỘ 100% TỪ MỌI NỀN TẢNG)
   const allFeedDeduplicated = deduplicateAndSortFeed(allRawFeedItems);
@@ -798,13 +803,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
 
     if (isChannelFollowed(currentItem.channelHandle)) {
-      triggerImmediateFraudAlert({
-        title: 'TỪ CHỐI FOLLOW TRÙNG LẶP',
-        reason: `Bạn đã từng Follow kênh ${currentItem.channelHandle} trên hệ thống rồi. Quy tắc bảo vệ ngân sách nhà sáng tạo quy định mỗi kênh chỉ được nhận thưởng 1 lần duy nhất!`,
-        anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
-        channelHandle: currentItem.channelHandle,
-        penaltyPoints: 10
-      });
+      showToast(`ℹ️ Bạn đã từng theo dõi kênh ${currentItem.channelHandle} rồi. Tự động chuyển video tiếp theo!`);
+      handleNextItem();
       return;
     }
 
@@ -1240,11 +1240,27 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   };
 
 
-  const sampleComments = currentItem.sampleComments || [
-    'Nội dung chia sẻ cuốn thực sự, mong bạn ra thêm nhiều clip nữa nhé ❤️',
-    'Đã theo dõi kênh và ủng hộ, chúc bạn sớm đạt 100k follow!',
-    'Sản phẩm này dùng êm ru luôn ạ, cho mình xin link bio với shop ơi!'
-  ];
+  const defaultFeedComments: Record<string, string[]> = {
+    youtube: [
+      'Nội dung video YouTube rất bổ ích và chất lượng! Đã Đăng ký kênh và Like ủng hộ bạn ❤️',
+      'Video làm rất chỉn chu, âm thanh hình ảnh sắc nét. Chúc kênh YouTube sớm đạt Nút Vàng!',
+      'Đã xem trọn vẹn và ủng hộ kênh! Mong bạn ra thêm nhiều video hay như này nhé.'
+    ],
+    facebook: [
+      'Bài viết / Video rất ý nghĩa và giá trị! Đã Thích và Theo dõi Fanpage để cập nhật bài mới ❤️',
+      'Nội dung chia sẻ rất thực tế và hữu ích. Chúc Trang ngày càng phát triển và nhiều tương tác!',
+      'Đã like và chia sẻ bài viết! Fanpage đầu tư nội dung chất lượng quá.'
+    ],
+    tiktok: [
+      'Nội dung chia sẻ cuốn thực sự, mong bạn ra thêm nhiều clip nữa nhé ❤️',
+      'Đã theo dõi kênh và ủng hộ, chúc bạn sớm đạt 100k follow!',
+      'Sản phẩm này dùng êm ru luôn ạ, cho mình xin link bio với shop ơi!'
+    ]
+  };
+
+  const sampleComments = currentItem.sampleComments?.length 
+    ? currentItem.sampleComments 
+    : (defaultFeedComments[itemPlatform] || defaultFeedComments.tiktok);
 
   if (!isFeedRunnerOpen) return null;
 
@@ -1752,27 +1768,27 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               ) : currentItem.type === 'follow' ? (
                 <>
                   <UserPlus className="w-3.5 h-3.5 text-rose-400" />
-                  <span className="text-[10px] font-mono font-black text-neonGold uppercase">Nhiệm vụ: Follow Kênh (+200 Xu)</span>
+                  <span className="text-[10px] font-mono font-black text-neonGold uppercase">Nhiệm vụ: {itemPlatform === 'youtube' ? 'Đăng Ký Kênh' : itemPlatform === 'facebook' ? 'Theo Dõi Kênh' : 'Follow Kênh'} (+200 Xu)</span>
                 </>
               ) : currentItem.type === 'watch' ? (
                 <>
                   <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                  <span className="text-[10px] font-mono font-black text-cyan-300 uppercase">Nhiệm vụ: Xem Đủ 15s (+200 Xu)</span>
+                  <span className="text-[10px] font-mono font-black text-cyan-300 uppercase">Nhiệm vụ: {itemPlatform === 'youtube' ? 'Xem Video YouTube' : itemPlatform === 'facebook' ? 'Xem Video Facebook' : 'Xem Đủ 15s'} (+200 Xu)</span>
                 </>
               ) : currentItem.type === 'like' ? (
                 <>
                   <Heart className="w-3.5 h-3.5 text-pink-400 fill-pink-400" />
-                  <span className="text-[10px] font-mono font-black text-pink-300 uppercase">Nhiệm vụ: Thả Tim Video (+100 Xu)</span>
+                  <span className="text-[10px] font-mono font-black text-pink-300 uppercase">Nhiệm vụ: {itemPlatform === 'youtube' ? 'Thích Video' : itemPlatform === 'facebook' ? 'Thích Bài Viết' : 'Thả Tim Video'} (+100 Xu)</span>
                 </>
               ) : currentItem.type === 'comment' ? (
                 <>
                   <MessageCircle className="w-3.5 h-3.5 text-purple-400" />
-                  <span className="text-[10px] font-mono font-black text-purple-300 uppercase">Nhiệm vụ: Viết Bình Luận (+200 Xu)</span>
+                  <span className="text-[10px] font-mono font-black text-purple-300 uppercase">Nhiệm vụ: {itemPlatform === 'youtube' ? 'Bình Luận YouTube' : itemPlatform === 'facebook' ? 'Bình Luận Facebook' : 'Viết Bình Luận'} (+200 Xu)</span>
                 </>
               ) : currentItem.type === 'share' ? (
                 <>
                   <Share2 className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="text-[10px] font-mono font-black text-blue-300 uppercase">Nhiệm vụ: Chia Sẻ Video (+240 Xu)</span>
+                  <span className="text-[10px] font-mono font-black text-blue-300 uppercase">Nhiệm vụ: {itemPlatform === 'youtube' ? 'Chia Sẻ YouTube' : itemPlatform === 'facebook' ? 'Chia Sẻ Facebook' : 'Chia Sẻ Video'} (+240 Xu)</span>
                 </>
               ) : isLiveItem ? (
                 <>
@@ -1787,12 +1803,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               )}
             </div>
 
-            {/* Creator Handle + Verified Badge (Bấm để nhảy về đúng kênh TikTok của người dùng) */}
+            {/* Creator Handle + Verified Badge (Bấm để nhảy về đúng kênh TikTok/YouTube/Facebook của người dùng) */}
             <div className="flex items-center gap-2 flex-wrap">
               <div 
                 onClick={handleOpenTikTokApp}
                 className="flex items-center gap-1.5 cursor-pointer group"
-                title="Bấm để mở trang TikTok chính thức của kênh này"
+                title={`Bấm để mở trang ${itemPlatform === 'youtube' ? 'YouTube' : itemPlatform === 'facebook' ? 'Facebook' : 'TikTok'} chính thức của kênh này`}
               >
                 <span className="text-white font-black text-sm drop-shadow-md tracking-wide group-hover:text-cyan-300 transition-colors">
                   {currentItem.channelHandle}
@@ -1813,10 +1829,10 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 type="button"
                 onClick={handleOpenTikTokApp}
                 className="px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 hover:opacity-90 text-white text-[10px] font-mono font-bold flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer"
-                title="Mở ứng dụng hoặc trang web TikTok thật của kênh này"
+                title={`Mở ứng dụng hoặc trang web ${itemPlatform === 'youtube' ? 'YouTube' : itemPlatform === 'facebook' ? 'Facebook' : 'TikTok'} thật của kênh này`}
               >
                 <ExternalLink className="w-3 h-3" />
-                <span>Mở TikTok</span>
+                <span>Mở {itemPlatform === 'youtube' ? 'YouTube' : itemPlatform === 'facebook' ? 'Facebook' : 'TikTok'}</span>
               </button>
             </div>
 
@@ -1847,7 +1863,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                     handleFollowAction();
                   }}
                   className="relative mb-2 cursor-pointer group"
-                  title="Bấm avatar để Follow kênh & nhận +200 Xu"
+                  title={`Bấm avatar để ${itemPlatform === 'youtube' ? 'Đăng Ký' : itemPlatform === 'facebook' ? 'Theo Dõi' : 'Follow'} & nhận +200 Xu`}
                 >
                   <img 
                     src={currentItem.channelAvatar} 
@@ -1864,7 +1880,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                         ? 'bg-emerald-500 ring-2 ring-emerald-400/60 scale-100' 
                         : 'bg-[#FE2C55] hover:scale-110 active:scale-95 shadow-red-500/50'
                     }`}
-                    title={currentClaimed.follow ? 'Đã Follow trên hệ thống' : 'Bấm Follow & nhận +200 Xu'}
+                    title={currentClaimed.follow ? `Đã ${itemPlatform === 'youtube' ? 'Đăng ký' : itemPlatform === 'facebook' ? 'Theo dõi' : 'Follow'} trên hệ thống` : `Bấm ${itemPlatform === 'youtube' ? 'Đăng Ký' : itemPlatform === 'facebook' ? 'Theo Dõi' : 'Follow'} & nhận +200 Xu`}
                   >
                     {currentClaimed.follow ? (
                       <Check className="w-3.5 h-3.5 stroke-[3.5] text-white" />
@@ -1883,7 +1899,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                     handleLikeAction();
                   }}
                   className="flex flex-col items-center gap-0.5 group cursor-pointer"
-                  title="Thả tim video nhận +100 Xu"
+                  title={`${itemPlatform === 'youtube' ? 'Thích video' : itemPlatform === 'facebook' ? 'Thích bài viết' : 'Thả tim video'} nhận +100 Xu`}
                 >
                   <div className={`p-2 rounded-full transition-transform duration-200 active:scale-125 ${
                     currentClaimed.like ? 'text-[#FE2C55]' : 'text-white/90 hover:text-white'
@@ -1891,7 +1907,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                     <Heart className={`h-7 w-7 drop-shadow-lg ${currentClaimed.like ? 'fill-[#FE2C55]' : ''}`} />
                   </div>
                   <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow-md">
-                    {currentClaimed.like ? 'Đã Tim' : '+100'}
+                    {currentClaimed.like ? (itemPlatform === 'tiktok' ? 'Đã Tim' : 'Đã Thích') : '+100'}
                   </span>
                 </button>
               )}
@@ -1904,7 +1920,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                     setShowCommentInput(!showCommentInput);
                   }}
                   className="flex flex-col items-center gap-0.5 group cursor-pointer"
-                  title="Bình luận video nhận +200 Xu"
+                  title={`Bình luận ${itemPlatform === 'youtube' ? 'video YouTube' : itemPlatform === 'facebook' ? 'bài viết Facebook' : 'video TikTok'} nhận +200 Xu`}
                 >
                   <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
                     <MessageCircle className={`h-7 w-7 drop-shadow-lg ${currentClaimed.comment ? 'fill-cyan-400 text-cyan-400' : ''}`} />
@@ -1923,7 +1939,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                     handleShareAction();
                   }}
                   className="flex flex-col items-center gap-0.5 group cursor-pointer"
-                  title="Chia sẻ video nhận +240 Xu"
+                  title={`Chia sẻ ${itemPlatform === 'youtube' ? 'video YouTube' : itemPlatform === 'facebook' ? 'bài viết Facebook' : 'video TikTok'} nhận +240 Xu`}
                 >
                   <div className="p-2 rounded-full text-white/90 hover:text-white transition-transform duration-200 active:scale-125">
                     <Share2 className="h-7 w-7 drop-shadow-lg" />
@@ -1944,7 +1960,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono font-bold text-cyan-400 flex items-center gap-1.5">
-                  <MessageCircle className="w-3.5 h-3.5" /> Gửi Bình Luận TikTok Thật (+200 Xu)
+                  <MessageCircle className="w-3.5 h-3.5" /> Gửi Bình Luận {itemPlatform === 'youtube' ? 'YouTube' : itemPlatform === 'facebook' ? 'Facebook' : 'TikTok'} Thật (+200 Xu)
                 </span>
                 <button 
                   type="button" 
@@ -2019,7 +2035,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   }`}
                 >
                   {currentClaimed.follow ? <Check className="w-3 h-3 stroke-[3]" /> : <Plus className="w-3 h-3 stroke-[3]" />}
-                  <span>{currentClaimed.follow ? 'Đã Follow' : 'Follow (+200)'}</span>
+                  <span>{currentClaimed.follow ? (itemPlatform === 'youtube' ? 'Đã Đăng Ký' : itemPlatform === 'facebook' ? 'Đã Theo Dõi' : 'Đã Follow') : (itemPlatform === 'youtube' ? 'Đăng Ký (+200)' : itemPlatform === 'facebook' ? 'Theo Dõi (+200)' : 'Follow (+200)')}</span>
                 </button>
                 <button
                   type="button"
@@ -2031,7 +2047,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   }`}
                 >
                   <Heart className={`w-3 h-3 ${currentClaimed.like ? 'fill-pink-400' : ''}`} />
-                  <span>{currentClaimed.like ? 'Đã Tim' : 'Thả Tim (+100)'}</span>
+                  <span>{currentClaimed.like ? (itemPlatform === 'tiktok' ? 'Đã Tim' : 'Đã Thích') : (itemPlatform === 'tiktok' ? 'Thả Tim (+100)' : 'Thích (+100)')}</span>
                 </button>
                 <button
                   type="button"
@@ -2060,7 +2076,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               }`}
             >
               {currentClaimed.follow ? <Check className="w-4 h-4 stroke-[3]" /> : <Plus className="w-4 h-4 stroke-[3]" />}
-              <span>{currentClaimed.follow ? '✓ ĐÃ FOLLOW KÊNH (+200 XU VÀO VÍ)' : 'THEO DÕI / FOLLOW KÊNH NÀY (+200 XU)'}</span>
+              <span>{currentClaimed.follow ? `✓ ĐÃ ${itemPlatform === 'youtube' ? 'ĐĂNG KÝ KÊNH' : itemPlatform === 'facebook' ? 'THEO DÕI TRANG' : 'FOLLOW KÊNH'} (+200 XU VÀO VÍ)` : `${itemPlatform === 'youtube' ? 'ĐĂNG KÝ KÊNH YOUTUBE NÀY' : itemPlatform === 'facebook' ? 'THEO DÕI FANPAGE / TRANG NÀY' : 'THEO DÕI / FOLLOW KÊNH NÀY'} (+200 XU)`}</span>
             </button>
           )}
 
@@ -2075,7 +2091,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               }`}
             >
               <Heart className={`w-4 h-4 ${currentClaimed.like ? 'fill-pink-400 text-pink-400' : ''}`} />
-              <span>{currentClaimed.like ? '✓ ĐÃ THẢ TIM VIDEO (+100 XU VÀO VÍ)' : 'THẢ TIM VIDEO NÀY (+100 XU)'}</span>
+              <span>{currentClaimed.like ? `✓ ĐÃ ${itemPlatform === 'tiktok' ? 'THẢ TIM VIDEO' : itemPlatform === 'facebook' ? 'THÍCH BÀI VIẾT' : 'THÍCH VIDEO'} (+100 XU VÀO VÍ)` : `${itemPlatform === 'tiktok' ? 'THẢ TIM VIDEO NÀY' : itemPlatform === 'facebook' ? 'THÍCH BÀI VIẾT NÀY' : 'THÍCH VIDEO YOUTUBE NÀY'} (+100 XU)`}</span>
             </button>
           )}
 
@@ -2090,7 +2106,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               }`}
             >
               <MessageCircle className="w-4 h-4" />
-              <span>{currentClaimed.comment ? '✓ ĐÃ GỬI BÌNH LUẬN (+200 XU VÀO VÍ)' : 'BÌNH LUẬN VIDEO NÀY (+200 XU)'}</span>
+              <span>{currentClaimed.comment ? `✓ ĐÃ GỬI BÌNH LUẬN (+200 XU VÀO VÍ)` : `BÌNH LUẬN ${itemPlatform === 'youtube' ? 'VIDEO YOUTUBE' : itemPlatform === 'facebook' ? 'BÀI VIẾT FACEBOOK' : 'VIDEO NÀY'} (+200 XU)`}</span>
             </button>
           )}
 
@@ -2105,7 +2121,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               }`}
             >
               <Share2 className="w-4 h-4" />
-              <span>{currentClaimed.share ? '✓ ĐÃ CHIA SẺ VIDEO (+240 XU VÀO VÍ)' : 'CHIA SẺ VIDEO NÀY (+240 XU)'}</span>
+              <span>{currentClaimed.share ? `✓ ĐÃ CHIA SẺ (+240 XU VÀO VÍ)` : `CHIA SẺ ${itemPlatform === 'youtube' ? 'VIDEO YOUTUBE' : itemPlatform === 'facebook' ? 'BÀI VIẾT FACEBOOK' : 'VIDEO NÀY'} (+240 XU)`}</span>
             </button>
           )}
 

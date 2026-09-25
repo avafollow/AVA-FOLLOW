@@ -135,13 +135,8 @@ export const LivestreamRunnerModal: React.FC = () => {
     }
 
     if (isChannelFollowed(activeLiveTask.channelHandle) || claimedFollowReward) {
-      triggerImmediateFraudAlert({
-        title: `TỪ CHỐI ${actionFollowName.toUpperCase()} TRÙNG LẶP`,
-        reason: `Bạn đã từng ${actionFollowName} ${activeLiveTask.channelHandle} trên hệ thống rồi. Mỗi kênh chỉ được nhận thưởng 1 lần duy nhất trong đời!`,
-        anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
-        channelHandle: activeLiveTask.channelHandle,
-        penaltyPoints: 10
-      });
+      showToast(`ℹ️ Bạn đã từng ${actionFollowName} kênh ${activeLiveTask.channelHandle} rồi.`);
+      setClaimedFollowReward(true);
       return;
     }
     const reward = claimTaskAction(activeLiveTask.id, 'follow');
@@ -927,7 +922,7 @@ export const LivestreamRunnerModal: React.FC = () => {
                   : 'bg-rose-600 hover:bg-rose-500 text-white animate-pulse'
               }`}
             >
-              {claimedFollowReward || isChannelFollowed(activeLiveTask.channelHandle) ? '✓ Follow' : '+ Follow (+200)'}
+              {claimedFollowReward || isChannelFollowed(activeLiveTask.channelHandle) ? `✓ ${actionFollowName}` : `+ ${actionFollowName} (+200)`}
             </button>
           </div>
 

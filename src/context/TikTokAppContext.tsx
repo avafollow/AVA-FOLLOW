@@ -4178,8 +4178,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Watch livestream per minute (Tính theo hệ số cấp bậc)
   const watchLivestreamMinute = (taskId: string) => {
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng liên kết kênh TikTok của bạn trước khi xem livestream nhận Xu!');
+    const live = livestreamTasks.find(l => l.id === taskId);
+    if (!live) return;
+
+    const taskPlatform = live.platform || 'tiktok';
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${taskPlatform.toUpperCase()}: Vui lòng liên kết tài khoản trước khi xem livestream nhận Xu!`);
       openConnect();
       return;
     }
@@ -4189,9 +4194,6 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (lockout.isLocked) {
       return;
     }
-
-    const live = livestreamTasks.find(l => l.id === taskId);
-    if (!live) return;
 
     const quota = getUserLiveQuota();
     const baseReward = live.rewardPerMinute || 300;
@@ -4243,14 +4245,16 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     tapsCount: number,
     passedCaptcha: boolean
   ) => {
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng liên kết kênh TikTok của bạn trước khi nhận thưởng phiên live!');
+    const live = livestreamTasks.find(l => l.id === taskId);
+    if (!live) return { coinsEarned: 0, milestoneBonus: 0 };
+
+    const taskPlatform = live.platform || 'tiktok';
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${taskPlatform.toUpperCase()}: Vui lòng liên kết tài khoản trước khi nhận thưởng phiên live!`);
       openConnect();
       return { coinsEarned: 0, milestoneBonus: 0 };
     }
-
-    const live = livestreamTasks.find(l => l.id === taskId);
-    if (!live) return { coinsEarned: 0, milestoneBonus: 0 };
 
     const quota = getUserLiveQuota();
     const baseMilestone = live.milestoneBonusCoins || 500;

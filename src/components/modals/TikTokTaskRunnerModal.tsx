@@ -34,6 +34,7 @@ import {
   FacebookEmbedPlayer,
   DirectVideoPlayer
 } from '../common/players';
+import { verifyPlatformAccountForTask } from '../../services/platformProfileSyncService';
 
 export const TikTokTaskRunnerModal: React.FC = () => {
   const { 
@@ -60,7 +61,13 @@ export const TikTokTaskRunnerModal: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const mediaInfo = runnerTask ? parseMediaUrl(runnerTask.targetUrl || runnerTask.videoPreviewUrl || '', runnerTask.channelHandle) : null;
-  const isYouTube = Boolean(mediaInfo?.isYouTube && mediaInfo?.youtubeId);
+  const isYouTube = Boolean(runnerTask?.platform === 'youtube' || (mediaInfo?.isYouTube && mediaInfo?.youtubeId));
+  const isFacebook = Boolean(runnerTask?.platform === 'facebook' || mediaInfo?.isFacebook);
+  const taskPlatform = runnerTask?.platform || (isYouTube ? 'youtube' : isFacebook ? 'facebook' : 'tiktok');
+  const platformDisplayName = isYouTube ? 'YouTube' : isFacebook ? 'Facebook' : 'TikTok';
+  const actionFollowName = isYouTube ? 'Đăng ký Kênh' : isFacebook ? 'Theo dõi Trang' : 'Follow Kênh';
+  const actionLikeName = isYouTube ? 'Thích Video' : isFacebook ? 'Thích Bài Viết' : 'Thả Tim Video';
+  const actionCommentName = isYouTube ? 'Bình luận Video' : isFacebook ? 'Bình luận Bài Viết' : 'Bình luận Video';
   const isTikTokEmbed = Boolean(mediaInfo?.isTikTok && mediaInfo?.videoId);
 
   const togglePlay = (e?: React.MouseEvent) => {
@@ -159,15 +166,15 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       if (!isHidden && pendingFraudAction && runnerTask) {
         const timeSpentAway = Date.now() - pendingActionStartTime;
         let requiredTime = 4000; 
-        let actionName = 'Follow';
-        if (pendingFraudAction === 'comment') { requiredTime = 8000; actionName = 'Bình luận'; }
+        let actionName = actionFollowName;
+        if (pendingFraudAction === 'comment') { requiredTime = 8000; actionName = actionCommentName; }
         if (pendingFraudAction === 'share') { requiredTime = 5000; actionName = 'Chia sẻ'; }
-        if (pendingFraudAction === 'like') { requiredTime = 4000; actionName = 'Thả tim'; }
+        if (pendingFraudAction === 'like') { requiredTime = 4000; actionName = actionLikeName; }
         
         if (timeSpentAway < requiredTime) {
            triggerImmediateFraudAlert({
              title: 'PHÁT HIỆN GIAN LẬN',
-             reason: `Thời gian thao tác quá nhanh (${(timeSpentAway/1000).toFixed(1)}s). Bạn phải THỰC SỰ MỞ ỨNG DỤNG và ${actionName} để nhận xu!`,
+             reason: `Thời gian thao tác quá nhanh (${(timeSpentAway/1000).toFixed(1)}s). Bạn phải THỰC SỰ MỞ ${platformDisplayName.toUpperCase()} và ${actionName} để nhận xu!`,
              anomalyType: 'BOT_SPEED_DETECTED',
              channelHandle: runnerTask.channelHandle,
              penaltyPoints: 10
@@ -192,7 +199,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       window.removeEventListener('blur', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
     };
-  }, [isRunnerOpen, pendingFraudAction, pendingActionStartTime, runnerTask, claimTaskAction, triggerImmediateFraudAlert]);
+  }, [isRunnerOpen, pendingFraudAction, pendingActionStartTime, runnerTask, claimTaskAction, triggerImmediateFraudAlert, actionFollowName, actionLikeName, actionCommentName, platformDisplayName]);
 
   // 15-second countdown timer (ĐÓNG BĂNG 100% KHI ẨN TAB / RỜI APP / NHẬN CUỘC GỌI)
   useEffect(() => {
@@ -216,13 +223,26 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     return () => clearInterval(timer);
   }, [isRunnerOpen, timeLeft, isPlaying]);
 
-  // Bắt buộc click Xem Trên TikTok để nhận phần thưởng watch
+  // Bắt buộc click Xem Trên TikTok/YouTube/Facebook để nhận phần thưởng watch
   useEffect(() => {
     // Chúng ta KHÔNG auto claim Xu khi đếm lùi về 0 nữa. 
-    // Người dùng phải thực sự chuyển hướng sang TikTok.
+    // Người dùng phải thực sự chuyển hướng sang ứng dụng.
   }, []);
 
   if (!isRunnerOpen || !runnerTask) return null;
+
+  // Helper resolve destination URL
+  const getDestinationUrl = () => {
+    if (runnerTask.targetUrl && runnerTask.targetUrl.trim()) return runnerTask.targetUrl;
+    if (isYouTube) {
+      const cleanHandle = (runnerTask.channelHandle || '').replace(/^@+/, '');
+      return cleanHandle ? `https://www.youtube.com/@${cleanHandle}` : 'https://www.youtube.com';
+    }
+    if (isFacebook) {
+      return runnerTask.channelHandle ? `https://www.facebook.com/${runnerTask.channelHandle}` : 'https://www.facebook.com';
+    }
+    return `https://www.tiktok.com/@${(runnerTask.channelHandle || '').replace(/^@/, '')}`;
+  };
 
   // Visual hearts effect on screen (Không cộng Xu trực tiếp để chống auto click/macro)
   const triggerLikeEffect = (clientX?: number, clientY?: number) => {
@@ -250,20 +270,21 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     lastTapRef.current = now;
   };
 
-  // 1. Follow Kênh TikTok (Bắt buộc kết nối tài khoản + mở TikTok thật)
+  // 1. Follow / Subscribe Kênh (Bắt buộc kết nối tài khoản thật + mở app thật)
   const handleFollowAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
 
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${platformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản chính chủ của bạn để nhận Xu!`);
       openConnect();
       return;
     }
 
     if (isChannelFollowed(runnerTask.channelHandle)) {
       triggerImmediateFraudAlert({
-        title: 'TỪ CHỐI FOLLOW TRÙNG LẶP',
-        reason: `Bạn đã từng Follow kênh ${runnerTask.channelHandle} trên hệ thống rồi. Mỗi kênh chỉ được nhận thưởng follow 1 lần duy nhất trong đời để bảo vệ ngân sách nhà sáng tạo!`,
+        title: `TỪ CHỐI ${actionFollowName.toUpperCase()} TRÙNG LẶP`,
+        reason: `Bạn đã từng ${actionFollowName} ${runnerTask.channelHandle} trên hệ thống rồi. Mỗi kênh chỉ được nhận thưởng 1 lần duy nhất trong đời để bảo vệ ngân sách nhà sáng tạo!`,
         anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
         channelHandle: runnerTask.channelHandle,
         penaltyPoints: 10
@@ -274,16 +295,17 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     if (!claimedActions.follow) {
       setPendingFraudAction('follow');
       setPendingActionStartTime(Date.now());
-      window.open(`https://www.tiktok.com/@${runnerTask.channelHandle}`, '_blank', 'noopener,noreferrer');
+      window.open(getDestinationUrl(), '_blank', 'noopener,noreferrer');
     }
   };
 
-  // 2. Thả Tim Video (Bắt buộc kết nối tài khoản + mở TikTok thật)
+  // 2. Thả Tim / Thích Video (Bắt buộc kết nối tài khoản thật + mở app thật)
   const handleLikeAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
 
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${platformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản chính chủ của bạn để nhận Xu!`);
       openConnect();
       return;
     }
@@ -291,22 +313,22 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     if (!claimedActions.like) {
       setPendingFraudAction('like');
       setPendingActionStartTime(Date.now());
-      const targetUrl = runnerTask.targetUrl || `https://www.tiktok.com/@${runnerTask.channelHandle}`;
-      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      window.open(getDestinationUrl(), '_blank', 'noopener,noreferrer');
     }
   };
 
-  // 3. Bình luận Video (Copy text + mở TikTok thật)
+  // 3. Bình luận Video (Copy text + mở app thật để Paste)
   const handleCommentAction = (commentText: string) => {
     if (!commentText.trim()) return;
 
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${platformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản chính chủ của bạn để nhận Xu!`);
       openConnect();
       return;
     }
     
-    // ĐÓNG BĂNG 60 LỚP: BẮT BUỘC COPY VÀ MỞ TIKTOK ĐỂ DÁN
+    // ĐÓNG BĂNG 60 LỚP: BẮT BUỘC COPY VÀ MỞ ỨNG DỤNG ĐỂ DÁN
     navigator.clipboard.writeText(commentText).catch(() => {});
     
     setIsSubmitting(true);
@@ -316,19 +338,19 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       
       setPendingFraudAction('comment');
       setPendingActionStartTime(Date.now());
-      showToast('Đã Copy bình luận! Đang mở TikTok, vui lòng DÁN (Paste) bình luận vào video nhé.');
+      showToast(`Đã Copy bình luận! Đang mở ${platformDisplayName}, vui lòng DÁN (Paste) bình luận vào video nhé.`);
       
-      const targetUrl = runnerTask.targetUrl || `https://www.tiktok.com/@${runnerTask.channelHandle}`;
-      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      window.open(getDestinationUrl(), '_blank', 'noopener,noreferrer');
     }, 1000);
   };
 
-  // 4. Chia sẻ Video (Bắt buộc kết nối tài khoản + mở TikTok thật)
+  // 4. Chia sẻ Video (Bắt buộc kết nối tài khoản thật + mở app thật)
   const handleShareAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
 
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${platformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản chính chủ của bạn để nhận Xu!`);
       openConnect();
       return;
     }
@@ -336,12 +358,11 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     if (!claimedActions.share) {
       setPendingFraudAction('share');
       setPendingActionStartTime(Date.now());
-      const targetUrl = runnerTask.targetUrl || `https://www.tiktok.com/@${runnerTask.channelHandle}`;
-      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      window.open(getDestinationUrl(), '_blank', 'noopener,noreferrer');
     }
 
     openShareModal({
-      targetUrl: runnerTask.targetUrl,
+      targetUrl: getDestinationUrl(),
       title: runnerTask.title
     });
   };
@@ -818,7 +839,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
               </span>
             </div>
 
-            {/* Ô 2: Follow Kênh */}
+            {/* Ô 2: Follow / Đăng Ký Kênh */}
             <button
               onClick={handleFollowAction}
               className={`aspect-square rounded-2xl p-1.5 sm:p-2 border flex flex-col items-center justify-between transition-all cursor-pointer group ${
@@ -827,7 +848,9 @@ export const TikTokTaskRunnerModal: React.FC = () => {
                   : 'bg-white/[0.04] border-white/10 hover:border-white/30 hover:bg-white/[0.08]'
               }`}
             >
-              <span className="text-[9px] font-mono font-bold text-slate-400">Follow</span>
+              <span className="text-[9px] font-mono font-bold text-slate-400 truncate w-full px-0.5">
+                {isYouTube ? 'Đăng Ký' : isFacebook ? 'Follow' : 'Follow'}
+              </span>
               <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
                 claimedActions.follow ? 'bg-emerald-500 text-white shadow-md' : 'bg-white/10 text-purple-400'
               }`}>
@@ -838,11 +861,12 @@ export const TikTokTaskRunnerModal: React.FC = () => {
               </span>
             </button>
 
-            {/* Ô 3: Thả Tim */}
+            {/* Ô 3: Thả Tim / Thích Video */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 triggerLikeEffect();
+                handleLikeAction(e);
               }}
               className={`aspect-square rounded-2xl p-1.5 sm:p-2 border flex flex-col items-center justify-between transition-all cursor-pointer group ${
                 claimedActions.like
@@ -850,7 +874,9 @@ export const TikTokTaskRunnerModal: React.FC = () => {
                   : 'bg-white/[0.04] border-white/10 hover:border-white/30 hover:bg-white/[0.08]'
               }`}
             >
-              <span className="text-[9px] font-mono font-bold text-slate-400">Thả Tim</span>
+              <span className="text-[9px] font-mono font-bold text-slate-400 truncate w-full px-0.5">
+                {isYouTube ? 'Thích' : 'Thả Tim'}
+              </span>
               <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
                 claimedActions.like ? 'bg-rose-600 text-white shadow-md' : 'bg-white/10 text-rose-400'
               }`}>
@@ -873,7 +899,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
                   : 'bg-white/[0.04] border-white/10 hover:border-white/30 hover:bg-white/[0.08]'
               }`}
             >
-              <span className="text-[9px] font-mono font-bold text-slate-400">Bình Luận</span>
+              <span className="text-[9px] font-mono font-bold text-slate-400 truncate w-full px-0.5">Bình Luận</span>
               <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
                 claimedActions.comment ? 'bg-cyan-600 text-white shadow-md' : 'bg-white/10 text-cyan-400'
               }`}>
@@ -893,7 +919,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
                   : 'bg-white/[0.04] border-white/10 hover:border-white/30 hover:bg-white/[0.08]'
               }`}
             >
-              <span className="text-[9px] font-mono font-bold text-slate-400">Chia Sẻ</span>
+              <span className="text-[9px] font-mono font-bold text-slate-400 truncate w-full px-0.5">Chia Sẻ</span>
               <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
                 claimedActions.share ? 'bg-blue-600 text-white shadow-md' : 'bg-white/10 text-blue-400'
               }`}>

@@ -48,6 +48,7 @@ import {
   YouTubeLiveEmbedPlayer,
   FacebookLiveEmbedPlayer
 } from '../common/players';
+import { verifyPlatformAccountForTask } from '../../services/platformProfileSyncService';
 
 export const LivestreamRunnerModal: React.FC = () => {
   const { 
@@ -88,7 +89,11 @@ export const LivestreamRunnerModal: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const mediaInfo = activeLiveTask ? parseMediaUrl(activeLiveTask.targetUrl, activeLiveTask.channelHandle) : null;
-  const isYouTube = Boolean(mediaInfo?.isYouTube && mediaInfo?.youtubeId);
+  const isYouTube = Boolean(activeLiveTask?.platform === 'youtube' || (mediaInfo?.isYouTube && mediaInfo?.youtubeId));
+  const isFacebook = Boolean(activeLiveTask?.platform === 'facebook' || mediaInfo?.isFacebook);
+  const taskPlatform = activeLiveTask?.platform || (isYouTube ? 'youtube' : isFacebook ? 'facebook' : 'tiktok');
+  const platformDisplayName = isYouTube ? 'YouTube' : isFacebook ? 'Facebook' : 'TikTok';
+  const actionFollowName = isYouTube ? 'Đăng ký Kênh' : isFacebook ? 'Theo dõi Kênh' : 'Follow Kênh';
 
   const togglePlayLive = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -113,10 +118,18 @@ export const LivestreamRunnerModal: React.FC = () => {
   const handleLiveFollow = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!activeLiveTask?.channelHandle) return;
+
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${platformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản thật trước khi nhận thưởng!`);
+      openConnect();
+      return;
+    }
+
     if (isChannelFollowed(activeLiveTask.channelHandle) || claimedFollowReward) {
       triggerImmediateFraudAlert({
-        title: 'TỪ CHỐI FOLLOW TRÙNG LẶP',
-        reason: `Bạn đã từng Follow kênh ${activeLiveTask.channelHandle} trên hệ thống rồi. Mỗi kênh chỉ được nhận thưởng follow 1 lần duy nhất trong đời!`,
+        title: `TỪ CHỐI ${actionFollowName.toUpperCase()} TRÙNG LẶP`,
+        reason: `Bạn đã từng ${actionFollowName} ${activeLiveTask.channelHandle} trên hệ thống rồi. Mỗi kênh chỉ được nhận thưởng 1 lần duy nhất trong đời!`,
         anomalyType: 'DUPLICATE_CHANNEL_FOLLOW',
         channelHandle: activeLiveTask.channelHandle,
         penaltyPoints: 10
@@ -127,7 +140,7 @@ export const LivestreamRunnerModal: React.FC = () => {
     if (reward > 0) {
       setClaimedFollowReward(true);
       syncTikTokFollow(activeLiveTask.channelHandle, user.tiktokConnected || user.email || '@user');
-      showToast(`✅ Đã Follow kênh live ${activeLiveTask.channelHandle}! (+${reward} Xu)`);
+      showToast(`✅ Đã ${actionFollowName} live ${activeLiveTask.channelHandle}! (+${reward} Xu)`);
     }
   };
 
@@ -286,7 +299,7 @@ export const LivestreamRunnerModal: React.FC = () => {
         if (timeSpentAway < requiredTime) {
            triggerImmediateFraudAlert({
              title: 'PHÁT HIỆN GIAN LẬN',
-             reason: `Thời gian thao tác quá nhanh (${(timeSpentAway/1000).toFixed(1)}s). Bạn phải MỞ TIKTOK và ${actionName} để nhận xu!`,
+             reason: `Thời gian thao tác quá nhanh (${(timeSpentAway/1000).toFixed(1)}s). Bạn phải MỞ ${platformDisplayName.toUpperCase()} và ${actionName} để nhận xu!`,
              anomalyType: 'BOT_SPEED_DETECTED',
              channelHandle: activeLiveTask.channelHandle,
              penaltyPoints: 10
@@ -313,7 +326,7 @@ export const LivestreamRunnerModal: React.FC = () => {
       window.removeEventListener('blur', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
     };
-  }, [isLiveRunnerOpen, pendingFraudAction, pendingActionStartTime, activeLiveTask, claimedCommentReward, claimedShareReward, interactWithLiveBroadcast, triggerImmediateFraudAlert]);
+  }, [isLiveRunnerOpen, pendingFraudAction, pendingActionStartTime, activeLiveTask, claimedCommentReward, claimedShareReward, interactWithLiveBroadcast, triggerImmediateFraudAlert, platformDisplayName]);
 
 
   // Main tick loop (ĐÓNG BĂNG 100% KHI ẨN TAB HOẶC RỜI ỨNG DỤNG)
@@ -393,19 +406,32 @@ export const LivestreamRunnerModal: React.FC = () => {
     }, 1500);
   };
 
+  const getLiveTargetUrl = () => {
+    if (activeLiveTask?.targetUrl && activeLiveTask.targetUrl.trim()) return activeLiveTask.targetUrl;
+    if (isYouTube) {
+      const cleanHandle = (activeLiveTask?.channelHandle || '').replace(/^@+/, '');
+      return cleanHandle ? `https://www.youtube.com/@${cleanHandle}/live` : 'https://www.youtube.com';
+    }
+    if (isFacebook) {
+      return activeLiveTask?.channelHandle ? `https://www.facebook.com/${activeLiveTask.channelHandle}` : 'https://www.facebook.com';
+    }
+    return `https://www.tiktok.com/@${(activeLiveTask?.channelHandle || '').replace(/^@/, '')}/live`;
+  };
+
   const handleSendChat = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMsg.trim() || !activeLiveTask) return;
 
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${platformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản thật trước khi bình luận!`);
       openConnect();
       return;
     }
 
     const msg = inputMsg.trim();
     
-    // ĐÓNG BĂNG 60 LỚP: BẮT BUỘC COPY VÀ MỞ TIKTOK ĐỂ DÁN
+    // ĐÓNG BĂNG 60 LỚP: BẮT BUỘC COPY VÀ MỞ ỨNG DỤNG ĐỂ DÁN
     navigator.clipboard.writeText(msg).catch(() => {});
     
     setChatMessages(prev => [...prev, `${user.name}: ${msg}`]);
@@ -416,16 +442,17 @@ export const LivestreamRunnerModal: React.FC = () => {
     if (!claimedCommentReward) {
       setPendingFraudAction('comment');
       setPendingActionStartTime(Date.now());
-      showToast('Đã Copy bình luận! Đang mở TikTok, vui lòng DÁN (Paste) bình luận vào phiên LIVE nhé.');
-      window.open(activeLiveTask.targetUrl || `https://www.tiktok.com/@${activeLiveTask.channelHandle}/live`, '_blank', 'noopener,noreferrer');
+      showToast(`Đã Copy bình luận! Đang mở ${platformDisplayName}, vui lòng DÁN (Paste) bình luận vào phiên LIVE nhé.`);
+      window.open(getLiveTargetUrl(), '_blank', 'noopener,noreferrer');
     }
   };
 
   const handleShareLive = (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${platformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản thật trước khi chia sẻ!`);
       openConnect();
       return;
     }
@@ -433,7 +460,7 @@ export const LivestreamRunnerModal: React.FC = () => {
     if (!claimedShareReward) {
       setPendingFraudAction('share');
       setPendingActionStartTime(Date.now());
-      window.open(activeLiveTask?.targetUrl || `https://www.tiktok.com/@${activeLiveTask?.channelHandle}/live`, '_blank', 'noopener,noreferrer');
+      window.open(getLiveTargetUrl(), '_blank', 'noopener,noreferrer');
     } else {
       showToast('🚀 Đã mở chia sẻ phòng Live!');
     }
@@ -451,8 +478,9 @@ export const LivestreamRunnerModal: React.FC = () => {
   };
 
   const handleFinishMission = () => {
-    if (!user.tiktokConnected || !user.tiktokConnected.trim() || user.tiktokConnected === '@chưa_kết_nối') {
-      showToast('⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Vui lòng kết nối kênh TikTok chính chủ của bạn để nhận Xu nhiệm vụ!');
+    const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
+    if (!platCheck.canExecute) {
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${platformDisplayName.toUpperCase()}: Vui lòng kết nối tài khoản thật trước khi hoàn thành phiên live!`);
       openConnect();
       return;
     }

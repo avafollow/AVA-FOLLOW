@@ -645,6 +645,7 @@ export interface LivestreamTaskItem {
   channelHandle: string;
   channelAvatar: string;
   roomTitle: string;
+  platform?: 'tiktok' | 'youtube' | 'facebook';
   currentViewers: number;
   targetMinutes: number;         // 3, 5, 10, 15 phút
   rewardPerMinute: number;       // Xu/phút

@@ -847,10 +847,30 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const [affiliateData, setAffiliateData] = useState<AffiliateStats>(() => {
     try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('ava_affiliate_data') : null;
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed) return parsed;
+      if (typeof window !== 'undefined') {
+        const savedEmail = (localStorage.getItem('ava_user_email') || '').toLowerCase().trim();
+        if (savedEmail) {
+          const userAffKey = `ava_affiliate_data_${savedEmail}`;
+          const savedUserAff = localStorage.getItem(userAffKey);
+          if (savedUserAff) {
+            const parsed = JSON.parse(savedUserAff);
+            if (parsed) return parsed;
+          }
+          const customCode = localStorage.getItem(`ava_custom_ref_code_${savedEmail}`) || localStorage.getItem('ava_custom_ref_code');
+          const gmailPrefix = savedEmail.split('@')[0].toUpperCase().replace(/[^A-Z0-9_-]/g, '') || 'USER';
+          const userCode = customCode || gmailPrefix;
+          const originUrl = window.location?.origin || 'https://avafollow.vn';
+          return {
+            ...AFFILIATE_DATA,
+            refCode: userCode,
+            refLink: `${originUrl}/?ref=${userCode}`
+          };
+        }
+        const saved = localStorage.getItem('ava_affiliate_data');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed) return parsed;
+        }
       }
     } catch {}
     return AFFILIATE_DATA;
@@ -1072,10 +1092,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       if (typeof window !== 'undefined') {
         localStorage.setItem('ava_affiliate_data', JSON.stringify(affiliateData));
+        const currentEmail = (user.email || localStorage.getItem('ava_user_email') || '').toLowerCase().trim();
+        if (currentEmail) {
+          localStorage.setItem(`ava_affiliate_data_${currentEmail}`, JSON.stringify(affiliateData));
+        }
       }
       syncAffiliateToSupabase(affiliateData);
     } catch {}
-  }, [affiliateData]);
+  }, [affiliateData, user.email]);
 
   useEffect(() => {
     try {
@@ -3508,55 +3532,112 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
-    // Tự động tạo mã Ref cá nhân từ Gmail đăng ký (nếu chưa có mã tùy chỉnh)
-    const customStoredCode = typeof window !== 'undefined' ? localStorage.getItem('ava_custom_ref_code') : null;
-    const defaultUserRefCode = customStoredCode || (cleanEmail ? cleanEmail.split('@')[0].toUpperCase().replace(/[^A-Z0-9]/g, '') : 'THIENVUAAPP88');
-    setAffiliateData(prev => ({
-      ...prev,
-      refCode: (!prev.refCode || prev.refCode === 'THIENVUAAPP88') ? defaultUserRefCode : prev.refCode,
-      refLink: `${typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://avafollow.vn'}/?ref=${(!prev.refCode || prev.refCode === 'THIENVUAAPP88') ? defaultUserRefCode : prev.refCode}`
-    }));
+    // Tự động tạo mã Ref cá nhân từ Gmail đăng ký của từng người dùng
+    const customStoredCode = typeof window !== 'undefined' 
+      ? (localStorage.getItem(`ava_custom_ref_code_${userEmailKey}`) || localStorage.getItem('ava_custom_ref_code'))
+      : null;
+    const gmailPrefix = cleanEmail ? cleanEmail.split('@')[0].toUpperCase().replace(/[^A-Z0-9_-]/g, '') : 'USER';
+    const userRefCode = customStoredCode || gmailPrefix || 'USER';
+    const dynamicRefLink = `${typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://avafollow.vn'}/?ref=${userRefCode}`;
 
-    // Nếu có mã bảo trợ (từ cookie hoặc URL ref), tự động ghi nhận thành viên F1 vào Affiliate Hub
+    // Tải hoặc khởi tạo dữ liệu tiếp thị liên kết độc lập cho tài khoản người dùng này
+    let userAffiliate: AffiliateStats;
+    try {
+      const savedUserAff = typeof window !== 'undefined' ? localStorage.getItem(`ava_affiliate_data_${userEmailKey}`) : null;
+      if (savedUserAff) {
+        const parsed = JSON.parse(savedUserAff);
+        userAffiliate = {
+          ...parsed,
+          refCode: userRefCode,
+          refLink: dynamicRefLink
+        };
+      } else {
+        userAffiliate = {
+          refCode: userRefCode,
+          refLink: dynamicRefLink,
+          totalClicks: 0,
+          totalSignups: 0,
+          referralBonusCoinsTotal: 0,
+          referralPendingCoins: 0,
+          referralActivatedCount: 0,
+          referralPendingCount: 0,
+          totalCommissionVND: '0đ',
+          commissionRate: '20%',
+          tier: 'Bạc',
+          monthlyCommission: '0đ',
+          referralsList: []
+        };
+      }
+    } catch {
+      userAffiliate = {
+        refCode: userRefCode,
+        refLink: dynamicRefLink,
+        totalClicks: 0,
+        totalSignups: 0,
+        referralBonusCoinsTotal: 0,
+        referralPendingCoins: 0,
+        referralActivatedCount: 0,
+        referralPendingCount: 0,
+        totalCommissionVND: '0đ',
+        commissionRate: '20%',
+        tier: 'Bạc',
+        monthlyCommission: '0đ',
+        referralsList: []
+      };
+    }
+
+    setAffiliateData(userAffiliate);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ava_affiliate_data', JSON.stringify(userAffiliate));
+        localStorage.setItem(`ava_affiliate_data_${userEmailKey}`, JSON.stringify(userAffiliate));
+      }
+    } catch {}
+
+    // Nếu có mã bảo trợ (từ cookie hoặc URL ref), ghi nhận thành viên F1 vào hồ sơ người giới thiệu
     if (activeRefSponsor) {
-      setAffiliateData(prev => {
-        const refId = `ref_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`;
-        const alreadyExists = prev.referralsList.some(
-          r => r.id === refId || (r.tiktokHandle && r.tiktokHandle.toLowerCase() === formattedHandle.toLowerCase())
-        );
-        if (alreadyExists) return prev;
+      try {
+        const sponsorKey = activeRefSponsor.toLowerCase().trim();
+        const sponsorAffKey = `ava_affiliate_data_${sponsorKey}`;
+        const rawSponsorAff = typeof window !== 'undefined' ? localStorage.getItem(sponsorAffKey) : null;
+        let sponsorAffData: AffiliateStats = rawSponsorAff ? JSON.parse(rawSponsorAff) : null;
+        
+        if (sponsorAffData) {
+          const refId = `ref_${userEmailKey.replace(/[^a-z0-9]/g, '_')}`;
+          const alreadyExists = (sponsorAffData.referralsList || []).some(
+            r => r.id === refId || (r.tiktokHandle && r.tiktokHandle.toLowerCase() === formattedHandle.toLowerCase())
+          );
+          if (!alreadyExists) {
+            const newRefEntry = {
+              id: refId,
+              username: name || cleanEmail.split('@')[0],
+              avatar: updatedUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || cleanEmail.split('@')[0])}&background=010101&color=fff&bold=true`,
+              tiktokHandle: formattedHandle || `@${cleanEmail.split('@')[0]}`,
+              joinedDate: 'Vừa xong',
+              hasCompletedTask: false,
+              taskCompletedType: 'Chờ hoàn thành 1 nhiệm vụ để xác thực',
+              status: 'Chờ hoàn thành 1 nhiệm vụ',
+              bonusCoins: 5000,
+              isClaimed: false,
+              packageSpentVND: '0đ',
+              earnedVND: '0đ'
+            };
 
-        const newRefEntry = {
-          id: refId,
-          username: name || cleanEmail.split('@')[0],
-          avatar: updatedUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || cleanEmail.split('@')[0])}&background=010101&color=fff&bold=true`,
-          tiktokHandle: formattedHandle || `@${cleanEmail.split('@')[0]}`,
-          joinedDate: 'Vừa xong',
-          hasCompletedTask: false,
-          taskCompletedType: 'Chờ hoàn thành 1 nhiệm vụ để xác thực',
-          status: 'Chờ hoàn thành 1 nhiệm vụ',
-          bonusCoins: 5000,
-          isClaimed: false,
-          packageSpentVND: '0đ',
-          earnedVND: '0đ'
-        };
+            sponsorAffData = {
+              ...sponsorAffData,
+              totalSignups: (sponsorAffData.totalSignups || 0) + 1,
+              referralPendingCount: (sponsorAffData.referralPendingCount || 0) + 1,
+              referralPendingCoins: (sponsorAffData.referralPendingCoins || 0) + 5000,
+              referralsList: [newRefEntry, ...(sponsorAffData.referralsList || [])]
+            };
 
-        const updated = {
-          ...prev,
-          totalSignups: prev.totalSignups + 1,
-          referralPendingCount: prev.referralPendingCount + 1,
-          referralPendingCoins: prev.referralPendingCoins + 5000,
-          referralsList: [newRefEntry, ...prev.referralsList]
-        };
-
-        try {
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('ava_affiliate_data', JSON.stringify(updated));
+            localStorage.setItem(sponsorAffKey, JSON.stringify(sponsorAffData));
+            syncAffiliateToSupabase(sponsorAffData);
           }
-        } catch {}
-        syncAffiliateToSupabase(updated);
-        return updated;
-      });
+        }
+      } catch (err) {
+        console.warn('Lỗi ghi nhận bảo trợ cho sponsor:', err);
+      }
     }
 
     // Đồng bộ tài khoản và quà chào mừng 5.000 Xu lên Supabase
@@ -5238,6 +5319,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     const newLink = `${typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://avafollow.vn'}/?ref=${clean}`;
+    const userEmailKey = (user.email || '').toLowerCase().trim();
 
     setAffiliateData(prev => {
       const updated = {
@@ -5249,6 +5331,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (typeof window !== 'undefined') {
           localStorage.setItem('ava_affiliate_data', JSON.stringify(updated));
           localStorage.setItem('ava_custom_ref_code', clean);
+          if (userEmailKey) {
+            localStorage.setItem(`ava_affiliate_data_${userEmailKey}`, JSON.stringify(updated));
+            localStorage.setItem(`ava_custom_ref_code_${userEmailKey}`, clean);
+          }
         }
       } catch {}
       syncAffiliateToSupabase(updated);

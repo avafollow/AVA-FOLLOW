@@ -196,7 +196,7 @@ export const AFFILIATE_TIER_LEVELS: AffiliateTierInfo[] = [
 ];
 
 // Hàm lấy Link giới thiệu động theo domain hiện tại
-export const getDynamicRefLink = (refCode: string = 'THIENVUAAPP88'): string => {
+export const getDynamicRefLink = (refCode: string = 'AVA_VIP'): string => {
   if (typeof window !== 'undefined' && window.location?.origin) {
     return `${window.location.origin}/?ref=${refCode}`;
   }
@@ -205,8 +205,8 @@ export const getDynamicRefLink = (refCode: string = 'THIENVUAAPP88'): string => 
 
 // Dữ liệu Tiếp thị liên kết (Affiliate Hub)
 export const AFFILIATE_DATA: AffiliateStats = {
-  refCode: 'THIENVUAAPP88',
-  refLink: getDynamicRefLink('THIENVUAAPP88'),
+  refCode: 'AVA_VIP',
+  refLink: getDynamicRefLink('AVA_VIP'),
   totalClicks: 0,
   totalSignups: 0,
   // 1. Quỹ Xu Tặng Giới Thiệu (5,000 Xu / bạn kích hoạt làm 1 nhiệm vụ)

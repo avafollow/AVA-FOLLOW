@@ -217,7 +217,7 @@ export async function verifyYouTubeSubscription(
     }
   }
 
-  // Lưu vết đối soát sau khi người dùng thực hiện
+  // 2. NẾU KHÔNG CÓ TOKEN OAUTH / ĐỐI SOÁT API:
   const auditKey = `yt_audit_${cleanAccount}_${cleanTarget}_sub`;
   const existingAudit = typeof window !== 'undefined' ? localStorage.getItem(auditKey) : null;
   if (existingAudit) {
@@ -226,20 +226,16 @@ export async function verifyYouTubeSubscription(
       actionType: 'subscribe',
       targetId: cleanTarget,
       message: `Đã đối soát thành công đăng ký kênh YouTube từ tài khoản [${cleanAccount}]!`,
-      txHash: `YT_SUB_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+      txHash: `YT_SUB_${existingAudit}`
     };
   }
 
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(auditKey, Date.now().toString());
-  }
-
+  // Chưa có xác nhận từ YouTube API hoặc thao tác thật: Bắt buộc từ chối
   return {
-    success: true,
+    success: false,
     actionType: 'subscribe',
     targetId: cleanTarget,
-    message: `Đã xác thực đăng ký kênh YouTube cho tài khoản [${cleanAccount}]!`,
-    txHash: `YT_SUB_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+    message: `Hệ thống YouTube chưa ghi nhận lượt Đăng Ký từ tài khoản [${cleanAccount}]! Vui lòng mở YouTube, bấm Đăng Ký kênh trước khi nhận Xu.`
   };
 }
 
@@ -282,8 +278,10 @@ export async function verifyYouTubeVideoLike(
           success: isLiked,
           actionType: 'like',
           targetId: cleanVideoId,
-          message: isLiked ? `Xác thực Thả Like video thành công từ kênh [${cleanAccount}]!` : `Bạn chưa bấm Thích (Like) video này bằng tài khoản [${cleanAccount}]!`,
-          txHash: `YT_LIKE_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          message: isLiked 
+            ? `Xác thực Thả Like video thành công từ kênh [${cleanAccount}]!` 
+            : `Bạn chưa bấm Thích (Like) video này bằng tài khoản [${cleanAccount}]! Vui lòng bấm Thích trên YouTube trước khi nhận Xu.`,
+          txHash: isLiked ? `YT_LIKE_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` : undefined,
           details: data
         };
       }
@@ -292,12 +290,23 @@ export async function verifyYouTubeVideoLike(
     }
   }
 
+  const likeAuditKey = `yt_audit_like_${cleanAccount}_${cleanVideoId}`;
+  const existingLikeAudit = typeof window !== 'undefined' ? localStorage.getItem(likeAuditKey) : null;
+  if (existingLikeAudit) {
+    return {
+      success: true,
+      actionType: 'like',
+      targetId: cleanVideoId,
+      message: `Đã đối soát lượt Thích video YouTube từ tài khoản [${cleanAccount}]!`,
+      txHash: `YT_LIKE_${existingLikeAudit}`
+    };
+  }
+
   return {
-    success: true,
+    success: false,
     actionType: 'like',
     targetId: cleanVideoId,
-    message: `Đã xác thực Like video YouTube từ tài khoản [${cleanAccount}]!`,
-    txHash: `YT_LIKE_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+    message: `Chưa ghi nhận lượt Thích (Like) video từ tài khoản YouTube [${cleanAccount}]! Vui lòng mở video trên YouTube và bấm Thích trước khi nhận Xu.`
   };
 }
 
@@ -370,11 +379,22 @@ export async function verifyYouTubeComment(
     }
   }
 
+  const cmtAuditKey = `yt_audit_cmt_${cleanAccount}_${cleanVideoId}`;
+  const existingCmtAudit = typeof window !== 'undefined' ? localStorage.getItem(cmtAuditKey) : null;
+  if (existingCmtAudit) {
+    return {
+      success: true,
+      actionType: 'comment',
+      targetId: cleanVideoId,
+      message: `Đã xác thực bình luận từ kênh YouTube [${cleanAccount}]!`,
+      txHash: `YT_CMT_${existingCmtAudit}`
+    };
+  }
+
   return {
-    success: true,
+    success: false,
     actionType: 'comment',
     targetId: cleanVideoId,
-    message: `Đã xác thực bình luận từ kênh YouTube [${cleanAccount}]!`,
-    txHash: `YT_CMT_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+    message: `Chưa tìm thấy bình luận của bạn trên YouTube! Vui lòng kiểm tra lại kênh [${cleanAccount}] và nội dung đã bình luận trên video.`
   };
 }

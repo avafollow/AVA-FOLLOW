@@ -142,8 +142,30 @@ export const LivestreamRunnerModal: React.FC = () => {
     const reward = claimTaskAction(activeLiveTask.id, 'follow');
     if (reward > 0) {
       setClaimedFollowReward(true);
-      syncTikTokFollow(activeLiveTask.channelHandle, user.tiktokConnected || user.email || '@user');
+      if (taskPlatform === 'youtube') {
+        verifyYouTubeSubscription(activeLiveTask.channelHandle, undefined, user.youtubeConnected);
+      } else if (taskPlatform === 'facebook') {
+        verifyFacebookTaskAction('follow', activeLiveTask.targetUrl || activeLiveTask.channelHandle, user.facebookConnected || '');
+      } else {
+        syncTikTokFollow(activeLiveTask.channelHandle, user.tiktokConnected || user.email || '@user');
+      }
       showToast(`✅ Đã ${actionFollowName} live ${activeLiveTask.channelHandle}! (+${reward} Xu)`);
+    }
+  };
+
+  // CƠ CHẾ BÙ NHIỆM VỤ ĐA THIẾT BỊ CHO PHIÊN LIVE
+  const handleCompensateLive = () => {
+    if (!activeLiveTask) return;
+    setTotalMinutesWatched(prev => Math.max(prev, targetMinutes));
+    setIsCompletedMission(true);
+    claimTaskAction(activeLiveTask.id, 'watch');
+    showToast(`⚡ ĐÃ BÙ TIẾN ĐỘ LIVE ĐA THIẾT BỊ: Đã bảo lưu và hoàn thành nhiệm vụ!`);
+    const clean = (activeLiveTask.channelHandle || '').replace(/^@+/, '');
+    const liveUrl = activeLiveTask.targetUrl && activeLiveTask.targetUrl.startsWith('http')
+      ? activeLiveTask.targetUrl
+      : `https://www.tiktok.com/@${clean}/live`;
+    if (typeof window !== 'undefined') {
+      window.open(liveUrl, '_blank');
     }
   };
 
@@ -610,6 +632,7 @@ export const LivestreamRunnerModal: React.FC = () => {
               onToggleMute={() => setIsMuted(!isMuted)}
               mode="feed"
               hideHud={true}
+              onCompensate={handleCompensateLive}
             />
           )}
 

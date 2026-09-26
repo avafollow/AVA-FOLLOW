@@ -22,6 +22,7 @@ export interface TikTokLiveEmbedPlayerProps {
   className?: string;
   mode?: 'preview' | 'feed';
   hideHud?: boolean;
+  onCompensate?: () => void;
 }
 
 /**
@@ -37,9 +38,12 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   onToggleMute,
   className = '',
   mode = 'preview',
-  hideHud = false
+  hideHud = false,
+  onCompensate
 }) => {
   const [resolvedHandle, setResolvedHandle] = useState<string | null>(null);
+  const [roomCover, setRoomCover] = useState<string | null>(null);
+  const [roomTitle, setRoomTitle] = useState<string | null>(null);
   
   // Trích xuất @handle chính xác từ URL người dùng dán vào
   const rawHandle = extractTikTokHandle(targetUrl || channelHandle || '');
@@ -91,6 +95,8 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           }
         }
         if (data && data.liveViewers) setViewers(data.liveViewers);
+        if (data && data.roomCover) setRoomCover(data.roomCover);
+        if (data && data.roomTitle) setRoomTitle(data.roomTitle);
         if (data && data.hlsUrl) {
           setHlsStreamUrl(data.hlsUrl);
           setHasStreamError(false);
@@ -148,8 +154,8 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         });
         hls.on(Hls.Events.ERROR, () => {
           setHasStreamError(true);
-          if (video.src !== '/videos/sample1.mp4') {
-            video.src = '/videos/sample1.mp4';
+          if (video.src !== '/videos/sample2.mp4') {
+            video.src = '/videos/sample2.mp4';
             video.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
           }
         });
@@ -163,7 +169,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           video.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
         });
       } else {
-        video.src = '/videos/sample1.mp4';
+        video.src = '/videos/sample2.mp4';
         video.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
       }
     } else {
@@ -277,24 +283,84 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
             <video
               ref={videoRef}
               src={activeStreamSrc}
-              className="w-full h-full object-cover pointer-events-auto"
+              className={`w-full h-full object-cover pointer-events-auto ${hasStreamError ? 'opacity-30 blur-sm scale-105' : ''}`}
               autoPlay
               playsInline
               loop
               muted={internalMuted}
               onError={() => {
-                if (videoRef.current && !videoRef.current.src.endsWith('/videos/sample1.mp4')) {
-                  videoRef.current.src = '/videos/sample1.mp4';
+                setHasStreamError(true);
+                if (videoRef.current && !videoRef.current.src.endsWith('/videos/sample2.mp4')) {
+                  videoRef.current.src = '/videos/sample2.mp4';
                   videoRef.current.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
                 }
               }}
             />
 
-            {/* 2. Gradient Darkening Overlay */}
+            {/* 2. Realistic Live Studio Broadcast Fallback if stream has CORS/error on device */}
+            {hasStreamError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-15 bg-gradient-to-b from-black/80 via-black/70 to-black/90 backdrop-blur-sm pointer-events-auto">
+                <div className="relative mb-3">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-rose-500/80 p-1 shadow-[0_0_30px_rgba(244,63,94,0.6)] animate-pulse">
+                    <img
+                      src={roomCover || avatarUrl}
+                      alt={cleanHandle}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarUrl; }}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  </div>
+                  <span className="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full bg-rose-600 text-white font-mono font-black text-[9px] uppercase shadow-md flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                    LIVE
+                  </span>
+                </div>
+
+                <h3 className="text-white font-black text-sm sm:text-base line-clamp-1 max-w-[280px]">
+                  {roomTitle || `Phiên Live Trực Tiếp @${cleanHandle}`}
+                </h3>
+                <p className="text-[11px] text-rose-300 font-mono mt-1 flex items-center gap-1.5 justify-center">
+                  <Radio className="w-3.5 h-3.5 animate-spin text-rose-400" style={{ animationDuration: '3s' }} />
+                  Đang phát sóng trực tiếp trên TikTok
+                </p>
+
+                {/* Equalizer Sound Waves */}
+                <div className="flex items-center gap-1 my-3">
+                  <span className="w-1 bg-rose-500 rounded-full animate-bounce h-3" />
+                  <span className="w-1 bg-rose-400 rounded-full animate-bounce h-5" style={{ animationDelay: '0.15s' }} />
+                  <span className="w-1 bg-rose-500 rounded-full animate-bounce h-6" style={{ animationDelay: '0.3s' }} />
+                  <span className="w-1 bg-pink-400 rounded-full animate-bounce h-4" style={{ animationDelay: '0.45s' }} />
+                  <span className="w-1 bg-rose-300 rounded-full animate-bounce h-2" style={{ animationDelay: '0.6s' }} />
+                </div>
+
+                {/* Multi-Device Compensation Button */}
+                <div className="mt-2 space-y-2 max-w-xs w-full">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onCompensate) {
+                        onCompensate();
+                      } else {
+                        handleOpenLiveApp();
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-black text-xs shadow-lg shadow-rose-600/40 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
+                  >
+                    <span>⚡ Bù Nhiệm Vụ &amp; Xem Trên TikTok</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                  <p className="text-[10px] text-slate-400 font-mono">
+                    🛡️ Bảo lưu 100% thời gian &amp; tự động bù Xu trên mọi thiết bị
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* 3. Gradient Darkening Overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/75 pointer-events-none" />
 
-            {/* 3. Center Play Icon if Paused on Strict Devices */}
-            {isPaused && (
+            {/* 4. Center Play Icon if Paused on Strict Devices */}
+            {isPaused && !hasStreamError && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
                 <div className="w-16 h-16 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-[0_0_30px_rgba(254,44,85,0.8)] border border-white/30 animate-pulse">
                   <Play className="w-8 h-8 fill-white ml-1" />

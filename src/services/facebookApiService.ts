@@ -145,7 +145,6 @@ export async function verifyFacebookPageFollow(
   }
 
   // NẾU CHƯA CÓ TOKEN HOẶC OFFLINE: KIỂM TRA RÀNG BUỘC TÀI KHOẢN VÀ THỜI GIAN THAO TÁC THỰC TẾ
-  // Tuyệt đối không cho phép xác nhận lụi nếu người dùng chưa mở và thao tác thật
   const auditKey = `fb_audit_${cleanAccount}_${target.id}_follow`;
   const existingAudit = typeof window !== 'undefined' ? localStorage.getItem(auditKey) : null;
   if (existingAudit) {
@@ -155,23 +154,17 @@ export async function verifyFacebookPageFollow(
       targetId: target.id,
       performerAccount: cleanAccount,
       message: `Đã đối soát thành công tương tác của tài khoản [${cleanAccount}] trên Facebook!`,
-      txHash: `FB_FOL_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      txHash: `FB_FOL_${existingAudit}`,
       verifiedAt: new Date().toISOString()
     };
   }
 
-  // Ghi nhận audit sau khi đối soát thành công
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(auditKey, Date.now().toString());
-  }
-
   return {
-    success: true,
+    success: false,
     actionType: 'follow',
     targetId: target.id,
     performerAccount: cleanAccount,
-    message: `Đã xác nhận lượt theo dõi từ tài khoản Facebook [${cleanAccount}]!`,
-    txHash: `FB_FOL_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    message: `Chưa ghi nhận lượt Theo Dõi Fanpage từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm Theo Dõi trên Facebook trước khi nhận Xu.`,
     verifiedAt: new Date().toISOString()
   };
 }
@@ -221,13 +214,26 @@ export async function verifyFacebookPostLike(
     }
   }
 
+  const likeAuditKey = `fb_audit_like_${cleanAccount}_${target.id}`;
+  const existingLikeAudit = typeof window !== 'undefined' ? localStorage.getItem(likeAuditKey) : null;
+  if (existingLikeAudit) {
+    return {
+      success: true,
+      actionType: 'like',
+      targetId: target.id,
+      performerAccount: cleanAccount,
+      message: `Đã đối soát lượt Thích bài viết từ tài khoản Facebook [${cleanAccount}]!`,
+      txHash: `FB_LIKE_${existingLikeAudit}`,
+      verifiedAt: new Date().toISOString()
+    };
+  }
+
   return {
-    success: true,
+    success: false,
     actionType: 'like',
     targetId: target.id,
     performerAccount: cleanAccount,
-    message: `Đã xác thực lượt Thích bài viết từ tài khoản Facebook [${cleanAccount}]!`,
-    txHash: `FB_LIKE_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    message: `Chưa ghi nhận lượt Thích bài viết từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm Thích trên Facebook trước khi nhận Xu.`,
     verifiedAt: new Date().toISOString()
   };
 }
@@ -296,13 +302,26 @@ export async function verifyFacebookComment(
     }
   }
 
+  const cmtAuditKey = `fb_audit_cmt_${cleanAccount}_${target.id}`;
+  const existingCmtAudit = typeof window !== 'undefined' ? localStorage.getItem(cmtAuditKey) : null;
+  if (existingCmtAudit) {
+    return {
+      success: true,
+      actionType: 'comment',
+      targetId: target.id,
+      performerAccount: cleanAccount,
+      message: `Đã đối soát bình luận từ tài khoản Facebook [${cleanAccount}]!`,
+      txHash: `FB_CMT_${existingCmtAudit}`,
+      verifiedAt: new Date().toISOString()
+    };
+  }
+
   return {
-    success: true,
+    success: false,
     actionType: 'comment',
     targetId: target.id,
     performerAccount: cleanAccount,
-    message: `Đã xác thực bình luận từ tài khoản Facebook [${cleanAccount}]!`,
-    txHash: `FB_CMT_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    message: `Chưa tìm thấy bình luận của bạn [${cleanAccount}] trên Facebook! Vui lòng bình luận vào bài viết trước khi nhận Xu.`,
     verifiedAt: new Date().toISOString()
   };
 }
@@ -327,13 +346,26 @@ export async function verifyFacebookShare(
     };
   }
 
+  const shareAuditKey = `fb_audit_share_${cleanAccount}_${target.id}`;
+  const existingShareAudit = typeof window !== 'undefined' ? localStorage.getItem(shareAuditKey) : null;
+  if (existingShareAudit) {
+    return {
+      success: true,
+      actionType: 'share',
+      targetId: target.id,
+      performerAccount: cleanAccount,
+      message: `Đã xác thực chia sẻ bài viết lên Facebook thành công qua tài khoản [${cleanAccount}]!`,
+      txHash: `FB_SHR_${existingShareAudit}`,
+      verifiedAt: new Date().toISOString()
+    };
+  }
+
   return {
-    success: true,
+    success: false,
     actionType: 'share',
     targetId: target.id,
     performerAccount: cleanAccount,
-    message: `Đã xác thực chia sẻ bài viết lên Facebook thành công qua tài khoản [${cleanAccount}]!`,
-    txHash: `FB_SHR_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    message: `Chưa ghi nhận lượt Chia Sẻ từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm nút Chia Sẻ trước khi nhận Xu.`,
     verifiedAt: new Date().toISOString()
   };
 }

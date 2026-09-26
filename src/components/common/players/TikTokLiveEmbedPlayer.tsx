@@ -10,7 +10,7 @@ import {
   Heart,
   Play
 } from 'lucide-react';
-import { extractTikTokHandle, extractTikTokVideoId, getTikTokAvatar, getFallbackLiveStreamUrl } from '../../../data/videoSources';
+import { extractTikTokHandle, extractTikTokVideoId, getTikTokAvatar } from '../../../data/videoSources';
 
 export interface TikTokLiveEmbedPlayerProps {
   channelHandle: string;
@@ -44,6 +44,8 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const [resolvedHandle, setResolvedHandle] = useState<string | null>(null);
   const [roomCover, setRoomCover] = useState<string | null>(null);
   const [roomTitle, setRoomTitle] = useState<string | null>(null);
+  const [isResolving, setIsResolving] = useState<boolean>(true);
+  const [isEnded, setIsEnded] = useState<boolean>(false);
   
   // Trích xuất @handle chính xác từ URL người dùng dán vào
   const rawHandle = extractTikTokHandle(targetUrl || channelHandle || '');
@@ -83,11 +85,13 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
        urlToResolve = urlToResolve.endsWith('/') ? urlToResolve + 'live' : urlToResolve + '/live';
     }
     
+    setIsResolving(true);
     let isCancelled = false;
     fetch(`/api/tiktok-resolve?url=${encodeURIComponent(urlToResolve)}`)
       .then(res => res.json())
       .then(data => {
         if (isCancelled) return;
+        setIsResolving(false);
         if (data && data.resolved) {
           const extracted = extractTikTokHandle(data.resolved);
           if (extracted) {
@@ -97,12 +101,21 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         if (data && data.liveViewers) setViewers(data.liveViewers);
         if (data && data.roomCover) setRoomCover(data.roomCover);
         if (data && data.roomTitle) setRoomTitle(data.roomTitle);
+        if (data && data.roomStatus === 4) {
+          setIsEnded(true);
+        } else {
+          setIsEnded(false);
+        }
         if (data && data.hlsUrl) {
           setHlsStreamUrl(data.hlsUrl);
           setHasStreamError(false);
+        } else if (data && !data.isLive) {
+          setIsEnded(true);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!isCancelled) setIsResolving(false);
+      });
     return () => { isCancelled = true; };
   }, [targetUrl, cleanHandle]);
 
@@ -117,8 +130,10 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     }
   }, [internalMuted]);
 
-  const fallbackLiveSrc = getFallbackLiveStreamUrl(cleanHandle);
-  const activeStreamSrc = hlsStreamUrl || fallbackLiveSrc;
+  // KHÔNG PHÁT VIDEO GIẢ LẬP: Chỉ nhận luồng Live stream HLS m3u8 thật 100%
+  const activeStreamSrc = hlsStreamUrl || (
+    targetUrl && (targetUrl.includes('.m3u8') || targetUrl.includes('.mp4') || targetUrl.includes('blob:')) ? targetUrl : null
+  );
 
   // Khởi tạo luồng phát HLS / Video trực tiếp đảm bảo luôn có video phát 100% trên mọi thiết bị
   useEffect(() => {
@@ -178,8 +193,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
           video.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
         });
       } else {
-        video.src = '/videos/sample2.mp4';
-        video.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
+        setHasStreamError(true);
       }
     } else {
       video.src = activeStreamSrc;
@@ -291,24 +305,48 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
             {/* 1. Direct Auto-playing Live Stream Video */}
             <video
               ref={videoRef}
-              src={activeStreamSrc}
-              className={`w-full h-full object-cover pointer-events-auto ${hasStreamError ? 'opacity-30 blur-sm scale-105' : ''}`}
+              className={`w-full h-full object-cover pointer-events-auto ${(hasStreamError || isEnded || (!activeStreamSrc && !isResolving)) ? 'opacity-20 blur-md scale-105' : ''}`}
               autoPlay
               playsInline
               loop
               muted={internalMuted}
               onError={() => {
-                setHasStreamError(true);
-                if (videoRef.current && !videoRef.current.src.endsWith('/videos/sample2.mp4')) {
-                  videoRef.current.src = '/videos/sample2.mp4';
-                  videoRef.current.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
+                if (!activeStreamSrc?.includes('.m3u8')) {
+                  setHasStreamError(true);
                 }
               }}
             />
 
-            {/* 2. Realistic Live Studio Broadcast Fallback if stream has CORS/error on device */}
-            {hasStreamError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-15 bg-gradient-to-b from-black/80 via-black/70 to-black/90 backdrop-blur-sm pointer-events-auto">
+            {/* 2. Loading State (Đang kết nối luồng Live) */}
+            {isResolving && !activeStreamSrc && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-15 bg-black/90 pointer-events-auto">
+                <div className="relative mb-3">
+                  <div className="w-20 h-20 rounded-full border-2 border-rose-500/80 p-1 shadow-[0_0_30px_rgba(244,63,94,0.6)] animate-pulse">
+                    <img
+                      src={roomCover || avatarUrl}
+                      alt={cleanHandle}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarUrl; }}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  </div>
+                  <span className="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full bg-rose-600 text-white font-mono font-black text-[9px] uppercase shadow-md flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                    LIVE
+                  </span>
+                </div>
+                <h3 className="text-white font-bold text-sm line-clamp-1 max-w-[280px]">
+                  {roomTitle || `Phiên Live @${cleanHandle}`}
+                </h3>
+                <p className="text-[11px] text-rose-300 font-mono mt-2 flex items-center gap-1.5 justify-center">
+                  <Radio className="w-3.5 h-3.5 animate-spin text-rose-400" />
+                  Đang kết nối luồng phát trực tiếp TikTok...
+                </p>
+              </div>
+            )}
+
+            {/* 3. Realistic Live Studio Broadcast Fallback if stream has ended or error */}
+            {(hasStreamError || isEnded || (!activeStreamSrc && !isResolving)) && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-15 bg-gradient-to-b from-black/85 via-black/80 to-black/95 backdrop-blur-md pointer-events-auto">
                 <div className="relative mb-3">
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-rose-500/80 p-1 shadow-[0_0_30px_rgba(244,63,94,0.6)] animate-pulse">
                     <img
@@ -329,7 +367,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
                 </h3>
                 <p className="text-[11px] text-rose-300 font-mono mt-1 flex items-center gap-1.5 justify-center">
                   <Radio className="w-3.5 h-3.5 animate-spin text-rose-400" style={{ animationDuration: '3s' }} />
-                  Đang phát sóng trực tiếp trên TikTok
+                  {isEnded ? 'Phiên Live đã kết thúc (Streamer chưa lên sóng)' : 'Đang phát sóng trực tiếp trên TikTok'}
                 </p>
 
                 {/* Equalizer Sound Waves */}
@@ -341,7 +379,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
                   <span className="w-1 bg-rose-300 rounded-full animate-bounce h-2" style={{ animationDelay: '0.6s' }} />
                 </div>
 
-                {/* Multi-Device Compensation Button */}
+                {/* Multi-Device Direct Action Button */}
                 <div className="mt-2 space-y-2 max-w-xs w-full">
                   <button
                     type="button"
@@ -355,11 +393,11 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
                     }}
                     className="w-full px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-black text-xs shadow-lg shadow-rose-600/40 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
                   >
-                    <span>⚡ Bù Nhiệm Vụ &amp; Xem Trên TikTok</span>
+                    <span>⚡ Xem Trực Tiếp Trên TikTok</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                   <p className="text-[10px] text-slate-400 font-mono">
-                    🛡️ Bảo lưu 100% thời gian &amp; tự động bù Xu trên mọi thiết bị
+                    🛡️ Tự động kết nối phòng Live thật trên đa thiết bị
                   </p>
                 </div>
               </div>

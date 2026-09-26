@@ -163,25 +163,21 @@ export const CreateCampaignScreen: React.FC<{
     const userYouTube = (user.youtubeConnected || '').toLowerCase().replace(/^@/, '').trim();
 
     return (campaigns || []).filter(camp => {
-      // 1. So khớp creatorEmail
-      if (camp.creatorEmail && userEmail && camp.creatorEmail.toLowerCase().trim() === userEmail) {
-        return true;
+      // BẢO MẬT & RIÊNG TƯ: Chỉ hiển thị chiến dịch do CHÍNH người dùng này tạo ra!
+      // 1. So khớp creatorId (chính xác 100%)
+      if (camp.creatorId) {
+        return camp.creatorId === userId;
       }
-      // 2. So khớp creatorId
-      if (camp.creatorId && userId && camp.creatorId === userId) {
-        return true;
+      // 2. So khớp creatorEmail nếu có
+      if (camp.creatorEmail) {
+        return Boolean(userEmail && camp.creatorEmail.toLowerCase().trim() === userEmail);
       }
-      // 3. So khớp creatorHandle
+      // 3. Fallback cho chiến dịch cũ không có id/email:
       if (camp.creatorHandle) {
         const cHandle = camp.creatorHandle.toLowerCase().replace(/^@/, '').trim();
-        if (cHandle && (cHandle === userTikTok || cHandle === userFacebook || cHandle === userYouTube)) {
-          return true;
+        if (cHandle && !['creator', 'creator_vietnam', 'user', 'admin'].includes(cHandle)) {
+          return cHandle === userTikTok || cHandle === userFacebook || cHandle === userYouTube;
         }
-      }
-      // 4. So khớp channelHandle với tài khoản đã liên kết của người dùng
-      const campChannel = (camp.channelHandle || '').toLowerCase().replace(/^@/, '').trim();
-      if (campChannel && (campChannel === userTikTok || campChannel === userFacebook || campChannel === userYouTube)) {
-        return true;
       }
       return false;
     });
@@ -193,9 +189,14 @@ export const CreateCampaignScreen: React.FC<{
     const userId = user.id;
     const userHandle = (user.tiktokConnected || user.handle || '').toLowerCase().replace(/^@/, '').trim();
     return (bannerCampaigns || []).filter(bc => {
-      if (bc.userId && userId && bc.userId === userId) return true;
-      if (bc.userHandle && userHandle && bc.userHandle.toLowerCase().replace(/^@/, '').trim() === userHandle) return true;
-      if (bc.creatorEmail && userEmail && bc.creatorEmail.toLowerCase().trim() === userEmail) return true;
+      if (bc.userId) return bc.userId === userId;
+      if (bc.creatorEmail) return Boolean(userEmail && bc.creatorEmail.toLowerCase().trim() === userEmail);
+      if (bc.userHandle) {
+        const uHandle = bc.userHandle.toLowerCase().replace(/^@/, '').trim();
+        if (uHandle && !['creator', 'creator_vietnam', 'user', 'admin'].includes(uHandle)) {
+          return uHandle === userHandle;
+        }
+      }
       return false;
     });
   }, [bannerCampaigns, user]);

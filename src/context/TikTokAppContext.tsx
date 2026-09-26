@@ -1205,50 +1205,72 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             if (cloudData && Array.isArray(cloudData.adminUsers)) {
               cloudData.adminUsers.forEach((u: AdminUserManagementItem) => {
                 if (u && (u.email || u.id)) {
-                  const key = u.email?.toLowerCase() || u.id;
+                  const key = (u.email || u.id).toLowerCase().trim();
                   const local = mergedMap.get(key);
-                  mergedMap.set(key, local ? { ...local, ...u } : u);
+                  const effectiveCoins = Math.max(
+                    Number(u.coinsBalance) || 0,
+                    Number((u as any).avaliveCoins) || 0,
+                    Number(u.grantedCoinsTotal) || 0,
+                    Number(local?.coinsBalance) || 0,
+                    Number((local as any)?.avaliveCoins) || 0,
+                    Number(local?.grantedCoinsTotal) || 0
+                  );
+                  const grantedCoins = Math.max(
+                    Number(u.grantedCoinsTotal) || 0,
+                    Number(local?.grantedCoinsTotal) || 0,
+                    effectiveCoins
+                  );
+                  const mergedItem: AdminUserManagementItem = {
+                    ...(local || {}),
+                    ...u,
+                    coinsBalance: effectiveCoins,
+                    tokenBalance: effectiveCoins,
+                    grantedCoinsTotal: grantedCoins,
+                    ...({ avaliveCoins: effectiveCoins })
+                  };
+                  mergedMap.set(key, mergedItem);
                 }
               });
             }
 
             individualProfiles.forEach((p: any) => {
               if (p && (p.email || p.id)) {
-                const key = p.email?.toLowerCase() || p.id;
+                const key = (p.email || p.id).toLowerCase().trim();
                 const local = mergedMap.get(key);
-                  const cloudCoins = p.avalive_coins !== undefined ? p.avalive_coins : (p.avaliveCoins !== undefined ? p.avaliveCoins : (p.coinsBalance !== undefined ? p.coinsBalance : 0));
-                  const grantedCoins = Math.max(Number(p.grantedCoinsTotal) || 0, Number(p.granted_coins_total) || 0, Number(local?.grantedCoinsTotal) || 0);
-                  const effectiveCoins = Math.max(Number(cloudCoins) || 0, Number(local?.coinsBalance) || 0, Number(grantedCoins) || 0);
+                const cloudCoins = p.avalive_coins !== undefined ? p.avalive_coins : (p.avaliveCoins !== undefined ? p.avaliveCoins : (p.coinsBalance !== undefined ? p.coinsBalance : 0));
+                const grantedCoins = Math.max(Number(p.grantedCoinsTotal) || 0, Number(p.granted_coins_total) || 0, Number(local?.grantedCoinsTotal) || 0);
+                const effectiveCoins = Math.max(Number(cloudCoins) || 0, Number(local?.coinsBalance) || 0, Number((local as any)?.avaliveCoins) || 0, Number(grantedCoins) || 0);
 
-                  const userAdminItem: AdminUserManagementItem = {
-                    id: p.id || local?.id || `usr_${Date.now()}`,
-                    name: p.name || local?.name || 'Người dùng',
-                    handle: p.tiktokConnected || p.handle || local?.handle || '@user',
-                    avatar: p.avatar || local?.avatar || '',
-                    email: p.email || local?.email || key,
-                    phone: p.phone || local?.phone || '0988888888',
-                    tiktokConnected: p.tiktokConnected || local?.tiktokConnected || '',
-                    tiktokFollowers: p.tiktokFollowers !== undefined ? p.tiktokFollowers : (local?.tiktokFollowers || 0),
-                    isTikTokVerified: !!(p.tiktokConnected || local?.isTikTokVerified),
-                    facebookConnected: p.facebookConnected || local?.facebookConnected,
-                    youtubeConnected: p.youtubeConnected || local?.youtubeConnected,
-                    rankLevel: p.rankLevel || local?.rankLevel || 'Đồng',
-                    coinsBalance: effectiveCoins,
-                    tokenBalance: effectiveCoins,
-                    completedTasksCount: p.completedTasksCount !== undefined ? p.completedTasksCount : (local?.completedTasksCount || 0),
-                    createdCampaignsCount: local?.createdCampaignsCount || 0,
-                    purchasedPackagesCount: local?.purchasedPackagesCount || 0,
-                    escrowLockedAmountVND: local?.escrowLockedAmountVND || '0đ',
-                    status: p.status || local?.status || 'active',
-                    kycStatus: (p.kycStatus || local?.kycStatus || 'unverified') as KycStatus,
-                    hasAllPermissions: p.hasAllPermissions !== undefined ? p.hasAllPermissions : local?.hasAllPermissions,
-                    isWhitelisted: p.isWhitelisted !== undefined ? p.isWhitelisted : local?.isWhitelisted,
-                    grantedCoinsTotal: grantedCoins > 0 ? grantedCoins : (effectiveCoins > 0 ? effectiveCoins : undefined),
+                const userAdminItem: AdminUserManagementItem = {
+                  id: p.id || local?.id || `usr_${Date.now()}`,
+                  name: p.name || local?.name || 'Người dùng',
+                  handle: p.tiktokConnected || p.handle || local?.handle || '@user',
+                  avatar: p.avatar || local?.avatar || '',
+                  email: p.email || local?.email || key,
+                  phone: p.phone || local?.phone || '0988888888',
+                  tiktokConnected: p.tiktokConnected || local?.tiktokConnected || '',
+                  tiktokFollowers: p.tiktokFollowers !== undefined ? p.tiktokFollowers : (local?.tiktokFollowers || 0),
+                  isTikTokVerified: !!(p.tiktokConnected || local?.isTikTokVerified),
+                  facebookConnected: p.facebookConnected || local?.facebookConnected,
+                  youtubeConnected: p.youtubeConnected || local?.youtubeConnected,
+                  rankLevel: p.rankLevel || local?.rankLevel || 'Đồng',
+                  coinsBalance: effectiveCoins,
+                  tokenBalance: effectiveCoins,
+                  completedTasksCount: p.completedTasksCount !== undefined ? p.completedTasksCount : (local?.completedTasksCount || 0),
+                  createdCampaignsCount: local?.createdCampaignsCount || 0,
+                  purchasedPackagesCount: local?.purchasedPackagesCount || 0,
+                  escrowLockedAmountVND: local?.escrowLockedAmountVND || '0đ',
+                  status: p.status || local?.status || 'active',
+                  kycStatus: (p.kycStatus || local?.kycStatus || 'unverified') as KycStatus,
+                  hasAllPermissions: p.hasAllPermissions !== undefined ? p.hasAllPermissions : local?.hasAllPermissions,
+                  isWhitelisted: p.isWhitelisted !== undefined ? p.isWhitelisted : local?.isWhitelisted,
+                  grantedCoinsTotal: grantedCoins > 0 ? grantedCoins : (effectiveCoins > 0 ? effectiveCoins : undefined),
                   grantedPackagesTotal: p.grantedPackagesTotal !== undefined ? p.grantedPackagesTotal : local?.grantedPackagesTotal,
                   registrationSource: p.registrationSource || local?.registrationSource || (p.referredBy ? 'link' : 'direct'),
                   referredBy: p.referredBy || local?.referredBy,
                   firstTaskCompleted: (p.completedTasksCount || 0) > 0 || !!p.firstTaskCompleted || !!local?.firstTaskCompleted,
-                  joinedDate: p.joinedDate || local?.joinedDate || 'Gần đây'
+                  joinedDate: p.joinedDate || local?.joinedDate || 'Gần đây',
+                  ...({ avaliveCoins: effectiveCoins })
                 };
                 mergedMap.set(key, local ? { ...local, ...userAdminItem } : userAdminItem);
               }
@@ -1294,19 +1316,38 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           const currentEmail = user.email || (typeof window !== 'undefined' ? localStorage.getItem('ava_user_email') : null);
           if (currentEmail) {
             const userCloud = await fetchUserProfileFromSupabase(currentEmail);
-            if (isMounted && userCloud.success && userCloud.data) {
-              setUser(prev => ({
-                ...prev,
-                ...userCloud.data,
-                email: currentEmail,
-                avaliveCoins: userCloud.data.avaliveCoins !== undefined ? userCloud.data.avaliveCoins : prev.avaliveCoins,
-                tiktokConnected: userCloud.data.tiktokConnected || prev.tiktokConnected,
-                facebookConnected: userCloud.data.facebookConnected || prev.facebookConnected,
-                youtubeConnected: userCloud.data.youtubeConnected || prev.youtubeConnected,
-                rankLevel: userCloud.data.rankLevel || prev.rankLevel,
-                hasAllPermissions: userCloud.data.hasAllPermissions !== undefined ? userCloud.data.hasAllPermissions : prev.hasAllPermissions,
-                isWhitelisted: userCloud.data.isWhitelisted !== undefined ? userCloud.data.isWhitelisted : prev.isWhitelisted
-              }));
+            const cloudUser = (userCloud.success && userCloud.data) ? userCloud.data : null;
+            if (isMounted) {
+              setUser(prev => {
+                const highestCoins = Math.max(
+                  Number(cloudUser?.avaliveCoins) || 0,
+                  Number(cloudUser?.avalive_coins) || 0,
+                  Number(cloudUser?.coinsBalance) || 0,
+                  Number(prev.avaliveCoins) || 0,
+                  Number(prev.tokenBalance) || 0
+                );
+                const highestGranted = Math.max(
+                  Number(prev.grantedCoinsTotal) || 0,
+                  Number(cloudUser?.grantedCoinsTotal) || 0,
+                  Number(cloudUser?.granted_coins_total) || 0,
+                  highestCoins
+                );
+                return {
+                  ...prev,
+                  ...(cloudUser || {}),
+                  email: currentEmail,
+                  avaliveCoins: highestCoins,
+                  tokenBalance: highestCoins,
+                  coinsValueVND: `${highestCoins.toLocaleString()}đ`,
+                  grantedCoinsTotal: highestGranted,
+                  tiktokConnected: cloudUser?.tiktokConnected || prev.tiktokConnected,
+                  facebookConnected: cloudUser?.facebookConnected || prev.facebookConnected,
+                  youtubeConnected: cloudUser?.youtubeConnected || prev.youtubeConnected,
+                  rankLevel: cloudUser?.rankLevel || prev.rankLevel,
+                  hasAllPermissions: cloudUser?.hasAllPermissions !== undefined ? cloudUser.hasAllPermissions : prev.hasAllPermissions,
+                  isWhitelisted: cloudUser?.isWhitelisted !== undefined ? cloudUser.isWhitelisted : prev.isWhitelisted
+                };
+              });
             }
           }
         }

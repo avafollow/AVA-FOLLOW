@@ -76,10 +76,14 @@ export default async function handler(req, res) {
           return line;
         }
 
-        // Định tuyến segment URL tuyệt đối qua Stream Proxy
+        // Định tuyến segment URL tuyệt đối qua Stream Proxy (bảo lưu token query params)
         try {
-          const absoluteSegmentUrl = new URL(trimmed, targetUrl).href;
-          return `/api/stream-proxy?url=${encodeURIComponent(absoluteSegmentUrl)}`;
+          const targetObj = new URL(targetUrl);
+          const segObj = new URL(trimmed, targetUrl);
+          if (!segObj.search && targetObj.search) {
+            segObj.search = targetObj.search;
+          }
+          return `/api/stream-proxy?url=${encodeURIComponent(segObj.href)}`;
         } catch {
           return line;
         }

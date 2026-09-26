@@ -93,20 +93,52 @@ export default async function handler(req, res) {
       }
 
       if (liveRoom) {
-        isLive = true;
         liveViewers = liveRoom.liveRoomStats?.userCount || liveRoom.userCount || 0;
         roomTitle = liveRoom.title || null;
         roomCover = liveRoom.cover?.url_list?.[0] || liveRoom.cover || null;
         liveData = liveRoom;
         
         try {
-          const streamStr = liveRoom.streamData?.pull_data?.stream_data;
+          const streamStr = liveRoom.streamData?.pull_data?.stream_data || 
+                            liveRoom.hevcStreamData?.pull_data?.stream_data ||
+                            liveRoom.stream_data ||
+                            liveRoom.streamUrl;
           if (streamStr) {
             const streamData = JSON.parse(streamStr);
-            hlsUrl = streamData?.data?.hd?.main?.hls || streamData?.data?.sd?.main?.hls || streamData?.data?.ld?.main?.hls || streamData?.data?.origin?.main?.hls || null;
-            flvUrl = streamData?.data?.hd?.main?.flv || streamData?.data?.sd?.main?.flv || streamData?.data?.ld?.main?.flv || streamData?.data?.origin?.main?.flv || null;
+            // Ưu tiên HLS H.264 (origin) tương thích 100% mọi trình duyệt đa nền tảng, kế đến hd, sd, ld
+            hlsUrl = streamData?.data?.origin?.main?.hls ||
+                     streamData?.data?.hd?.main?.hls || 
+                     streamData?.data?.sd?.main?.hls || 
+                     streamData?.data?.ld?.main?.hls || 
+                     streamData?.data?.uhd_60?.main?.hls ||
+                     streamData?.data?.hd_60?.main?.hls || null;
+
+            flvUrl = streamData?.data?.origin?.main?.flv ||
+                     streamData?.data?.hd?.main?.flv || 
+                     streamData?.data?.sd?.main?.flv || 
+                     streamData?.data?.ld?.main?.flv || null;
           }
         } catch (e) {}
+
+        // Kiểm tra thêm hevcStreamData nếu streamData ban đầu chưa có HLS URL
+        if (!hlsUrl && liveRoom.hevcStreamData?.pull_data?.stream_data) {
+          try {
+            const hevcData = JSON.parse(liveRoom.hevcStreamData.pull_data.stream_data);
+            hlsUrl = hevcData?.data?.origin?.main?.hls ||
+                     hevcData?.data?.hd?.main?.hls || 
+                     hevcData?.data?.sd?.main?.hls || 
+                     hevcData?.data?.ld?.main?.hls || null;
+            if (!flvUrl) {
+              flvUrl = hevcData?.data?.origin?.main?.flv ||
+                       hevcData?.data?.hd?.main?.flv || 
+                       hevcData?.data?.sd?.main?.flv || null;
+            }
+          } catch (e) {}
+        }
+
+        // Trạng thái phiên live: status = 2 là đang Live thật; status = 4 là phiên Live đã kết thúc
+        const roomStatus = liveRoom.status;
+        isLive = roomStatus === 2 || (roomStatus !== 4 && Boolean(hlsUrl || flvUrl));
       }
 
       // 3. Fallback regex tìm m3u8 hoặc flv trực tiếp trong HTML
@@ -114,16 +146,23 @@ export default async function handler(req, res) {
         const m3u8Regex = /(https?:\\?\/\\?\/[^\s"'<>]+\.m3u8[^\s"'<>]*)/i;
         const m3u8Match = text.match(m3u8Regex);
         if (m3u8Match && m3u8Match[1]) {
-          hlsUrl = m3u8Match[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+          hlsUrl = m3u8Match[1].replace(/\\u002F/g, '/').replace(/\\u0026/g, '&').replace(/\\\//g, '/').replace(/[\\\'\"\s]+$/, '');
           isLive = true;
         }
 
         const flvRegex = /(https?:\\?\/\\?\/[^\s"'<>]+\.flv[^\s"'<>]*)/i;
         const flvMatch = text.match(flvRegex);
         if (flvMatch && flvMatch[1]) {
-          flvUrl = flvMatch[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+          flvUrl = flvMatch[1].replace(/\\u002F/g, '/').replace(/\\u0026/g, '&').replace(/\\\//g, '/').replace(/[\\\'\"\s]+$/, '');
           isLive = true;
         }
+      }
+
+      if (hlsUrl) {
+        hlsUrl = hlsUrl.replace(/\\u0026/g, '&').replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/[\\\'\"\s]+$/, '');
+      }
+      if (flvUrl) {
+        flvUrl = flvUrl.replace(/\\u0026/g, '&').replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/[\\\'\"\s]+$/, '');
       }
     }
 
@@ -133,6 +172,7 @@ export default async function handler(req, res) {
       original: url, 
       resolved: finalUrl,
       isLive,
+      roomStatus: liveData?.status,
       liveViewers,
       hlsUrl: streamProxyUrl || hlsUrl || null,
       rawHlsUrl: hlsUrl || null,

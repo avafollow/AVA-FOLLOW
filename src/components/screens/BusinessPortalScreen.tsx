@@ -63,10 +63,14 @@ export const BusinessPortalScreen: React.FC<{ darkMode: boolean }> = ({ darkMode
     const userHandle = (user.tiktokConnected || user.handle || '').toLowerCase().replace(/^@/, '').trim();
     const userCampaigns = (campaigns || []).filter(c => {
       if (!c.targetUrl) return false;
-      if (c.creatorEmail && userEmail && c.creatorEmail.toLowerCase().trim() === userEmail) return true;
-      if (c.creatorId && userId && c.creatorId === userId) return true;
-      const campHandle = (c.channelHandle || c.creatorHandle || '').toLowerCase().replace(/^@/, '').trim();
-      if (userHandle && campHandle && userHandle === campHandle) return true;
+      if (c.creatorId) return c.creatorId === userId;
+      if (c.creatorEmail) return Boolean(userEmail && c.creatorEmail.toLowerCase().trim() === userEmail);
+      if (c.creatorHandle) {
+        const cHandle = c.creatorHandle.toLowerCase().replace(/^@/, '').trim();
+        if (cHandle && !['creator', 'creator_vietnam', 'user', 'admin'].includes(cHandle)) {
+          return cHandle === userHandle;
+        }
+      }
       return false;
     });
     return userCampaigns.map(c => {

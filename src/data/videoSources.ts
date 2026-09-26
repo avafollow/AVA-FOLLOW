@@ -30,16 +30,12 @@ export const HIGH_SPEED_CDN_VIDEOS = {
     'https://media.w3.org/2010/05/sintel/trailer.mp4'
   ],
   livestream: [
-    '/videos/sample2.mp4',
-    '/videos/sample3.mp4',
     'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-    'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8',
-    'https://vjs.zencdn.net/v/oceans.mp4'
+    'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8'
   ],
   product_review: [
     '/videos/sample2.mp4',
-    '/videos/sample3.mp4',
-    'https://vjs.zencdn.net/v/oceans.mp4'
+    '/videos/sample3.mp4'
   ]
 };
 

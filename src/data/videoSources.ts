@@ -122,19 +122,25 @@ export function detectPlatform(rawUrl: string): 'tiktok' | 'facebook' | 'youtube
   return 'tiktok';
 }
 
-// Hàm trích xuất @handle từ URL bất kỳ (bao gồm link chia sẻ từ điện thoại)
+// Hàm trích xuất @handle từ URL bất kỳ (bao gồm link chia sẻ từ điện thoại & link Live đa thiết bị)
 export function extractTikTokHandle(rawUrlOrHandle: string): string {
   if (!rawUrlOrHandle) return '@creator_vietnam';
   const clean = sanitizeMediaUrl(rawUrlOrHandle);
   
   if (clean.startsWith('http://') || clean.startsWith('https://')) {
-    // 1. TikTok standard @username
+    // 1. TikTok live link dạng live.tiktok.com/@username hoặc live.tiktok.com/username hoặc tiktok.com/live/username
+    const liveMatch = clean.match(/(?:live\.)?tiktok\.com\/(?:@|live\/)([a-zA-Z0-9_\.\-]+)/i);
+    if (liveMatch && liveMatch[1] && !['live', 'watch', 'share'].includes(liveMatch[1].toLowerCase())) {
+      return `@${liveMatch[1]}`;
+    }
+
+    // 2. TikTok standard @username
     const match = clean.match(/tiktok\.com\/@([a-zA-Z0-9_\.\-]+)/i);
     if (match && match[1]) {
       return `@${match[1]}`;
     }
 
-    // 2. TikTok short links từ app điện thoại (vt.tiktok.com, vm.tiktok.com, tiktok.com/t)
+    // 3. TikTok short links từ app điện thoại (vt.tiktok.com, vm.tiktok.com, tiktok.com/t)
     if (clean.includes('vt.tiktok.com') || clean.includes('vm.tiktok.com') || clean.includes('tiktok.com/t/')) {
       const codeMatch = clean.match(/tiktok\.com\/(?:t\/)?([a-zA-Z0-9_\.\-]+)/i);
       if (codeMatch && codeMatch[1]) {
@@ -144,19 +150,19 @@ export function extractTikTokHandle(rawUrlOrHandle: string): string {
       return '@creator_tiktok';
     }
 
-    // 3. YouTube @handle
+    // 4. YouTube @handle
     const ytMatch = clean.match(/youtube\.com\/@([a-zA-Z0-9_\.\-]+)/i);
     if (ytMatch && ytMatch[1]) {
       return `@${ytMatch[1]}`;
     }
 
-    // 4. YouTube channel / user / c
+    // 5. YouTube channel / user / c
     const ytChannelMatch = clean.match(/youtube\.com\/(?:c|channel|user)\/([a-zA-Z0-9_\.\-]+)/i);
     if (ytChannelMatch && ytChannelMatch[1]) {
       return `@${ytChannelMatch[1]}`;
     }
 
-    // 5. Facebook page / user / profile
+    // 6. Facebook page / user / profile
     const fbMatch = clean.match(/facebook\.com\/([a-zA-Z0-9_\.\-]+)/i);
     if (fbMatch && fbMatch[1] && !['watch', 'reel', 'videos', 'share', 'groups', 'stories', 'events', 'photo', 'profile.php'].includes(fbMatch[1].toLowerCase())) {
       return `@${fbMatch[1]}`;
@@ -177,6 +183,16 @@ export function extractTikTokHandle(rawUrlOrHandle: string): string {
 export function extractTikTokVideoId(rawUrl: string): string | null {
   if (!rawUrl) return null;
   const clean = sanitizeMediaUrl(rawUrl);
+  
+  // Bỏ qua nếu là link live stream (room_id / livestream không phải là video_id)
+  if (
+    clean.includes('/live') || 
+    clean.toLowerCase().includes('live') || 
+    clean.includes('room_id') || 
+    clean.includes('webcast')
+  ) {
+    return null;
+  }
   
   // 1. Dạng số thuần túy (10-24 chữ số)
   if (/^\d{10,24}$/.test(clean)) {

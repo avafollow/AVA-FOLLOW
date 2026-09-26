@@ -92,6 +92,7 @@ interface UnifiedFeedItem {
   remainingSlots?: number;
   isUrgent?: boolean;
   isBoosted?: boolean;
+  platform?: 'tiktok' | 'youtube' | 'facebook';
 }
 
 export const TikTokFeedRunnerModal: React.FC = () => {
@@ -236,7 +237,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       totalSlots: c.targetQuantity,
       remainingSlots: Math.max(1, c.targetQuantity - (c.completedQuantity || 0)),
       isUrgent: true,
-      isBoosted: c.isBoosted
+      isBoosted: c.isBoosted,
+      platform: c.platform || (parsedInfo.platform as any) || (targetUrlLower.includes('facebook.com') ? 'facebook' : (targetUrlLower.includes('youtube.com') || targetUrlLower.includes('youtu.be')) ? 'youtube' : 'tiktok')
     };
   });
 
@@ -310,7 +312,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     totalSlots: 1000,
     remainingSlots: 999,
     isUrgent: true,
-    isBoosted: true
+    isBoosted: true,
+    platform: (parseMediaUrl(feedRunnerTargetId).platform as any) || 'tiktok'
   } : null;
 
   // 2. Toàn bộ Nhiệm Vụ Thật Từ Tasks & Livestream Tasks (Đồng bộ tức thì lên Feed, tự động ẩn khi đã làm)
@@ -343,7 +346,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         totalSlots: t.totalSlots,
         remainingSlots: t.remainingSlots,
         isUrgent: t.isUrgent,
-        isBoosted: false
+        isBoosted: false,
+        platform: t.platform || (parsed.platform as any) || (t.targetUrl?.includes('facebook.com') ? 'facebook' : (t.targetUrl?.includes('youtube.com') || t.targetUrl?.includes('youtu.be')) ? 'youtube' : 'tiktok')
       };
     });
 
@@ -376,7 +380,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       totalSlots: 1000,
       remainingSlots: 999,
       isUrgent: true,
-      isBoosted: true
+      isBoosted: true,
+      platform: (l as any).platform || 'tiktok'
     }));
 
   const allRawFeedItems: UnifiedFeedItem[] = [
@@ -665,7 +670,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             watch: true
           }
         }));
-        applySuccessReward(user.tiktokConnected || user.email || '@user');
+        applySuccessReward(itemPerformerAccount || user.email || '@user');
         setInModalAlert({
           message: `🔴 Hoàn thành phiên live! (+${liveCoins} Xu)`,
           sub: `Đã xác thực mắt xem thật & tính thời gian thực 100%. Cảm ơn bạn!`
@@ -1403,15 +1408,25 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           <div className="flex items-center justify-between gap-2 px-1">
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 border border-white/10 text-[10px] font-mono text-white/80 backdrop-blur-md">
-                <svg className="w-3 h-3 fill-rose-500 shrink-0" viewBox="0 0 24 24">
-                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.3 6.3 0 0 0 1.93-4.57V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76c-.31-.02-.62-.05-.94-.07z" />
-                </svg>
-                <span className="font-bold text-white tracking-wide">TikTok Video Runner</span>
+                {itemPlatform === 'youtube' ? (
+                  <svg className="w-3.5 h-3.5 fill-red-500 shrink-0" viewBox="0 0 24 24">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
+                ) : itemPlatform === 'facebook' ? (
+                  <svg className="w-3.5 h-3.5 fill-blue-500 shrink-0" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3 fill-rose-500 shrink-0" viewBox="0 0 24 24">
+                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.3 6.3 0 0 0 1.93-4.57V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76c-.31-.02-.62-.05-.94-.07z" />
+                  </svg>
+                )}
+                <span className="font-bold text-white tracking-wide">{itemPlatformDisplayName} Video Runner</span>
                 <span className="text-slate-400 font-bold">({currentIndex + 1}/{combinedFeed.length})</span>
               </span>
 
               {(() => {
-                const userHandle = user.tiktokConnected || user.email || '@user';
+                const userHandle = itemPerformerAccount || user.email || '@user';
                 const trust = getTrustProfile(userHandle);
                 const badge = getTrustScoreBadge(trust.trustScore);
                 return (

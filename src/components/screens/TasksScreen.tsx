@@ -149,9 +149,27 @@ export const TasksScreen: React.FC<{
   const isDailyMissionsCompleted = dailyMissions.length > 0 ? (dailyDoneCount >= dailyMissions.length) : true;
 
   const handleOpenFeedRunner = (initialTaskId?: string) => {
-    const platCheck = verifyPlatformAccountForTask('tiktok', user);
+    let targetPlatform: 'tiktok' | 'facebook' | 'youtube' = 'tiktok';
+    if (initialTaskId) {
+      const foundCamp = (campaigns || []).find(c => c.id === initialTaskId);
+      const foundTask = (tasks || []).find(t => t.id === initialTaskId);
+      const foundLive = (livestreamTasks || []).find(l => l.id === initialTaskId);
+      const targetUrl = foundCamp?.targetUrl || foundTask?.targetUrl || foundLive?.targetUrl || '';
+      const explicitPlat = foundCamp?.platform || foundTask?.platform || (foundLive as any)?.platform;
+      if (explicitPlat === 'youtube' || explicitPlat === 'facebook' || explicitPlat === 'tiktok') {
+        targetPlatform = explicitPlat;
+      } else if (targetUrl.toLowerCase().includes('youtube.com') || targetUrl.toLowerCase().includes('youtu.be')) {
+        targetPlatform = 'youtube';
+      } else if (targetUrl.toLowerCase().includes('facebook.com')) {
+        targetPlatform = 'facebook';
+      }
+    } else if (feedPlatformFilter !== 'all') {
+      targetPlatform = feedPlatformFilter;
+    }
+
+    const platCheck = verifyPlatformAccountForTask(targetPlatform, user);
     if (!platCheck.canExecute) {
-      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI TIKTOK: Bạn cần liên kết kênh TikTok thật chính chủ trước khi làm nhiệm vụ kiếm Xu!`);
+      showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${targetPlatform.toUpperCase()}: Bạn cần liên kết tài khoản thật chính chủ trước khi làm nhiệm vụ kiếm Xu!`);
       openConnect();
       return;
     }
@@ -536,6 +554,7 @@ export const TasksScreen: React.FC<{
   // Filtered cards according to feedCategoryFilter & feedPlatformFilter (Tự động ẩn 100% nhiệm vụ đã làm xong hoặc kênh đã follow)
   const filteredFeedCards = allUnifiedCards.filter(card => {
     if (userCompletedActions?.[card.id]) return false;
+    if (isTaskFinishedByUser(card.id, card.taskType, card.channelHandle)) return false;
     if (card.channelHandle && isChannelFollowed(card.channelHandle) && (card.taskType === 'follow' || (card.taskType as any) === 'combo' || card.taskType === 'multi_target')) return false;
     if (feedPlatformFilter !== 'all' && (card as any).platform && (card as any).platform !== feedPlatformFilter) return false;
     if (feedCategoryFilter === 'all') return true;
@@ -702,7 +721,11 @@ export const TasksScreen: React.FC<{
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {/* TIKTOK COMPACT CARD */}
-            <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-[#090C16] border border-rose-500/40 hover:border-rose-400/80 transition-all shadow-md">
+            <div className={`flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-[#090C16] border transition-all shadow-md ${
+              feedPlatformFilter === 'tiktok'
+                ? 'border-rose-400 ring-2 ring-rose-500/80 bg-rose-950/25 shadow-rose-950/50'
+                : 'border-rose-500/40 hover:border-rose-400/80'
+            }`}>
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <a
                   href={tiktokChannelUrl}
@@ -716,8 +739,13 @@ export const TasksScreen: React.FC<{
                   </svg>
                 </a>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[10px] font-mono font-bold text-rose-300 uppercase">KÊNH TIKTOK:</span>
+                    {feedPlatformFilter === 'tiktok' && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-rose-500/30 text-rose-300 text-[9px] font-mono font-bold animate-pulse">
+                        ĐANG LỌC
+                      </span>
+                    )}
                     {user.kycStatus === 'verified' ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
                         <Lock className="w-3 h-3 text-emerald-400" />
@@ -825,7 +853,11 @@ export const TasksScreen: React.FC<{
             </div>
 
             {/* FACEBOOK COMPACT CARD */}
-            <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-[#090C16] border border-blue-500/40 hover:border-blue-400/80 transition-all shadow-md">
+            <div className={`flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-[#090C16] border transition-all shadow-md ${
+              feedPlatformFilter === 'facebook'
+                ? 'border-blue-400 ring-2 ring-blue-500/80 bg-blue-950/25 shadow-blue-950/50'
+                : 'border-blue-500/40 hover:border-blue-400/80'
+            }`}>
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <a
                   href={facebookUrl}
@@ -837,8 +869,13 @@ export const TasksScreen: React.FC<{
                   <Facebook className="w-full h-full fill-current" />
                 </a>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[10px] font-mono font-bold text-blue-300 uppercase">FACEBOOK:</span>
+                    {feedPlatformFilter === 'facebook' && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-blue-500/30 text-blue-300 text-[9px] font-mono font-bold animate-pulse">
+                        ĐANG LỌC
+                      </span>
+                    )}
                     {isFacebookConnected ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
@@ -941,7 +978,11 @@ export const TasksScreen: React.FC<{
             </div>
 
             {/* YOUTUBE / GOOGLE COMPACT CARD */}
-            <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-[#090C16] border border-red-500/40 hover:border-red-400/80 transition-all shadow-md">
+            <div className={`flex items-center justify-between p-2.5 sm:p-3 rounded-2xl bg-[#090C16] border transition-all shadow-md ${
+              feedPlatformFilter === 'youtube'
+                ? 'border-red-400 ring-2 ring-red-500/80 bg-red-950/25 shadow-red-950/50'
+                : 'border-red-500/40 hover:border-red-400/80'
+            }`}>
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <a
                   href={youtubeUrl}
@@ -955,8 +996,13 @@ export const TasksScreen: React.FC<{
                   </svg>
                 </a>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[10px] font-mono font-bold text-red-300 uppercase">YOUTUBE / GOOGLE:</span>
+                    {feedPlatformFilter === 'youtube' && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-red-500/30 text-red-300 text-[9px] font-mono font-bold animate-pulse">
+                        ĐANG LỌC
+                      </span>
+                    )}
                     {isYoutubeConnected ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
@@ -1325,7 +1371,7 @@ export const TasksScreen: React.FC<{
               </p>
             </div>
             <button
-              onClick={() => openFeedRunner('all')}
+              onClick={() => handleOpenFeedRunner()}
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 text-white font-bold text-xs font-mono flex items-center justify-center gap-1.5 shadow-md cursor-pointer hover:opacity-95 shrink-0"
             >
               <Zap className="w-3.5 h-3.5 fill-current text-yellow-300" />
@@ -1354,11 +1400,18 @@ export const TasksScreen: React.FC<{
               {displayVideoTasks.map((task) => {
                 const completed = userCompletedActions[task.id];
                 const isHorizontal = task.targetUrl?.includes('youtube.com/watch') || (task.targetUrl?.includes('youtu.be') && !task.targetUrl?.includes('/shorts/'));
+                const taskPlat = task.platform || 'tiktok';
+                const performerAcc = taskPlat === 'youtube'
+                  ? (user.youtubeConnected || 'Chưa nối kênh YouTube')
+                  : taskPlat === 'facebook'
+                    ? (user.facebookConnected || 'Chưa nối nick Facebook')
+                    : (user.tiktokConnected || 'Chưa nối kênh TikTok');
+                const isConnected = performerAcc && !performerAcc.includes('Chưa');
 
                 return (
                   <div
                     key={task.id}
-                    onClick={() => openFeedRunner(task.id)}
+                    onClick={() => handleOpenFeedRunner(task.id)}
                     className="p-3 sm:p-3.5 rounded-2xl bg-[#090C16] border border-rose-500/30 hover:border-rose-400 transition-all flex flex-row gap-3 shadow-lg cursor-pointer group hover:scale-[1.01]"
                   >
                     {/* KHUNG MEDIA CHIẾM 1/4 CARD (DỌC 9:16 HOẶC NGANG 16:9) */}
@@ -1385,10 +1438,21 @@ export const TasksScreen: React.FC<{
                     {/* THÔNG TIN VÀ NÚT BẤM 1 CHẠM */}
                     <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-mono font-bold text-rose-300 truncate">
-                            {task.title}
-                          </span>
+                        <div className="flex items-center justify-between gap-1 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border flex items-center gap-1 ${
+                              taskPlat === 'youtube'
+                                ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                : taskPlat === 'facebook'
+                                  ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                  : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                            }`}>
+                              {taskPlat === 'youtube' ? '🔴 YouTube' : taskPlat === 'facebook' ? '📘 Facebook' : '🎵 TikTok'}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-mono font-bold text-rose-300 truncate">
+                              {task.title}
+                            </span>
+                          </div>
                           <span className="text-[9px] font-mono text-slate-400 shrink-0">
                             Còn {task.remainingSlots.toLocaleString()} suất
                           </span>
@@ -1407,6 +1471,13 @@ export const TasksScreen: React.FC<{
                         <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
                           {task.title}
                         </h5>
+
+                        <div className="flex items-center gap-1 text-[10px] font-mono">
+                          <span className="text-slate-400">Tài khoản làm:</span>
+                          <span className={isConnected ? "text-cyan-300 font-bold truncate max-w-[130px]" : "text-amber-400 font-bold"}>
+                            {performerAcc}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2">
@@ -1414,7 +1485,7 @@ export const TasksScreen: React.FC<{
                           +{task.rewardCoins.toLocaleString()} Xu
                         </span>
                         <button
-                          onClick={(e) => { e.stopPropagation(); openFeedRunner(task.id); }}
+                          onClick={(e) => { e.stopPropagation(); handleOpenFeedRunner(task.id); }}
                           className={`px-3 py-1.5 rounded-xl text-[10px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
                             completed
                               ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
@@ -1662,10 +1733,21 @@ export const TasksScreen: React.FC<{
                       {/* NỘI DUNG THÔNG TIN CHIẾN DỊCH & NÚT BẤM 1 CHẠM */}
                       <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
                         <div className="space-y-1.5">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-mono font-bold text-cyan-300 truncate">
-                              {taskLabel}
-                            </span>
+                          <div className="flex items-center justify-between gap-1 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border flex items-center gap-1 ${
+                                cardPlat === 'youtube'
+                                  ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                  : cardPlat === 'facebook'
+                                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                    : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                              }`}>
+                                {cardPlat === 'youtube' ? '🔴 YouTube' : cardPlat === 'facebook' ? '📘 Facebook' : '🎵 TikTok'}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-mono font-bold text-cyan-300 truncate">
+                                {taskLabel}
+                              </span>
+                            </div>
                             <span className="text-[9px] font-mono text-slate-400 shrink-0">
                               Còn {card.remainingSlots.toLocaleString()} suất
                             </span>
@@ -1682,6 +1764,23 @@ export const TasksScreen: React.FC<{
                           <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
                             {card.title}
                           </h5>
+
+                          {(() => {
+                            const performerAcc = cardPlat === 'youtube'
+                              ? (user.youtubeConnected || 'Chưa nối kênh YouTube')
+                              : cardPlat === 'facebook'
+                                ? (user.facebookConnected || 'Chưa nối nick Facebook')
+                                : (user.tiktokConnected || 'Chưa nối kênh TikTok');
+                            const isConnected = performerAcc && !performerAcc.includes('Chưa');
+                            return (
+                              <div className="flex items-center gap-1 text-[10px] font-mono">
+                                <span className="text-slate-400">Tài khoản làm:</span>
+                                <span className={isConnected ? "text-cyan-300 font-bold truncate max-w-[130px]" : "text-amber-400 font-bold"}>
+                                  {performerAcc}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2">
@@ -1803,6 +1902,13 @@ export const TasksScreen: React.FC<{
                   const baseEarnings = Math.round((live.rewardPerMinute || 300) * live.targetMinutes * quota.multiplier);
                   const milestoneBonus = Math.round((live.milestoneBonusCoins || 500) * quota.multiplier);
                   const totalEstReward = baseEarnings + milestoneBonus;
+                  const livePlat = live.platform || 'tiktok';
+                  const performerAcc = livePlat === 'youtube'
+                    ? (user.youtubeConnected || 'Chưa nối kênh YouTube')
+                    : livePlat === 'facebook'
+                      ? (user.facebookConnected || 'Chưa nối nick Facebook')
+                      : (user.tiktokConnected || 'Chưa nối kênh TikTok');
+                  const isConnected = performerAcc && !performerAcc.includes('Chưa');
 
                   return (
                     <div
@@ -1831,10 +1937,21 @@ export const TasksScreen: React.FC<{
                       {/* NỘI DUNG PHÒNG LIVE & NÚT BẤM 1 CHẠM */}
                       <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
                         <div className="space-y-1.5">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-300 text-[9px] font-mono font-bold truncate">
-                              {live.category || "TikTok Shop"}
-                            </span>
+                          <div className="flex items-center justify-between gap-1 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border flex items-center gap-1 ${
+                                livePlat === 'youtube'
+                                  ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                  : livePlat === 'facebook'
+                                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                    : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                              }`}>
+                                {livePlat === 'youtube' ? '🔴 YouTube' : livePlat === 'facebook' ? '📘 Facebook' : '🎵 TikTok'}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-300 text-[9px] font-mono font-bold truncate">
+                                {live.category || "TikTok Shop"}
+                              </span>
+                            </div>
                             <span className="text-[9px] font-mono text-amber-400 font-bold">
                               +{totalEstReward.toLocaleString()} Xu
                             </span>
@@ -1854,6 +1971,13 @@ export const TasksScreen: React.FC<{
                           <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
                             {live.roomTitle}
                           </h5>
+
+                          <div className="flex items-center gap-1 text-[10px] font-mono">
+                            <span className="text-slate-400">Tài khoản làm:</span>
+                            <span className={isConnected ? "text-cyan-300 font-bold truncate max-w-[130px]" : "text-amber-400 font-bold"}>
+                              {performerAcc}
+                            </span>
+                          </div>
                         </div>
 
                         <div className="pt-1.5 border-t border-white/5 flex items-center justify-between gap-2">
@@ -1988,10 +2112,26 @@ export const TasksScreen: React.FC<{
                   {/* NỘI DUNG CHIẾN DỊCH & NÚT BẤM 1 CHẠM */}
                   <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono font-bold truncate">
-                          {task.partnerName || "Doanh Nghiệp Ký Quỹ"}
-                        </span>
+                      <div className="flex items-center justify-between gap-1 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {(() => {
+                            const cardPlat = task.platform || 'tiktok';
+                            return (
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border flex items-center gap-1 ${
+                                cardPlat === 'youtube'
+                                  ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                  : cardPlat === 'facebook'
+                                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                    : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                              }`}>
+                                {cardPlat === 'youtube' ? '🔴 YouTube' : cardPlat === 'facebook' ? '📘 Facebook' : '🎵 TikTok'}
+                              </span>
+                            );
+                          })()}
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono font-bold truncate">
+                            {task.partnerName || "Doanh Nghiệp Ký Quỹ"}
+                          </span>
+                        </div>
                         <span className="text-[9px] font-mono text-emerald-400 font-bold shrink-0">
                           {task.remainingSlots.toLocaleString()} suất
                         </span>
@@ -2010,6 +2150,24 @@ export const TasksScreen: React.FC<{
                       <h5 className="text-[11px] text-slate-200 line-clamp-2 font-medium leading-snug">
                         {task.title}
                       </h5>
+
+                      {(() => {
+                        const cardPlat = task.platform || 'tiktok';
+                        const performerAcc = cardPlat === 'youtube'
+                          ? (user.youtubeConnected || 'Chưa nối kênh YouTube')
+                          : cardPlat === 'facebook'
+                            ? (user.facebookConnected || 'Chưa nối nick Facebook')
+                            : (user.tiktokConnected || 'Chưa nối kênh TikTok');
+                        const isConnected = performerAcc && !performerAcc.includes('Chưa');
+                        return (
+                          <div className="flex items-center gap-1 text-[10px] font-mono">
+                            <span className="text-slate-400">Tài khoản làm:</span>
+                            <span className={isConnected ? "text-cyan-300 font-bold truncate max-w-[130px]" : "text-amber-400 font-bold"}>
+                              {performerAcc}
+                            </span>
+                          </div>
+                        );
+                      })()}
 
                       {/* Progress */}
                       <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">

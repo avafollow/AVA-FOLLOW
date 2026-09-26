@@ -152,11 +152,20 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
             video.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
           });
         });
-        hls.on(Hls.Events.ERROR, () => {
-          setHasStreamError(true);
-          if (video.src !== '/videos/sample2.mp4') {
-            video.src = '/videos/sample2.mp4';
-            video.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (data && data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                hls.recoverMediaError();
+                break;
+              default:
+                setHasStreamError(true);
+                hls.destroy();
+                break;
+            }
           }
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {

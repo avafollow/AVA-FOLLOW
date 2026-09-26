@@ -1730,7 +1730,7 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       </div>
                       <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
                         <div className="text-[10px] text-slate-400">Số Dư Xu</div>
-                        <div className="text-amber-400 font-bold">{activeGrantUser.coinsBalance.toLocaleString()}</div>
+                        <div className="text-amber-400 font-bold">{Math.max(Number(activeGrantUser.coinsBalance) || 0, Number((activeGrantUser as any).avaliveCoins) || 0, Number(activeGrantUser.grantedCoinsTotal) || 0, Number(activeGrantUser.tokenBalance) || 0).toLocaleString()}</div>
                       </div>
                       <div className="p-2 rounded-xl bg-black/40 border border-white/5 text-center">
                         <div className="text-[10px] text-slate-400">Xu Đã Cấp</div>
@@ -2903,7 +2903,20 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                       </div>
                     </td>
                     <td className="p-3 font-mono">
-                      <div className="font-bold text-amber-400">{u.coinsBalance.toLocaleString()} Xu</div>
+                      {(() => {
+                        const effCoins = Math.max(Number(u.coinsBalance) || 0, Number((u as any).avaliveCoins) || 0, Number(u.grantedCoinsTotal) || 0, Number(u.tokenBalance) || 0);
+                        const hasGrant = (u.grantedCoinsTotal || 0) > 0;
+                        return (
+                          <div>
+                            <div className="font-bold text-amber-400">{effCoins.toLocaleString()} Xu</div>
+                            {hasGrant && (
+                              <div className="text-[10px] text-cyan-400 font-mono flex items-center gap-0.5">
+                                🎁 Cấp: {(u.grantedCoinsTotal || effCoins).toLocaleString()} Xu
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="p-3 font-mono text-slate-300">
                       {(() => {

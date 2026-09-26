@@ -127,12 +127,15 @@ export default async function handler(req, res) {
       }
     }
 
+    const streamProxyUrl = hlsUrl ? `/api/stream-proxy?url=${encodeURIComponent(hlsUrl)}` : null;
+
     return res.status(200).json({ 
       original: url, 
       resolved: finalUrl,
       isLive,
       liveViewers,
-      hlsUrl: hlsUrl || null,
+      hlsUrl: streamProxyUrl || hlsUrl || null,
+      rawHlsUrl: hlsUrl || null,
       flvUrl: flvUrl || null,
       roomCover,
       roomTitle,

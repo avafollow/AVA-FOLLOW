@@ -324,8 +324,9 @@ export async function syncUserProfileToSupabase(userProfile: any) {
       bio: userProfile.bio,
       tiktok_connected: userProfile.tiktokConnected,
       facebook_connected: userProfile.facebookConnected,
-      avalive_coins: userProfile.avaliveCoins,
-      coins_value_vnd: userProfile.coinsValueVND,
+      avalive_coins: userProfile.avaliveCoins !== undefined ? userProfile.avaliveCoins : (userProfile.coinsBalance !== undefined ? userProfile.coinsBalance : (userProfile.tokenBalance || 0)),
+      coins_value_vnd: userProfile.coinsValueVND || `${((userProfile.avaliveCoins ?? userProfile.coinsBalance ?? 0) * 10).toLocaleString()}đ`,
+      granted_coins_total: userProfile.grantedCoinsTotal || 0,
       locked_escrow_coins: userProfile.lockedEscrowCoins,
       pending_commission_vnd: userProfile.pendingCommissionVND,
       total_commission_withdrawn_vnd: userProfile.totalCommissionWithdrawnVND,
@@ -454,14 +455,15 @@ export async function syncAffiliateToSupabase(affiliateData: any) {
  * 11. ĐỒNG BỘ BẢN SAO LƯU MASTER SNAPSHOT TOÀN HỆ THỐNG
  */
 export async function syncMasterSnapshotToSupabase(snapshot: {
-  user: any;
-  adminUsers: any[];
-  campaigns: any[];
-  tasks: any[];
-  livestreamTasks: any[];
-  escrowBookings: any[];
-  affiliateData: any;
-  adminData: any;
+  user?: any;
+  adminUsers?: any[];
+  campaigns?: any[];
+  tasks?: any[];
+  livestreamTasks?: any[];
+  escrowBookings?: any[];
+  affiliateData?: any;
+  adminData?: any;
+  [key: string]: any;
 }) {
   try {
     const masterPayload = {

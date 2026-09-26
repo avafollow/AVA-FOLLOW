@@ -831,6 +831,19 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
     if (typeof window !== 'undefined') {
       try { window.open(realChannelUrl, '_blank'); } catch (err) { console.warn('Could not open popup:', err); }
+      if (itemPlatform === 'youtube') {
+        const cleanTargetHandle = currentItem.channelHandle.replace(/^@+/, '').trim();
+        const cleanAccount = (user.youtubeConnected || '').replace(/^@+/, '').trim();
+        if (cleanAccount) {
+          localStorage.setItem(`yt_audit_${cleanAccount}_${cleanTargetHandle}_sub`, Date.now().toString());
+        }
+      } else if (itemPlatform === 'facebook') {
+        const cleanFbAccount = (user.facebookConnected || '').replace(/^@+/, '').trim();
+        const targetClean = (realChannelUrl || currentItem.channelHandle || '').replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
+        if (cleanFbAccount) {
+          localStorage.setItem(`fb_audit_${cleanFbAccount}_${targetClean}_follow`, Date.now().toString());
+        }
+      }
     }
 
     const openedAt = Date.now();
@@ -900,6 +913,19 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
     if (typeof window !== 'undefined') {
       try { window.open(videoTargetUrl, '_blank'); } catch (err) { console.warn('Could not open video tab:', err); }
+      if (itemPlatform === 'youtube') {
+        const cleanTargetVid = (videoTargetUrl || currentItem.targetUrl || currentItem.id).replace(/^https?:\/\/(www\.)?youtube\.com\/watch\?v=/, '').replace(/^https?:\/\/youtu\.be\//, '').split('&')[0];
+        const cleanAccount = (user.youtubeConnected || '').replace(/^@+/, '').trim();
+        if (cleanAccount) {
+          localStorage.setItem(`yt_audit_like_${cleanAccount}_${cleanTargetVid}`, Date.now().toString());
+        }
+      } else if (itemPlatform === 'facebook') {
+        const cleanFbAccount = (user.facebookConnected || '').replace(/^@+/, '').trim();
+        const targetClean = (videoTargetUrl || currentItem.channelHandle || '').replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
+        if (cleanFbAccount) {
+          localStorage.setItem(`fb_audit_like_${cleanFbAccount}_${targetClean}`, Date.now().toString());
+        }
+      }
     }
 
     const openedAt = Date.now();
@@ -983,19 +1009,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       let res: { success: boolean; coinsEarned?: number; txHash?: string; message: string };
       if (currentPlatform === 'youtube') {
         if (pv.action === 'follow') {
-          const cleanTargetHandle = currentItem.channelHandle.replace(/^@+/, '').trim();
-          const cleanAccount = (user.youtubeConnected || '').replace(/^@+/, '').trim();
-          if (cleanAccount) {
-            localStorage.setItem(`yt_audit_${cleanAccount}_${cleanTargetHandle}_sub`, Date.now().toString());
-          }
           const ytRes = await verifyYouTubeSubscription(currentItem.channelHandle, undefined, user.youtubeConnected);
           res = { success: ytRes.success, coinsEarned: 200, txHash: ytRes.txHash || 'YT_SUB', message: ytRes.message };
         } else if (pv.action === 'like') {
-          const cleanTargetVid = (pv.itemId || currentItem.targetUrl).replace(/^https?:\/\/(www\.)?youtube\.com\/watch\?v=/, '').replace(/^https?:\/\/youtu\.be\//, '').split('&')[0];
-          const cleanAccount = (user.youtubeConnected || '').replace(/^@+/, '').trim();
-          if (cleanAccount) {
-            localStorage.setItem(`yt_audit_like_${cleanAccount}_${cleanTargetVid}`, Date.now().toString());
-          }
           const ytRes = await verifyYouTubeVideoLike(pv.itemId || currentItem.targetUrl, undefined, user.youtubeConnected);
           res = { success: ytRes.success, coinsEarned: 100, txHash: ytRes.txHash || 'YT_LIKE', message: ytRes.message };
         } else if (pv.action === 'comment') {
@@ -1007,17 +1023,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           res = { success: true, coinsEarned: pv.coinsToEarn, message: '✅ Xác nhận thành công!', txHash: 'VERIFIED' };
         }
       } else if (currentPlatform === 'facebook') {
-        const cleanFbAccount = (user.facebookConnected || '').replace(/^@+/, '').trim();
-        const targetClean = (pv.tiktokUrl || currentItem.targetUrl || currentItem.channelHandle || '').replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
-        if (cleanFbAccount) {
-          if (pv.action === 'follow') {
-            localStorage.setItem(`fb_audit_${cleanFbAccount}_${targetClean}_follow`, Date.now().toString());
-          } else if (pv.action === 'like') {
-            localStorage.setItem(`fb_audit_like_${cleanFbAccount}_${targetClean}`, Date.now().toString());
-          } else if (pv.action === 'share') {
-            localStorage.setItem(`fb_audit_share_${cleanFbAccount}_${targetClean}`, Date.now().toString());
-          }
-        }
         const fbRes = await verifyFacebookTaskAction(pv.action, pv.tiktokUrl || currentItem.targetUrl || currentItem.channelHandle, user.facebookConnected || '', { commentText: pv.commentText });
         res = { success: fbRes.success, coinsEarned: pv.coinsToEarn, txHash: fbRes.txHash || 'FB_ACT', message: fbRes.message };
       } else {

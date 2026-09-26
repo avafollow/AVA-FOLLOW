@@ -57,8 +57,18 @@ export const BusinessPortalScreen: React.FC<{ darkMode: boolean }> = ({ darkMode
     const userOrders = user.myOrders || [];
     if (userOrders.length > 0) return userOrders;
 
-    // Convert active campaigns to ServiceOrders if user has created campaigns
-    const userCampaigns = (campaigns || []).filter(c => c.targetUrl && c.targetUrl.length > 0);
+    // Convert active campaigns to ServiceOrders if user has created campaigns (Chỉ lấy chiến dịch của chính user)
+    const userEmail = (user.email || '').toLowerCase().trim();
+    const userId = user.id;
+    const userHandle = (user.tiktokConnected || user.handle || '').toLowerCase().replace(/^@/, '').trim();
+    const userCampaigns = (campaigns || []).filter(c => {
+      if (!c.targetUrl) return false;
+      if (c.creatorEmail && userEmail && c.creatorEmail.toLowerCase().trim() === userEmail) return true;
+      if (c.creatorId && userId && c.creatorId === userId) return true;
+      const campHandle = (c.channelHandle || c.creatorHandle || '').toLowerCase().replace(/^@/, '').trim();
+      if (userHandle && campHandle && userHandle === campHandle) return true;
+      return false;
+    });
     return userCampaigns.map(c => {
       const isLive = c.type === 'livestream' || c.type === 'livestream_viewers' || (c.targetUrl || '').includes('/live');
       return {

@@ -790,6 +790,9 @@ export interface CampaignItem {
   isBoosted?: boolean; // True nếu chiến dịch được đẩy lên Top sàn (100.000 Xu)
   boostedAt?: string; // Thời điểm đẩy Top
   boostCount?: number; // Số lần đẩy Top
+  creatorEmail?: string; // Email người tạo chiến dịch (cách ly quyền riêng tư)
+  creatorId?: string; // User ID người tạo
+  creatorHandle?: string; // Handle người tạo
 }
 
 // Bảng khung hình phạt & chế tài xử lý vi phạm hợp đồng KOC Escrow
@@ -1494,6 +1497,7 @@ export interface LivestreamBannerCampaign {
   userId: string;
   userHandle: string;
   userName: string;
+  creatorEmail?: string;
   bannerImageUrl: string;
   targetLiveUrl: string;
   liveTitle: string;

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
   PlusCircle, 
   UserPlus, 
@@ -152,6 +152,53 @@ export const CreateCampaignScreen: React.FC<{
     createLivestreamBannerCampaign,
     bannerCampaigns
   } = useTikTokApp();
+
+  // LỌC NGHIÊM NGẶT QUYỀN RIÊNG TƯ: Người dùng chỉ nhìn thấy chiến dịch do chính mình tạo ra
+  const myCampaigns = useMemo(() => {
+    if (!user) return [];
+    const userEmail = (user.email || '').toLowerCase().trim();
+    const userId = user.id;
+    const userTikTok = (user.tiktokConnected || user.handle || '').toLowerCase().replace(/^@/, '').trim();
+    const userFacebook = (user.facebookConnected || '').toLowerCase().replace(/^@/, '').trim();
+    const userYouTube = (user.youtubeConnected || '').toLowerCase().replace(/^@/, '').trim();
+
+    return (campaigns || []).filter(camp => {
+      // 1. So khớp creatorEmail
+      if (camp.creatorEmail && userEmail && camp.creatorEmail.toLowerCase().trim() === userEmail) {
+        return true;
+      }
+      // 2. So khớp creatorId
+      if (camp.creatorId && userId && camp.creatorId === userId) {
+        return true;
+      }
+      // 3. So khớp creatorHandle
+      if (camp.creatorHandle) {
+        const cHandle = camp.creatorHandle.toLowerCase().replace(/^@/, '').trim();
+        if (cHandle && (cHandle === userTikTok || cHandle === userFacebook || cHandle === userYouTube)) {
+          return true;
+        }
+      }
+      // 4. So khớp channelHandle với tài khoản đã liên kết của người dùng
+      const campChannel = (camp.channelHandle || '').toLowerCase().replace(/^@/, '').trim();
+      if (campChannel && (campChannel === userTikTok || campChannel === userFacebook || campChannel === userYouTube)) {
+        return true;
+      }
+      return false;
+    });
+  }, [campaigns, user]);
+
+  const myBannerCampaigns = useMemo(() => {
+    if (!user) return [];
+    const userEmail = (user.email || '').toLowerCase().trim();
+    const userId = user.id;
+    const userHandle = (user.tiktokConnected || user.handle || '').toLowerCase().replace(/^@/, '').trim();
+    return (bannerCampaigns || []).filter(bc => {
+      if (bc.userId && userId && bc.userId === userId) return true;
+      if (bc.userHandle && userHandle && bc.userHandle.toLowerCase().replace(/^@/, '').trim() === userHandle) return true;
+      if (bc.creatorEmail && userEmail && bc.creatorEmail.toLowerCase().trim() === userEmail) return true;
+      return false;
+    });
+  }, [bannerCampaigns, user]);
 
   // Tab: Standard vs Mega Live & Product Launch vs Banner Live 100k
   const [activeMainTab, setActiveMainTab] = useState<'standard' | 'mega_launch' | 'banner_live'>('standard');
@@ -2285,14 +2332,14 @@ export const CreateCampaignScreen: React.FC<{
               </button>
             </div>
 
-            {/* Banner campaigns history */}
-            {bannerCampaigns && bannerCampaigns.length > 0 && (
+            {/* Banner campaigns history - Chỉ hiển thị banner của chính người dùng */}
+            {myBannerCampaigns && myBannerCampaigns.length > 0 && (
               <div className="space-y-3">
                 <h4 className="text-[11px] font-black text-slate-300 font-mono uppercase flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                  Lịch Sử Banner Live ({bannerCampaigns.length})
+                  Lịch Sử Banner Live Của Tôi ({myBannerCampaigns.length})
                 </h4>
-                {bannerCampaigns.slice(0, 5).map((bc) => (
+                {myBannerCampaigns.slice(0, 5).map((bc) => (
                   <div key={bc.id} className="p-3 rounded-2xl bg-black/50 border border-white/10 flex items-start gap-3">
                     {bc.bannerImageUrl && (
                       <img src={bc.bannerImageUrl} alt="banner" className="w-12 h-12 rounded-xl object-cover border border-cyan-500/30 shrink-0" />
@@ -2320,14 +2367,30 @@ export const CreateCampaignScreen: React.FC<{
         </div>
       )}
 
-      {/* Active campaigns list with progress tracking */}
+      {/* Active campaigns list with progress tracking - CHỈ HIỂN THỊ CHIẾN DỊCH DO CHÍNH NGƯỜI DÙNG TẠO */}
       <div className="space-y-3">
-        <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center gap-2">
-          <Flame className="h-4 w-4 text-rose-500" />
-          <span>Chiến Dịch Đang Chạy Trong Hệ Thống ({campaigns.length})</span>
+        <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Flame className="h-4 w-4 text-rose-500" />
+            <span>Chiến Dịch Của Tôi Đang Chạy ({myCampaigns.length})</span>
+          </div>
+          <span className="text-[11px] text-slate-400 font-mono font-normal">
+            Bảo mật &amp; Riêng tư tài khoản
+          </span>
         </h3>
         <div className="space-y-2.5">
-          {campaigns.map((camp) => {
+          {myCampaigns.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-[#0D111E] border border-white/10 text-center space-y-2.5">
+              <div className="w-12 h-12 mx-auto rounded-full bg-white/5 flex items-center justify-center text-slate-400 border border-white/10">
+                <Flame className="w-6 h-6 text-slate-500" />
+              </div>
+              <p className="text-sm font-bold text-white">Bạn chưa có chiến dịch nào đang chạy</p>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Điền thông tin và bấm &quot;Khởi Tạo Chiến Dịch Ngay&quot; ở trên để hệ thống tự động phân phối nhiệm vụ đến thợ làm nhiệm vụ.
+              </p>
+            </div>
+          ) : (
+            myCampaigns.map((camp) => {
             const percent = Math.min(100, Math.round((camp.completedQuantity / Math.max(1, camp.targetQuantity)) * 100));
             const isLive = camp.type === 'livestream' || camp.type === 'livestream_viewers';
 
@@ -2697,7 +2760,7 @@ export const CreateCampaignScreen: React.FC<{
                 })()}
               </div>
             );
-          })}
+          }))}
         </div>
       </div>
     </div>

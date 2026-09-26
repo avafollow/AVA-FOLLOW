@@ -943,17 +943,17 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           const granted = u.grantedCoinsTotal || 0;
           const realOrders = (u.orders || []).filter(o => o && o.id && !o.id.startsWith('mock_') && !o.id.startsWith('demo_') && !o.isAdminGrant && (o.status === 'processing' || o.status === 'running' || o.status === 'completed'));
           const realCount = realOrders.length;
+          const effectiveCoins = Math.max(Number(u.coinsBalance) || 0, Number((u as any).avaliveCoins) || 0, Number(granted) || 0, Number(u.tokenBalance) || 0);
           let userRes: AdminUserManagementItem = {
             ...u,
             status: 'active', // Mở khóa toàn bộ tài khoản hiện tại theo yêu cầu
             orders: realOrders,
             purchasedPackagesCount: realCount,
-            escrowLockedAmountVND: realCount > 0 ? (u.escrowLockedAmountVND || '0đ') : '0đ'
+            escrowLockedAmountVND: realCount > 0 ? (u.escrowLockedAmountVND || '0đ') : '0đ',
+            coinsBalance: effectiveCoins,
+            tokenBalance: effectiveCoins,
+            grantedCoinsTotal: Math.max(granted, effectiveCoins > 0 && (!u.orders || u.orders.length === 0) ? effectiveCoins : granted)
           };
-          if (granted > 0 && (!u.coinsBalance || u.coinsBalance < granted)) {
-            userRes.coinsBalance = Math.max(u.coinsBalance || 0, granted);
-            userRes.tokenBalance = Math.max(u.tokenBalance || 0, granted);
-          }
           return userRes;
         });
         return healed;
@@ -1216,30 +1216,34 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               if (p && (p.email || p.id)) {
                 const key = p.email?.toLowerCase() || p.id;
                 const local = mergedMap.get(key);
-                const userAdminItem: AdminUserManagementItem = {
-                  id: p.id || local?.id || `usr_${Date.now()}`,
-                  name: p.name || local?.name || 'Người dùng',
-                  handle: p.tiktokConnected || p.handle || local?.handle || '@user',
-                  avatar: p.avatar || local?.avatar || '',
-                  email: p.email || local?.email || key,
-                  phone: p.phone || local?.phone || '0988888888',
-                  tiktokConnected: p.tiktokConnected || local?.tiktokConnected || '',
-                  tiktokFollowers: p.tiktokFollowers !== undefined ? p.tiktokFollowers : (local?.tiktokFollowers || 0),
-                  isTikTokVerified: !!(p.tiktokConnected || local?.isTikTokVerified),
-                  facebookConnected: p.facebookConnected || local?.facebookConnected,
-                  youtubeConnected: p.youtubeConnected || local?.youtubeConnected,
-                  rankLevel: p.rankLevel || local?.rankLevel || 'Đồng',
-                  coinsBalance: p.avaliveCoins !== undefined ? p.avaliveCoins : (p.coinsBalance !== undefined ? p.coinsBalance : (local?.coinsBalance || 0)),
-                  tokenBalance: p.avaliveCoins !== undefined ? p.avaliveCoins : (p.tokenBalance !== undefined ? p.tokenBalance : (local?.tokenBalance || 0)),
-                  completedTasksCount: p.completedTasksCount !== undefined ? p.completedTasksCount : (local?.completedTasksCount || 0),
-                  createdCampaignsCount: local?.createdCampaignsCount || 0,
-                  purchasedPackagesCount: local?.purchasedPackagesCount || 0,
-                  escrowLockedAmountVND: local?.escrowLockedAmountVND || '0đ',
-                  status: p.status || local?.status || 'active',
-                  kycStatus: (p.kycStatus || local?.kycStatus || 'unverified') as KycStatus,
-                  hasAllPermissions: p.hasAllPermissions !== undefined ? p.hasAllPermissions : local?.hasAllPermissions,
-                  isWhitelisted: p.isWhitelisted !== undefined ? p.isWhitelisted : local?.isWhitelisted,
-                  grantedCoinsTotal: p.grantedCoinsTotal !== undefined ? p.grantedCoinsTotal : local?.grantedCoinsTotal,
+                  const cloudCoins = p.avalive_coins !== undefined ? p.avalive_coins : (p.avaliveCoins !== undefined ? p.avaliveCoins : (p.coinsBalance !== undefined ? p.coinsBalance : 0));
+                  const grantedCoins = Math.max(Number(p.grantedCoinsTotal) || 0, Number(p.granted_coins_total) || 0, Number(local?.grantedCoinsTotal) || 0);
+                  const effectiveCoins = Math.max(Number(cloudCoins) || 0, Number(local?.coinsBalance) || 0, Number(grantedCoins) || 0);
+
+                  const userAdminItem: AdminUserManagementItem = {
+                    id: p.id || local?.id || `usr_${Date.now()}`,
+                    name: p.name || local?.name || 'Người dùng',
+                    handle: p.tiktokConnected || p.handle || local?.handle || '@user',
+                    avatar: p.avatar || local?.avatar || '',
+                    email: p.email || local?.email || key,
+                    phone: p.phone || local?.phone || '0988888888',
+                    tiktokConnected: p.tiktokConnected || local?.tiktokConnected || '',
+                    tiktokFollowers: p.tiktokFollowers !== undefined ? p.tiktokFollowers : (local?.tiktokFollowers || 0),
+                    isTikTokVerified: !!(p.tiktokConnected || local?.isTikTokVerified),
+                    facebookConnected: p.facebookConnected || local?.facebookConnected,
+                    youtubeConnected: p.youtubeConnected || local?.youtubeConnected,
+                    rankLevel: p.rankLevel || local?.rankLevel || 'Đồng',
+                    coinsBalance: effectiveCoins,
+                    tokenBalance: effectiveCoins,
+                    completedTasksCount: p.completedTasksCount !== undefined ? p.completedTasksCount : (local?.completedTasksCount || 0),
+                    createdCampaignsCount: local?.createdCampaignsCount || 0,
+                    purchasedPackagesCount: local?.purchasedPackagesCount || 0,
+                    escrowLockedAmountVND: local?.escrowLockedAmountVND || '0đ',
+                    status: p.status || local?.status || 'active',
+                    kycStatus: (p.kycStatus || local?.kycStatus || 'unverified') as KycStatus,
+                    hasAllPermissions: p.hasAllPermissions !== undefined ? p.hasAllPermissions : local?.hasAllPermissions,
+                    isWhitelisted: p.isWhitelisted !== undefined ? p.isWhitelisted : local?.isWhitelisted,
+                    grantedCoinsTotal: grantedCoins > 0 ? grantedCoins : (effectiveCoins > 0 ? effectiveCoins : undefined),
                   grantedPackagesTotal: p.grantedPackagesTotal !== undefined ? p.grantedPackagesTotal : local?.grantedPackagesTotal,
                   registrationSource: p.registrationSource || local?.registrationSource || (p.referredBy ? 'link' : 'direct'),
                   referredBy: p.referredBy || local?.referredBy,
@@ -6988,6 +6992,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newCampaign: CampaignItem = {
       id: `camp_${Date.now()}`,
       ...campaignData,
+      creatorEmail: user.email,
+      creatorId: user.id,
+      creatorHandle: user.tiktokConnected || user.handle || campaignData.channelHandle,
       completedQuantity: 0,
       status: 'running',
       createdAt: 'Vừa xong'
@@ -8166,9 +8173,16 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (idx >= 0) {
         const u = prev[idx];
-        const newBalance = Math.max(0, u.coinsBalance + amount);
-        const newGranted = (u.grantedCoinsTotal || 0) + (amount > 0 ? amount : 0);
-        matchedUser = { ...u, coinsBalance: newBalance, tokenBalance: newBalance, grantedCoinsTotal: newGranted };
+        const currentEffective = Math.max(Number(u.coinsBalance) || 0, Number((u as any).avaliveCoins) || 0, Number(u.grantedCoinsTotal) || 0, Number(u.tokenBalance) || 0);
+        const newBalance = Math.max(0, currentEffective + amount);
+        const newGranted = Math.max(u.grantedCoinsTotal || 0, currentEffective) + (amount > 0 ? amount : 0);
+        matchedUser = { 
+          ...u, 
+          coinsBalance: newBalance, 
+          tokenBalance: newBalance, 
+          grantedCoinsTotal: newGranted,
+          ...({ avaliveCoins: newBalance })
+        };
         nextList[idx] = matchedUser;
       } else if (cleanKey) {
         const cleanLower = cleanKey.toLowerCase();
@@ -8197,7 +8211,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           isWhitelisted: false,
           grantedCoinsTotal: amount > 0 ? amount : 0,
           joinedDate: 'Vừa xong',
-          orders: []
+          orders: [],
+          ...({ avaliveCoins: Math.max(0, amount) })
         };
         nextList.unshift(matchedUser);
       }
@@ -8207,6 +8222,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
         }
       } catch {}
+      syncMasterSnapshotToSupabase({ adminUsers: nextList });
       return nextList;
     });
 
@@ -8604,7 +8620,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (idx >= 0) {
         matchedUser = { ...prev[idx], ...data };
         if (data.coinsBalance !== undefined) {
+          matchedUser.coinsBalance = data.coinsBalance;
           matchedUser.tokenBalance = data.coinsBalance;
+          (matchedUser as any).avaliveCoins = data.coinsBalance;
+          if (data.coinsBalance > (prev[idx].grantedCoinsTotal || 0)) {
+            matchedUser.grantedCoinsTotal = data.coinsBalance;
+          }
         }
         nextList[idx] = matchedUser;
       }
@@ -8613,6 +8634,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           localStorage.setItem('ava_admin_users', JSON.stringify(nextList));
         }
       } catch {}
+      syncMasterSnapshotToSupabase({ adminUsers: nextList });
       return nextList;
     });
 

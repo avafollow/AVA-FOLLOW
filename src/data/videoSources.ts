@@ -289,8 +289,10 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
 
   if (isYouTube) {
     actionCtaLabel = 'Đăng Ký Kênh YouTube';
-    channelName = cleanHandle ? `Kênh ${cleanHandle}` : 'Kênh YouTube';
-    channelUrl = cleanHandle ? `https://www.youtube.com/@${cleanHandle}` : (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : url);
+    const ytHandleMatch = url.match(/(?:youtube\.com\/|youtu\.be\/)@([a-zA-Z0-9._-]+)/i);
+    const resolvedYtHandle = ytHandleMatch ? ytHandleMatch[1] : (defaultHandle && !defaultHandle.toLowerCase().includes('tiktok') && !defaultHandle.includes('user') ? cleanHandle : '');
+    channelName = resolvedYtHandle ? `Kênh @${resolvedYtHandle}` : 'Kênh YouTube';
+    channelUrl = resolvedYtHandle ? `https://www.youtube.com/@${resolvedYtHandle}` : (url.includes('youtube.com') || url.includes('youtu.be') ? url : (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : url));
     if (youtubeId) {
       embedUrl = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`;
       sourceType = 'youtube_embed';
@@ -298,8 +300,12 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
     }
   } else if (isFacebook) {
     actionCtaLabel = 'Theo Dõi Fanpage Facebook';
-    channelName = cleanHandle ? `Fanpage ${cleanHandle}` : 'Fanpage Facebook';
-    channelUrl = cleanHandle ? `https://www.facebook.com/${cleanHandle}` : url;
+    const fbHandleMatch = url.match(/facebook\.com\/([a-zA-Z0-9._-]+)/i);
+    const resolvedFbHandle = (fbHandleMatch && !['watch', 'reel', 'videos', 'share', 'groups'].includes(fbHandleMatch[1].toLowerCase()))
+      ? fbHandleMatch[1]
+      : (defaultHandle && !defaultHandle.toLowerCase().includes('tiktok') && !defaultHandle.includes('user') ? cleanHandle : '');
+    channelName = resolvedFbHandle ? `Fanpage ${resolvedFbHandle}` : 'Fanpage Facebook';
+    channelUrl = resolvedFbHandle ? `https://www.facebook.com/${resolvedFbHandle}` : url;
     fanpageUrl = channelUrl;
     embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=0&allowfullscreen=true`;
     sourceType = 'facebook_embed';

@@ -164,7 +164,7 @@ export async function verifyFacebookPageFollow(
     actionType: 'follow',
     targetId: target.id,
     performerAccount: cleanAccount,
-    message: `Chưa ghi nhận lượt Theo Dõi Fanpage từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm Theo Dõi trên Facebook trước khi nhận Xu.`,
+    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa ghi nhận lượt Theo Dõi Fanpage từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm Theo Dõi trên Facebook trước khi nhận Xu.`,
     verifiedAt: new Date().toISOString()
   };
 }
@@ -233,7 +233,7 @@ export async function verifyFacebookPostLike(
     actionType: 'like',
     targetId: target.id,
     performerAccount: cleanAccount,
-    message: `Chưa ghi nhận lượt Thích bài viết từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm Thích trên Facebook trước khi nhận Xu.`,
+    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa ghi nhận lượt Thích bài viết từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm Thích trên Facebook trước khi nhận Xu.`,
     verifiedAt: new Date().toISOString()
   };
 }
@@ -321,7 +321,7 @@ export async function verifyFacebookComment(
     actionType: 'comment',
     targetId: target.id,
     performerAccount: cleanAccount,
-    message: `Chưa tìm thấy bình luận của bạn [${cleanAccount}] trên Facebook! Vui lòng bình luận vào bài viết trước khi nhận Xu.`,
+    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa tìm thấy bình luận của bạn [${cleanAccount}] trên Facebook! Vui lòng bình luận vào bài viết trước khi nhận Xu.`,
     verifiedAt: new Date().toISOString()
   };
 }
@@ -342,7 +342,7 @@ export async function verifyFacebookShare(
       actionType: 'share',
       targetId: target.id,
       performerAccount: cleanAccount,
-      message: 'Bạn cần kết nối tài khoản Facebook chính chủ trước khi chia sẻ!'
+      message: 'Chưa hoàn thành, vui lòng kiểm tra và làm lại: Bạn cần kết nối tài khoản Facebook chính chủ trước khi chia sẻ!'
     };
   }
 
@@ -365,7 +365,7 @@ export async function verifyFacebookShare(
     actionType: 'share',
     targetId: target.id,
     performerAccount: cleanAccount,
-    message: `Chưa ghi nhận lượt Chia Sẻ từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm nút Chia Sẻ trước khi nhận Xu.`,
+    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa ghi nhận lượt Chia Sẻ từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm nút Chia Sẻ trước khi nhận Xu.`,
     verifiedAt: new Date().toISOString()
   };
 }

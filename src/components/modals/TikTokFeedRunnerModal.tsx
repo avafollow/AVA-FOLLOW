@@ -464,10 +464,32 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       : (user.tiktokConnected || 'Chưa kết nối');
   const isItemAccountConnected = Boolean(itemPerformerAccount && itemPerformerAccount !== 'Chưa kết nối' && !itemPerformerAccount.includes('chưa_kết_nối'));
 
-  // Kiểm tra xem chiến dịch hiện tại có bắt buộc xem video / live không
+  // Kiểm tra xem chiến dịch hiện tại có bắt buộc xem video / live không (Chỉ phiên live hoặc gói thuần xem view)
   const isWatchRequired = currentItem 
-    ? (isLiveItem || currentItem.type === 'watch' || currentItem.requiresWatch === true)
+    ? (isLiveItem || (currentItem.type === 'watch' && currentItem.requiresWatch === true))
     : false;
+
+  const isComboItem = targetCampaignAction === 'combo' || targetCampaignAction === 'multi_target' || (currentItem?.title || '').toLowerCase().includes('combo');
+
+  // Xác định danh sách hành động người dùng cần thực hiện cho chiến dịch này
+  const requiredActions: ('follow' | 'like' | 'comment' | 'share' | 'watch')[] = [];
+  if (isLiveItem || currentItem?.type === 'watch') {
+    requiredActions.push('watch');
+  }
+  if (isComboItem) {
+    requiredActions.push('follow', 'like', 'comment');
+  } else if (targetCampaignAction === 'follow') {
+    requiredActions.push('follow');
+  } else if (targetCampaignAction === 'like') {
+    requiredActions.push('like');
+  } else if (targetCampaignAction === 'comment') {
+    requiredActions.push('comment');
+  } else if (targetCampaignAction === 'share') {
+    requiredActions.push('share');
+  }
+
+  const completedActionsCount = requiredActions.filter(act => currentClaimed[act]).length;
+  const isAllActionsCompleted = requiredActions.length > 0 && completedActionsCount === requiredActions.length;
 
   // Sync filterMode when feed runner opens with a specific filter
   useEffect(() => {
@@ -644,9 +666,9 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     };
   }, [isFeedRunnerOpen, currentItem?.id, currentItem?.kind]);
 
-  // When timer reaches 0 for video watch package, claim watch reward (+200 Xu) - KHÔNG TỰ Ý CHUYỂN VIDEO
+  // When timer reaches 0 for pure video watch or livestream package, claim watch reward
   useEffect(() => {
-    if (isWatchRequired && timeLeft === 0 && currentItem && !currentClaimed.watch) {
+    if (isWatchRequired && timeLeft === 0 && currentItem && !currentClaimed.watch && (isLiveItem || currentItem.type === 'watch')) {
       if (currentItem.kind === 'video') {
         const reward = claimTaskAction(currentItem.id, 'watch');
         setSessionCoinsEarned(prev => prev + (reward || 200));
@@ -751,6 +773,16 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   };
 
   const handleNextItem = () => {
+    // Nếu chiến dịch có nhiệm vụ tương tác và người dùng chưa làm bất kỳ hành động nào
+    if (!isWatchRequired && requiredActions.length > 0 && completedActionsCount === 0) {
+      setInModalAlert({
+        message: '⚠️ Chưa hoàn thành nhiệm vụ!',
+        sub: `Vui lòng thực hiện ${isComboItem ? 'Đăng ký, Thích hoặc Bình luận' : (itemPlatform === 'youtube' ? 'Đăng Ký Kênh' : itemPlatform === 'facebook' ? 'Theo Dõi Fanpage' : 'Follow Kênh')} và bấm Nghiệm thu để nhận Xu trước khi chuyển tiếp!`
+      });
+      showToast('⚠️ Chưa hoàn thành, vui lòng kiểm tra và làm lại nhiệm vụ!');
+      return;
+    }
+
     if (currentIndex < combinedFeed.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
@@ -769,11 +801,34 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
   const handleOpenTikTokApp = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (!currentItem.channelHandle) return;
-    const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
-    const url = currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com')
-      ? currentItem.targetUrl
-      : `https://www.tiktok.com/@${cleanHandle}`;
+    let url = currentItem.targetUrl || currentItem.videoUrl || '';
+    const cleanHandle = (currentItem.channelHandle || '').replace(/^@+/, '');
+
+    if (itemPlatform === 'youtube') {
+      if (!url || (!url.includes('youtube.com') && !url.includes('youtu.be'))) {
+        url = cleanHandle && !cleanHandle.includes('user') ? `https://www.youtube.com/@${cleanHandle}` : 'https://www.youtube.com';
+      }
+      if (typeof window !== 'undefined') {
+        window.open(url, '_blank');
+      }
+      showToast('🌐 Đang mở video/kênh YouTube chính thức...');
+      return;
+    }
+
+    if (itemPlatform === 'facebook') {
+      if (!url || (!url.includes('facebook.com') && !url.includes('fb.watch'))) {
+        url = cleanHandle ? `https://www.facebook.com/${cleanHandle}` : 'https://www.facebook.com';
+      }
+      if (typeof window !== 'undefined') {
+        window.open(url, '_blank');
+      }
+      showToast('🌐 Đang mở bài viết/trang Facebook chính thức...');
+      return;
+    }
+
+    if (!url || !url.includes('tiktok.com')) {
+      url = `https://www.tiktok.com/@${cleanHandle}`;
+    }
     if (typeof window !== 'undefined') {
       window.open(url, '_blank');
     }
@@ -813,12 +868,24 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       return;
     }
 
-    const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
+    const cleanHandle = (currentItem.channelHandle || '').replace(/^@+/, '');
     let realChannelUrl = currentItem.targetUrl || '';
     if (itemPlatform === 'youtube') {
-      realChannelUrl = cleanHandle ? `https://www.youtube.com/@${cleanHandle}` : (currentItem.targetUrl || 'https://www.youtube.com');
+      if (currentItem.targetUrl && (currentItem.targetUrl.includes('youtube.com') || currentItem.targetUrl.includes('youtu.be'))) {
+        realChannelUrl = currentItem.targetUrl;
+      } else if (cleanHandle && !cleanHandle.includes('user') && !cleanHandle.includes('creator')) {
+        realChannelUrl = `https://www.youtube.com/@${cleanHandle}`;
+      } else {
+        realChannelUrl = 'https://www.youtube.com';
+      }
     } else if (itemPlatform === 'facebook') {
-      realChannelUrl = currentItem.targetUrl || (currentItem.channelHandle ? `https://www.facebook.com/${currentItem.channelHandle}` : 'https://www.facebook.com');
+      if (currentItem.targetUrl && (currentItem.targetUrl.includes('facebook.com') || currentItem.targetUrl.includes('fb.watch'))) {
+        realChannelUrl = currentItem.targetUrl;
+      } else if (cleanHandle) {
+        realChannelUrl = `https://www.facebook.com/${cleanHandle}`;
+      } else {
+        realChannelUrl = 'https://www.facebook.com';
+      }
     } else {
       realChannelUrl = currentItem.targetUrl && currentItem.targetUrl.includes('tiktok.com/@')
         ? currentItem.targetUrl
@@ -832,16 +899,27 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     if (typeof window !== 'undefined') {
       try { window.open(realChannelUrl, '_blank'); } catch (err) { console.warn('Could not open popup:', err); }
       if (itemPlatform === 'youtube') {
-        const cleanTargetHandle = currentItem.channelHandle.replace(/^@+/, '').trim();
+        const cleanTargetHandle = cleanHandle.trim();
         const cleanAccount = (user.youtubeConnected || '').replace(/^@+/, '').trim();
         if (cleanAccount) {
           localStorage.setItem(`yt_audit_${cleanAccount}_${cleanTargetHandle}_sub`, Date.now().toString());
+          if (realChannelUrl) {
+            const urlSlug = realChannelUrl.replace(/^https?:\/\/(www\.)?youtube\.com\//, '').replace(/^@+/, '').split('?')[0];
+            localStorage.setItem(`yt_audit_${cleanAccount}_${urlSlug}_sub`, Date.now().toString());
+            const vMatch = realChannelUrl.match(/[?&]v=([a-zA-Z0-9_-]{11})/i) || realChannelUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i);
+            if (vMatch && vMatch[1]) {
+              localStorage.setItem(`yt_audit_${cleanAccount}_${vMatch[1]}_sub`, Date.now().toString());
+            }
+          }
         }
       } else if (itemPlatform === 'facebook') {
         const cleanFbAccount = (user.facebookConnected || '').replace(/^@+/, '').trim();
         const targetClean = (realChannelUrl || currentItem.channelHandle || '').replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
         if (cleanFbAccount) {
           localStorage.setItem(`fb_audit_${cleanFbAccount}_${targetClean}_follow`, Date.now().toString());
+          if (cleanHandle) {
+            localStorage.setItem(`fb_audit_${cleanFbAccount}_${cleanHandle}_follow`, Date.now().toString());
+          }
         }
       }
     }
@@ -860,7 +938,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       minConfirmAt
     });
 
-    showToast(`🌐 Đã mở ${itemPlatformDisplayName}! Bấm ${itemPlatform === 'youtube' ? 'Đăng Ký' : itemPlatform === 'facebook' ? 'Theo Dõi' : 'Follow'} kênh, đợi ${MIN_CONFIRM_SECONDS['follow']}s rồi bấm XÁC NHẬN để đối soát và nhận +200 Xu.`);
+    showToast(`🌐 Đang mở ${itemPlatformDisplayName}! Bấm ${itemPlatform === 'youtube' ? 'Đăng Ký' : itemPlatform === 'facebook' ? 'Theo Dõi' : 'Follow'} kênh, đợi ${MIN_CONFIRM_SECONDS['follow']}s rồi bấm XÁC NHẬN để đối soát và nhận +200 Xu.`);
   };
 
 
@@ -993,11 +1071,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         });
       }
       setInModalAlert({
-        message: fraudCheck.reason,
+        message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: ${fraudCheck.reason}`,
         sub: fraudCheck.waitMoreMs
           ? `🔒 Nút xác nhận sẽ mở sau: ${formatCountdown(fraudCheck.waitMoreMs)}`
-          : `⚠️ Điểm tin cậy bị trừ. Hãy thực hiện thao tác thật trên ứng dụng.`
+          : `⚠️ Điểm tin cậy bị trừ. Hãy thực hiện thao tác thật trên ứng dụng ${itemPlatformDisplayName}.`
       });
+      showToast(`❌ Chưa hoàn thành, vui lòng kiểm tra và làm lại!`);
       // Không đóng banner - để user có thể thử lại sau
       return;
     }
@@ -1008,14 +1087,15 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     try {
       let res: { success: boolean; coinsEarned?: number; txHash?: string; message: string };
       if (currentPlatform === 'youtube') {
+        const targetToVerify = pv.tiktokUrl || currentItem.targetUrl || currentItem.channelHandle;
         if (pv.action === 'follow') {
-          const ytRes = await verifyYouTubeSubscription(currentItem.channelHandle, undefined, user.youtubeConnected);
+          const ytRes = await verifyYouTubeSubscription(targetToVerify, undefined, user.youtubeConnected);
           res = { success: ytRes.success, coinsEarned: 200, txHash: ytRes.txHash || 'YT_SUB', message: ytRes.message };
         } else if (pv.action === 'like') {
-          const ytRes = await verifyYouTubeVideoLike(pv.itemId || currentItem.targetUrl, undefined, user.youtubeConnected);
+          const ytRes = await verifyYouTubeVideoLike(targetToVerify, undefined, user.youtubeConnected);
           res = { success: ytRes.success, coinsEarned: 100, txHash: ytRes.txHash || 'YT_LIKE', message: ytRes.message };
         } else if (pv.action === 'comment') {
-          const ytRes = await verifyYouTubeComment(pv.itemId || currentItem.targetUrl, user.youtubeConnected || '', 5, pv.commentText);
+          const ytRes = await verifyYouTubeComment(targetToVerify, user.youtubeConnected || '', 5, pv.commentText);
           res = { success: ytRes.success, coinsEarned: 200, txHash: ytRes.txHash || 'YT_CMT', message: ytRes.message };
         } else if (pv.action === 'share') {
           res = { success: true, coinsEarned: 240, txHash: 'YT_SHR', message: '✅ Đã xác nhận chia sẻ video YouTube!' };
@@ -1023,7 +1103,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           res = { success: true, coinsEarned: pv.coinsToEarn, message: '✅ Xác nhận thành công!', txHash: 'VERIFIED' };
         }
       } else if (currentPlatform === 'facebook') {
-        const fbRes = await verifyFacebookTaskAction(pv.action, pv.tiktokUrl || currentItem.targetUrl || currentItem.channelHandle, user.facebookConnected || '', { commentText: pv.commentText });
+        const targetToVerify = pv.tiktokUrl || currentItem.targetUrl || currentItem.channelHandle;
+        const fbRes = await verifyFacebookTaskAction(pv.action, targetToVerify, user.facebookConnected || '', { commentText: pv.commentText });
         res = { success: fbRes.success, coinsEarned: pv.coinsToEarn, txHash: fbRes.txHash || 'FB_ACT', message: fbRes.message };
       } else {
         if (pv.action === 'follow') {
@@ -1041,10 +1122,10 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
       if (!res.success) {
         setInModalAlert({
-          message: `❌ XÁC MINH THẤT BẠI: ${res.message}`,
-          sub: `Hệ thống kiểm tra chưa thấy tương tác từ tài khoản chính chủ [${userHandle}]!`
+          message: `❌ ${res.message.includes('Chưa hoàn thành') ? res.message : `Chưa hoàn thành, vui lòng kiểm tra và làm lại: ${res.message}`}`,
+          sub: `Hệ thống kiểm tra chưa thấy tương tác từ tài khoản chính chủ [${userHandle}] trên ${itemPlatformDisplayName}!`
         });
-        showToast(`❌ ${res.message || 'Xác thực thất bại!'}`);
+        showToast(`❌ Chưa hoàn thành, vui lòng kiểm tra và làm lại!`);
         return;
       }
 
@@ -1356,7 +1437,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-black text-amber-300 font-display flex items-center gap-1.5">
-                      ⏳ Chờ Xác Minh Thật Trên TikTok
+                      ⏳ Chờ Xác Minh Thật Trên {itemPlatformDisplayName}
                     </span>
                     {confirmCountdown > 0 && (
                       <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-[10px] font-bold">
@@ -1372,18 +1453,21 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
               {/* Instruction */}
               <div className="text-xs text-slate-300 font-mono leading-relaxed bg-black/40 rounded-2xl p-3 border border-white/10 space-y-1.5">
+                {pendingVerification.action === 'follow' && (
+                  <div>👤 Bấm <strong className="text-cyan-400">{itemPlatform === 'youtube' ? 'Đăng Ký' : itemPlatform === 'facebook' ? 'Theo Dõi' : 'Follow'}</strong> kênh trên {itemPlatformDisplayName} vừa mở, đợi tối thiểu <strong className="text-amber-300">10s</strong> rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> (+200 Xu).</div>
+                )}
                 {pendingVerification.action === 'like' && (
-                  <div>❤️ Thả <strong className="text-rose-400">tim</strong> vào video trên TikTok vừa mở, đợi tối thiểu <strong className="text-amber-300">30s</strong> rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+100 Xu</strong>.</div>
+                  <div>❤️ Thả <strong className="text-rose-400">tim / like</strong> vào video trên {itemPlatformDisplayName} vừa mở, đợi tối thiểu <strong className="text-amber-300">30s</strong> rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> để nhận <strong className="text-neonGold">+100 Xu</strong>.</div>
                 )}
                 {pendingVerification.action === 'comment' && (
-                  <div>💬 Dán bình luận đã copy kèm hashtag <strong className="text-cyan-400">#AVALIVE</strong> (<strong className="text-cyan-300">Ctrl+V</strong>) vào ô bình luận TikTok → gửi. Chờ tối thiểu <strong className="text-amber-300">60s</strong> rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> (+200 Xu).</div>
+                  <div>💬 Dán bình luận đã copy {itemPlatform === 'tiktok' ? 'kèm hashtag #AVALIVE ' : ''}vào ô bình luận {itemPlatformDisplayName} → gửi. Chờ tối thiểu <strong className="text-amber-300">60s</strong> rồi quay lại bấm <strong className="text-emerald-400">Xác Nhận</strong> (+200 Xu).</div>
                 )}
                 {pendingVerification.action === 'share' && (
-                  <div>🔗 Chia sẻ video lên <strong className="text-blue-400">Facebook</strong> hoặc mạng xã hội. Chờ tối thiểu <strong className="text-amber-300">20s</strong> rồi bấm <strong className="text-emerald-400">Xác Nhận</strong> (+240 Xu).</div>
+                  <div>🔗 Chia sẻ video / bài viết lên mạng xã hội. Chờ tối thiểu <strong className="text-amber-300">20s</strong> rồi bấm <strong className="text-emerald-400">Xác Nhận</strong> (+240 Xu).</div>
                 )}
                 <div className="text-[9px] text-slate-400 flex flex-col gap-0.5 pt-1 border-t border-white/5">
-                  <span className="text-emerald-300 font-bold">🛡️ Cơ chế Bảo Chứng 7 Ngày (7-Day Escrow):</span>
-                  <span>Xu nhiệm vụ được bảo lưu trong ví bảo chứng 7 ngày để đảm bảo tính minh bạch & tự động thanh toán.</span>
+                  <span className="text-emerald-300 font-bold">🛡️ Cơ chế Nghiệm Thu Thật 100%:</span>
+                  <span>Chỉ khi hệ thống kiểm tra và xác nhận tương tác thực tế từ tài khoản chính chủ, Xu mới được cộng vào ví.</span>
                 </div>
               </div>
 
@@ -1425,12 +1509,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               </div>
 
 
-              {/* Re-open TikTok link */}
+              {/* Re-open platform link */}
               <button
                 onClick={(e) => { e.stopPropagation(); window.open(pendingVerification.tiktokUrl, '_blank'); }}
                 className="w-full text-center text-[10px] text-slate-500 hover:text-amber-400 font-mono transition-colors cursor-pointer"
               >
-                🔗 Mở lại TikTok: {pendingVerification.tiktokUrl.replace('https://', '')}
+                🔗 Mở lại {itemPlatformDisplayName}: {pendingVerification.tiktokUrl.replace('https://', '')}
               </button>
             </div>
           </div>
@@ -2217,9 +2301,17 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                     <CheckCircle2 className="h-3.5 w-3.5" /> {isLiveItem ? 'Đã xem đủ phiên live (+Xu vào ví)!' : 'Đã đạt chỉ tiêu xem video (+200 Xu vào ví)!'}
                   </span>
                 )
-              ) : (
+              ) : isAllActionsCompleted ? (
                 <span className="text-emerald-400 font-bold flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5 text-neonGold" /> Tự do làm nhiệm vụ &amp; lướt tiếp ngay!
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Đã nghiệm thu &amp; hoàn thành nhiệm vụ!
+                </span>
+              ) : completedActionsCount > 0 ? (
+                <span className="text-amber-400 font-bold flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5 text-amber-400" /> Đã nghiệm thu {completedActionsCount}/{requiredActions.length} bước - Tiếp tục để nhận đủ Xu
+                </span>
+              ) : (
+                <span className="text-rose-400 font-bold flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5 text-neonGold" /> ⚠️ Chưa hoàn thành: Hãy làm nhiệm vụ &amp; bấm Nghiệm thu để nhận Xu
                 </span>
               )}
             </div>
@@ -2250,7 +2342,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               style={{ 
                 width: isWatchRequired 
                   ? `${((Math.max(0, (isLiveItem ? (currentItem?.targetMinutes ? Math.round(currentItem.targetMinutes * 60) : 180) : 40) - timeLeft)) / Math.max(1, (isLiveItem ? (currentItem?.targetMinutes ? Math.round(currentItem.targetMinutes * 60) : 180) : 40))) * 100}%` 
-                  : '100%' 
+                  : `${requiredActions.length > 0 ? (completedActionsCount / requiredActions.length) * 100 : 0}%` 
               }}
             />
           </div>
@@ -2258,7 +2350,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           {/* Sleek Compact Next Button */}
           <button
             onClick={handleNextItem}
-            className="w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md bg-gradient-to-r from-slate-800 hover:from-slate-700 to-slate-900 border border-white/15 text-white cursor-pointer active:scale-98 font-mono"
+            className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md border cursor-pointer active:scale-98 font-mono ${
+              isAllActionsCompleted || (isWatchRequired && timeLeft === 0)
+                ? 'bg-gradient-to-r from-emerald-800 to-teal-900 border-emerald-500/40 text-emerald-200 hover:brightness-110'
+                : 'bg-gradient-to-r from-slate-800 hover:from-slate-700 to-slate-900 border-white/15 text-white'
+            }`}
           >
             <span>Chiến dịch tiếp theo</span>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />

@@ -53,7 +53,7 @@ export const setCustomYouTubeApiKey = (key: string): void => {
 /**
  * 1. TRÍCH XUẤT HANDLE / ID KÊNH TỪ LINK HOẶC CHUỖI NHẬP VÀO
  */
-export function extractYouTubeIdentifier(input: string): { type: 'handle' | 'channelId' | 'custom' | 'unknown'; value: string } {
+export function extractYouTubeIdentifier(input: string): { type: 'handle' | 'channelId' | 'custom' | 'video' | 'unknown'; value: string } {
   const clean = (input || '').trim();
   if (!clean) return { type: 'unknown', value: '' };
 
@@ -67,6 +67,14 @@ export function extractYouTubeIdentifier(input: string): { type: 'handle' | 'cha
   const channelMatch = clean.match(/(?:https?:\/\/(?:www\.)?youtube\.com\/)?channel\/(UC[a-zA-Z0-9_-]{22})/i);
   if (channelMatch && channelMatch[1]) {
     return { type: 'channelId', value: channelMatch[1] };
+  }
+
+  // Dạng Video URL (/watch?v=..., youtu.be/..., /shorts/...)
+  const vMatch = clean.match(/[?&]v=([a-zA-Z0-9_-]{11})/i) || 
+                 clean.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i) || 
+                 clean.match(/\/(?:shorts|live|embed)\/([a-zA-Z0-9_-]{11})/i);
+  if (vMatch && vMatch[1]) {
+    return { type: 'video', value: vMatch[1] };
   }
 
   // Dạng /c/Name hoặc /user/Name
@@ -178,7 +186,8 @@ export async function verifyYouTubeSubscription(
   userAccessToken?: string,
   userYouTubeAccount?: string
 ): Promise<YouTubeVerificationResult> {
-  const cleanTarget = targetChannelId.replace(/^@+/, '');
+  const parsed = extractYouTubeIdentifier(targetChannelId);
+  const cleanTarget = (parsed.value || targetChannelId).replace(/^@+/, '');
   const cleanAccount = (userYouTubeAccount || '').replace(/^@+/, '').trim();
 
   if (!cleanAccount || cleanAccount === 'Chưa kết nối' || cleanAccount.includes('chưa_kết_nối')) {
@@ -186,11 +195,11 @@ export async function verifyYouTubeSubscription(
       success: false,
       actionType: 'subscribe',
       targetId: cleanTarget,
-      message: 'Bạn chưa kết nối Kênh YouTube! Vui lòng vào Cài đặt để liên kết kênh YouTube chính chủ.'
+      message: 'Chưa hoàn thành, vui lòng kiểm tra và làm lại: Bạn chưa kết nối Kênh YouTube! Vui lòng vào Cài đặt để liên kết kênh YouTube chính chủ.'
     };
   }
 
-  if (userAccessToken) {
+  if (userAccessToken && parsed.type === 'channelId') {
     try {
       const url = `https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&forChannelId=${encodeURIComponent(cleanTarget)}`;
       const res = await fetch(url, {
@@ -207,7 +216,7 @@ export async function verifyYouTubeSubscription(
           success: isSubscribed,
           actionType: 'subscribe',
           targetId: cleanTarget,
-          message: isSubscribed ? `Xác thực thành công: Kênh [${cleanAccount}] đã Đăng Ký kênh YouTube!` : `Tài khoản YouTube [${cleanAccount}] chưa bấm Đăng Ký kênh này!`,
+          message: isSubscribed ? `Xác thực thành công: Kênh [${cleanAccount}] đã Đăng Ký kênh YouTube!` : `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Tài khoản YouTube [${cleanAccount}] chưa bấm Đăng Ký kênh này!`,
           txHash: `YT_SUB_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           details: data
         };
@@ -219,7 +228,10 @@ export async function verifyYouTubeSubscription(
 
   // 2. NẾU KHÔNG CÓ TOKEN OAUTH / ĐỐI SOÁT API:
   const auditKey = `yt_audit_${cleanAccount}_${cleanTarget}_sub`;
-  const existingAudit = typeof window !== 'undefined' ? localStorage.getItem(auditKey) : null;
+  const existingAudit = typeof window !== 'undefined' ? (
+    localStorage.getItem(auditKey) || 
+    localStorage.getItem(`yt_audit_${cleanAccount}_${targetChannelId.replace(/^@+/, '')}_sub`)
+  ) : null;
   if (existingAudit) {
     return {
       success: true,
@@ -235,7 +247,7 @@ export async function verifyYouTubeSubscription(
     success: false,
     actionType: 'subscribe',
     targetId: cleanTarget,
-    message: `Hệ thống YouTube chưa ghi nhận lượt Đăng Ký từ tài khoản [${cleanAccount}]! Vui lòng mở YouTube, bấm Đăng Ký kênh trước khi nhận Xu.`
+    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Hệ thống YouTube chưa ghi nhận lượt Đăng Ký từ tài khoản [${cleanAccount}]! Vui lòng mở YouTube, bấm Đăng Ký kênh trước khi nhận Xu.`
   };
 }
 
@@ -256,7 +268,7 @@ export async function verifyYouTubeVideoLike(
       success: false,
       actionType: 'like',
       targetId: cleanVideoId,
-      message: 'Bạn chưa kết nối Kênh YouTube!'
+      message: 'Chưa hoàn thành, vui lòng kiểm tra và làm lại: Bạn chưa kết nối Kênh YouTube!'
     };
   }
 
@@ -280,7 +292,7 @@ export async function verifyYouTubeVideoLike(
           targetId: cleanVideoId,
           message: isLiked 
             ? `Xác thực Thả Like video thành công từ kênh [${cleanAccount}]!` 
-            : `Bạn chưa bấm Thích (Like) video này bằng tài khoản [${cleanAccount}]! Vui lòng bấm Thích trên YouTube trước khi nhận Xu.`,
+            : `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Bạn chưa bấm Thích (Like) video này bằng tài khoản [${cleanAccount}]!`,
           txHash: isLiked ? `YT_LIKE_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` : undefined,
           details: data
         };
@@ -291,7 +303,10 @@ export async function verifyYouTubeVideoLike(
   }
 
   const likeAuditKey = `yt_audit_like_${cleanAccount}_${cleanVideoId}`;
-  const existingLikeAudit = typeof window !== 'undefined' ? localStorage.getItem(likeAuditKey) : null;
+  const existingLikeAudit = typeof window !== 'undefined' ? (
+    localStorage.getItem(likeAuditKey) ||
+    localStorage.getItem(`yt_audit_like_${cleanAccount}_${videoId}`)
+  ) : null;
   if (existingLikeAudit) {
     return {
       success: true,
@@ -306,7 +321,7 @@ export async function verifyYouTubeVideoLike(
     success: false,
     actionType: 'like',
     targetId: cleanVideoId,
-    message: `Chưa ghi nhận lượt Thích (Like) video từ tài khoản YouTube [${cleanAccount}]! Vui lòng mở video trên YouTube và bấm Thích trước khi nhận Xu.`
+    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Hệ thống YouTube chưa ghi nhận lượt Thích (Like) video từ tài khoản YouTube [${cleanAccount}]!`
   };
 }
 
@@ -328,7 +343,7 @@ export async function verifyYouTubeComment(
       success: false,
       actionType: 'comment',
       targetId: cleanVideoId,
-      message: 'Bạn chưa kết nối Kênh YouTube!'
+      message: 'Chưa hoàn thành, vui lòng kiểm tra và làm lại: Bạn chưa kết nối Kênh YouTube!'
     };
   }
 
@@ -337,7 +352,7 @@ export async function verifyYouTubeComment(
       success: false,
       actionType: 'comment',
       targetId: cleanVideoId,
-      message: `Nội dung bình luận quá ngắn! Vui lòng viết bình luận tối thiểu ${minCommentLength} ký tự.`
+      message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Nội dung bình luận quá ngắn (tối thiểu ${minCommentLength} ký tự).`
     };
   }
 
@@ -370,7 +385,7 @@ export async function verifyYouTubeComment(
             success: false,
             actionType: 'comment',
             targetId: cleanVideoId,
-            message: `Chưa tìm thấy bình luận của kênh [${cleanAccount}] trên video YouTube này! Vui lòng bình luận vào video trước khi nhận Xu.`
+            message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa tìm thấy bình luận của kênh [${cleanAccount}] trên video YouTube này!`
           };
         }
       }
@@ -380,7 +395,10 @@ export async function verifyYouTubeComment(
   }
 
   const cmtAuditKey = `yt_audit_cmt_${cleanAccount}_${cleanVideoId}`;
-  const existingCmtAudit = typeof window !== 'undefined' ? localStorage.getItem(cmtAuditKey) : null;
+  const existingCmtAudit = typeof window !== 'undefined' ? (
+    localStorage.getItem(cmtAuditKey) ||
+    localStorage.getItem(`yt_audit_cmt_${cleanAccount}_${videoId}`)
+  ) : null;
   if (existingCmtAudit) {
     return {
       success: true,
@@ -395,6 +413,6 @@ export async function verifyYouTubeComment(
     success: false,
     actionType: 'comment',
     targetId: cleanVideoId,
-    message: `Chưa tìm thấy bình luận của bạn trên YouTube! Vui lòng kiểm tra lại kênh [${cleanAccount}] và nội dung đã bình luận trên video.`
+    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa tìm thấy bình luận của bạn trên YouTube từ tài khoản [${cleanAccount}]!`
   };
 }

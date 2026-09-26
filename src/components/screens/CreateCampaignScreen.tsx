@@ -297,18 +297,44 @@ export const CreateCampaignScreen: React.FC<{
     if (lower.includes('youtube.com') || lower.includes('youtu.be') || lower.includes('m.youtube.com')) {
       setCampaignPlatform('youtube');
       showToast('🔴 Đã nhận diện đường link YouTube! Tự động chuyển chế độ YouTube.');
+      const ytHandleMatch = cleanVal.match(/(?:youtube\.com\/|youtu\.be\/)@([a-zA-Z0-9._-]+)/i);
+      if (ytHandleMatch && ytHandleMatch[1]) {
+        setChannelHandle(`@${ytHandleMatch[1]}`);
+      } else {
+        try {
+          fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(cleanVal)}&format=json`)
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+              if (data?.author_url) {
+                const authorMatch = data.author_url.match(/@([a-zA-Z0-9._-]+)/i);
+                if (authorMatch && authorMatch[1]) {
+                  setChannelHandle(`@${authorMatch[1]}`);
+                  return;
+                }
+              }
+              if (data?.author_name) {
+                setChannelHandle(`@${data.author_name.replace(/\s+/g, '_')}`);
+              }
+            })
+            .catch(() => {});
+        } catch {}
+      }
     } else if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.com') || lower.includes('fb.gg') || lower.includes('m.facebook.com')) {
       setCampaignPlatform('facebook');
       showToast('📘 Đã nhận diện đường link Facebook! Tự động chuyển chế độ Fanpage/Reels Facebook.');
+      const fbHandleMatch = cleanVal.match(/facebook\.com\/([a-zA-Z0-9._-]+)/i);
+      if (fbHandleMatch && !['watch', 'reel', 'videos', 'share', 'groups'].includes(fbHandleMatch[1].toLowerCase())) {
+        setChannelHandle(`@${fbHandleMatch[1]}`);
+      }
     } else if (lower.includes('tiktok.com') || lower.includes('vt.tiktok.com') || lower.includes('vm.tiktok.com') || lower.includes('m.tiktok.com')) {
       setCampaignPlatform('tiktok');
       showToast('🎵 Đã nhận diện đường link TikTok! Tự động chuyển chế độ TikTok.');
-    }
-
-    // Trích xuất @handle từ URL nếu có
-    const extractedHandle = extractTikTokHandle(cleanVal);
-    if (extractedHandle && extractedHandle !== '@creator_vietnam') {
-      setChannelHandle(extractedHandle);
+      const extractedHandle = extractTikTokHandle(cleanVal);
+      if (extractedHandle && extractedHandle !== '@creator_vietnam') {
+        setChannelHandle(extractedHandle);
+      } else if (cleanVal.startsWith('@')) {
+        setChannelHandle(cleanVal);
+      }
     } else if (cleanVal.startsWith('@')) {
       setChannelHandle(cleanVal);
     } else if (!cleanVal.includes('http') && !cleanVal.includes('/') && cleanVal.length > 2) {
@@ -516,14 +542,30 @@ export const CreateCampaignScreen: React.FC<{
       livestreamMinutes: t.id === 'livestream' ? livestreamMinutes : undefined
     }));
 
+    // Chuẩn hóa handle theo nền tảng
+    let resolvedChannelHandle = channelHandle.trim();
+    if (campaignPlatform === 'youtube') {
+      const ytMatch = targetUrl.match(/(?:youtube\.com\/|youtu\.be\/)@([a-zA-Z0-9._-]+)/i);
+      if (ytMatch && ytMatch[1]) {
+        resolvedChannelHandle = `@${ytMatch[1]}`;
+      } else if (!resolvedChannelHandle || resolvedChannelHandle === '@vtv24news' || resolvedChannelHandle.startsWith('@user')) {
+        resolvedChannelHandle = '@YouTubeCreator';
+      }
+    } else if (campaignPlatform === 'facebook') {
+      const fbMatch = targetUrl.match(/facebook\.com\/([a-zA-Z0-9._-]+)/i);
+      if (fbMatch && !['watch', 'reel', 'videos', 'share', 'groups'].includes(fbMatch[1].toLowerCase())) {
+        resolvedChannelHandle = `@${fbMatch[1]}`;
+      }
+    }
+
     // Auto-generate title if empty
     let finalTitle = title.trim();
     if (!finalTitle) {
       if (isMultiTarget) {
-        finalTitle = `Chiến Dịch Combo ${activeTargetsList.length} Mục Tiêu cho ${channelHandle}`;
+        finalTitle = `Chiến Dịch Combo ${activeTargetsList.length} Mục Tiêu cho ${resolvedChannelHandle}`;
       } else {
         const single = activeTargetsList[0];
-        finalTitle = `Tăng ${(targetQuantities[single.id] || 10).toLocaleString()} ${single.unitLabel} cho ${channelHandle}`;
+        finalTitle = `Tăng ${(targetQuantities[single.id] || 10).toLocaleString()} ${single.unitLabel} cho ${resolvedChannelHandle}`;
       }
     }
 
@@ -535,7 +577,7 @@ export const CreateCampaignScreen: React.FC<{
       title: finalTitle,
       platform: campaignPlatform,
       type: primaryType,
-      channelHandle,
+      channelHandle: resolvedChannelHandle,
       channelUrl: targetUrl,
       fanpageUrl: campaignPlatform === 'facebook' ? targetUrl : undefined,
       targetUrl,
@@ -1101,11 +1143,11 @@ export const CreateCampaignScreen: React.FC<{
               </div>
             </div>
 
-            {/* CỘT 2: TIKTOK CHANNEL HANDLE */}
+            {/* CỘT 2: CHANNEL / FANPAGE HANDLE */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="block text-cyan-300 font-mono font-black uppercase text-xs sm:text-sm tracking-wide">
-                  3. TIKTOK CHANNEL HANDLE (@):
+                  3. {campaignPlatform === 'youtube' ? 'YOUTUBE CHANNEL HANDLE / ID (@):' : campaignPlatform === 'facebook' ? 'FACEBOOK FANPAGE / TÀI KHOẢN (@):' : 'TIKTOK CHANNEL HANDLE (@):'}
                 </label>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold">
                   ✓ Tự động điền kênh
@@ -1115,12 +1157,16 @@ export const CreateCampaignScreen: React.FC<{
                 type="text"
                 value={channelHandle}
                 onChange={(e) => handleChannelHandleChange(e.target.value)}
-                placeholder="@username_chinh_thuc"
+                placeholder={campaignPlatform === 'youtube' ? '@YouTubeChannel' : campaignPlatform === 'facebook' ? '@FanpageName' : '@username_chinh_thuc'}
                 className="w-full bg-black/80 border-2 border-cyan-500/50 hover:border-cyan-400 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-500/20 rounded-2xl px-4 py-3.5 sm:py-4 text-white placeholder-slate-400 font-mono text-xs sm:text-sm font-bold transition-all shadow-inner"
                 required
               />
               <p className="text-[10px] text-slate-400 font-mono">
-                Kênh TikTok sẽ nhận tương tác & hiển thị huy hiệu xác thực.
+                {campaignPlatform === 'youtube' 
+                  ? 'Kênh YouTube sẽ nhận tương tác & hiển thị huy hiệu xác thực.' 
+                  : campaignPlatform === 'facebook' 
+                    ? 'Trang Facebook sẽ nhận tương tác & xác thực.' 
+                    : 'Kênh TikTok sẽ nhận tương tác & hiển thị huy hiệu xác thực.'}
               </p>
             </div>
           </div>

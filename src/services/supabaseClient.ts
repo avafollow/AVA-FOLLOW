@@ -296,19 +296,22 @@ export async function registerUserToSupabase(user: {
 /**
  * 6. KẾT NỐI ĐĂNG NHẬP OAUTH CÁC NỀN TẢNG QUA SUPABASE & DIRECT LOGIN
  */
-export async function signInWithGoogleOAuth() {
-  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5050';
+export async function signInWithGoogleOAuth(includeYouTubeScopes = false) {
+  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
   try {
+    const options: any = {
+      redirectTo: redirectOrigin,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      }
+    };
+    if (includeYouTubeScopes) {
+      options.scopes = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl';
+    }
     const res = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: redirectOrigin,
-        scopes: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl',
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        }
-      }
+      options
     });
     return res;
   } catch (err: any) {

@@ -336,6 +336,24 @@ export const CreateCampaignScreen: React.FC<{
       } else if (cleanVal.startsWith('@')) {
         setChannelHandle(cleanVal);
       }
+
+      // Tự động phân giải link TikTok siêu tốc nếu là shortlink di động
+      if (lower.includes('vt.tiktok.com') || lower.includes('vm.tiktok.com') || lower.includes('tiktok.com/t') || lower.includes('/t/')) {
+        fetch(`/api/tiktok-resolve?url=${encodeURIComponent(cleanVal)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.resolved) {
+              setTargetUrl(data.resolved);
+              if (data.authorHandle) {
+                setChannelHandle(data.authorHandle);
+              }
+              if (data.title && !title) {
+                setTitle(data.title);
+              }
+            }
+          })
+          .catch(() => {});
+      }
     } else if (cleanVal.startsWith('@')) {
       setChannelHandle(cleanVal);
     } else if (!cleanVal.includes('http') && !cleanVal.includes('/') && cleanVal.length > 2) {
@@ -1193,12 +1211,12 @@ export const CreateCampaignScreen: React.FC<{
             {/* Khung phát video to đúng chuẩn kích thước 9:16 trên điện thoại di động & máy tính */}
             <div className="w-full max-w-full sm:max-w-[380px] lg:max-w-[380px] aspect-[9/16] min-h-[520px] sm:min-h-[580px] lg:h-[640px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-rose-500/60 ring-4 ring-rose-500/15 relative bg-black transition-all">
               <TikTokVideoPreviewPlayer
-                key={`preview-${targetUrl}-${channelHandle}-${(selectedTargets.livestream || targetUrl.toLowerCase().includes('live')) ? 'live' : 'vod'}`}
+                key={`preview-${targetUrl}-${channelHandle}-${(selectedTargets.livestream || parseMediaUrl(targetUrl).isLive) ? 'live' : 'vod'}`}
                 url={targetUrl}
                 channelHandle={channelHandle}
-                isLive={Boolean(selectedTargets.livestream || targetUrl.includes('/live') || targetUrl.toLowerCase().includes('live') || parseMediaUrl(targetUrl).isLive)}
+                isLive={Boolean(selectedTargets.livestream || parseMediaUrl(targetUrl).isLive)}
                 className="w-full h-full"
-                badgeText={Boolean(selectedTargets.livestream || targetUrl.includes('/live') || targetUrl.toLowerCase().includes('live') || parseMediaUrl(targetUrl).isLive) ? 'LIVE' : 'FYP'}
+                badgeText={Boolean(selectedTargets.livestream || parseMediaUrl(targetUrl).isLive) ? 'LIVE' : 'FYP'}
                 autoPlay={true}
                 muted={true}
                 fullSize={true}

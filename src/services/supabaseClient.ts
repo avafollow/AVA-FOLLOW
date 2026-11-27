@@ -7,9 +7,9 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Cấu hình kết nối từ biến môi trường hoặc cấu hình mặc định an toàn
-const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://bsmslbccqkvgiikrghpg.supabase.co';
-const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzbXNsYmNjcWt2Z2lpa3JnaHBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMTg4MjQsImV4cCI6MjEwNDc5NDgyNH0.NStpjXimOgkvMzeU41m0sM-dJHYMi_yrzs3RfrZOh_0';
-const SUPABASE_SERVICE_ROLE_KEY = (import.meta as any).env?.VITE_SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzbXNsYmNjcWt2Z2lpa3JnaHBnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTIxODgyNCwiZXhwIjoyMTA0Nzk0ODI0fQ.aDqrt6nyeC8REYJS_AWe2xv6yOr3LEotxcNBKh5yQ2s';
+const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://vjsymzbaiyzuryvdniwd.supabase.co';
+const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_tcxsNyytQ_quQ6ODuWtF8w_j96MyTYq';
+const SUPABASE_SERVICE_ROLE_KEY = (import.meta as any).env?.VITE_SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
 
 // Khởi tạo Supabase client chính thức
 export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -35,9 +35,32 @@ export const getSupabaseConfig = () => {
   return {
     url: SUPABASE_URL,
     isReady: isSupabaseConfigured(),
-    projectRef: 'bsmslbccqkvgiikrghpg'
+    projectRef: 'vjsymzbaiyzuryvdniwd'
   };
 };
+
+/**
+ * 0. KEEP-ALIVE HEARTBEAT: Tự động ghi nhận hoạt động thực để Supabase không bao giờ bị tạm dừng
+ */
+export async function pingSupabaseKeepAlive(source = 'web_client') {
+  try {
+    const { data: existing } = await supabase
+      .from('system_keepalive')
+      .select('ping_count')
+      .eq('id', 1)
+      .maybeSingle();
+
+    const nextCount = Number(existing?.ping_count || 0) + 1;
+    await supabase.from('system_keepalive').upsert({
+      id: 1,
+      service_name: 'AVA_FOLLOW_SUPABASE',
+      status: 'ACTIVE',
+      ping_count: nextCount,
+      last_ping_source: source,
+      last_ping_at: new Date().toISOString()
+    }, { onConflict: 'id' });
+  } catch {}
+}
 
 /**
  * 1. ĐỒNG BỘ SỔ CÁI XU & TOKEN (TOKEN LEDGER)
@@ -280,6 +303,7 @@ export async function signInWithGoogleOAuth() {
       provider: 'google',
       options: {
         redirectTo: redirectOrigin,
+        scopes: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl',
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',

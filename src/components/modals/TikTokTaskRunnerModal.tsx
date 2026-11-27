@@ -38,9 +38,10 @@ import { verifyPlatformAccountForTask } from '../../services/platformProfileSync
 import { 
   verifyYouTubeSubscription, 
   verifyYouTubeVideoLike, 
-  verifyYouTubeComment 
+  verifyYouTubeComment,
+  getYouTubeOAuthToken
 } from '../../services/youtubeApiService';
-import { verifyFacebookTaskAction } from '../../services/facebookApiService';
+import { verifyFacebookTaskAction, getFacebookOAuthToken } from '../../services/facebookApiService';
 
 export const TikTokTaskRunnerModal: React.FC = () => {
   const { 
@@ -203,21 +204,29 @@ export const TikTokTaskRunnerModal: React.FC = () => {
         let verifyMsg = '';
 
         if (taskPlatform === 'youtube') {
+          const ytToken = getYouTubeOAuthToken();
           if (pendingFraudAction === 'follow') {
-            const res = await verifyYouTubeSubscription(runnerTask.channelHandle, undefined, user.youtubeConnected);
+            const res = await verifyYouTubeSubscription(runnerTask.targetUrl || runnerTask.channelHandle, ytToken, user.youtubeConnected);
             isVerified = res.success;
             verifyMsg = res.message;
           } else if (pendingFraudAction === 'like') {
-            const res = await verifyYouTubeVideoLike(runnerTask.targetUrl || runnerTask.id, undefined, user.youtubeConnected);
+            const res = await verifyYouTubeVideoLike(runnerTask.targetUrl || runnerTask.id, ytToken, user.youtubeConnected);
             isVerified = res.success;
             verifyMsg = res.message;
           } else if (pendingFraudAction === 'comment') {
             const res = await verifyYouTubeComment(runnerTask.targetUrl || runnerTask.id, user.youtubeConnected || '', 5, pendingCommentText);
             isVerified = res.success;
             verifyMsg = res.message;
+          } else if (pendingFraudAction === 'share') {
+            isVerified = false;
+            verifyMsg = 'YouTube Data API v3 không hỗ trợ xác minh Chia sẻ công khai cá nhân. Tạm không cộng Xu tự động!';
           }
         } else if (taskPlatform === 'facebook') {
-          const res = await verifyFacebookTaskAction(pendingFraudAction, runnerTask.targetUrl || runnerTask.channelHandle, user.facebookConnected || '', { commentText: pendingCommentText });
+          const fbToken = getFacebookOAuthToken();
+          const res = await verifyFacebookTaskAction(pendingFraudAction, runnerTask.targetUrl || runnerTask.channelHandle, user.facebookConnected || '', {
+            commentText: pendingCommentText,
+            userAccessToken: fbToken
+          });
           isVerified = res.success;
           verifyMsg = res.message;
         }
@@ -328,7 +337,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       return;
     }
 
-    if (isChannelFollowed(runnerTask.channelHandle)) {
+    if (taskPlatform === 'tiktok' && isChannelFollowed(runnerTask.channelHandle)) {
       showToast(`ℹ️ Bạn đã từng ${actionFollowName} kênh ${runnerTask.channelHandle} rồi. Thao tác đã được ghi nhận tự động!`);
       claimTaskAction(runnerTask.id, 'follow');
       return;
@@ -635,6 +644,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
                   url={runnerTask.targetUrl}
                   title={runnerTask.title}
                   isMuted={isMuted}
+                  onToggleMute={() => setIsMuted(!isMuted)}
                 />
               );
             }
@@ -642,11 +652,12 @@ export const TikTokTaskRunnerModal: React.FC = () => {
             if (mediaInfo?.isTikTok) {
               return (
                 <TikTokVideoEmbedPlayer
-                  key={runnerTask.id + '_tt_' + (mediaInfo.videoId || runnerTask.channelHandle || runnerTask.id)}
+                  key={runnerTask.id + '_tt_' + (mediaInfo.videoId || runnerTask.channelHandle || runnerTask.id) + '_' + (isMuted ? 'muted' : 'unmuted')}
                   videoId={mediaInfo.videoId}
                   directUrl={runnerTask.targetUrl || runnerTask.videoPreviewUrl}
                   title={runnerTask.title}
                   isMuted={isMuted}
+                  onToggleMute={() => setIsMuted(!isMuted)}
                 />
               );
             }
@@ -667,11 +678,12 @@ export const TikTokTaskRunnerModal: React.FC = () => {
 
             return (
               <TikTokVideoEmbedPlayer
-                key={runnerTask.id + '_fallback_tt'}
+                key={runnerTask.id + '_fallback_tt_' + (isMuted ? 'muted' : 'unmuted')}
                 videoId={mediaInfo?.videoId}
                 directUrl={runnerTask.targetUrl || runnerTask.videoPreviewUrl}
                 title={runnerTask.title}
                 isMuted={isMuted}
+                onToggleMute={() => setIsMuted(!isMuted)}
               />
             );
           })()}

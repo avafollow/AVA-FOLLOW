@@ -64,8 +64,8 @@ import {
   type FraudActionType
 } from '../../services/antiFraudEngine';
 import { verifyPlatformAccountForTask } from '../../services/platformProfileSyncService';
-import { verifyYouTubeSubscription, verifyYouTubeVideoLike, verifyYouTubeComment } from '../../services/youtubeApiService';
-import { verifyFacebookTaskAction } from '../../services/facebookApiService';
+import { verifyYouTubeSubscription, verifyYouTubeVideoLike, verifyYouTubeComment, getYouTubeOAuthToken } from '../../services/youtubeApiService';
+import { verifyFacebookTaskAction, getFacebookOAuthToken } from '../../services/facebookApiService';
 
 
 interface UnifiedFeedItem {
@@ -898,30 +898,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
     if (typeof window !== 'undefined') {
       try { window.open(realChannelUrl, '_blank'); } catch (err) { console.warn('Could not open popup:', err); }
-      if (itemPlatform === 'youtube') {
-        const cleanTargetHandle = cleanHandle.trim();
-        const cleanAccount = (user.youtubeConnected || '').replace(/^@+/, '').trim();
-        if (cleanAccount) {
-          localStorage.setItem(`yt_audit_${cleanAccount}_${cleanTargetHandle}_sub`, Date.now().toString());
-          if (realChannelUrl) {
-            const urlSlug = realChannelUrl.replace(/^https?:\/\/(www\.)?youtube\.com\//, '').replace(/^@+/, '').split('?')[0];
-            localStorage.setItem(`yt_audit_${cleanAccount}_${urlSlug}_sub`, Date.now().toString());
-            const vMatch = realChannelUrl.match(/[?&]v=([a-zA-Z0-9_-]{11})/i) || realChannelUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i);
-            if (vMatch && vMatch[1]) {
-              localStorage.setItem(`yt_audit_${cleanAccount}_${vMatch[1]}_sub`, Date.now().toString());
-            }
-          }
-        }
-      } else if (itemPlatform === 'facebook') {
-        const cleanFbAccount = (user.facebookConnected || '').replace(/^@+/, '').trim();
-        const targetClean = (realChannelUrl || currentItem.channelHandle || '').replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
-        if (cleanFbAccount) {
-          localStorage.setItem(`fb_audit_${cleanFbAccount}_${targetClean}_follow`, Date.now().toString());
-          if (cleanHandle) {
-            localStorage.setItem(`fb_audit_${cleanFbAccount}_${cleanHandle}_follow`, Date.now().toString());
-          }
-        }
-      }
     }
 
     const openedAt = Date.now();
@@ -991,19 +967,6 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
     if (typeof window !== 'undefined') {
       try { window.open(videoTargetUrl, '_blank'); } catch (err) { console.warn('Could not open video tab:', err); }
-      if (itemPlatform === 'youtube') {
-        const cleanTargetVid = (videoTargetUrl || currentItem.targetUrl || currentItem.id).replace(/^https?:\/\/(www\.)?youtube\.com\/watch\?v=/, '').replace(/^https?:\/\/youtu\.be\//, '').split('&')[0];
-        const cleanAccount = (user.youtubeConnected || '').replace(/^@+/, '').trim();
-        if (cleanAccount) {
-          localStorage.setItem(`yt_audit_like_${cleanAccount}_${cleanTargetVid}`, Date.now().toString());
-        }
-      } else if (itemPlatform === 'facebook') {
-        const cleanFbAccount = (user.facebookConnected || '').replace(/^@+/, '').trim();
-        const targetClean = (videoTargetUrl || currentItem.channelHandle || '').replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/^@+/, '').split('?')[0].split('/')[0];
-        if (cleanFbAccount) {
-          localStorage.setItem(`fb_audit_like_${cleanFbAccount}_${targetClean}`, Date.now().toString());
-        }
-      }
     }
 
     const openedAt = Date.now();
@@ -1081,30 +1044,38 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       return;
     }
 
-    // ── XÁC MINH HỢP LỆ - TIẾN HÀNH CỘP XU ──
-    setPendingVerification(null);
+    // ── XÁC MINH HỢP LỆ - TIẾN HÀNH ĐỐI SOÁT API TRƯỚC KHI CỘNG XU ──
     setSyncingAction(pv.action);
     try {
       let res: { success: boolean; coinsEarned?: number; txHash?: string; message: string };
       if (currentPlatform === 'youtube') {
         const targetToVerify = pv.tiktokUrl || currentItem.targetUrl || currentItem.channelHandle;
+        const ytToken = getYouTubeOAuthToken();
         if (pv.action === 'follow') {
-          const ytRes = await verifyYouTubeSubscription(targetToVerify, undefined, user.youtubeConnected);
+          const ytRes = await verifyYouTubeSubscription(targetToVerify, ytToken, user.youtubeConnected);
           res = { success: ytRes.success, coinsEarned: 200, txHash: ytRes.txHash || 'YT_SUB', message: ytRes.message };
         } else if (pv.action === 'like') {
-          const ytRes = await verifyYouTubeVideoLike(targetToVerify, undefined, user.youtubeConnected);
+          const ytRes = await verifyYouTubeVideoLike(targetToVerify, ytToken, user.youtubeConnected);
           res = { success: ytRes.success, coinsEarned: 100, txHash: ytRes.txHash || 'YT_LIKE', message: ytRes.message };
         } else if (pv.action === 'comment') {
           const ytRes = await verifyYouTubeComment(targetToVerify, user.youtubeConnected || '', 5, pv.commentText);
           res = { success: ytRes.success, coinsEarned: 200, txHash: ytRes.txHash || 'YT_CMT', message: ytRes.message };
         } else if (pv.action === 'share') {
-          res = { success: true, coinsEarned: 240, txHash: 'YT_SHR', message: '✅ Đã xác nhận chia sẻ video YouTube!' };
+          res = {
+            success: false,
+            coinsEarned: 0,
+            message: 'YouTube Data API v3 không cung cấp endpoint công khai để xác minh lượt Chia sẻ cá nhân. Hệ thống tạm từ chối cộng Xu tự động cho hành động Share để tránh gian lận!'
+          };
         } else {
           res = { success: true, coinsEarned: pv.coinsToEarn, message: '✅ Xác nhận thành công!', txHash: 'VERIFIED' };
         }
       } else if (currentPlatform === 'facebook') {
         const targetToVerify = pv.tiktokUrl || currentItem.targetUrl || currentItem.channelHandle;
-        const fbRes = await verifyFacebookTaskAction(pv.action, targetToVerify, user.facebookConnected || '', { commentText: pv.commentText });
+        const fbToken = getFacebookOAuthToken();
+        const fbRes = await verifyFacebookTaskAction(pv.action, targetToVerify, user.facebookConnected || '', {
+          commentText: pv.commentText,
+          userAccessToken: fbToken
+        });
         res = { success: fbRes.success, coinsEarned: pv.coinsToEarn, txHash: fbRes.txHash || 'FB_ACT', message: fbRes.message };
       } else {
         if (pv.action === 'follow') {
@@ -1122,12 +1093,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
       if (!res.success) {
         setInModalAlert({
-          message: `❌ ${res.message.includes('Chưa hoàn thành') ? res.message : `Chưa hoàn thành, vui lòng kiểm tra và làm lại: ${res.message}`}`,
-          sub: `Hệ thống kiểm tra chưa thấy tương tác từ tài khoản chính chủ [${userHandle}] trên ${itemPlatformDisplayName}!`
+          message: `❌ ${res.message.includes('Chưa') || res.message.includes('Không') ? res.message : `Chưa hoàn thành, vui lòng kiểm tra và làm lại: ${res.message}`}`,
+          sub: `Hệ thống đối soát chưa nhận được xác nhận từ ${itemPlatformDisplayName} cho tài khoản [${userHandle}]. Chưa cộng Xu!`
         });
-        showToast(`❌ Chưa hoàn thành, vui lòng kiểm tra và làm lại!`);
+        showToast(`❌ Chưa được ${itemPlatformDisplayName} xác nhận — Không cộng Xu!`);
         return;
       }
+
+      setPendingVerification(null);
 
       const actionKey = pv.action as 'follow' | 'like' | 'comment' | 'share';
       const alreadyClaimed = taskClaimedMap[pv.itemId]?.[actionKey];
@@ -1799,6 +1772,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   url={currentItem.targetUrl}
                   title={currentItem.title}
                   isMuted={isMuted}
+                  onToggleMute={() => setIsMuted(!isMuted)}
                 />
               );
             }
@@ -1826,11 +1800,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
             if (itemMedia.isTikTok) {
               return (
                 <TikTokVideoEmbedPlayer
-                  key={currentItem.id + '_tt_' + (itemMedia.videoId || currentItem.channelHandle || currentItem.id)}
+                  key={currentItem.id + '_tt_' + (itemMedia.videoId || currentItem.channelHandle || currentItem.id) + '_' + (isMuted ? 'muted' : 'unmuted')}
                   videoId={itemMedia.videoId}
                   directUrl={currentItem.targetUrl || currentItem.videoUrl}
                   title={currentItem.title}
                   isMuted={isMuted}
+                  onToggleMute={() => setIsMuted(!isMuted)}
                 />
               );
             }
@@ -1852,11 +1827,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
             return (
               <TikTokVideoEmbedPlayer
-                key={currentItem.id + '_fallback_tt'}
+                key={currentItem.id + '_fallback_tt_' + (isMuted ? 'muted' : 'unmuted')}
                 videoId={itemMedia.videoId}
                 directUrl={currentItem.targetUrl || currentItem.videoUrl}
                 title={currentItem.title}
                 isMuted={isMuted}
+                onToggleMute={() => setIsMuted(!isMuted)}
               />
             );
           })()}

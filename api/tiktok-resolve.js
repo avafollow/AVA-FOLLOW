@@ -47,7 +47,40 @@ export default async function handler(req, res) {
        }
     }
 
-    // 2. Nếu URL (sau khi resolve) là một link Live, ta gọi bằng Desktop UA để cào SIGI_STATE
+    // 2. Trích xuất Video ID và Handle nếu là Video TikTok
+    const videoIdMatch = finalUrl.match(/\/(?:video|v|embed\/v2|embed|player\/v1|share\/video)\/(\d{10,24})/i) ||
+                         finalUrl.match(/[?&](?:item_id|video_id)=(\d{10,24})/i) ||
+                         finalUrl.match(/m\.tiktok\.com\/v\/(\d+)/i) ||
+                         (finalUrl.includes('tiktok.com') ? finalUrl.match(/(\d{15,24})/) : null);
+    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+    const handleMatch = finalUrl.match(/@([a-zA-Z0-9._-]+)/i);
+    const authorHandle = handleMatch ? `@${handleMatch[1]}` : null;
+
+    let oembedData = null;
+    let videoTitle = null;
+    let authorName = null;
+    let thumbnailUrl = null;
+    let playerUrl = null;
+
+    if (videoId) {
+      playerUrl = `https://www.tiktok.com/embed/v2/${videoId}?lang=vi-VN`;
+      try {
+        const oembedRes = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(finalUrl)}`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          }
+        });
+        if (oembedRes.ok) {
+          oembedData = await oembedRes.json();
+          videoTitle = oembedData.title || null;
+          authorName = oembedData.author_name || null;
+          thumbnailUrl = oembedData.thumbnail_url || null;
+        }
+      } catch (e) {}
+    }
+
+    // 3. Nếu URL (sau khi resolve) là một link Live, ta gọi bằng Desktop UA để cào SIGI_STATE
     let liveData = null;
     let liveViewers = 0;
     let isLive = false;
@@ -172,6 +205,12 @@ export default async function handler(req, res) {
       original: url, 
       resolved: finalUrl,
       isLive,
+      videoId: videoId || null,
+      playerUrl: playerUrl || null,
+      authorHandle: authorHandle || null,
+      title: roomTitle || videoTitle || null,
+      authorName: authorName || null,
+      thumbnailUrl: roomCover || thumbnailUrl || null,
       roomStatus: liveData?.status,
       liveViewers,
       hlsUrl: streamProxyUrl || hlsUrl || null,

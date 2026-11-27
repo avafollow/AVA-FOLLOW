@@ -62,6 +62,13 @@ export const setCustomFacebookConfig = (appId: string, clientToken: string, page
   }
 };
 
+export const getFacebookOAuthToken = (): string => {
+  if (typeof window !== 'undefined') {
+    return (localStorage.getItem('ava_facebook_oauth_token') || '').trim();
+  }
+  return '';
+};
+
 /**
  * Trích xuất định danh Facebook (Page Username, Video ID, Post ID) từ URL
  */
@@ -107,6 +114,7 @@ export async function verifyFacebookPageFollow(
   const target = extractFacebookTargetIdentifier(targetUrlOrPage);
   const cleanAccount = userFacebookAccount.replace(/^@+/, '').trim();
   const config = getFacebookAppConfig();
+  const userToken = (userAccessToken || getFacebookOAuthToken()).trim();
 
   if (!cleanAccount || cleanAccount === 'Chưa kết nối' || cleanAccount.includes('chưa_kết_nối')) {
     return {
@@ -118,55 +126,67 @@ export async function verifyFacebookPageFollow(
     };
   }
 
-  // NẾU CÓ ACCESS TOKEN HOẶC PAGE TOKEN: GỌI GRAPH API XÁC THỰC
-  if (userAccessToken || config.pageAccessToken) {
-    try {
-      const token = userAccessToken || config.pageAccessToken;
-      const endpoint = `${config.apiEndpoint}/${encodeURIComponent(target.id)}?fields=id,name,fan_count&access_token=${token}`;
-      const res = await fetch(endpoint);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.id) {
-          return {
-            success: true,
-            actionType: 'follow',
-            targetId: target.id,
-            performerAccount: cleanAccount,
-            message: `Xác thực thành công: Tài khoản Facebook [${cleanAccount}] đã theo dõi Trang ${data.name || target.id}!`,
-            txHash: `FB_FOL_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            verifiedAt: new Date().toISOString(),
-            details: data
-          };
-        }
-      }
-    } catch (e) {
-      console.warn('[Facebook API] verifyPageFollow error:', e);
-    }
-  }
-
-  // NẾU CHƯA CÓ TOKEN HOẶC OFFLINE: KIỂM TRA RÀNG BUỘC TÀI KHOẢN VÀ THỜI GIAN THAO TÁC THỰC TẾ
-  const auditKey = `fb_audit_${cleanAccount}_${target.id}_follow`;
-  const existingAudit = typeof window !== 'undefined' ? localStorage.getItem(auditKey) : null;
-  if (existingAudit) {
+  if (!userToken && !config.pageAccessToken) {
     return {
-      success: true,
+      success: false,
       actionType: 'follow',
       targetId: target.id,
       performerAccount: cleanAccount,
-      message: `Đã đối soát thành công tương tác của tài khoản [${cleanAccount}] trên Facebook!`,
-      txHash: `FB_FOL_${existingAudit}`,
+      message: 'Chưa thể xác minh từ Facebook Graph API: Chưa có Facebook OAuth Access Token (user_likes / pages_read_engagement). Hệ thống từ chối cộng Xu khi chưa có xác nhận từ Meta!',
       verifiedAt: new Date().toISOString()
     };
   }
 
-  return {
-    success: false,
-    actionType: 'follow',
-    targetId: target.id,
-    performerAccount: cleanAccount,
-    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa ghi nhận lượt Theo Dõi Fanpage từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm Theo Dõi trên Facebook trước khi nhận Xu.`,
-    verifiedAt: new Date().toISOString()
-  };
+  try {
+    // 1. Nếu có User Access Token: kiểm tra trực tiếp me/likes/{page-id}
+    if (userToken) {
+      const pageRes = await fetch(`${config.apiEndpoint}/${encodeURIComponent(target.id)}?fields=id,name&access_token=${encodeURIComponent(userToken)}`);
+      let resolvedPageId = target.id;
+      let pageName = target.id;
+      if (pageRes.ok) {
+        const pageData = await pageRes.json();
+        if (pageData.id) resolvedPageId = pageData.id;
+        if (pageData.name) pageName = pageData.name;
+      }
+
+      const likeCheckRes = await fetch(`${config.apiEndpoint}/me/likes/${encodeURIComponent(resolvedPageId)}?access_token=${encodeURIComponent(userToken)}`);
+      if (likeCheckRes.ok) {
+        const likeData = await likeCheckRes.json();
+        const isFollowing = Array.isArray(likeData.data) && likeData.data.length > 0;
+        return {
+          success: isFollowing,
+          actionType: 'follow',
+          targetId: resolvedPageId,
+          performerAccount: cleanAccount,
+          message: isFollowing
+            ? `Xác thực thành công từ Facebook Graph API: Tài khoản [${cleanAccount}] đã Theo Dõi Trang ${pageName}!`
+            : `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Facebook Graph API xác nhận [${cleanAccount}] CHƯA Theo Dõi/Thích Trang ${pageName}!`,
+          txHash: isFollowing ? `FB_FOL_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` : undefined,
+          verifiedAt: new Date().toISOString(),
+          details: likeData
+        };
+      }
+    }
+
+    return {
+      success: false,
+      actionType: 'follow',
+      targetId: target.id,
+      performerAccount: cleanAccount,
+      message: `Facebook Graph API không xác nhận được lượt Theo Dõi của [${cleanAccount}] (cần User Access Token có quyền user_likes đã duyệt bởi Meta). Không cộng Xu!`,
+      verifiedAt: new Date().toISOString()
+    };
+  } catch (e) {
+    console.warn('[Facebook API] verifyPageFollow error:', e);
+    return {
+      success: false,
+      actionType: 'follow',
+      targetId: target.id,
+      performerAccount: cleanAccount,
+      message: 'Lỗi kết nối Facebook Graph API v19.0 khi kiểm tra Theo Dõi Fanpage. Hệ thống không cộng Xu!',
+      verifiedAt: new Date().toISOString()
+    };
+  }
 }
 
 /**
@@ -180,6 +200,7 @@ export async function verifyFacebookPostLike(
   const target = extractFacebookTargetIdentifier(targetUrl);
   const cleanAccount = userFacebookAccount.replace(/^@+/, '').trim();
   const config = getFacebookAppConfig();
+  const token = (userAccessToken || getFacebookOAuthToken() || config.pageAccessToken).trim();
 
   if (!cleanAccount || cleanAccount === 'Chưa kết nối' || cleanAccount.includes('chưa_kết_nối')) {
     return {
@@ -191,51 +212,68 @@ export async function verifyFacebookPostLike(
     };
   }
 
-  if (userAccessToken || config.pageAccessToken) {
-    try {
-      const token = userAccessToken || config.pageAccessToken;
-      const endpoint = `${config.apiEndpoint}/${encodeURIComponent(target.id)}/likes?summary=true&access_token=${token}`;
-      const res = await fetch(endpoint);
-      if (res.ok) {
-        const data = await res.json();
+  if (!token) {
+    return {
+      success: false,
+      actionType: 'like',
+      targetId: target.id,
+      performerAccount: cleanAccount,
+      message: 'Chưa thể xác minh Like từ Facebook Graph API: Chưa có Access Token hợp lệ từ Meta. Hệ thống tạm giữ không cộng Xu!',
+      verifiedAt: new Date().toISOString()
+    };
+  }
+
+  try {
+    const endpoint = `${config.apiEndpoint}/${encodeURIComponent(target.id)}/likes?limit=100&access_token=${encodeURIComponent(token)}`;
+    const res = await fetch(endpoint);
+    if (res.ok) {
+      const data = await res.json();
+      const likesList = Array.isArray(data.data) ? data.data : [];
+      const userLiked = likesList.find((u: any) =>
+        (u.name || '').toLowerCase().includes(cleanAccount.toLowerCase()) ||
+        (u.id || '') === cleanAccount
+      );
+      if (userLiked) {
         return {
           success: true,
           actionType: 'like',
           targetId: target.id,
           performerAccount: cleanAccount,
-          message: `Xác thực thành công lượt Thích từ tài khoản Facebook [${cleanAccount}]!`,
+          message: `Xác thực thành công từ Facebook Graph API: Tài khoản [${cleanAccount}] đã Thích bài viết!`,
           txHash: `FB_LIKE_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           verifiedAt: new Date().toISOString(),
-          details: data
+          details: userLiked
         };
       }
-    } catch (e) {
-      console.warn('[Facebook API] verifyPostLike error:', e);
+      return {
+        success: false,
+        actionType: 'like',
+        targetId: target.id,
+        performerAccount: cleanAccount,
+        message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Facebook Graph API chưa ghi nhận lượt Thích từ [${cleanAccount}] trên bài viết này!`,
+        verifiedAt: new Date().toISOString()
+      };
     }
-  }
 
-  const likeAuditKey = `fb_audit_like_${cleanAccount}_${target.id}`;
-  const existingLikeAudit = typeof window !== 'undefined' ? localStorage.getItem(likeAuditKey) : null;
-  if (existingLikeAudit) {
     return {
-      success: true,
+      success: false,
       actionType: 'like',
       targetId: target.id,
       performerAccount: cleanAccount,
-      message: `Đã đối soát lượt Thích bài viết từ tài khoản Facebook [${cleanAccount}]!`,
-      txHash: `FB_LIKE_${existingLikeAudit}`,
+      message: `Facebook Graph API từ chối truy vấn lượt Thích (HTTP ${res.status}). Chưa thể xác nhận để cộng Xu!`,
+      verifiedAt: new Date().toISOString()
+    };
+  } catch (e) {
+    console.warn('[Facebook API] verifyPostLike error:', e);
+    return {
+      success: false,
+      actionType: 'like',
+      targetId: target.id,
+      performerAccount: cleanAccount,
+      message: 'Lỗi kết nối Facebook Graph API khi kiểm tra lượt Thích. Hệ thống không cộng Xu!',
       verifiedAt: new Date().toISOString()
     };
   }
-
-  return {
-    success: false,
-    actionType: 'like',
-    targetId: target.id,
-    performerAccount: cleanAccount,
-    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa ghi nhận lượt Thích bài viết từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm Thích trên Facebook trước khi nhận Xu.`,
-    verifiedAt: new Date().toISOString()
-  };
 }
 
 /**
@@ -250,6 +288,7 @@ export async function verifyFacebookComment(
   const target = extractFacebookTargetIdentifier(targetUrl);
   const cleanAccount = userFacebookAccount.replace(/^@+/, '').trim();
   const config = getFacebookAppConfig();
+  const token = (userAccessToken || getFacebookOAuthToken() || config.pageAccessToken).trim();
 
   if (!cleanAccount || cleanAccount === 'Chưa kết nối') {
     return {
@@ -271,59 +310,70 @@ export async function verifyFacebookComment(
     };
   }
 
-  if (userAccessToken || config.pageAccessToken) {
-    try {
-      const token = userAccessToken || config.pageAccessToken;
-      const endpoint = `${config.apiEndpoint}/${encodeURIComponent(target.id)}/comments?limit=25&access_token=${token}`;
-      const res = await fetch(endpoint);
-      if (res.ok) {
-        const data = await res.json();
-        const comments = data.data || [];
-        const match = comments.find((c: any) => 
-          (c.from?.name || '').toLowerCase().includes(cleanAccount.toLowerCase()) ||
-          (c.message || '').includes(commentText.slice(0, 10))
-        );
-
-        if (match) {
-          return {
-            success: true,
-            actionType: 'comment',
-            targetId: target.id,
-            performerAccount: cleanAccount,
-            message: `Đã tìm thấy bình luận của bạn [${cleanAccount}] trên Facebook!`,
-            txHash: `FB_CMT_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            verifiedAt: new Date().toISOString(),
-            details: match
-          };
-        }
-      }
-    } catch (e) {
-      console.warn('[Facebook API] verifyComment error:', e);
-    }
-  }
-
-  const cmtAuditKey = `fb_audit_cmt_${cleanAccount}_${target.id}`;
-  const existingCmtAudit = typeof window !== 'undefined' ? localStorage.getItem(cmtAuditKey) : null;
-  if (existingCmtAudit) {
+  if (!token) {
     return {
-      success: true,
+      success: false,
       actionType: 'comment',
       targetId: target.id,
       performerAccount: cleanAccount,
-      message: `Đã đối soát bình luận từ tài khoản Facebook [${cleanAccount}]!`,
-      txHash: `FB_CMT_${existingCmtAudit}`,
+      message: 'Chưa thể xác minh Bình luận từ Facebook Graph API: Chưa có Page/User Access Token hợp lệ từ Meta!',
       verifiedAt: new Date().toISOString()
     };
   }
 
-  return {
-    success: false,
-    actionType: 'comment',
-    targetId: target.id,
-    performerAccount: cleanAccount,
-    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa tìm thấy bình luận của bạn [${cleanAccount}] trên Facebook! Vui lòng bình luận vào bài viết trước khi nhận Xu.`,
-    verifiedAt: new Date().toISOString()
-  };
+  try {
+    const endpoint = `${config.apiEndpoint}/${encodeURIComponent(target.id)}/comments?limit=50&access_token=${encodeURIComponent(token)}`;
+    const res = await fetch(endpoint);
+    if (res.ok) {
+      const data = await res.json();
+      const comments = data.data || [];
+      const snippetNorm = commentText.trim().toLowerCase().slice(0, 15);
+      const match = comments.find((c: any) => 
+        (c.from?.name || '').toLowerCase().includes(cleanAccount.toLowerCase()) ||
+        (snippetNorm.length >= 6 && (c.message || '').toLowerCase().includes(snippetNorm))
+      );
+
+      if (match) {
+        return {
+          success: true,
+          actionType: 'comment',
+          targetId: target.id,
+          performerAccount: cleanAccount,
+          message: `Đã xác thực bình luận thật của [${cleanAccount}] qua Facebook Graph API!`,
+          txHash: `FB_CMT_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          verifiedAt: new Date().toISOString(),
+          details: match
+        };
+      }
+      return {
+        success: false,
+        actionType: 'comment',
+        targetId: target.id,
+        performerAccount: cleanAccount,
+        message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Facebook Graph API chưa tìm thấy bình luận của [${cleanAccount}] trên bài viết này!`,
+        verifiedAt: new Date().toISOString()
+      };
+    }
+
+    return {
+      success: false,
+      actionType: 'comment',
+      targetId: target.id,
+      performerAccount: cleanAccount,
+      message: `Facebook Graph API trả về lỗi HTTP ${res.status} khi đọc bình luận. Không cộng Xu!`,
+      verifiedAt: new Date().toISOString()
+    };
+  } catch (e) {
+    console.warn('[Facebook API] verifyComment error:', e);
+    return {
+      success: false,
+      actionType: 'comment',
+      targetId: target.id,
+      performerAccount: cleanAccount,
+      message: 'Lỗi kết nối Facebook Graph API khi kiểm tra bình luận!',
+      verifiedAt: new Date().toISOString()
+    };
+  }
 }
 
 /**
@@ -331,10 +381,13 @@ export async function verifyFacebookComment(
  */
 export async function verifyFacebookShare(
   targetUrl: string,
-  userFacebookAccount: string
+  userFacebookAccount: string,
+  userAccessToken?: string
 ): Promise<FacebookActionVerificationResult> {
   const target = extractFacebookTargetIdentifier(targetUrl);
   const cleanAccount = userFacebookAccount.replace(/^@+/, '').trim();
+  const config = getFacebookAppConfig();
+  const token = (userAccessToken || getFacebookOAuthToken()).trim();
 
   if (!cleanAccount || cleanAccount === 'Chưa kết nối') {
     return {
@@ -346,18 +399,51 @@ export async function verifyFacebookShare(
     };
   }
 
-  const shareAuditKey = `fb_audit_share_${cleanAccount}_${target.id}`;
-  const existingShareAudit = typeof window !== 'undefined' ? localStorage.getItem(shareAuditKey) : null;
-  if (existingShareAudit) {
+  if (!token) {
     return {
-      success: true,
+      success: false,
       actionType: 'share',
       targetId: target.id,
       performerAccount: cleanAccount,
-      message: `Đã xác thực chia sẻ bài viết lên Facebook thành công qua tài khoản [${cleanAccount}]!`,
-      txHash: `FB_SHR_${existingShareAudit}`,
+      message: 'Chưa thể xác minh Chia sẻ từ Facebook Graph API: Cần User Access Token có quyền user_posts từ Meta để đối soát bài chia sẻ công khai!',
       verifiedAt: new Date().toISOString()
     };
+  }
+
+  try {
+    const endpoint = `${config.apiEndpoint}/me/posts?fields=id,link,permalink_url,message&limit=15&access_token=${encodeURIComponent(token)}`;
+    const res = await fetch(endpoint);
+    if (res.ok) {
+      const data = await res.json();
+      const posts = Array.isArray(data.data) ? data.data : [];
+      const matched = posts.find((p: any) =>
+        (p.link && p.link.includes(target.id)) ||
+        (p.permalink_url && p.permalink_url.includes(target.id)) ||
+        (p.message && p.message.includes(target.id))
+      );
+      if (matched) {
+        return {
+          success: true,
+          actionType: 'share',
+          targetId: target.id,
+          performerAccount: cleanAccount,
+          message: `Đã xác thực bài chia sẻ công khai của [${cleanAccount}] qua Facebook Graph API!`,
+          txHash: `FB_SHR_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          verifiedAt: new Date().toISOString(),
+          details: matched
+        };
+      }
+      return {
+        success: false,
+        actionType: 'share',
+        targetId: target.id,
+        performerAccount: cleanAccount,
+        message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa tìm thấy bài Chia Sẻ công khai nào chứa liên kết này trên trang cá nhân [${cleanAccount}]!`,
+        verifiedAt: new Date().toISOString()
+      };
+    }
+  } catch (e) {
+    console.warn('[Facebook API] verifyShare error:', e);
   }
 
   return {
@@ -365,7 +451,7 @@ export async function verifyFacebookShare(
     actionType: 'share',
     targetId: target.id,
     performerAccount: cleanAccount,
-    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa ghi nhận lượt Chia Sẻ từ tài khoản Facebook [${cleanAccount}]! Vui lòng bấm nút Chia Sẻ trước khi nhận Xu.`,
+    message: `Chưa thể xác nhận lượt Chia Sẻ từ Facebook Graph API cho tài khoản [${cleanAccount}]. Hệ thống không cộng Xu khi chưa có xác thực!`,
     verifiedAt: new Date().toISOString()
   };
 }
@@ -389,7 +475,7 @@ export async function verifyFacebookTaskAction(
     return verifyFacebookComment(targetUrl, userFacebookAccount, options?.commentText || '', options?.userAccessToken);
   }
   if (actionType === 'share') {
-    return verifyFacebookShare(targetUrl, userFacebookAccount);
+    return verifyFacebookShare(targetUrl, userFacebookAccount, options?.userAccessToken);
   }
 
   return {

@@ -50,6 +50,61 @@ export const setCustomYouTubeApiKey = (key: string): void => {
   }
 };
 
+export const getYouTubeOAuthToken = (): string => {
+  if (typeof window !== 'undefined') {
+    return (localStorage.getItem('ava_youtube_oauth_token') || '').trim();
+  }
+  return '';
+};
+
+export const setYouTubeOAuthToken = (token: string): void => {
+  if (typeof window !== 'undefined') {
+    if (token.trim()) {
+      localStorage.setItem('ava_youtube_oauth_token', token.trim());
+    } else {
+      localStorage.removeItem('ava_youtube_oauth_token');
+    }
+  }
+};
+
+/**
+ * Quy đổi @handle hoặc Video URL sang Channel ID chuẩn (UC...) qua YouTube Data API v3
+ */
+export async function resolveYouTubeChannelId(input: string, apiKey?: string, oauthToken?: string): Promise<string | null> {
+  const parsed = extractYouTubeIdentifier(input);
+  if (parsed.type === 'channelId' && parsed.value.startsWith('UC')) {
+    return parsed.value;
+  }
+  const key = apiKey || getYouTubeApiKey();
+  const token = oauthToken || getYouTubeOAuthToken();
+  if (!key && !token) return null;
+
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const keyParam = key ? `&key=${encodeURIComponent(key)}` : '';
+
+  try {
+    if (parsed.type === 'handle' || parsed.type === 'custom') {
+      const url = `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(parsed.value)}${keyParam}`;
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items?.[0]?.id) return data.items[0].id;
+      }
+    } else if (parsed.type === 'video') {
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${encodeURIComponent(parsed.value)}${keyParam}`;
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items?.[0]?.snippet?.channelId) return data.items[0].snippet.channelId;
+      }
+    }
+  } catch (e) {
+    console.warn('[YouTube API v3] resolveYouTubeChannelId error:', e);
+  }
+  return null;
+}
+
 /**
  * 1. TRÍCH XUẤT HANDLE / ID KÊNH TỪ LINK HOẶC CHUỖI NHẬP VÀO
  */
@@ -189,6 +244,8 @@ export async function verifyYouTubeSubscription(
   const parsed = extractYouTubeIdentifier(targetChannelId);
   const cleanTarget = (parsed.value || targetChannelId).replace(/^@+/, '');
   const cleanAccount = (userYouTubeAccount || '').replace(/^@+/, '').trim();
+  const token = (userAccessToken || getYouTubeOAuthToken()).trim();
+  const apiKey = getYouTubeApiKey();
 
   if (!cleanAccount || cleanAccount === 'Chưa kết nối' || cleanAccount.includes('chưa_kết_nối')) {
     return {
@@ -199,69 +256,85 @@ export async function verifyYouTubeSubscription(
     };
   }
 
-  if (userAccessToken && parsed.type === 'channelId') {
-    try {
-      const url = `https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&forChannelId=${encodeURIComponent(cleanTarget)}`;
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${userAccessToken}`,
-          Accept: 'application/json'
-        }
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const isSubscribed = data.items && data.items.length > 0;
-        return {
-          success: isSubscribed,
-          actionType: 'subscribe',
-          targetId: cleanTarget,
-          message: isSubscribed ? `Xác thực thành công: Kênh [${cleanAccount}] đã Đăng Ký kênh YouTube!` : `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Tài khoản YouTube [${cleanAccount}] chưa bấm Đăng Ký kênh này!`,
-          txHash: `YT_SUB_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          details: data
-        };
-      }
-    } catch (e) {
-      console.warn('[YouTube API v3] verifySubscription error:', e);
-    }
-  }
-
-  // 2. NẾU KHÔNG CÓ TOKEN OAUTH / ĐỐI SOÁT API:
-  const auditKey = `yt_audit_${cleanAccount}_${cleanTarget}_sub`;
-  const existingAudit = typeof window !== 'undefined' ? (
-    localStorage.getItem(auditKey) || 
-    localStorage.getItem(`yt_audit_${cleanAccount}_${targetChannelId.replace(/^@+/, '')}_sub`)
-  ) : null;
-  if (existingAudit) {
+  if (!token) {
     return {
-      success: true,
+      success: false,
       actionType: 'subscribe',
       targetId: cleanTarget,
-      message: `Đã đối soát thành công đăng ký kênh YouTube từ tài khoản [${cleanAccount}]!`,
-      txHash: `YT_SUB_${existingAudit}`
+      message: 'Chưa thể xác minh từ YouTube API: Tài khoản chưa cấp quyền Google OAuth YouTube (youtube.readonly). Vui lòng đăng nhập lại bằng Google OAuth và cấp quyền đọc YouTube để hệ thống đối soát thật trước khi cộng Xu!'
     };
   }
 
-  // Chưa có xác nhận từ YouTube API hoặc thao tác thật: Bắt buộc từ chối
-  return {
-    success: false,
-    actionType: 'subscribe',
-    targetId: cleanTarget,
-    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Hệ thống YouTube chưa ghi nhận lượt Đăng Ký từ tài khoản [${cleanAccount}]! Vui lòng mở YouTube, bấm Đăng Ký kênh trước khi nhận Xu.`
-  };
+  try {
+    const resolvedChannelId = parsed.type === 'channelId'
+      ? cleanTarget
+      : await resolveYouTubeChannelId(targetChannelId, apiKey, token);
+
+    if (!resolvedChannelId) {
+      return {
+        success: false,
+        actionType: 'subscribe',
+        targetId: cleanTarget,
+        message: `Không tìm thấy Channel ID YouTube hợp lệ cho [${cleanTarget}] qua YouTube Data API v3!`
+      };
+    }
+
+    const url = `https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&forChannelId=${encodeURIComponent(resolvedChannelId)}`;
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json'
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const isSubscribed = Array.isArray(data.items) && data.items.length > 0;
+      return {
+        success: isSubscribed,
+        actionType: 'subscribe',
+        targetId: resolvedChannelId,
+        message: isSubscribed
+          ? `Xác thực thành công từ YouTube API: Kênh [${cleanAccount}] đã Đăng Ký kênh YouTube!`
+          : `Chưa hoàn thành, vui lòng kiểm tra và làm lại: YouTube API xác nhận tài khoản [${cleanAccount}] CHƯA bấm Đăng Ký kênh này!`,
+        txHash: isSubscribed ? `YT_SUB_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` : undefined,
+        details: data
+      };
+    }
+
+    const errText = await res.text().catch(() => '');
+    return {
+      success: false,
+      actionType: 'subscribe',
+      targetId: resolvedChannelId,
+      message: `YouTube API từ chối xác thực (HTTP ${res.status}). Vui lòng đăng nhập lại Google OAuth hoặc kiểm tra quyền YouTube! ${errText.slice(0, 120)}`
+    };
+  } catch (e) {
+    console.warn('[YouTube API v3] verifySubscription error:', e);
+    return {
+      success: false,
+      actionType: 'subscribe',
+      targetId: cleanTarget,
+      message: 'Lỗi kết nối tới YouTube Data API v3. Không thể xác nhận lượt Đăng Ký nên hệ thống tạm giữ không cộng Xu!'
+    };
+  }
 }
 
 /**
  * 4. XÁC MINH LIKE VIDEO YOUTUBE (VIDEOS.GETRATING)
- * Yêu cầu OAuth 2.0 Access Token với scope 'https://www.googleapis.com/auth/youtube'
+ * Yêu cầu OAuth 2.0 Access Token với scope 'https://www.googleapis.com/auth/youtube' hoặc 'youtube.force-ssl'
  */
 export async function verifyYouTubeVideoLike(
   videoId: string, 
   userAccessToken?: string,
   userYouTubeAccount?: string
 ): Promise<YouTubeVerificationResult> {
-  const cleanVideoId = videoId.replace(/^https?:\/\/(www\.)?youtube\.com\/watch\?v=/, '').replace(/^https?:\/\/youtu\.be\//, '').split('&')[0];
+  const parsed = extractYouTubeIdentifier(videoId);
+  const cleanVideoId = parsed.type === 'video'
+    ? parsed.value
+    : videoId.replace(/^https?:\/\/(www\.)?youtube\.com\/watch\?v=/, '').replace(/^https?:\/\/youtu\.be\//, '').split('&')[0];
   const cleanAccount = (userYouTubeAccount || '').replace(/^@+/, '').trim();
+  const token = (userAccessToken || getYouTubeOAuthToken()).trim();
 
   if (!cleanAccount || cleanAccount === 'Chưa kết nối') {
     return {
@@ -272,57 +345,55 @@ export async function verifyYouTubeVideoLike(
     };
   }
 
-  if (userAccessToken) {
-    try {
-      const url = `https://www.googleapis.com/youtube/v3/videos/getRating?id=${encodeURIComponent(cleanVideoId)}`;
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${userAccessToken}`,
-          Accept: 'application/json'
-        }
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const rating = data.items?.[0]?.rating;
-        const isLiked = rating === 'like';
-        return {
-          success: isLiked,
-          actionType: 'like',
-          targetId: cleanVideoId,
-          message: isLiked 
-            ? `Xác thực Thả Like video thành công từ kênh [${cleanAccount}]!` 
-            : `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Bạn chưa bấm Thích (Like) video này bằng tài khoản [${cleanAccount}]!`,
-          txHash: isLiked ? `YT_LIKE_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` : undefined,
-          details: data
-        };
-      }
-    } catch (e) {
-      console.warn('[YouTube API v3] verifyVideoLike error:', e);
-    }
-  }
-
-  const likeAuditKey = `yt_audit_like_${cleanAccount}_${cleanVideoId}`;
-  const existingLikeAudit = typeof window !== 'undefined' ? (
-    localStorage.getItem(likeAuditKey) ||
-    localStorage.getItem(`yt_audit_like_${cleanAccount}_${videoId}`)
-  ) : null;
-  if (existingLikeAudit) {
+  if (!token) {
     return {
-      success: true,
+      success: false,
       actionType: 'like',
       targetId: cleanVideoId,
-      message: `Đã đối soát lượt Thích video YouTube từ tài khoản [${cleanAccount}]!`,
-      txHash: `YT_LIKE_${existingLikeAudit}`
+      message: 'Chưa thể xác minh Like từ YouTube API: Tài khoản chưa cấp quyền Google OAuth YouTube. Vui lòng đăng nhập Google OAuth và cấp quyền YouTube để đối soát thật!'
     };
   }
 
-  return {
-    success: false,
-    actionType: 'like',
-    targetId: cleanVideoId,
-    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Hệ thống YouTube chưa ghi nhận lượt Thích (Like) video từ tài khoản YouTube [${cleanAccount}]!`
-  };
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/videos/getRating?id=${encodeURIComponent(cleanVideoId)}`;
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json'
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const rating = data.items?.[0]?.rating;
+      const isLiked = rating === 'like';
+      return {
+        success: isLiked,
+        actionType: 'like',
+        targetId: cleanVideoId,
+        message: isLiked 
+          ? `Xác thực thành công từ YouTube API: Kênh [${cleanAccount}] đã Thả Like video!` 
+          : `Chưa hoàn thành, vui lòng kiểm tra và làm lại: YouTube API xác nhận bạn CHƯA bấm Thích (Like) video này (trạng thái: ${rating || 'none'})!`,
+        txHash: isLiked ? `YT_LIKE_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` : undefined,
+        details: data
+      };
+    }
+
+    return {
+      success: false,
+      actionType: 'like',
+      targetId: cleanVideoId,
+      message: `YouTube API không thể kiểm tra lượt Thích (HTTP ${res.status}). Vui lòng kết nối lại Google OAuth YouTube!`
+    };
+  } catch (e) {
+    console.warn('[YouTube API v3] verifyVideoLike error:', e);
+    return {
+      success: false,
+      actionType: 'like',
+      targetId: cleanVideoId,
+      message: 'Lỗi kết nối YouTube Data API v3 khi kiểm tra Like. Hệ thống không cộng Xu khi chưa có xác nhận từ YouTube!'
+    };
+  }
 }
 
 /**
@@ -334,9 +405,13 @@ export async function verifyYouTubeComment(
   minCommentLength = 5,
   commentText?: string
 ): Promise<YouTubeVerificationResult> {
-  const cleanVideoId = videoId.replace(/^https?:\/\/(www\.)?youtube\.com\/watch\?v=/, '').replace(/^https?:\/\/youtu\.be\//, '').split('&')[0];
+  const parsed = extractYouTubeIdentifier(videoId);
+  const cleanVideoId = parsed.type === 'video'
+    ? parsed.value
+    : videoId.replace(/^https?:\/\/(www\.)?youtube\.com\/watch\?v=/, '').replace(/^https?:\/\/youtu\.be\//, '').split('&')[0];
   const cleanAccount = (userChannelOrAuthorName || '').replace(/^@+/, '').trim();
   const apiKey = getYouTubeApiKey();
+  const token = getYouTubeOAuthToken();
 
   if (!cleanAccount || cleanAccount === 'Chưa kết nối') {
     return {
@@ -347,7 +422,7 @@ export async function verifyYouTubeComment(
     };
   }
 
-  if (commentText && commentText.trim().length < minCommentLength) {
+  if (!commentText || commentText.trim().length < minCommentLength) {
     return {
       success: false,
       actionType: 'comment',
@@ -356,63 +431,65 @@ export async function verifyYouTubeComment(
     };
   }
 
-  if (apiKey) {
-    try {
-      const url = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${encodeURIComponent(cleanVideoId)}&maxResults=50&key=${apiKey}`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        const comments = data.items || [];
-        const authorMatch = comments.find((item: any) => {
-          const topSnippet = item.snippet?.topLevelComment?.snippet;
-          const authorName = (topSnippet?.authorDisplayName || '').toLowerCase();
-          const text = topSnippet?.textOriginal || '';
-          return authorName.includes(cleanAccount.toLowerCase()) || 
-                 (commentText && text.includes(commentText.slice(0, 10)));
-        });
-
-        if (authorMatch) {
-          return {
-            success: true,
-            actionType: 'comment',
-            targetId: cleanVideoId,
-            message: `Đã xác thực bình luận của kênh [${cleanAccount}] trên YouTube!`,
-            txHash: `YT_CMT_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            details: authorMatch
-          };
-        } else {
-          return {
-            success: false,
-            actionType: 'comment',
-            targetId: cleanVideoId,
-            message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa tìm thấy bình luận của kênh [${cleanAccount}] trên video YouTube này!`
-          };
-        }
-      }
-    } catch (e) {
-      console.warn('[YouTube API v3] verifyComment error:', e);
-    }
-  }
-
-  const cmtAuditKey = `yt_audit_cmt_${cleanAccount}_${cleanVideoId}`;
-  const existingCmtAudit = typeof window !== 'undefined' ? (
-    localStorage.getItem(cmtAuditKey) ||
-    localStorage.getItem(`yt_audit_cmt_${cleanAccount}_${videoId}`)
-  ) : null;
-  if (existingCmtAudit) {
+  if (!apiKey && !token) {
     return {
-      success: true,
+      success: false,
       actionType: 'comment',
       targetId: cleanVideoId,
-      message: `Đã xác thực bình luận từ kênh YouTube [${cleanAccount}]!`,
-      txHash: `YT_CMT_${existingCmtAudit}`
+      message: 'Chưa cấu hình VITE_YOUTUBE_API_KEY hoặc Google OAuth Token để đọc bình luận thật từ YouTube Data API v3!'
     };
   }
 
-  return {
-    success: false,
-    actionType: 'comment',
-    targetId: cleanVideoId,
-    message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: Chưa tìm thấy bình luận của bạn trên YouTube từ tài khoản [${cleanAccount}]!`
-  };
+  try {
+    const keyParam = apiKey ? `&key=${encodeURIComponent(apiKey)}` : '';
+    const url = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${encodeURIComponent(cleanVideoId)}&maxResults=100&order=time${keyParam}`;
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const res = await fetch(url, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      const comments = data.items || [];
+      const snippetNorm = commentText.trim().toLowerCase().slice(0, 15);
+      const authorMatch = comments.find((item: any) => {
+        const topSnippet = item.snippet?.topLevelComment?.snippet;
+        const authorName = (topSnippet?.authorDisplayName || '').toLowerCase();
+        const text = (topSnippet?.textOriginal || '').toLowerCase();
+        return (authorName.includes(cleanAccount.toLowerCase()) && text.includes(snippetNorm.slice(0, 6))) ||
+               (snippetNorm.length >= 6 && text.includes(snippetNorm));
+      });
+
+      if (authorMatch) {
+        return {
+          success: true,
+          actionType: 'comment',
+          targetId: cleanVideoId,
+          message: `Đã xác thực thành công bình luận thật của kênh [${cleanAccount}] trên YouTube!`,
+          txHash: `YT_CMT_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          details: authorMatch
+        };
+      }
+      return {
+        success: false,
+        actionType: 'comment',
+        targetId: cleanVideoId,
+        message: `Chưa hoàn thành, vui lòng kiểm tra và làm lại: YouTube API chưa tìm thấy bình luận của [${cleanAccount}] trên video này! Hãy bình luận thật trên YouTube rồi đợi vài giây và thử lại.`
+      };
+    }
+
+    return {
+      success: false,
+      actionType: 'comment',
+      targetId: cleanVideoId,
+      message: `YouTube API trả về lỗi HTTP ${res.status} khi kiểm tra bình luận. Chưa thể xác nhận cộng Xu!`
+    };
+  } catch (e) {
+    console.warn('[YouTube API v3] verifyComment error:', e);
+    return {
+      success: false,
+      actionType: 'comment',
+      targetId: cleanVideoId,
+      message: 'Lỗi kết nối YouTube Data API v3 khi kiểm tra bình luận!'
+    };
+  }
 }

@@ -113,6 +113,7 @@ import {
   syncMasterSnapshotToSupabase,
   fetchMasterSnapshotFromSupabase,
   fetchUserProfileFromSupabase,
+  pingSupabaseKeepAlive,
   fetchAllProfilesFromSupabase,
   broadcastRealtimeEvent,
   subscribeToRealtimeEvents,
@@ -3140,8 +3141,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }));
     }
 
+    // 0. Ping keep-alive để đảm bảo Supabase luôn hoạt động
+    pingSupabaseKeepAlive('web_app_boot');
+
     // 1. Kiểm tra session hiện tại từ Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.provider_token) {
+        try {
+          const provider = session.user?.app_metadata?.provider;
+          if (provider === 'facebook') {
+            localStorage.setItem('ava_facebook_oauth_token', session.provider_token);
+          } else {
+            localStorage.setItem('ava_youtube_oauth_token', session.provider_token);
+          }
+        } catch {}
+      }
       if (session?.user && localStorage.getItem('ava_logged_out') !== 'true') {
         const email = (session.user.email || '').toLowerCase().trim();
         if (email) {
@@ -3152,12 +3166,26 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // 2. Lắng nghe thay đổi trạng thái Auth từ Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.provider_token) {
+        try {
+          const provider = session.user?.app_metadata?.provider;
+          if (provider === 'facebook') {
+            localStorage.setItem('ava_facebook_oauth_token', session.provider_token);
+          } else {
+            localStorage.setItem('ava_youtube_oauth_token', session.provider_token);
+          }
+        } catch {}
+      }
       if (event === 'SIGNED_IN' && session?.user) {
         const email = (session.user.email || '').toLowerCase().trim();
         if (email) {
           loginWithGoogle(email);
         }
       } else if (event === 'SIGNED_OUT') {
+        try {
+          localStorage.removeItem('ava_youtube_oauth_token');
+          localStorage.removeItem('ava_facebook_oauth_token');
+        } catch {}
         logout();
       }
     });

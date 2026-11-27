@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/supabase-keepalive?source=vercel_cron",
+      "schedule": "0 2 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",

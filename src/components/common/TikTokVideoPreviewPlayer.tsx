@@ -132,10 +132,12 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
       <div className="relative w-full h-full flex-1 overflow-hidden bg-black flex items-center justify-center">
         {/* TAB 1: LIVE STREAM PLAYERS */}
         {effectiveIsLive || mediaInfo.isLive ? (
-          isYouTube && mediaInfo.youtubeId ? (
+          isYouTube ? (
             /* TAB 1A: YOUTUBE LIVE PLAYER */
             <YouTubeLiveEmbedPlayer
               youtubeId={mediaInfo.youtubeId}
+              targetUrl={url}
+              channelHandle={cleanHandle}
               title={mediaInfo.title}
               isMuted={isMuted}
               onToggleMute={toggleMute}
@@ -143,6 +145,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
           ) : isFacebook && url ? (
             /* TAB 1B: FACEBOOK LIVE PLAYER */
             <FacebookLiveEmbedPlayer
+              key={'preview_fb_live_' + encodeURIComponent(url)}
               url={url}
               title={mediaInfo.title}
               isMuted={isMuted}
@@ -170,17 +173,22 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
         ) : isFacebook && url ? (
           /* TAB 3: FACEBOOK VIDEO EMBED PLAYER */
           <FacebookEmbedPlayer
+            key={'preview_fb_' + encodeURIComponent(url)}
             url={url}
             title={mediaInfo.title}
             isMuted={isMuted}
+            onToggleMute={toggleMute}
+            className="pb-16"
           />
         ) : mediaInfo.isTikTok || url.includes('tiktok.com') || (!isYouTube && !isFacebook && !isDirectVideo) ? (
           /* TAB 4: TIKTOK VIDEO EMBED PLAYER (THẬT 100% TỪ LINK) */
           <TikTokVideoEmbedPlayer
+            key={'preview_tt_' + encodeURIComponent(url)}
             videoId={mediaInfo.videoId}
             directUrl={url}
             title={mediaInfo.title}
             isMuted={isMuted}
+            onToggleMute={toggleMute}
           />
         ) : (
           /* TAB 5: TRÌNH PHÁT VIDEO TRỰC TIẾP */

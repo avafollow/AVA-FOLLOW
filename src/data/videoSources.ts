@@ -256,16 +256,18 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
   const handle = extractTikTokHandle(url) || defaultHandle || '@creator_vietnam';
   const cleanHandle = handle.replace(/^@+/, '');
 
+  const lowerUrl = url.toLowerCase();
   const isLive = /\/(live|livestream)($|\/|\?)/i.test(url) || 
     /tiktok\.com\/@[\w\.-]+\/live/i.test(url) || 
     /tiktok\.com\/live/i.test(url) ||
     /youtube\.com\/(?:.*\/live|live\/[\w\-]+)/i.test(url) ||
     /facebook\.com\/.*\/live/i.test(url) ||
+    /facebook\.com\/watch\/live/i.test(url) ||
     /fb\.watch\/.*live/i.test(url) ||
-    url.toLowerCase().includes('/live') ||
-    url.toLowerCase().includes('livestream');
-  const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
-  const isFacebook = url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com') || url.includes('fb.gg');
+    lowerUrl.includes('/live') ||
+    lowerUrl.includes('/livestream');
+  const isYouTube = lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be');
+  const isFacebook = lowerUrl.includes('facebook.com') || lowerUrl.includes('fb.watch') || lowerUrl.includes('fb.com') || lowerUrl.includes('fb.gg');
   const isDirectVideo = /\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i.test(url);
   const isTikTok = !isYouTube && !isFacebook && !isDirectVideo;
 

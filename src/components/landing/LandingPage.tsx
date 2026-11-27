@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { 
   Sparkles, 
@@ -48,20 +48,86 @@ import {
   Percent,
   Sliders,
   ExternalLink,
-  ThumbsUp
+  ThumbsUp,
+  Scale,
+  Gavel,
+  Mail,
+  PhoneCall
 } from 'lucide-react';
 import { BrandLogo } from '../common/BrandLogo';
 import { COMPREHENSIVE_GROWTH_PACKAGES } from '../../data/growthPackages';
+import { VietnameseLegalPolicyModal } from '../modals/VietnameseLegalPolicyModal';
+import { VIETNAMESE_LEGAL_OVERVIEW } from '../../data/vietnameseLegalPolicies';
 
 const LandingPageCore: React.FC = () => {
   const { openAuthModal } = useTikTokApp();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState<boolean>(false);
+  const [selectedLegalPolicyId, setSelectedLegalPolicyId] = useState<string>('intellectual-property');
+
+  const openLegalPolicy = (policyId: string = 'intellectual-property') => {
+    setSelectedLegalPolicyId(policyId);
+    setIsLegalModalOpen(true);
+  };
   
   // Active Audience Tab (6 core segments)
   const [activeAudience, setActiveAudience] = useState<'student' | 'mom' | 'office' | 'koc' | 'shop' | 'enterprise'>('student');
 
   // Active Package Showcase Tab
   const [selectedPkgCategory, setSelectedPkgCategory] = useState<'all' | 'tiktok' | 'facebook' | 'youtube' | 'live' | 'combo'>('all');
+
+  // Active Navigation Section Tracking & Smooth Scroll
+  const [activeNavSection, setActiveNavSection] = useState<string>('human-network');
+
+  useEffect(() => {
+    const sectionIds = [
+      'human-network',
+      'ways-to-earn',
+      'audiences',
+      'calculator',
+      'live-traffic',
+      'escrow-koc',
+      'affiliate',
+      'roadmap',
+      'packages-showcase'
+    ];
+
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + 140;
+      for (let i = sectionIds.length - 1; i >= 0; i--) {
+        const id = sectionIds[i];
+        const el = document.getElementById(id);
+        if (el) {
+          const top = el.offsetTop;
+          if (scrollPos >= top) {
+            setActiveNavSection(id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToSection = (e: React.MouseEvent, sectionId: string) => {
+    e.preventDefault();
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const isMobile = window.innerWidth < 1024;
+      const headerOffset = isMobile ? 115 : 85;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+
+      setActiveNavSection(sectionId);
+    }
+  };
 
   // Interactive Earnings & Business Calculator State
   const [dailyActions, setDailyActions] = useState<number>(35); // 10 - 150 actions/day
@@ -162,66 +228,111 @@ const LandingPageCore: React.FC = () => {
           />
 
           {/* Desktop Nav Links - Đẳng cấp, sang trọng, nổi bật, ngắn gọn súc tích */}
-          <nav className="hidden xl:flex items-center gap-1 p-1 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-lg shadow-black/40">
+          <nav className="hidden lg:flex items-center gap-1 p-1 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-lg shadow-black/40">
             <a 
               href="#human-network" 
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1.5 whitespace-nowrap group"
+              onClick={(e) => scrollToSection(e, 'human-network')}
+              className={`px-2 xl:px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 whitespace-nowrap group cursor-pointer ${
+                activeNavSection === 'human-network'
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10'
+              }`}
             >
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
               <span>Người Thật</span>
             </a>
             <a 
               href="#ways-to-earn" 
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1.5 whitespace-nowrap group"
+              onClick={(e) => scrollToSection(e, 'ways-to-earn')}
+              className={`px-2 xl:px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 whitespace-nowrap group cursor-pointer ${
+                activeNavSection === 'ways-to-earn'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10'
+              }`}
             >
               <Coins className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
               <span>Kiếm Tiền</span>
             </a>
             <a 
               href="#audiences" 
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1.5 whitespace-nowrap group"
+              onClick={(e) => scrollToSection(e, 'audiences')}
+              className={`px-2 xl:px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 whitespace-nowrap group cursor-pointer ${
+                activeNavSection === 'audiences'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10'
+              }`}
             >
               <Target className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
               <span>Tệp Khách</span>
             </a>
             <a 
               href="#calculator" 
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/20 transition-all flex items-center gap-1.5 whitespace-nowrap group shadow-sm"
+              onClick={(e) => scrollToSection(e, 'calculator')}
+              className={`px-2 xl:px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-amber-300 border transition-all flex items-center gap-1.5 whitespace-nowrap group shadow-sm cursor-pointer ${
+                activeNavSection === 'calculator'
+                  ? 'bg-amber-500/20 text-amber-200 border-amber-400/50 shadow-amber-900/30 ring-1 ring-amber-400/30'
+                  : 'border-amber-500/20 hover:text-amber-200 hover:bg-amber-500/10'
+              }`}
             >
               <TrendingUp className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
               <span>Thu Nhập</span>
             </a>
             <a 
               href="#live-traffic" 
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 border border-rose-500/20 transition-all flex items-center gap-1.5 whitespace-nowrap group shadow-sm"
+              onClick={(e) => scrollToSection(e, 'live-traffic')}
+              className={`px-2 xl:px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-rose-300 border transition-all flex items-center gap-1.5 whitespace-nowrap group shadow-sm cursor-pointer ${
+                activeNavSection === 'live-traffic'
+                  ? 'bg-rose-500/20 text-rose-200 border-rose-400/50 shadow-rose-900/30 ring-1 ring-rose-400/30'
+                  : 'border-rose-500/20 hover:text-rose-200 hover:bg-rose-500/10'
+              }`}
             >
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
               <span>Mắt Live</span>
             </a>
             <a 
               href="#escrow-koc" 
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-purple-300 hover:text-purple-200 hover:bg-purple-500/10 border border-purple-500/20 transition-all flex items-center gap-1.5 whitespace-nowrap group shadow-sm"
+              onClick={(e) => scrollToSection(e, 'escrow-koc')}
+              className={`px-2 xl:px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-purple-300 border transition-all flex items-center gap-1.5 whitespace-nowrap group shadow-sm cursor-pointer ${
+                activeNavSection === 'escrow-koc'
+                  ? 'bg-purple-500/20 text-purple-200 border-purple-400/50 shadow-purple-900/30 ring-1 ring-purple-400/30'
+                  : 'border-purple-500/20 hover:text-purple-200 hover:bg-purple-500/10'
+              }`}
             >
               <Video className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
               <span>KOC Ký Quỹ</span>
             </a>
             <a 
               href="#affiliate" 
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-amber-300 hover:text-white hover:bg-gradient-to-r hover:from-amber-500/20 hover:to-rose-500/20 border border-amber-500/30 transition-all flex items-center gap-1.5 whitespace-nowrap group"
+              onClick={(e) => scrollToSection(e, 'affiliate')}
+              className={`px-2 xl:px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-amber-300 border border-amber-500/30 transition-all flex items-center gap-1.5 whitespace-nowrap group cursor-pointer ${
+                activeNavSection === 'affiliate'
+                  ? 'bg-gradient-to-r from-amber-500/30 to-rose-500/30 text-white border-amber-400/60 shadow-amber-900/40 ring-1 ring-amber-400/30'
+                  : 'hover:text-white hover:bg-gradient-to-r hover:from-amber-500/20 hover:to-rose-500/20'
+              }`}
             >
               <Gift className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
               <span>Hoa Hồng 35%</span>
             </a>
             <a 
               href="#roadmap" 
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-cyan-300 hover:text-cyan-200 hover:bg-cyan-500/10 border border-cyan-500/20 transition-all flex items-center gap-1.5 whitespace-nowrap group shadow-sm"
+              onClick={(e) => scrollToSection(e, 'roadmap')}
+              className={`px-2 xl:px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-cyan-300 border transition-all flex items-center gap-1.5 whitespace-nowrap group shadow-sm cursor-pointer ${
+                activeNavSection === 'roadmap'
+                  ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50 shadow-cyan-900/30 ring-1 ring-cyan-400/30'
+                  : 'border-cyan-500/20 hover:text-cyan-200 hover:bg-cyan-500/10'
+              }`}
             >
               <Globe className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
               <span>Đa Nền Tảng</span>
             </a>
             <a 
               href="#packages-showcase" 
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-pink-300 hover:text-pink-200 hover:bg-pink-500/10 border border-pink-500/20 transition-all flex items-center gap-1.5 whitespace-nowrap group shadow-sm"
+              onClick={(e) => scrollToSection(e, 'packages-showcase')}
+              className={`px-2 xl:px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-pink-300 border transition-all flex items-center gap-1.5 whitespace-nowrap group shadow-sm cursor-pointer ${
+                activeNavSection === 'packages-showcase'
+                  ? 'bg-pink-500/20 text-pink-200 border-pink-400/50 shadow-pink-900/30 ring-1 ring-pink-400/30'
+                  : 'border-pink-500/20 hover:text-pink-200 hover:bg-pink-500/10'
+              }`}
             >
               <ShoppingBag className="w-3.5 h-3.5 text-pink-400 group-hover:scale-110 transition-transform" />
               <span>Bảng Giá Gói</span>
@@ -241,40 +352,112 @@ const LandingPageCore: React.FC = () => {
         </div>
 
         {/* Mobile Quick Horizontal Sub-Navigation */}
-        <div className="xl:hidden w-full overflow-x-auto py-2 px-3 border-t border-white/5 flex items-center gap-1.5 bg-[#07090E]/95 backdrop-blur-md">
-          <a href="#human-network" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white shrink-0 flex items-center gap-1">
+        <div className="lg:hidden w-full overflow-x-auto py-2 px-3 border-t border-white/5 flex items-center gap-1.5 bg-[#07090E]/95 backdrop-blur-md no-scrollbar">
+          <a 
+            href="#human-network" 
+            onClick={(e) => scrollToSection(e, 'human-network')}
+            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all ${
+              activeNavSection === 'human-network'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                : 'text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white'
+            }`}
+          >
             <ShieldCheck className="w-3 h-3 text-emerald-400" />
             <span>Người Thật</span>
           </a>
-          <a href="#ways-to-earn" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white shrink-0 flex items-center gap-1">
+          <a 
+            href="#ways-to-earn" 
+            onClick={(e) => scrollToSection(e, 'ways-to-earn')}
+            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all ${
+              activeNavSection === 'ways-to-earn'
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                : 'text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white'
+            }`}
+          >
             <Coins className="w-3 h-3 text-amber-400" />
             <span>Kiếm Tiền</span>
           </a>
-          <a href="#audiences" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white shrink-0 flex items-center gap-1">
+          <a 
+            href="#audiences" 
+            onClick={(e) => scrollToSection(e, 'audiences')}
+            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all ${
+              activeNavSection === 'audiences'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                : 'text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white'
+            }`}
+          >
             <Target className="w-3 h-3 text-cyan-400" />
             <span>Tệp Khách</span>
           </a>
-          <a href="#calculator" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 shrink-0 flex items-center gap-1">
+          <a 
+            href="#calculator" 
+            onClick={(e) => scrollToSection(e, 'calculator')}
+            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-300 border shrink-0 flex items-center gap-1 cursor-pointer transition-all ${
+              activeNavSection === 'calculator'
+                ? 'bg-amber-500/25 border-amber-400/60 shadow-sm'
+                : 'bg-amber-500/10 border-amber-500/20'
+            }`}
+          >
             <TrendingUp className="w-3 h-3 text-amber-400" />
             <span>Thu Nhập</span>
           </a>
-          <a href="#live-traffic" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-rose-300 bg-rose-500/10 border border-rose-500/20 shrink-0 flex items-center gap-1">
+          <a 
+            href="#live-traffic" 
+            onClick={(e) => scrollToSection(e, 'live-traffic')}
+            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold text-rose-300 border shrink-0 flex items-center gap-1 cursor-pointer transition-all ${
+              activeNavSection === 'live-traffic'
+                ? 'bg-rose-500/25 border-rose-400/60 shadow-sm'
+                : 'bg-rose-500/10 border-rose-500/20'
+            }`}
+          >
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
             <span>Mắt Live</span>
           </a>
-          <a href="#escrow-koc" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20 shrink-0 flex items-center gap-1">
+          <a 
+            href="#escrow-koc" 
+            onClick={(e) => scrollToSection(e, 'escrow-koc')}
+            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold text-purple-300 border shrink-0 flex items-center gap-1 cursor-pointer transition-all ${
+              activeNavSection === 'escrow-koc'
+                ? 'bg-purple-500/25 border-purple-400/60 shadow-sm'
+                : 'bg-purple-500/10 border-purple-500/20'
+            }`}
+          >
             <Video className="w-3 h-3 text-purple-400" />
             <span>KOC Ký Quỹ</span>
           </a>
-          <a href="#affiliate" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-300 bg-white/5 hover:bg-white/10 shrink-0 flex items-center gap-1">
+          <a 
+            href="#affiliate" 
+            onClick={(e) => scrollToSection(e, 'affiliate')}
+            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-300 border shrink-0 flex items-center gap-1 cursor-pointer transition-all ${
+              activeNavSection === 'affiliate'
+                ? 'bg-amber-500/20 border-amber-400/50'
+                : 'bg-white/5 hover:bg-white/10 border-white/5'
+            }`}
+          >
             <Gift className="w-3 h-3 text-amber-400" />
             <span>Hoa Hồng 35%</span>
           </a>
-          <a href="#roadmap" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 shrink-0 flex items-center gap-1">
+          <a 
+            href="#roadmap" 
+            onClick={(e) => scrollToSection(e, 'roadmap')}
+            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold text-cyan-300 border shrink-0 flex items-center gap-1 cursor-pointer transition-all ${
+              activeNavSection === 'roadmap'
+                ? 'bg-cyan-500/25 border-cyan-400/60 shadow-sm'
+                : 'bg-cyan-500/10 border-cyan-500/20'
+            }`}
+          >
             <Globe className="w-3 h-3 text-cyan-400" />
             <span>Đa Nền Tảng</span>
           </a>
-          <a href="#packages-showcase" className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-pink-300 bg-pink-500/10 border border-pink-500/20 shrink-0 flex items-center gap-1">
+          <a 
+            href="#packages-showcase" 
+            onClick={(e) => scrollToSection(e, 'packages-showcase')}
+            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold text-pink-300 border shrink-0 flex items-center gap-1 cursor-pointer transition-all ${
+              activeNavSection === 'packages-showcase'
+                ? 'bg-pink-500/25 border-pink-400/60 shadow-sm'
+                : 'bg-pink-500/10 border-pink-500/20'
+            }`}
+          >
             <ShoppingBag className="w-3 h-3 text-pink-400" />
             <span>Bảng Giá Gói</span>
           </a>
@@ -566,7 +749,7 @@ const LandingPageCore: React.FC = () => {
       </section>
 
       {/* 3. TUYÊN NGÔN BẢO CHỨNG: "NGƯỜI THẬT KẾT NỐI NGƯỜI THẬT" (REAL HUMAN VS BOT MATRIX) */}
-      <section id="human-network" className="py-16 md:py-24 bg-gradient-to-b from-[#07090E] via-[#0B0E1B] to-[#07090E] border-y border-white/10 relative">
+      <section id="human-network" className="py-16 md:py-24 bg-gradient-to-b from-[#07090E] via-[#0B0E1B] to-[#07090E] border-y border-white/10 relative scroll-mt-24 sm:scroll-mt-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
           
           <div className="text-center space-y-3 max-w-3xl mx-auto">
@@ -651,7 +834,7 @@ const LandingPageCore: React.FC = () => {
       </section>
 
       {/* 4. TẬP TRUNG TỪ KHÓA: 8 CON ĐƯỜNG KIẾM TIỀN TẠI NHÀ DÀNH CHO BẠN */}
-      <section id="ways-to-earn" className="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
+      <section id="ways-to-earn" className="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-12 scroll-mt-24 sm:scroll-mt-28">
         <div className="text-center space-y-3 max-w-3xl mx-auto">
           <span className="px-3.5 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-mono font-bold uppercase border border-amber-500/30">
             💰 ĐA DẠNG NGUỒN THU NHẬP • KHÔNG CẦN VỐN 💰
@@ -786,7 +969,7 @@ const LandingPageCore: React.FC = () => {
       </section>
 
       {/* 5. PHÂN TÁCH 6 TỆP KHÁCH HÀNG AI CŨNG CÓ THỂ KIẾM TIỀN (INTERACTIVE AUDIENCE TABS) */}
-      <section id="audiences" className="py-16 md:py-24 bg-gradient-to-b from-[#07090E] via-[#0D101E] to-[#07090E] border-y border-white/10">
+      <section id="audiences" className="py-16 md:py-24 bg-gradient-to-b from-[#07090E] via-[#0D101E] to-[#07090E] border-y border-white/10 scroll-mt-24 sm:scroll-mt-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-10">
           
           <div className="text-center space-y-3 max-w-3xl mx-auto">
@@ -1020,7 +1203,7 @@ const LandingPageCore: React.FC = () => {
       </section>
 
       {/* 6. BẢNG TÍNH THU NHẬP TƯƠNG TÁC THỜI GIAN THỰC (INTERACTIVE EARNING CALCULATOR) */}
-      <section id="calculator" className="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-10">
+      <section id="calculator" className="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-10 scroll-mt-24 sm:scroll-mt-28">
         <div className="text-center space-y-3 max-w-3xl mx-auto">
           <span className="px-3.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold uppercase border border-emerald-500/30">
             📊 BẢNG TÍNH THU NHẬP MINH BẠCH 📊
@@ -1167,7 +1350,7 @@ const LandingPageCore: React.FC = () => {
       </section>
 
       {/* 7. DÀNH CHO DOANH NGHIỆP: MẮT XEM LIVE ĐÚNG TỆP & PRODUCT LAUNCHING */}
-      <section id="live-traffic" className="py-16 md:py-24 bg-gradient-to-b from-[#07090E] via-[#0D1020] to-[#07090E] border-y border-white/10">
+      <section id="live-traffic" className="py-16 md:py-24 bg-gradient-to-b from-[#07090E] via-[#0D1020] to-[#07090E] border-y border-white/10 scroll-mt-24 sm:scroll-mt-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
           
           <div className="text-center space-y-3 max-w-3xl mx-auto">
@@ -1255,7 +1438,7 @@ const LandingPageCore: React.FC = () => {
       </section>
 
       {/* 8. TIẾP THỊ LIÊN KẾT (AFFILIATE) HOA HỒNG TỚI 35% */}
-      <section id="affiliate" className="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
+      <section id="affiliate" className="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-12 scroll-mt-24 sm:scroll-mt-28">
         <div className="text-center space-y-3 max-w-3xl mx-auto">
           <span className="px-3.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300 text-xs font-mono font-bold uppercase border border-yellow-500/30">
             👑 CHÍNH SÁCH ĐẠI LÝ TIẾP THỊ LIÊN KẾT 👑
@@ -1337,7 +1520,7 @@ const LandingPageCore: React.FC = () => {
       </section>
 
       {/* 9. LỘ TRÌNH MỞ RỘNG ĐA NỀN TẢNG (OMNICHANNEL MULTI-PLATFORM ROADMAP) */}
-      <section id="roadmap" className="py-16 md:py-24 bg-gradient-to-b from-[#07090E] via-[#0A0D1A] to-[#07090E] border-y border-white/10">
+      <section id="roadmap" className="py-16 md:py-24 bg-gradient-to-b from-[#07090E] via-[#0A0D1A] to-[#07090E] border-y border-white/10 scroll-mt-24 sm:scroll-mt-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-10">
           
           <div className="text-center space-y-3 max-w-3xl mx-auto">
@@ -1999,57 +2182,439 @@ const LandingPageCore: React.FC = () => {
         </div>
       </section>
 
-      {/* 13. LUXURY FOOTER */}
-      <footer className="bg-[#05070B] border-t border-white/10 py-12 text-xs text-slate-400 font-mono">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
-          
-          <div className="space-y-3">
-            <BrandLogo size="sm" showSubtitle={false} />
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Siêu nền tảng công nghệ kết nối tương tác người dùng thật, phát triển kênh TikTok Shop và hệ sinh thái KOC Ký Quỹ Escrow hàng đầu Việt Nam.
-            </p>
+      {/* 13. TOÀN BỘ CHÍNH SÁCH PHÁP LUẬT VIỆT NAM, BẢN QUYỀN & LUXURY FOOTER */}
+      <footer className="bg-[#04060A] border-t border-white/10 pt-16 pb-12 text-xs text-slate-400 font-mono relative overflow-hidden">
+        {/* Glow ambient background effects */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-red-600/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12 relative z-10">
+
+          {/* 13A. BANNER QUỐC GIA: TUÂN THỦ PHÁP LUẬT NƯỚC CHXHCN VIỆT NAM & SỞ HỮU TRÍ TUỆ */}
+          <div className="p-5 sm:p-7 rounded-3xl bg-gradient-to-r from-red-950/30 via-slate-900/60 to-blue-950/30 border border-white/15 shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-6 backdrop-blur-md">
+            <div className="flex items-center gap-4 text-center sm:text-left">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 p-0.5 shadow-xl shadow-red-900/40 flex items-center justify-center shrink-0">
+                <div className="w-full h-full bg-[#080B12] rounded-[14px] flex items-center justify-center">
+                  <Scale className="w-7 h-7 text-amber-400 animate-pulse" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-full bg-red-600/20 text-red-400 border border-red-500/30 text-[10px] font-mono font-black uppercase tracking-wider flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                    CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono font-bold">
+                    LUẬT SHTT SỐ 07/2022/QH15
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-white font-display">
+                  Khung Pháp Lý, Bản Quyền &amp; Chính Sách Tuân Thủ Nền Tảng 2026
+                </h3>
+                <p className="text-[11px] text-slate-300 font-sans leading-relaxed max-w-3xl">
+                  Nền tảng AVA FOLLOW thiết lập và thực thi nghiêm ngặt 100% quy chuẩn pháp lý theo Bộ luật Dân sự, Luật Sở hữu trí tuệ 2022, Nghị định 13/2023/NĐ-CP về Bảo vệ dữ liệu cá nhân, Luật An ninh mạng 2018 và Luật Thương mại điện tử Việt Nam.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => openLegalPolicy('intellectual-property')}
+              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs font-mono shadow-xl shadow-red-950/50 flex items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-all border border-amber-400/30 font-display"
+            >
+              <Gavel className="w-4 h-4 text-amber-300" />
+              <span>Tra Cứu Toàn Bộ 9 Văn Bản Chính Sách</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          <div className="space-y-2">
-            <div className="font-bold text-white text-xs uppercase font-display">Dành Cho Người Dùng</div>
-            <ul className="space-y-1.5 text-[11px] text-slate-400">
-              <li><a href="#ways-to-earn" className="hover:text-white transition-colors">Xem Video Kiếm Tiền</a></li>
-              <li><a href="#ways-to-earn" className="hover:text-white transition-colors">Thả Tim &amp; Bình Luận Seeding</a></li>
-              <li><a href="#affiliate" className="hover:text-white transition-colors">Tiếp Thị Liên Kết 35%</a></li>
-              <li><a href="#calculator" className="hover:text-white transition-colors">Bảng Tính Thu Nhập Online</a></li>
-            </ul>
+          {/* 13B. DẢI HUY HIỆU TUÂN THỦ PHÁP LUẬT VIỆT NAM (5 HUY HIỆU QUỐC GIA) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {[
+              {
+                icon: ShieldCheck,
+                color: 'text-purple-400',
+                bg: 'bg-purple-500/10 border-purple-500/20',
+                title: 'Bảo Hộ Bản Quyền SHTT',
+                law: 'Luật SHTT 2022 & NĐ 17/2023',
+                id: 'intellectual-property'
+              },
+              {
+                icon: Lock,
+                color: 'text-emerald-400',
+                bg: 'bg-emerald-500/10 border-emerald-500/20',
+                title: 'Bảo Vệ Dữ Liệu Cá Nhân',
+                law: 'Nghị định 13/2023/NĐ-CP',
+                id: 'privacy-data-protection'
+              },
+              {
+                icon: ShieldAlert,
+                color: 'text-rose-400',
+                bg: 'bg-rose-500/10 border-rose-500/20',
+                title: 'An Ninh Mạng & A05',
+                law: 'Luật An ninh mạng số 24/2018',
+                id: 'cybersecurity-compliance'
+              },
+              {
+                icon: Scale,
+                color: 'text-amber-400',
+                bg: 'bg-amber-500/10 border-amber-500/20',
+                title: 'Smart Escrow Ký Quỹ',
+                law: 'Luật TM & NĐ 52/2013, 85/2021',
+                id: 'smart-escrow-contract'
+              },
+              {
+                icon: Award,
+                color: 'text-blue-400',
+                bg: 'bg-blue-500/10 border-blue-500/20',
+                title: 'Bảo Vệ Người Tiêu Dùng',
+                law: 'Luật BVNTD số 19/2023/QH15',
+                id: 'consumer-protection-refund'
+              }
+            ].map((badge, idx) => {
+              const IconComp = badge.icon;
+              return (
+                <div
+                  key={idx}
+                  onClick={() => openLegalPolicy(badge.id)}
+                  className={`p-3 rounded-2xl border ${badge.bg} flex items-center gap-2.5 cursor-pointer hover:scale-[1.02] active:scale-95 transition-all group`}
+                >
+                  <div className="p-2 rounded-xl bg-black/40 shrink-0">
+                    <IconComp className={`w-4 h-4 ${badge.color}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold text-white group-hover:text-amber-300 transition-colors truncate">
+                      {badge.title}
+                    </div>
+                    <div className="text-[9px] text-slate-400 font-mono truncate">
+                      {badge.law}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="space-y-2">
-            <div className="font-bold text-white text-xs uppercase font-display">Dành Cho Doanh Nghiệp</div>
-            <ul className="space-y-1.5 text-[11px] text-slate-400">
-              <li><a href="#live-traffic" className="hover:text-white transition-colors">Mắt Xem Livestream Người Thật</a></li>
-              <li><a href="#live-traffic" className="hover:text-white transition-colors">Chiến Dịch Launching Sản Phẩm</a></li>
-              <li><a href="#human-network" className="hover:text-white transition-colors">Ký Quỹ Smart Escrow 3 Bên</a></li>
-              <li><a href="#human-network" className="hover:text-white transition-colors">Booking KOC Đã Xác Minh KYC</a></li>
-            </ul>
+          {/* 13C. BẢNG DANH MỤC TOÀN BỘ CHÍNH SÁCH DƯỚI CHÂN TRANG (4 CỘT CHUYÊN SÂU) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-4 border-t border-white/5">
+            
+            {/* CỘT 1: BẢN QUYỀN & QUYỀN SỞ HỮU TRÍ TUỆ */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-xs uppercase font-display">
+                    Sở Hữu Trí Tuệ &amp; Bản Quyền
+                  </h4>
+                  <span className="text-[9px] text-purple-400 font-mono">Luật SHTT số 07/2022/QH15</span>
+                </div>
+              </div>
+              <ul className="space-y-2 text-[11px] text-slate-400 font-mono">
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('intellectual-property')} 
+                    className="hover:text-purple-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-purple-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Quyền SHTT phần mềm &amp; logo AVA FOLLOW</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('intellectual-property')} 
+                    className="hover:text-purple-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-purple-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Quyền tác giả video của Creator &amp; KOC</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('intellectual-property')} 
+                    className="hover:text-purple-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-purple-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Miễn trừ nhãn hiệu TikTok, Meta, Google</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('intellectual-property')} 
+                    className="hover:text-purple-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-purple-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Quy trình gỡ bỏ vi phạm bản quyền DMCA 24h</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('legal-disclaimer')} 
+                    className="hover:text-purple-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-purple-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Tuyên bố miễn trừ &amp; Sự cố bất khả kháng</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* CỘT 2: AN NINH MẠNG & BẢO VỆ DỮ LIỆU CÁ NHÂN */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-xs uppercase font-display">
+                    An Ninh Mạng &amp; Dữ Liệu
+                  </h4>
+                  <span className="text-[9px] text-emerald-400 font-mono">Nghị định 13/2023/NĐ-CP</span>
+                </div>
+              </div>
+              <ul className="space-y-2 text-[11px] text-slate-400 font-mono">
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('privacy-data-protection')} 
+                    className="hover:text-emerald-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-emerald-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Bảo vệ dữ liệu cá nhân &amp; Quyền riêng tư</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('cybersecurity-compliance')} 
+                    className="hover:text-emerald-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-emerald-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Chính sách tuân thủ Luật An ninh mạng 2018</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('cybersecurity-compliance')} 
+                    className="hover:text-emerald-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer text-rose-300/90"
+                  >
+                    <span className="text-rose-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Chính sách Không Khoan Nhượng lừa đảo, cờ bạc</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('cybersecurity-compliance')} 
+                    className="hover:text-emerald-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-emerald-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Cơ chế trích xuất chứng cứ bàn giao A05</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('privacy-data-protection')} 
+                    className="hover:text-emerald-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-emerald-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Tiêu chuẩn mã hóa AES-256 &amp; Quyền xóa dữ liệu</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* CỘT 3: ĐIỀU KHOẢN SÀN & HỢP ĐỒNG KÝ QUỸ SMART ESCROW */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400">
+                  <Scale className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-xs uppercase font-display">
+                    Điều Khoản Sàn &amp; Escrow
+                  </h4>
+                  <span className="text-[9px] text-amber-400 font-mono">Luật TM &amp; NĐ 52/2013</span>
+                </div>
+              </div>
+              <ul className="space-y-2 text-[11px] text-slate-400 font-mono">
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('terms-of-service')} 
+                    className="hover:text-amber-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-amber-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Điều khoản dịch vụ &amp; Thỏa thuận điện tử</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('smart-escrow-contract')} 
+                    className="hover:text-amber-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-amber-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Cơ chế Két Ký Quỹ Độc Lập Smart Escrow 3 bên</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('smart-escrow-contract')} 
+                    className="hover:text-amber-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-amber-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Chính sách bảo hành 72h &amp; 02 lần sửa video</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('smart-escrow-contract')} 
+                    className="hover:text-amber-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-amber-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Quy trình hòa giải &amp; Trọng tài thương mại VIAC</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('terms-of-service')} 
+                    className="hover:text-amber-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-amber-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Quy tắc ứng xử văn minh &amp; Năng lực dân sự</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* CỘT 4: TIÊU DÙNG, THUẾ & CHỐNG GIAN LẬN */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-400">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-xs uppercase font-display">
+                    Tiêu Dùng &amp; Chống Gian Lận
+                  </h4>
+                  <span className="text-[9px] text-cyan-400 font-mono">100% Người Thật Tương Tác</span>
+                </div>
+              </div>
+              <ul className="space-y-2 text-[11px] text-slate-400 font-mono">
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('anti-fraud-policy')} 
+                    className="hover:text-cyan-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-cyan-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Chính sách chống gian lận (0% Bot / Tool ảo)</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('affiliate-tax-policy')} 
+                    className="hover:text-cyan-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-cyan-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Tiếp thị liên kết 35% &amp; Nghĩa vụ thuế TNCN</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('consumer-protection-refund')} 
+                    className="hover:text-cyan-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-cyan-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Bảo vệ quyền lợi người tiêu dùng (Luật BVNTD)</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('consumer-protection-refund')} 
+                    className="hover:text-cyan-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-cyan-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Hoàn tiền 100% &amp; Bảo hành bù đắp tự động</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalPolicy('affiliate-tax-policy')} 
+                    className="hover:text-cyan-300 transition-colors text-left flex items-start gap-1.5 group cursor-pointer"
+                  >
+                    <span className="text-cyan-400 font-bold group-hover:translate-x-0.5 transition-transform">›</span>
+                    <span>Quy chuẩn rút tiền tài khoản ngân hàng chính chủ</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+
           </div>
 
-          <div className="space-y-2">
-            <div className="font-bold text-white text-xs uppercase font-display">Hỗ Trợ &amp; Pháp Lý</div>
-            <ul className="space-y-1.5 text-[11px] text-slate-400">
-              <li>Hotline CSKH: 1900.8899</li>
-              <li>Email: hotro@avafollow.vn</li>
-              <li>Chính sách bảo mật &amp; Quyền riêng tư</li>
-              <li>Điều khoản dịch vụ Sàn Ký Quỹ</li>
-            </ul>
+          {/* 13D. THÔNG TIN PHÁP NHÂN VẬN HÀNH & KÊNH LIÊN HỆ PHÁP CHẾ */}
+          <div className="p-6 rounded-3xl bg-[#070A11] border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-[11px]">
+            <div className="space-y-2 max-w-2xl">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-white uppercase text-xs font-display">
+                  {VIETNAMESE_LEGAL_OVERVIEW.platformName}
+                </span>
+                <span className="text-slate-500">|</span>
+                <span className="text-emerald-400 font-bold">Ban Pháp Chế &amp; Giám Sát An Ninh Mạng Quốc Gia</span>
+              </div>
+              <p className="text-slate-400 leading-relaxed font-sans">
+                <strong>Trụ sở chính:</strong> {VIETNAMESE_LEGAL_OVERVIEW.headquarters}
+              </p>
+              <div className="flex flex-wrap items-center gap-4 text-slate-300 font-mono text-[10px]">
+                <span>Tổng đài CSKH: <strong className="text-white">{VIETNAMESE_LEGAL_OVERVIEW.hotline}</strong></span>
+                <span>Hotline Pháp chế 24/7: <strong className="text-amber-400">{VIETNAMESE_LEGAL_OVERVIEW.emergencyLegalHotline}</strong></span>
+                <span>Email Pháp chế: <strong className="text-blue-400">{VIETNAMESE_LEGAL_OVERVIEW.legalEmail}</strong></span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <a
+                href={`mailto:${VIETNAMESE_LEGAL_OVERVIEW.legalEmail}?subject=Khieu-Nai-Ban-Quyen-Phap-Ly`}
+                className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white font-bold text-xs font-mono flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+              >
+                <Mail className="w-3.5 h-3.5 text-rose-400" />
+                <span>Khiếu Nại Bản Quyền</span>
+              </a>
+              <a
+                href="tel:19008899"
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs font-mono flex items-center gap-2 cursor-pointer active:scale-95 transition-all shadow-lg"
+              >
+                <PhoneCall className="w-3.5 h-3.5" />
+                <span>Tổng Đài 1900.8899</span>
+              </a>
+            </div>
           </div>
 
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 mt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-slate-500">
-          <div>© 2026 AVA FOLLOW Ecosystem. Toàn bộ quyền được bảo lưu. 100% Người Thật Tương Tác.</div>
-          <div className="flex items-center gap-4">
-            <span>Tiêu Chuẩn Thuật Toán TikTok 2026</span>
-            <span>Bảo Mật SSL 256-Bit</span>
+          {/* 13E. COPYRIGHT & CERTIFICATIONS STRIP */}
+          <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-slate-500 font-mono">
+            <div>
+              © 2026 AVA FOLLOW Ecosystem. Toàn bộ quyền sở hữu trí tuệ được bảo lưu theo Pháp luật Nước CHXHCN Việt Nam. 100% Người Thật Tương Tác.
+            </div>
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="flex items-center gap-1 text-emerald-400/90">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                <span>Mã Hóa SSL/TLS 256-Bit</span>
+              </span>
+              <span className="flex items-center gap-1 text-purple-400/90">
+                <ShieldCheck className="w-3 h-3 text-purple-400" />
+                <span>Bảo Hộ Bản Quyền SHTT</span>
+              </span>
+              <span className="flex items-center gap-1 text-blue-400/90">
+                <Scale className="w-3 h-3 text-blue-400" />
+                <span>Thuật Toán Chuẩn TikTok 2026</span>
+              </span>
+            </div>
           </div>
+
         </div>
       </footer>
+
+      {/* MODAL TRA CỨU TOÀN BỘ VĂN BẢN CHÍNH SÁCH PHÁP LUẬT VIỆT NAM & SỞ HỮU TRÍ TUỆ */}
+      <VietnameseLegalPolicyModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        initialPolicyId={selectedLegalPolicyId}
+      />
 
     </div>
   );

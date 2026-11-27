@@ -166,9 +166,6 @@ function AppContent() {
         if (!mainContentRef.current.contains(target)) {
           mainContentRef.current.scrollTop += e.deltaY;
         }
-      } else {
-        // Nếu đang ở Landing Page bên ngoài: cuộn cửa sổ window mượt mà ở bất kỳ vị trí con trỏ chuột nào
-        window.scrollBy({ top: e.deltaY, behavior: 'auto' });
       }
     };
 

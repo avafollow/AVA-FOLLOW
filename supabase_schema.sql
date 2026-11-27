@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- AVA FOLLOW GROWTH OS - HỆ THỐNG CƠ SỞ DỮ LIỆU ĐỒNG BỘ SUPABASE CLOUD (POSTGRESQL)
--- Mã dự án: bsmslbccqkvgiikrghpg
+-- Mã dự án: vjsymzbaiyzuryvdniwd
 -- Hướng dẫn: Copy toàn bộ đoạn script này và dán vào Supabase -> SQL Editor -> Bấm RUN
 -- ==============================================================================
 

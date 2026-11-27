@@ -35,7 +35,10 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
   normalizedUrl = normalizedUrl.replace('facebook.com/@', 'facebook.com/').replace('m.facebook.com', 'www.facebook.com');
 
   const directUrl = normalizedUrl;
-  const isVideoUrl = Boolean(directUrl && (directUrl.includes('/videos/') || directUrl.includes('/watch') || directUrl.includes('/reel/')));
+  const isFacebookEmbeddable = Boolean(
+    directUrl && 
+    (directUrl.includes('facebook.com') || directUrl.includes('fb.watch') || directUrl.includes('fb.com') || directUrl.includes('fb.gg'))
+  );
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const [hasIframeError, setHasIframeError] = useState<boolean>(false);
   const [isHlsStream, setIsHlsStream] = useState<boolean>(Boolean(url && (url.includes('.m3u8') || url.includes('.mp4'))));
@@ -44,6 +47,7 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
   const activeStreamSrc = url && (url.includes('.m3u8') || url.includes('.mp4')) ? url : fallbackLiveSrc;
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
   useEffect(() => {
@@ -93,9 +97,49 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
     if (e) e.stopPropagation();
     const nextMuted = !internalMuted;
     setInternalMuted(nextMuted);
+
+    // Mở khóa AudioContext trình duyệt
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const audioCtx = new AudioCtx();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }
+    } catch {}
+
     if (videoRef.current) {
       videoRef.current.muted = nextMuted;
+      videoRef.current.volume = 1.0;
+      if (!nextMuted) {
+        videoRef.current.play().catch(() => {});
+      }
     }
+
+    if (iframeRef.current?.contentWindow) {
+      const cw = iframeRef.current.contentWindow;
+      const commands = nextMuted
+        ? [
+            JSON.stringify({ event: 'command', func: 'mute' }),
+            'mute'
+          ]
+        : [
+            JSON.stringify({ event: 'command', func: 'unMute' }),
+            JSON.stringify({ event: 'command', func: 'unmute' }),
+            JSON.stringify({ event: 'command', func: 'setVolume', args: [1.0] }),
+            JSON.stringify({ event: 'command', func: 'play' }),
+            'unmute',
+            'play'
+          ];
+
+      commands.forEach(cmd => {
+        try {
+          cw.postMessage(cmd, '*');
+        } catch {}
+      });
+    }
+
     if (onToggleMute) onToggleMute();
   };
 
@@ -124,14 +168,17 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
           <button
             type="button"
             onClick={handleToggleSound}
-            className={`p-1.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg ${
+            className={`py-1 px-2.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1.5 ${
               internalMuted 
-                ? 'bg-blue-500/20 text-blue-400 border-blue-500/40' 
-                : 'bg-black/80 text-emerald-400 border-emerald-500/40'
+                ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 hover:bg-rose-500/40 animate-pulse' 
+                : 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/40'
             }`}
-            title={internalMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+            title={internalMuted ? 'Bấm để bật âm thanh Live Facebook' : 'Bấm để tắt tiếng'}
           >
-            {internalMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            {internalMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-300" />}
+            <span className="text-[10px] font-mono font-bold">
+              {internalMuted ? 'Bật Tiếng' : 'Âm Thanh Bật'}
+            </span>
           </button>
 
           <a
@@ -139,7 +186,7 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
             target="_blank"
             rel="noreferrer"
             className="px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[10px] font-mono font-bold border border-blue-400/40 shadow-lg flex items-center gap-1 cursor-pointer transition-transform active:scale-95 font-display"
-            title="Mở trên Facebook"
+            title="Mở trên Facebook để nghe âm thanh gốc"
           >
             <span>Mở Facebook</span>
             <ExternalLink className="w-3 h-3" />
@@ -149,12 +196,27 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
 
       {/* 2. REAL-TIME FACEBOOK LIVE EMBED IFRAME (THẬT 100% TỪ FACEBOOK) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-        {isVideoUrl && !hasIframeError ? (
+        {/* Floating Center Prompt if Muted */}
+        {internalMuted && isFacebookEmbeddable && !hasIframeError && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
+            <button
+              type="button"
+              onClick={handleToggleSound}
+              className="px-4 py-2.5 rounded-2xl bg-blue-600/90 hover:bg-blue-500 text-white font-bold text-xs shadow-2xl flex items-center gap-2 border border-blue-300/40 pointer-events-auto cursor-pointer animate-pulse active:scale-95 transition-all backdrop-blur-md"
+            >
+              <Volume2 className="w-4 h-4 text-amber-300 animate-spin" />
+              <span>🔊 Bấm để Bật Âm Thanh Live Facebook</span>
+            </button>
+          </div>
+        )}
+
+        {isFacebookEmbeddable && !hasIframeError ? (
           <iframe
+            ref={iframeRef}
             key={`fb-live-${encodeURIComponent(directUrl)}`}
-            src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(directUrl)}&show_text=0&autoplay=1&muted=${internalMuted ? 1 : 0}&allowfullscreen=true`}
+            src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(directUrl)}&show_text=false&autoplay=true&muted=false&allowfullscreen=true`}
             title={title}
-            allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
+            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
             allowFullScreen
             onError={() => setHasIframeError(true)}
             className="w-full h-full border-0 bg-black pointer-events-auto object-cover"

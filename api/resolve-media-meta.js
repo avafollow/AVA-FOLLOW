@@ -407,7 +407,7 @@ async function resolveTikTok(targetUrl) {
 }
 
 async function resolveFacebook(targetUrl) {
-  let finalUrl = targetUrl;
+  let finalUrl = targetUrl.replace(/https?:\/\/(?:m|mobile|web)\.facebook\.com/i, 'https://www.facebook.com');
   let channelName = null;
   let channelHandle = null;
   let channelUrl = null;
@@ -447,12 +447,28 @@ async function resolveFacebook(targetUrl) {
         }
       });
       if (res.url && res.url.includes('facebook.com')) {
-        finalUrl = res.url;
-        const resolvedSlug = finalUrl.match(/facebook\.com\/([^\/\?\#]+)/i);
-        if (resolvedSlug && resolvedSlug[1] && !reservedPaths.includes(resolvedSlug[1].toLowerCase()) && !channelHandle) {
-          const slug = safeDecodeURIComponent(resolvedSlug[1]);
-          channelHandle = `@${slug}`;
-          channelUrl = `https://www.facebook.com/${slug}`;
+        let candidateUrl = res.url;
+        // Nếu Facebook redirect sang /login/?next=..., giải mã lại tham số next để lấy đúng link gốc!
+        if (/facebook\.com\/login/i.test(candidateUrl)) {
+          try {
+            const nextParam = new URL(candidateUrl).searchParams.get('next');
+            if (nextParam && nextParam.includes('facebook.com') && !/facebook\.com\/login/i.test(nextParam)) {
+              candidateUrl = nextParam;
+            } else {
+              candidateUrl = '';
+            }
+          } catch {
+            candidateUrl = '';
+          }
+        }
+        if (candidateUrl) {
+          finalUrl = candidateUrl.replace(/https?:\/\/(?:m|mobile|web)\.facebook\.com/i, 'https://www.facebook.com');
+          const resolvedSlug = finalUrl.match(/facebook\.com\/([^\/\?\#]+)/i);
+          if (resolvedSlug && resolvedSlug[1] && !reservedPaths.includes(resolvedSlug[1].toLowerCase()) && !channelHandle) {
+            const slug = safeDecodeURIComponent(resolvedSlug[1]);
+            channelHandle = `@${slug}`;
+            channelUrl = `https://www.facebook.com/${slug}`;
+          }
         }
       }
 

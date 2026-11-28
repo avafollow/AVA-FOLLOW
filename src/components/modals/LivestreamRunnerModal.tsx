@@ -36,7 +36,7 @@ import {
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS, LivestreamTaskItem } from '../../types';
 import { LIVE_MILESTONE_REWARDS } from '../../data/livePolicyData';
-import { parseMediaUrl, getTikTokAvatar } from '../../data/videoSources';
+import { parseMediaUrl, getTikTokAvatar, getPlatformAvatar } from '../../data/videoSources';
 import {
   syncTikTokFollow,
   syncTikTokLike,
@@ -687,9 +687,10 @@ export const LivestreamRunnerModal: React.FC = () => {
               </div>
               <div className="flex items-center gap-3">
                 <img 
-                  src={getTikTokAvatar(activeLiveTask.channelHandle, activeLiveTask.channelAvatar)} 
-                  alt="" 
-                  className="w-12 h-12 rounded-xl object-cover ring-1 ring-amber-500/40 shrink-0" 
+                  src={activeLiveTask.channelAvatar || getPlatformAvatar(parseMediaUrl(activeLiveTask.targetUrl || '').platform, activeLiveTask.channelHandle)} 
+                  alt={activeLiveTask.channelName}
+                  referrerPolicy="no-referrer"
+                  className="w-12 h-12 rounded-xl object-cover ring-1 ring-amber-500/40 shrink-0 bg-slate-900" 
                 />
                 <div className="min-w-0 flex-1">
                   <h5 className="text-xs font-bold text-white line-clamp-1">{activeLiveTask.roomTitle}</h5>

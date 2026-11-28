@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { 
   PlusCircle, 
   UserPlus, 
@@ -42,7 +42,15 @@ import {
 import { CampaignItem, FLEXIBLE_LIVESTREAM_TIERS, MultiTargetConfig } from '../../types';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TikTokVideoPreviewPlayer } from '../common/TikTokVideoPreviewPlayer';
-import { getTikTokAvatar, sanitizeMediaUrl, extractTikTokHandle, parseMediaUrl } from '../../data/videoSources';
+import {
+  getTikTokAvatar,
+  getPlatformAvatar,
+  sanitizeMediaUrl,
+  extractTikTokHandle,
+  parseMediaUrl,
+  resolveRealMediaChannelMeta,
+  isGenericPlaceholderHandle
+} from '../../data/videoSources';
 
 interface TargetOptionDef {
   id: 'follow' | 'watch' | 'like' | 'comment' | 'share' | 'livestream' | 'booking_review';
@@ -244,11 +252,54 @@ export const CreateCampaignScreen: React.FC<{
   const [title, setTitle] = useState('');
   const userHandle = user.tiktokHandle || user.tiktokConnected || '@vtv24news';
   const [channelHandle, setChannelHandle] = useState('@vtv24news');
+  const [channelDisplayName, setChannelDisplayName] = useState('VTV24 News');
+  const [channelAvatar, setChannelAvatar] = useState<string>('');
+  const [isResolvingChannelMeta, setIsResolvingChannelMeta] = useState<boolean>(false);
+  const resolveMetaReqIdRef = useRef<number>(0);
   const [targetUrl, setTargetUrl] = useState('https://www.tiktok.com/@vtv24news/video/7178345719323135259');
   const [speed, setSpeed] = useState<'natural' | 'turbo'>('natural');
   const [instructions, setInstructions] = useState('Yêu cầu người dùng thật 100%, xem video 15s tự nhiên trước khi tương tác, bảo đảm không bị tụt.');
   
   const [campaignPlatform, setCampaignPlatform] = useState<'tiktok' | 'facebook' | 'youtube'>('tiktok');
+
+  // Tự động tra cứu tên kênh thật + logo kênh thật khi targetUrl thay đổi
+  const resolveChannelMetadataForUrl = (rawUrl: string) => {
+    const cleanVal = sanitizeMediaUrl(rawUrl || '');
+    if (!cleanVal || (!cleanVal.startsWith('http://') && !cleanVal.startsWith('https://'))) return;
+
+    const reqId = ++resolveMetaReqIdRef.current;
+    setIsResolvingChannelMeta(true);
+
+    resolveRealMediaChannelMeta(cleanVal)
+      .then((meta) => {
+        if (reqId !== resolveMetaReqIdRef.current || !meta) return;
+        if (meta.channelName && !isGenericPlaceholderHandle(meta.channelName)) {
+          setChannelDisplayName(meta.channelName);
+        }
+        if (meta.channelHandle && !isGenericPlaceholderHandle(meta.channelHandle)) {
+          setChannelHandle(meta.channelHandle);
+        } else if (meta.channelName && !isGenericPlaceholderHandle(meta.channelName)) {
+          setChannelHandle(meta.channelName);
+        }
+        if (meta.channelAvatar) {
+          setChannelAvatar(meta.channelAvatar);
+        }
+        if (meta.resolvedUrl && meta.resolvedUrl !== cleanVal && (cleanVal.includes('vt.tiktok.com') || cleanVal.includes('vm.tiktok.com') || cleanVal.includes('fb.watch'))) {
+          setTargetUrl(meta.resolvedUrl);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (reqId === resolveMetaReqIdRef.current) {
+          setIsResolvingChannelMeta(false);
+        }
+      });
+  };
+
+  useEffect(() => {
+    resolveChannelMetadataForUrl(targetUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const getTargetLabels = (platform: 'tiktok' | 'facebook' | 'youtube') => {
     if (platform === 'facebook') {
@@ -287,55 +338,57 @@ export const CreateCampaignScreen: React.FC<{
   const dynamicTargetLabels = getTargetLabels(campaignPlatform);
 
   // Xử lý thông minh khi người dùng dán link video TikTok, live hoặc ID kênh: phát live tức thì
-  // Xử lý thông minh khi người dùng dán link video TikTok, YouTube, Facebook, live hoặc ID kênh: phát tức thì
+  // Xử lý thông minh khi người dùng dán link video TikTok, YouTube, Facebook, live hoặc ID kênh: nhận diện ĐÚNG TÊN KÊNH & LOGO KÊNH THẬT 100%
   const handleTargetUrlChange = (inputVal: string) => {
     const cleanVal = sanitizeMediaUrl(inputVal || '');
     
     setTargetUrl(cleanVal);
+    setChannelAvatar('');
     if (!cleanVal) return;
 
     const lower = cleanVal.toLowerCase();
     if (lower.includes('youtube.com') || lower.includes('youtu.be') || lower.includes('m.youtube.com')) {
       setCampaignPlatform('youtube');
-      showToast('🔴 Đã nhận diện đường link YouTube! Tự động chuyển chế độ YouTube.');
-      const ytHandleMatch = cleanVal.match(/(?:youtube\.com\/|youtu\.be\/)@([a-zA-Z0-9._-]+)/i);
+      showToast('🔴 Đã nhận diện đường link YouTube! Đang đồng bộ tên kênh & logo YouTube thật...');
+      const ytHandleMatch = cleanVal.match(/(?:youtube\.com\/|youtu\.be\/)@([^\/\?\#]+)/i);
       if (ytHandleMatch && ytHandleMatch[1]) {
-        setChannelHandle(`@${ytHandleMatch[1]}`);
+        let decoded = ytHandleMatch[1];
+        try { decoded = decodeURIComponent(decoded); } catch {}
+        setChannelHandle(`@${decoded}`);
+        setChannelDisplayName(decoded);
       } else {
-        try {
-          fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(cleanVal)}&format=json`)
-            .then(res => res.ok ? res.json() : null)
-            .then(data => {
-              if (data?.author_url) {
-                const authorMatch = data.author_url.match(/@([a-zA-Z0-9._-]+)/i);
-                if (authorMatch && authorMatch[1]) {
-                  setChannelHandle(`@${authorMatch[1]}`);
-                  return;
-                }
-              }
-              if (data?.author_name) {
-                setChannelHandle(`@${data.author_name.replace(/\s+/g, '_')}`);
-              }
-            })
-            .catch(() => {});
-        } catch {}
+        setChannelDisplayName('Đang nhận diện kênh YouTube...');
+        setChannelHandle('Đang tải kênh YouTube...');
       }
+      resolveChannelMetadataForUrl(cleanVal);
     } else if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.com') || lower.includes('fb.gg') || lower.includes('m.facebook.com')) {
       setCampaignPlatform('facebook');
-      showToast('📘 Đã nhận diện đường link Facebook! Tự động chuyển chế độ Fanpage/Reels Facebook.');
-      const fbHandleMatch = cleanVal.match(/facebook\.com\/([a-zA-Z0-9._-]+)/i);
-      if (fbHandleMatch && !['watch', 'reel', 'videos', 'share', 'groups'].includes(fbHandleMatch[1].toLowerCase())) {
-        setChannelHandle(`@${fbHandleMatch[1]}`);
+      showToast('📘 Đã nhận diện đường link Facebook! Đang đồng bộ tên trang & logo Facebook thật...');
+      const fbHandleMatch = cleanVal.match(/facebook\.com\/([^\/\?\#]+)/i);
+      if (fbHandleMatch && !['watch', 'reel', 'reels', 'videos', 'video.php', 'share', 'groups', 'stories', 'events', 'photo', 'photo.php', 'profile.php', 'permalink.php', 'story.php', 'live'].includes(fbHandleMatch[1].toLowerCase())) {
+        let decoded = fbHandleMatch[1];
+        try { decoded = decodeURIComponent(decoded); } catch {}
+        setChannelHandle(`@${decoded}`);
+        setChannelDisplayName(decoded);
+      } else {
+        setChannelDisplayName('Đang nhận diện trang Facebook...');
+        setChannelHandle('Đang tải trang Facebook...');
       }
+      resolveChannelMetadataForUrl(cleanVal);
     } else if (lower.includes('tiktok.com') || lower.includes('vt.tiktok.com') || lower.includes('vm.tiktok.com') || lower.includes('m.tiktok.com')) {
       setCampaignPlatform('tiktok');
-      showToast('🎵 Đã nhận diện đường link TikTok! Tự động chuyển chế độ TikTok.');
+      showToast('🎵 Đã nhận diện đường link TikTok! Đang đồng bộ tên kênh & logo TikTok thật...');
       const extractedHandle = extractTikTokHandle(cleanVal);
-      if (extractedHandle && extractedHandle !== '@creator_vietnam') {
+      if (extractedHandle && !isGenericPlaceholderHandle(extractedHandle)) {
         setChannelHandle(extractedHandle);
+        setChannelDisplayName(extractedHandle);
       } else if (cleanVal.startsWith('@')) {
         setChannelHandle(cleanVal);
+        setChannelDisplayName(cleanVal);
+      } else {
+        setChannelDisplayName('Đang nhận diện kênh TikTok...');
       }
+      resolveChannelMetadataForUrl(cleanVal);
 
       // Tự động phân giải link TikTok siêu tốc nếu là shortlink di động
       if (lower.includes('vt.tiktok.com') || lower.includes('vm.tiktok.com') || lower.includes('tiktok.com/t') || lower.includes('/t/')) {
@@ -347,17 +400,23 @@ export const CreateCampaignScreen: React.FC<{
               if (data.authorHandle) {
                 setChannelHandle(data.authorHandle);
               }
+              if (data.authorName) {
+                setChannelDisplayName(data.authorName);
+              }
               if (data.title && !title) {
                 setTitle(data.title);
               }
+              resolveChannelMetadataForUrl(data.resolved);
             }
           })
           .catch(() => {});
       }
     } else if (cleanVal.startsWith('@')) {
       setChannelHandle(cleanVal);
+      setChannelDisplayName(cleanVal);
     } else if (!cleanVal.includes('http') && !cleanVal.includes('/') && cleanVal.length > 2) {
       setChannelHandle(`@${cleanVal}`);
+      setChannelDisplayName(cleanVal);
     }
 
     // Tự động nhận diện link Live (TikTok / YouTube / Facebook Live) vs Video thường và phát tức thì
@@ -561,30 +620,37 @@ export const CreateCampaignScreen: React.FC<{
       livestreamMinutes: t.id === 'livestream' ? livestreamMinutes : undefined
     }));
 
-    // Chuẩn hóa handle theo nền tảng
+    // Chuẩn hóa handle & tên kênh thật theo nền tảng (hỗ trợ đầy đủ Unicode Tiếng Việt)
     let resolvedChannelHandle = channelHandle.trim();
+    const resolvedDisplayName = (channelDisplayName && !channelDisplayName.startsWith('Đang '))
+      ? channelDisplayName.trim()
+      : resolvedChannelHandle;
     if (campaignPlatform === 'youtube') {
-      const ytMatch = targetUrl.match(/(?:youtube\.com\/|youtu\.be\/)@([a-zA-Z0-9._-]+)/i);
+      const ytMatch = targetUrl.match(/(?:youtube\.com\/|youtu\.be\/)@([^\/\?\#]+)/i);
       if (ytMatch && ytMatch[1]) {
-        resolvedChannelHandle = `@${ytMatch[1]}`;
-      } else if (!resolvedChannelHandle || resolvedChannelHandle === '@vtv24news' || resolvedChannelHandle.startsWith('@user')) {
-        resolvedChannelHandle = '@YouTubeCreator';
+        try { resolvedChannelHandle = `@${decodeURIComponent(ytMatch[1])}`; } catch { resolvedChannelHandle = `@${ytMatch[1]}`; }
+      } else if (!resolvedChannelHandle || resolvedChannelHandle === '@vtv24news' || resolvedChannelHandle.startsWith('Đang ')) {
+        resolvedChannelHandle = resolvedDisplayName || '@YouTube';
       }
     } else if (campaignPlatform === 'facebook') {
-      const fbMatch = targetUrl.match(/facebook\.com\/([a-zA-Z0-9._-]+)/i);
-      if (fbMatch && !['watch', 'reel', 'videos', 'share', 'groups'].includes(fbMatch[1].toLowerCase())) {
-        resolvedChannelHandle = `@${fbMatch[1]}`;
+      const fbMatch = targetUrl.match(/facebook\.com\/([^\/\?\#]+)/i);
+      if (fbMatch && !['watch', 'reel', 'reels', 'videos', 'share', 'groups', 'profile.php'].includes(fbMatch[1].toLowerCase())) {
+        try { resolvedChannelHandle = `@${decodeURIComponent(fbMatch[1])}`; } catch { resolvedChannelHandle = `@${fbMatch[1]}`; }
+      } else if (resolvedChannelHandle.startsWith('Đang ')) {
+        resolvedChannelHandle = resolvedDisplayName || '@Facebook';
       }
     }
+
+    const resolvedChannelAvatar = channelAvatar || getPlatformAvatar(campaignPlatform, resolvedChannelHandle);
 
     // Auto-generate title if empty
     let finalTitle = title.trim();
     if (!finalTitle) {
       if (isMultiTarget) {
-        finalTitle = `Chiến Dịch Combo ${activeTargetsList.length} Mục Tiêu cho ${resolvedChannelHandle}`;
+        finalTitle = `Chiến Dịch Combo ${activeTargetsList.length} Mục Tiêu cho ${resolvedDisplayName}`;
       } else {
         const single = activeTargetsList[0];
-        finalTitle = `Tăng ${(targetQuantities[single.id] || 10).toLocaleString()} ${single.unitLabel} cho ${resolvedChannelHandle}`;
+        finalTitle = `Tăng ${(targetQuantities[single.id] || 10).toLocaleString()} ${single.unitLabel} cho ${resolvedDisplayName}`;
       }
     }
 
@@ -596,7 +662,9 @@ export const CreateCampaignScreen: React.FC<{
       title: finalTitle,
       platform: campaignPlatform,
       type: primaryType,
+      channelName: resolvedDisplayName,
       channelHandle: resolvedChannelHandle,
+      channelAvatar: resolvedChannelAvatar,
       channelUrl: targetUrl,
       fanpageUrl: campaignPlatform === 'facebook' ? targetUrl : undefined,
       targetUrl,
@@ -666,7 +734,9 @@ export const CreateCampaignScreen: React.FC<{
       title: campaignTitle,
       platform: campaignPlatform,
       type: megaType,
+      channelName: channelDisplayName || channelHandle,
       channelHandle: channelHandle.startsWith('@') ? channelHandle : `@${channelHandle}`,
+      channelAvatar: channelAvatar || getPlatformAvatar(campaignPlatform, channelHandle),
       channelUrl: targetUrl,
       fanpageUrl: campaignPlatform === 'facebook' ? targetUrl : undefined,
       targetUrl,
@@ -1214,6 +1284,8 @@ export const CreateCampaignScreen: React.FC<{
                 key={`preview-${targetUrl}-${channelHandle}-${(selectedTargets.livestream || parseMediaUrl(targetUrl).isLive) ? 'live' : 'vod'}`}
                 url={targetUrl}
                 channelHandle={channelHandle}
+                channelName={channelDisplayName}
+                channelAvatar={channelAvatar || undefined}
                 isLive={Boolean(selectedTargets.livestream || parseMediaUrl(targetUrl).isLive)}
                 className="w-full h-full"
                 badgeText={Boolean(selectedTargets.livestream || parseMediaUrl(targetUrl).isLive) ? 'LIVE' : 'FYP'}
@@ -1223,27 +1295,47 @@ export const CreateCampaignScreen: React.FC<{
               />
             </div>
 
-            {/* Chi tiết tài khoản & Điều hướng trực tiếp đến TikTok */}
+            {/* Chi tiết tài khoản & Điều hướng trực tiếp đến Kênh Thật */}
             <div className="flex-1 space-y-3.5 text-xs w-full min-w-0">
-              {/* Thẻ Kênh TikTok */}
+              {/* Thẻ Kênh Chính Chủ (Hiển thị đúng 100% Tên Kênh & Logo Kênh thật của YouTube / Facebook / TikTok) */}
               <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-500 to-purple-600 p-0.5 shrink-0 shadow-lg overflow-hidden">
-                    <img
-                      src={getTikTokAvatar(channelHandle)}
-                      alt={channelHandle}
-                      onError={(e) => {
-                        const clean = (channelHandle || '').replace(/^@+/, '');
-                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(clean || 'TikTok')}&background=E11D48&color=fff&bold=true`;
-                      }}
-                      className="w-full h-full rounded-full object-cover"
-                    />
+                  <div className="relative w-12 h-12 shrink-0">
+                    <div className={`w-12 h-12 rounded-full p-0.5 shadow-lg overflow-hidden ${
+                      campaignPlatform === 'youtube'
+                        ? 'bg-gradient-to-tr from-red-600 to-rose-500'
+                        : campaignPlatform === 'facebook'
+                        ? 'bg-gradient-to-tr from-blue-600 to-cyan-500'
+                        : 'bg-gradient-to-tr from-rose-500 to-purple-600'
+                    }`}>
+                      <img
+                        src={channelAvatar || getPlatformAvatar(campaignPlatform, channelHandle)}
+                        alt={channelDisplayName || channelHandle}
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const bg = campaignPlatform === 'youtube' ? 'FF0000' : campaignPlatform === 'facebook' ? '1877F2' : 'E11D48';
+                          const label = (channelDisplayName || channelHandle || 'Kenh').replace(/^@+/, '');
+                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(label)}&background=${bg}&color=fff&bold=true&size=128`;
+                        }}
+                        className="w-full h-full rounded-full object-cover bg-slate-900"
+                      />
+                    </div>
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-white border border-black shadow ${
+                      campaignPlatform === 'youtube' ? 'bg-red-600' : campaignPlatform === 'facebook' ? 'bg-blue-600' : 'bg-black text-rose-400'
+                    }`}>
+                      {campaignPlatform === 'youtube' ? '▶' : campaignPlatform === 'facebook' ? 'f' : '♪'}
+                    </span>
                   </div>
                   <div className="min-w-0">
                     <div className="text-white font-black text-base flex items-center gap-1.5">
-                      <span className="truncate">{channelHandle}</span>
+                      <span className="truncate">{channelDisplayName || channelHandle}</span>
                       <CheckCircle2 className="w-4 h-4 text-cyan-400 fill-cyan-400/20 shrink-0" />
                     </div>
+                    {channelHandle && channelHandle !== channelDisplayName && !channelHandle.startsWith('Đang ') && (
+                      <div className="text-[11px] text-cyan-300 font-mono truncate">
+                        {channelHandle}
+                      </div>
+                    )}
                     <div className="text-[11px] text-slate-400 font-mono truncate mt-0.5 max-w-[260px] sm:max-w-md">
                       Link: {targetUrl}
                     </div>
@@ -1252,7 +1344,7 @@ export const CreateCampaignScreen: React.FC<{
 
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] font-mono border border-emerald-500/30">
-                    Đã Khóa Link
+                    {isResolvingChannelMeta ? 'Đang lấy logo...' : 'Đã Khóa Link'}
                   </span>
                 </div>
               </div>
@@ -1288,20 +1380,24 @@ export const CreateCampaignScreen: React.FC<{
                   rel="noreferrer"
                   className="flex-1 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer border border-white/15 shadow-md text-center"
                 >
-                  <span>Xem Trên TikTok Của Bạn</span>
+                  <span>
+                    Xem Trên {campaignPlatform === 'youtube' ? 'YouTube' : campaignPlatform === 'facebook' ? 'Facebook' : 'TikTok'} Của Bạn
+                  </span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
                 <button
                   type="button"
                   onClick={() => {
                     const isLiveMode = selectedTargets.livestream || targetUrl.includes('/live') || targetUrl.toLowerCase().includes('live');
+                    const finalName = channelDisplayName || channelHandle;
+                    const finalAvt = channelAvatar || getPlatformAvatar(campaignPlatform, channelHandle);
                     if (isLiveMode) {
                       openLiveRunner({
                         id: `preview_live_${Date.now()}`,
-                        channelName: channelHandle,
+                        channelName: finalName,
                         channelHandle: channelHandle,
-                        channelAvatar: getTikTokAvatar(channelHandle),
-                        roomTitle: title || `Phiên Live TikTok: ${channelHandle}`,
+                        channelAvatar: finalAvt,
+                        roomTitle: title || `Phiên Live ${campaignPlatform === 'youtube' ? 'YouTube' : campaignPlatform === 'facebook' ? 'Facebook' : 'TikTok'}: ${finalName}`,
                         currentViewers: 1420,
                         targetMinutes: livestreamMinutes || 3,
                         rewardPerMinute: 400,
@@ -2477,9 +2573,9 @@ export const CreateCampaignScreen: React.FC<{
                         } else {
                           openLiveRunner({
                             id: `live_${camp.id}`,
-                            channelName: camp.channelHandle,
+                            channelName: camp.channelName || camp.channelHandle,
                             channelHandle: camp.channelHandle,
-                            channelAvatar: getTikTokAvatar(camp.channelHandle),
+                            channelAvatar: camp.channelAvatar || getPlatformAvatar(camp.platform || 'tiktok', camp.channelHandle),
                             roomTitle: camp.title,
                             currentViewers: 120,
                             targetMinutes: camp.livestreamMinutes || 3,
@@ -2504,10 +2600,11 @@ export const CreateCampaignScreen: React.FC<{
                     title={isLive ? "Bấm để mở phòng Live trực tiếp" : "Bấm để mở video chiến dịch này trong Feed"}
                   >
                     <img
-                      src={getTikTokAvatar(camp.channelHandle)}
-                      alt={camp.channelHandle}
+                      src={camp.channelAvatar || getPlatformAvatar(camp.platform || 'tiktok', camp.channelHandle)}
+                      alt={camp.channelName || camp.channelHandle}
+                      referrerPolicy="no-referrer"
                       onError={(e) => {
-                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(camp.channelHandle || 'Live')}&background=E11D48&color=fff&bold=true`;
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(camp.channelName || camp.channelHandle || 'Live')}&background=E11D48&color=fff&bold=true`;
                       }}
                       className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-300"
                     />
@@ -2547,9 +2644,9 @@ export const CreateCampaignScreen: React.FC<{
                               } else {
                                 openLiveRunner({
                                   id: `live_${camp.id}`,
-                                  channelName: camp.channelHandle,
+                                  channelName: camp.channelName || camp.channelHandle,
                                   channelHandle: camp.channelHandle,
-                                  channelAvatar: getTikTokAvatar(camp.channelHandle),
+                                  channelAvatar: camp.channelAvatar || getPlatformAvatar(camp.platform || 'tiktok', camp.channelHandle),
                                   roomTitle: camp.title,
                                   currentViewers: 120,
                                   targetMinutes: camp.livestreamMinutes || 3,

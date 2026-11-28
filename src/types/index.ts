@@ -770,7 +770,9 @@ export interface CampaignItem {
   title: string;
   platform?: 'tiktok' | 'facebook' | 'youtube';
   type: CampaignType;
+  channelName?: string;
   channelHandle: string;
+  channelAvatar?: string;
   channelUrl?: string;
   fanpageUrl?: string;
   targetUrl: string;

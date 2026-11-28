@@ -88,7 +88,7 @@ import {
   COMPREHENSIVE_GROWTH_PACKAGES, 
   PLATFORM_COMMISSION_DEFAULTS 
 } from '../data/growthPackages';
-import { getTikTokAvatar } from '../data/videoSources';
+import { getTikTokAvatar, getPlatformAvatar } from '../data/videoSources';
 import { 
   fetchRealTikTokProfile, 
   fetchRealFacebookProfile, 
@@ -368,7 +368,9 @@ interface TikTokAppContextType {
   createCampaign: (campaign: {
     title: string;
     type: CampaignItem['type'];
+    channelName?: string;
     channelHandle: string;
+    channelAvatar?: string;
     targetUrl: string;
     targetQuantity: number;
     budgetTotal: string;
@@ -7382,7 +7384,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const createCampaign = (campaignData: {
     title: string;
     type: CampaignItem['type'];
+    channelName?: string;
     channelHandle: string;
+    channelAvatar?: string;
     targetUrl: string;
     targetQuantity: number;
     budgetTotal: string;
@@ -7397,6 +7401,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     channelUrl?: string;
     fanpageUrl?: string;
   }): boolean => {
+    const resolvedPlatform = campaignData.platform || parseMediaUrl(campaignData.targetUrl, campaignData.channelHandle).platform;
+    const resolvedDisplayName = campaignData.channelName || campaignData.channelHandle;
+    const resolvedAvatar = campaignData.channelAvatar || getPlatformAvatar(resolvedPlatform, campaignData.channelHandle);
     // Trích xuất an toàn số Xu ngân sách thực tế (từ budgetCoins trực tiếp hoặc chỉ lấy phần số đầu tiên trước chữ Xu/VND)
     let rawBudget = campaignData.budgetCoins || 0;
     if (!rawBudget && campaignData.budgetTotal) {
@@ -7419,6 +7426,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newCampaign: CampaignItem = {
       id: `camp_${Date.now()}`,
       ...campaignData,
+      channelName: resolvedDisplayName,
+      channelAvatar: resolvedAvatar,
       creatorEmail: user.email,
       creatorId: user.id,
       creatorHandle: user.tiktokConnected || user.handle || campaignData.channelHandle,
@@ -7438,10 +7447,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           };
           const newLiveTask: LivestreamTaskItem = {
             id: `live_camp_${Date.now()}_${idx}`,
-            channelName: campaignData.channelHandle + ' (Chiến Dịch Đang Chạy)',
+            channelName: resolvedDisplayName,
             channelHandle: campaignData.channelHandle,
-            channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-            roomTitle: `🔴 ${tgt.label.toUpperCase()}: ${campaignData.channelHandle}`,
+            channelAvatar: resolvedAvatar,
+            roomTitle: `🔴 ${tgt.label.toUpperCase()}: ${resolvedDisplayName}`,
             currentViewers: 0,
             targetMinutes: mins,
             rewardPerMinute: Math.round(tier.workerRewardPerEye / mins),
@@ -7469,13 +7478,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           const parsedMedia = parseMediaUrl(campaignData.targetUrl, campaignData.channelHandle);
           const subTask: TikTokTaskItem = {
             id: `task_dyn_${Date.now()}_${idx}`,
-            title: `${tgt.label} - ${campaignData.channelHandle} (${tgt.targetQuantity.toLocaleString()} lượt)`,
+            title: `${tgt.label} - ${resolvedDisplayName} (${tgt.targetQuantity.toLocaleString()} lượt)`,
             type: tType,
             rewardCoins: workerReward,
             rewardVND: `${workerReward.toLocaleString()}đ`,
-            channelName: campaignData.channelHandle,
+            channelName: resolvedDisplayName,
             channelHandle: campaignData.channelHandle,
-            channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+            channelAvatar: resolvedAvatar,
+            platform: campaignData.platform || (resolvedPlatform === 'direct' ? 'tiktok' : resolvedPlatform),
             targetUrl: campaignData.targetUrl,
             videoPreviewUrl: parsedMedia.streamUrl,
             requiresWatch: tType === 'watch',
@@ -7532,9 +7542,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         type: taskType,
         rewardCoins: workerRewardPerAction,
         rewardVND: `${workerRewardPerAction.toLocaleString()}đ`,
-        channelName: campaignData.channelHandle,
+        channelName: resolvedDisplayName,
         channelHandle: campaignData.channelHandle,
-        channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+        channelAvatar: resolvedAvatar,
+        platform: campaignData.platform || (resolvedPlatform === 'direct' ? 'tiktok' : resolvedPlatform),
         targetUrl: campaignData.targetUrl,
         videoPreviewUrl: parsedSingleMedia.streamUrl,
         requiresWatch: taskType === 'watch',
@@ -7591,10 +7602,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         const newLiveTask: LivestreamTaskItem = {
           id: `live_camp_${Date.now()}`,
-          channelName: campaignData.channelHandle + ' (Chiến Dịch Đang Chạy)',
+          channelName: resolvedDisplayName,
           channelHandle: campaignData.channelHandle,
-          channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-          roomTitle: campaignData.title || `🔴 PHÒNG LIVE TIKTOK SHOP: ${campaignData.channelHandle}`,
+          channelAvatar: resolvedAvatar,
+          roomTitle: campaignData.title || `🔴 PHÒNG LIVE: ${resolvedDisplayName}`,
           currentViewers: 0,
           targetMinutes: mins,
           rewardPerMinute: Math.round(tier.workerRewardPerEye / mins),

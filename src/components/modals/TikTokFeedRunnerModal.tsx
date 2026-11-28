@@ -31,7 +31,16 @@ import {
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS, TikTokTaskItem, LivestreamTaskItem } from '../../types';
 import { INITIAL_CROSS_FOLLOW_ITEMS } from '../../data/crossFollowData';
-import { parseMediaUrl, getTikTokAvatar } from '../../data/videoSources';
+import {
+  parseMediaUrl,
+  getTikTokAvatar,
+  getPlatformAvatar,
+  resolveRealMediaChannelMeta,
+  getCachedMediaChannelMeta,
+  isGenericPlaceholderHandle,
+  sanitizeMediaUrl,
+  type ResolvedMediaChannelMeta
+} from '../../data/videoSources';
 import {
   TikTokVideoEmbedPlayer,
   TikTokLiveEmbedPlayer,
@@ -133,6 +142,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const [playerMode, setPlayerMode] = useState<'stream' | 'embed'>('stream'); // Mặc định stream siêu mượt kèm âm thanh
   const [syncingAction, setSyncingAction] = useState<string | null>(null);
   const [inModalAlert, setInModalAlert] = useState<{ message: string; sub?: string; icon?: string } | null>(null);
+  const [resolvedMetaMap, setResolvedMetaMap] = useState<Record<string, ResolvedMediaChannelMeta>>({});
   // Trạng thái chờ xác minh (tích hợp Anti-Fraud Engine)
   const [pendingVerification, setPendingVerification] = useState<{
     action: 'follow' | 'like' | 'comment' | 'share';
@@ -210,7 +220,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       parsedInfo.isLive
     );
     
-    const avatar = getTikTokAvatar(c.channelHandle);
+    const itemPlatformResolved = (c.platform || (parsedInfo.platform as any) || (targetUrlLower.includes('facebook.com') ? 'facebook' : (targetUrlLower.includes('youtube.com') || targetUrlLower.includes('youtu.be')) ? 'youtube' : 'tiktok')) as 'tiktok' | 'youtube' | 'facebook';
+    const cachedMeta = getCachedMediaChannelMeta(c.targetUrl);
+    const displayName = cachedMeta?.channelName || c.channelName || (!isGenericPlaceholderHandle(c.channelHandle) ? c.channelHandle : parsedInfo.channelName);
+    const displayHandle = cachedMeta?.channelHandle || (!isGenericPlaceholderHandle(c.channelHandle) ? c.channelHandle : displayName);
+    const avatar = cachedMeta?.channelAvatar || c.channelAvatar || getPlatformAvatar(itemPlatformResolved, displayHandle);
     const reward = isMulti ? 400 : (isLive ? 400 : (isFollow ? 200 : (isLike ? 100 : (isComment ? 200 : (isShare ? 240 : 200)))));
 
     return {
@@ -219,8 +233,8 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       title: c.title,
       type: isMulti ? 'combo' : c.type,
       requiresWatch: isLive || isPaidWatchOnly,
-      channelName: c.channelHandle,
-      channelHandle: c.channelHandle,
+      channelName: displayName,
+      channelHandle: displayHandle,
       channelAvatar: avatar,
       targetUrl: c.targetUrl,
       rewardCoins: reward,
@@ -238,7 +252,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       remainingSlots: Math.max(1, c.targetQuantity - (c.completedQuantity || 0)),
       isUrgent: true,
       isBoosted: c.isBoosted,
-      platform: c.platform || (parsedInfo.platform as any) || (targetUrlLower.includes('facebook.com') ? 'facebook' : (targetUrlLower.includes('youtube.com') || targetUrlLower.includes('youtu.be')) ? 'youtube' : 'tiktok')
+      platform: itemPlatformResolved
     };
   });
 
@@ -288,33 +302,44 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   };
 
   // Dynamic custom test feed item if targetUrl / handle is passed directly from CreateCampaign test
-  const customTestItem: UnifiedFeedItem | null = (feedRunnerTargetId && (typeof feedRunnerTargetId === 'string') && (feedRunnerTargetId.startsWith('http') || feedRunnerTargetId.startsWith('@'))) ? {
-    id: `test_top1_${feedRunnerTargetId}`,
-    kind: (feedRunnerTargetId.includes('/live') || feedRunnerTargetId.toLowerCase().includes('live')) ? 'livestream' : 'video',
-    title: `🔥 [ĐANG XEM THỬ #1] ${parseMediaUrl(feedRunnerTargetId).handle}`,
-    type: (feedRunnerTargetId.includes('/live') || feedRunnerTargetId.toLowerCase().includes('live')) ? 'livestream' : 'watch',
-    requiresWatch: false,
-    channelName: parseMediaUrl(feedRunnerTargetId).handle,
-    channelHandle: parseMediaUrl(feedRunnerTargetId).handle,
-    channelAvatar: getTikTokAvatar(parseMediaUrl(feedRunnerTargetId).handle),
-    targetUrl: feedRunnerTargetId,
-    rewardCoins: 500,
-    videoUrl: parseMediaUrl(feedRunnerTargetId).streamUrl,
-    sampleComments: [
-      'Nội dung rất hay và chất lượng ❤️',
-      'Đã tương tác đầy đủ cho phiên live/video của bạn!',
-      'Kênh phát trực tiếp siêu nét và uy tín!'
-    ],
-    guide: 'Xem trước phiên live / video thực tế trên Feed người dùng.',
-    campaignCategory: 'partner',
-    partnerName: 'Xem Thử Chiến Dịch',
-    partnerBadge: '🔥 TOP 1 ĐANG TEST',
-    totalSlots: 1000,
-    remainingSlots: 999,
-    isUrgent: true,
-    isBoosted: true,
-    platform: (parseMediaUrl(feedRunnerTargetId).platform as any) || 'tiktok'
-  } : null;
+  const customTestItem: UnifiedFeedItem | null = (() => {
+    if (!(feedRunnerTargetId && (typeof feedRunnerTargetId === 'string') && (feedRunnerTargetId.startsWith('http') || feedRunnerTargetId.startsWith('@')))) {
+      return null;
+    }
+    const parsedTest = parseMediaUrl(feedRunnerTargetId);
+    const cachedTestMeta = getCachedMediaChannelMeta(feedRunnerTargetId);
+    const testPlatform = (parsedTest.platform === 'direct' ? 'tiktok' : parsedTest.platform) as 'tiktok' | 'youtube' | 'facebook';
+    const testChannelName = cachedTestMeta?.channelName || (!isGenericPlaceholderHandle(parsedTest.channelName) ? parsedTest.channelName : (testPlatform === 'youtube' ? 'Kênh YouTube' : testPlatform === 'facebook' ? 'Fanpage Facebook' : 'Kênh TikTok'));
+    const testChannelHandle = cachedTestMeta?.channelHandle || (!isGenericPlaceholderHandle(parsedTest.handle) ? parsedTest.handle : testChannelName);
+    const testAvatar = cachedTestMeta?.channelAvatar || getPlatformAvatar(testPlatform, testChannelHandle);
+    return {
+      id: `test_top1_${feedRunnerTargetId}`,
+      kind: (feedRunnerTargetId.includes('/live') || feedRunnerTargetId.toLowerCase().includes('live')) ? 'livestream' : 'video',
+      title: cachedTestMeta?.videoTitle ? `🔥 [ĐANG XEM THỬ #1] ${cachedTestMeta.videoTitle}` : `🔥 [ĐANG XEM THỬ #1] ${testChannelName}`,
+      type: (feedRunnerTargetId.includes('/live') || feedRunnerTargetId.toLowerCase().includes('live')) ? 'livestream' : 'watch',
+      requiresWatch: false,
+      channelName: testChannelName,
+      channelHandle: testChannelHandle,
+      channelAvatar: testAvatar,
+      targetUrl: feedRunnerTargetId,
+      rewardCoins: 500,
+      videoUrl: parsedTest.streamUrl,
+      sampleComments: [
+        'Nội dung rất hay và chất lượng ❤️',
+        'Đã tương tác đầy đủ cho phiên live/video của bạn!',
+        'Kênh phát trực tiếp siêu nét và uy tín!'
+      ],
+      guide: 'Xem trước phiên live / video thực tế trên Feed người dùng.',
+      campaignCategory: 'partner',
+      partnerName: 'Xem Thử Chiến Dịch',
+      partnerBadge: '🔥 TOP 1 ĐANG TEST',
+      totalSlots: 1000,
+      remainingSlots: 999,
+      isUrgent: true,
+      isBoosted: true,
+      platform: testPlatform
+    };
+  })();
 
   // 2. Toàn bộ Nhiệm Vụ Thật Từ Tasks & Livestream Tasks (Đồng bộ tức thì lên Feed, tự động ẩn khi đã làm)
   const tasksFeedItems: UnifiedFeedItem[] = (tasks || [])
@@ -322,15 +347,20 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     .map(t => {
       const parsed = parseMediaUrl(t.targetUrl || t.videoPreviewUrl || '', t.channelHandle);
       const isLive = t.type === 'livestream' || parsed.isLive;
+      const taskPlat = (t.platform || (parsed.platform === 'direct' ? 'tiktok' : parsed.platform)) as 'tiktok' | 'youtube' | 'facebook';
+      const cachedTaskMeta = getCachedMediaChannelMeta(t.targetUrl || '');
+      const taskChannelName = cachedTaskMeta?.channelName || t.channelName || t.channelHandle;
+      const taskChannelHandle = cachedTaskMeta?.channelHandle || t.channelHandle;
+      const validStoredAvatar = t.channelAvatar && !t.channelAvatar.includes('unsplash.com') ? t.channelAvatar : null;
       return {
         id: t.id,
         kind: isLive ? 'livestream' : 'video',
         title: t.title,
         type: t.type,
         requiresWatch: t.requiresWatch || isLive,
-        channelName: t.channelName || t.channelHandle,
-        channelHandle: t.channelHandle,
-        channelAvatar: t.channelAvatar || getTikTokAvatar(t.channelHandle),
+        channelName: taskChannelName,
+        channelHandle: taskChannelHandle,
+        channelAvatar: cachedTaskMeta?.channelAvatar || validStoredAvatar || getPlatformAvatar(taskPlat, taskChannelHandle),
         targetUrl: t.targetUrl,
         rewardCoins: t.rewardCoins,
         videoUrl: t.videoPreviewUrl || parsed.streamUrl,
@@ -347,42 +377,48 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         remainingSlots: t.remainingSlots,
         isUrgent: t.isUrgent,
         isBoosted: false,
-        platform: t.platform || (parsed.platform as any) || (t.targetUrl?.includes('facebook.com') ? 'facebook' : (t.targetUrl?.includes('youtube.com') || t.targetUrl?.includes('youtu.be')) ? 'youtube' : 'tiktok')
+        platform: taskPlat
       };
     });
 
   const liveTasksFeedItems: UnifiedFeedItem[] = (livestreamTasks || [])
     .filter(l => l.status === 'live' && !l.isLocked && !userCompletedActions?.[l.id])
-    .map(l => ({
-      id: l.id,
-      kind: 'livestream',
-      title: l.roomTitle || `🔴 LIVE STREAM: ${l.channelHandle}`,
-      type: 'livestream',
-      requiresWatch: true,
-      channelName: l.channelName || l.channelHandle,
-      channelHandle: l.channelHandle,
-      channelAvatar: l.channelAvatar || getTikTokAvatar(l.channelHandle),
-      targetUrl: l.targetUrl || `https://www.tiktok.com/@${(l.channelHandle || '').replace(/^@+/, '')}/live`,
-      rewardCoins: l.totalRewardCoins || 500,
-      videoUrl: l.targetUrl,
-      sampleComments: [
-        'Livestream cuốn quá bạn ơi!',
-        'Đã thả tim và ủng hộ phiên live ❤️',
-        'Chúc phiên live bùng nổ doanh số!'
-      ],
-      guide: `Xem phiên live ${l.targetMinutes || 3} phút để nhận +${(l.totalRewardCoins || 500).toLocaleString()} Xu.`,
-      currentViewers: l.currentViewers || 1420,
-      roomTitle: l.roomTitle,
-      targetMinutes: l.targetMinutes || 3,
-      campaignCategory: 'partner',
-      partnerName: l.channelName || l.channelHandle,
-      partnerBadge: '🔴 Live Thật 100%',
-      totalSlots: 1000,
-      remainingSlots: 999,
-      isUrgent: true,
-      isBoosted: true,
-      platform: (l as any).platform || 'tiktok'
-    }));
+    .map(l => {
+      const parsedLive = parseMediaUrl(l.targetUrl || '', l.channelHandle);
+      const livePlat = ((l as any).platform || (parsedLive.platform === 'direct' ? 'tiktok' : parsedLive.platform)) as 'tiktok' | 'youtube' | 'facebook';
+      const cachedLiveMeta = getCachedMediaChannelMeta(l.targetUrl || '');
+      const validLiveAvatar = l.channelAvatar && !l.channelAvatar.includes('unsplash.com') ? l.channelAvatar : null;
+      return {
+        id: l.id,
+        kind: 'livestream',
+        title: l.roomTitle || `🔴 LIVE STREAM: ${cachedLiveMeta?.channelName || l.channelName || l.channelHandle}`,
+        type: 'livestream',
+        requiresWatch: true,
+        channelName: cachedLiveMeta?.channelName || l.channelName || l.channelHandle,
+        channelHandle: cachedLiveMeta?.channelHandle || l.channelHandle,
+        channelAvatar: cachedLiveMeta?.channelAvatar || validLiveAvatar || getPlatformAvatar(livePlat, l.channelHandle),
+        targetUrl: l.targetUrl || `https://www.tiktok.com/@${(l.channelHandle || '').replace(/^@+/, '')}/live`,
+        rewardCoins: l.totalRewardCoins || 500,
+        videoUrl: l.targetUrl,
+        sampleComments: [
+          'Livestream cuốn quá bạn ơi!',
+          'Đã thả tim và ủng hộ phiên live ❤️',
+          'Chúc phiên live bùng nổ doanh số!'
+        ],
+        guide: `Xem phiên live ${l.targetMinutes || 3} phút để nhận +${(l.totalRewardCoins || 500).toLocaleString()} Xu.`,
+        currentViewers: l.currentViewers || 1420,
+        roomTitle: l.roomTitle,
+        targetMinutes: l.targetMinutes || 3,
+        campaignCategory: 'partner',
+        partnerName: cachedLiveMeta?.channelName || l.channelName || l.channelHandle,
+        partnerBadge: '🔴 Live Thật 100%',
+        totalSlots: 1000,
+        remainingSlots: 999,
+        isUrgent: true,
+        isBoosted: true,
+        platform: livePlat
+      };
+    });
 
   const allRawFeedItems: UnifiedFeedItem[] = [
     ...(customTestItem ? [customTestItem] : []),
@@ -457,6 +493,41 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   const isFacebookItem = Boolean(currentItem?.type === 'facebook' || (currentItem as any)?.platform === 'facebook' || currentMediaInfo?.isFacebook);
   const itemPlatform: 'youtube' | 'facebook' | 'tiktok' = isYouTubeItem ? 'youtube' : isFacebookItem ? 'facebook' : 'tiktok';
   const itemPlatformDisplayName = isYouTubeItem ? 'YouTube' : isFacebookItem ? 'Facebook' : 'TikTok';
+
+  // Tự động tra cứu tên kênh thật & logo kênh thật cho item hiện tại trên Feed (YouTube / Facebook / TikTok)
+  const cleanCurrentTargetUrl = sanitizeMediaUrl(currentItem?.targetUrl || currentItem?.videoUrl || '');
+  useEffect(() => {
+    if (!isFeedRunnerOpen || !cleanCurrentTargetUrl || (!cleanCurrentTargetUrl.startsWith('http://') && !cleanCurrentTargetUrl.startsWith('https://'))) return;
+    if (resolvedMetaMap[cleanCurrentTargetUrl]) return;
+    let active = true;
+    resolveRealMediaChannelMeta(cleanCurrentTargetUrl)
+      .then((meta) => {
+        if (active && meta) {
+          setResolvedMetaMap((prev) => ({ ...prev, [cleanCurrentTargetUrl]: meta }));
+        }
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [isFeedRunnerOpen, cleanCurrentTargetUrl, resolvedMetaMap]);
+
+  const activeResolvedMeta = resolvedMetaMap[cleanCurrentTargetUrl] || getCachedMediaChannelMeta(cleanCurrentTargetUrl);
+  const effectiveChannelName =
+    activeResolvedMeta?.channelName ||
+    (!isGenericPlaceholderHandle(currentItem?.channelName) ? currentItem?.channelName : null) ||
+    (!isGenericPlaceholderHandle(currentItem?.channelHandle) ? currentItem?.channelHandle : null) ||
+    (isYouTubeItem ? 'Kênh YouTube' : isFacebookItem ? 'Fanpage Facebook' : 'Kênh TikTok');
+  const effectiveChannelHandle =
+    activeResolvedMeta?.channelHandle ||
+    (!isGenericPlaceholderHandle(currentItem?.channelHandle) ? currentItem?.channelHandle : effectiveChannelName);
+  const effectiveChannelAvatar =
+    activeResolvedMeta?.channelAvatar ||
+    (currentItem?.channelAvatar && !currentItem.channelAvatar.includes('unsplash.com') && !currentItem.channelAvatar.includes('creator_vietnam') ? currentItem.channelAvatar : null) ||
+    getPlatformAvatar(itemPlatform, effectiveChannelHandle);
+  const effectiveItemTitle = currentItem?.id?.startsWith('test_top1_')
+    ? (activeResolvedMeta?.videoTitle
+        ? `🔥 [ĐANG XEM THỬ #1] ${activeResolvedMeta.videoTitle}`
+        : `🔥 [ĐANG XEM THỬ #1] ${effectiveChannelName}`)
+    : currentItem?.title;
   const itemPerformerAccount = itemPlatform === 'youtube'
     ? (user.youtubeConnected || 'Chưa kết nối')
     : itemPlatform === 'facebook'
@@ -1913,17 +1984,43 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               )}
             </div>
 
-            {/* Creator Handle + Verified Badge (Bấm để nhảy về đúng kênh TikTok/YouTube/Facebook của người dùng) */}
+            {/* Creator Logo + Real Channel Name + Verified Badge (Bấm để nhảy về đúng kênh YouTube/Facebook/TikTok thật) */}
             <div className="flex items-center gap-2 flex-wrap">
               <div 
                 onClick={handleOpenTikTokApp}
-                className="flex items-center gap-1.5 cursor-pointer group"
-                title={`Bấm để mở trang ${itemPlatform === 'youtube' ? 'YouTube' : itemPlatform === 'facebook' ? 'Facebook' : 'TikTok'} chính thức của kênh này`}
+                className="flex items-center gap-2 cursor-pointer group"
+                title={`Bấm để mở trang ${itemPlatform === 'youtube' ? 'YouTube' : itemPlatform === 'facebook' ? 'Facebook' : 'TikTok'} chính thức của kênh ${effectiveChannelName}`}
               >
-                <span className="text-white font-black text-sm drop-shadow-md tracking-wide group-hover:text-cyan-300 transition-colors">
-                  {currentItem.channelHandle}
-                </span>
-                <CheckCircle2 className="h-4 w-4 text-[#20D5EC] fill-[#20D5EC]/20 shrink-0" />
+                <div className="relative shrink-0">
+                  <img
+                    src={effectiveChannelAvatar}
+                    alt={effectiveChannelName}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const bg = itemPlatform === 'youtube' ? 'FF0000' : itemPlatform === 'facebook' ? '1877F2' : '010101';
+                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(effectiveChannelName || 'Kenh')}&background=${bg}&color=fff&bold=true&size=128`;
+                    }}
+                    className="w-8 h-8 rounded-full object-cover border-2 border-white/80 shadow-lg bg-slate-900"
+                  />
+                  <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-black text-white border border-black ${
+                    itemPlatform === 'youtube' ? 'bg-red-600' : itemPlatform === 'facebook' ? 'bg-blue-600' : 'bg-black text-rose-400'
+                  }`}>
+                    {itemPlatform === 'youtube' ? '▶' : itemPlatform === 'facebook' ? 'f' : '♪'}
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-white font-black text-sm drop-shadow-md tracking-wide group-hover:text-cyan-300 transition-colors truncate max-w-[180px] sm:max-w-[220px]">
+                      {effectiveChannelName}
+                    </span>
+                    <CheckCircle2 className="h-4 w-4 text-[#20D5EC] fill-[#20D5EC]/20 shrink-0" />
+                  </div>
+                  {effectiveChannelHandle && effectiveChannelHandle !== effectiveChannelName && (
+                    <div className="text-[10px] text-cyan-200/90 font-mono truncate max-w-[180px]">
+                      {effectiveChannelHandle}
+                    </div>
+                  )}
+                </div>
                 {currentItem.campaignCategory === 'partner' ? (
                   <span className="px-1.5 py-0.5 rounded-full bg-amber-500/30 border border-amber-400/40 text-[9px] font-bold text-amber-300 backdrop-blur-sm">
                     Đối tác VIP
@@ -1948,7 +2045,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
             {/* Campaign Caption */}
             <p className="text-white text-xs font-medium leading-relaxed drop-shadow-md line-clamp-2">
-              {currentItem.title}
+              {effectiveItemTitle}
             </p>
 
             {/* Music Sound Tag (Chỉ hiện cho video thường) */}
@@ -1956,7 +2053,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               <div className="flex items-center gap-1.5 text-[11px] text-white/90 font-medium">
                 <Music className="h-3.5 w-3.5 text-[#FE2C55] animate-spin-slow shrink-0" />
                 <span className="truncate drop-shadow-md">
-                  Âm thanh gốc - {currentItem.channelName} • Nhạc xu hướng TikTok
+                  Âm thanh gốc - {effectiveChannelName} • {itemPlatformDisplayName}
                 </span>
               </div>
             )}
@@ -1976,9 +2073,14 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   title={`Bấm avatar để ${itemPlatform === 'youtube' ? 'Đăng Ký' : itemPlatform === 'facebook' ? 'Theo Dõi' : 'Follow'} & nhận +200 Xu`}
                 >
                   <img 
-                    src={currentItem.channelAvatar} 
-                    alt="" 
-                    className="w-12 h-12 rounded-full object-cover border-2 border-white group-hover:border-rose-500 transition-all shadow-xl"
+                    src={effectiveChannelAvatar} 
+                    alt={effectiveChannelName}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const bg = itemPlatform === 'youtube' ? 'FF0000' : itemPlatform === 'facebook' ? '1877F2' : '010101';
+                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(effectiveChannelName || 'Kenh')}&background=${bg}&color=fff&bold=true&size=128`;
+                    }}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-white group-hover:border-rose-500 transition-all shadow-xl bg-slate-900"
                   />
                   <button
                     onClick={(e) => {

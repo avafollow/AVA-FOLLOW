@@ -16,7 +16,13 @@ import {
   Check,
   Music2
 } from 'lucide-react';
-import { parseMediaUrl, ParsedMediaInfo, getTikTokAvatar, extractTikTokVideoId } from '../../data/videoSources';
+import {
+  parseMediaUrl,
+  ParsedMediaInfo,
+  getPlatformAvatar,
+  resolveRealMediaChannelMeta,
+  ResolvedMediaChannelMeta
+} from '../../data/videoSources';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import {
   TikTokVideoEmbedPlayer,
@@ -32,6 +38,8 @@ import {
 interface TikTokVideoPreviewPlayerProps {
   url: string;
   channelHandle?: string;
+  channelName?: string;
+  channelAvatar?: string;
   isLive?: boolean;
   className?: string;
   autoPlay?: boolean;
@@ -45,6 +53,8 @@ interface TikTokVideoPreviewPlayerProps {
 export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> = ({
   url,
   channelHandle,
+  channelName,
+  channelAvatar,
   isLive = false,
   className = '',
   autoPlay = true,
@@ -62,6 +72,20 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
   const [isPlaying, setIsPlaying] = useState<boolean>(autoPlay);
   const [isMuted, setIsMuted] = useState<boolean>(muted);
   const [currentStream, setCurrentStream] = useState<string>(mediaInfo.streamUrl);
+  const [resolvedMeta, setResolvedMeta] = useState<ResolvedMediaChannelMeta | null>(null);
+
+  // Tự động tra cứu Tên Kênh THẬT & Logo Kênh THẬT cho mọi link YouTube / Facebook / TikTok
+  useEffect(() => {
+    let active = true;
+    setResolvedMeta(null);
+    if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) return;
+    resolveRealMediaChannelMeta(url)
+      .then((meta) => {
+        if (active && meta) setResolvedMeta(meta);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [url]);
 
   // Đồng bộ trạng thái âm thanh khi prop muted thay đổi từ bên ngoài
   useEffect(() => {
@@ -78,8 +102,23 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
     setCurrentStream(url);
   }, [url]);
 
-  // Link đích chính xác của người dùng
-  const displayHandle = mediaInfo.handle || channelHandle || '@creator.vietnam';
+  // Thông tin Kênh & Logo thật 100% (ưu tiên metadata API thật -> prop truyền vào -> parsed media)
+  const displayChannelName =
+    resolvedMeta?.channelName ||
+    channelName ||
+    mediaInfo.channelName ||
+    channelHandle ||
+    (isYouTube ? 'Kênh YouTube' : isFacebook ? 'Fanpage Facebook' : 'Kênh TikTok');
+  const displayHandle =
+    resolvedMeta?.channelHandle ||
+    (mediaInfo.handle && mediaInfo.handle !== '@creator_vietnam' ? mediaInfo.handle : null) ||
+    channelHandle ||
+    displayChannelName;
+  const displayAvatar =
+    resolvedMeta?.channelAvatar ||
+    channelAvatar ||
+    mediaInfo.avatarUrl ||
+    getPlatformAvatar(mediaInfo.platform, displayHandle);
   const cleanHandle = displayHandle.replace(/^@+/, '');
   
   let directUserUrl = url && url.startsWith('http') ? url : `https://www.tiktok.com/@${cleanHandle}`;
@@ -274,17 +313,18 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             <div 
               onClick={openUserMedia}
               className="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-90 transition-opacity"
-              title={`Mở kênh ${mediaInfo.channelName}`}
+              title={`Mở kênh ${displayChannelName}`}
             >
               <div className="relative shrink-0">
                 <img
-                  src={mediaInfo.avatarUrl}
-                  alt={mediaInfo.channelName}
+                  src={displayAvatar}
+                  alt={displayChannelName}
+                  referrerPolicy="no-referrer"
                   onError={(e) => {
                     const bg = isYouTube ? 'FF0000' : isFacebook ? '1877F2' : '010101';
-                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(mediaInfo.channelName || 'Live')}&background=${bg}&color=fff&bold=true`;
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayChannelName || 'Channel')}&background=${bg}&color=fff&bold=true&size=128`;
                   }}
-                  className="w-8 h-8 rounded-full border border-white/30 object-cover"
+                  className="w-8 h-8 rounded-full border border-white/30 object-cover bg-slate-900"
                 />
                 <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-black text-white ${
                   isYouTube ? 'bg-red-600' : isFacebook ? 'bg-blue-600' : 'bg-black text-rose-400 border border-rose-500'
@@ -295,12 +335,12 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               <div className="min-w-0">
                 <div className="flex items-center gap-1">
                   <span className="text-white font-bold text-xs truncate max-w-[140px] sm:max-w-[180px]">
-                    {mediaInfo.channelName}
+                    {displayChannelName}
                   </span>
                   <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                 </div>
                 <div className="text-[9px] text-slate-300 font-mono truncate">
-                  {isYouTube ? 'Kênh YouTube' : isFacebook ? 'Trang / Fanpage Facebook' : 'Kênh TikTok'} • {mediaInfo.handle}
+                  {isYouTube ? 'Kênh YouTube' : isFacebook ? 'Trang / Fanpage Facebook' : 'Kênh TikTok'} • {displayHandle}
                 </div>
               </div>
             </div>

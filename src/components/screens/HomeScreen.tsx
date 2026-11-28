@@ -50,7 +50,7 @@ import { ScreenId } from '../../types';
 import { KocRegistrationModal } from '../modals/KocRegistrationModal';
 import { BrandLogo } from '../common/BrandLogo';
 import { SmartMediaThumbnail } from '../common/SmartMediaThumbnail';
-import { getTikTokAvatar } from '../../data/videoSources';
+import { getTikTokAvatar, getPlatformAvatar, detectPlatform } from '../../data/videoSources';
 
 export const HomeScreen: React.FC<{
   darkMode: boolean;
@@ -644,9 +644,9 @@ export const HomeScreen: React.FC<{
             ? activeVideoCampaigns.map(c => ({
                 id: c.id,
                 title: c.title,
-                channelName: c.channelHandle,
+                channelName: c.channelName || c.channelHandle,
                 channelHandle: c.channelHandle,
-                channelAvatar: getTikTokAvatar(c.channelHandle),
+                channelAvatar: c.channelAvatar || getPlatformAvatar(c.platform || detectPlatform(c.targetUrl), c.channelHandle),
                 targetUrl: c.targetUrl,
                 videoPreviewUrl: c.videoPreviewUrl,
                 rewardCoins: 200,
@@ -658,7 +658,7 @@ export const HomeScreen: React.FC<{
                 title: t.title,
                 channelName: t.channelName,
                 channelHandle: t.channelHandle,
-                channelAvatar: t.channelAvatar || getTikTokAvatar(t.channelHandle),
+                channelAvatar: (t.channelAvatar && !t.channelAvatar.includes('unsplash.com') ? t.channelAvatar : null) || getPlatformAvatar(t.platform || detectPlatform(t.targetUrl), t.channelHandle),
                 targetUrl: t.targetUrl,
                 videoPreviewUrl: t.videoPreviewUrl,
                 rewardCoins: t.rewardCoins || 200,
@@ -682,9 +682,9 @@ export const HomeScreen: React.FC<{
           const allActiveLiveRooms = [
             ...activeLiveCampaigns.map(c => ({
               id: c.id,
-              channelName: c.channelHandle,
+              channelName: c.channelName || c.channelHandle,
               channelHandle: c.channelHandle,
-              channelAvatar: getTikTokAvatar(c.channelHandle),
+              channelAvatar: c.channelAvatar || getPlatformAvatar(c.platform || detectPlatform(c.targetUrl), c.channelHandle),
               roomTitle: c.title,
               targetUrl: c.targetUrl,
               rewardPerMinute: 400,

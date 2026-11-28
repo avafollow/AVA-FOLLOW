@@ -43,7 +43,7 @@ import { FeatureGuideTooltip } from "../common/FeatureGuideTooltip";
 import { WeeklyMissionsPanel } from "./WeeklyMissionsPanel";
 import { INITIAL_CROSS_FOLLOW_ITEMS, TIER_CROSS_FOLLOW_QUOTAS } from "../../data/crossFollowData";
 import { TokenSinkStrategyModal } from "../modals/TokenSinkStrategyModal";
-import { parseMediaUrl, getTikTokAvatar } from "../../data/videoSources";
+import { parseMediaUrl, getTikTokAvatar, getPlatformAvatar } from "../../data/videoSources";
 import { SmartMediaThumbnail } from "../common/SmartMediaThumbnail";
 import { validateRealAccountName, verifyPlatformAccountForTask } from "../../services/platformProfileSyncService";
 
@@ -427,15 +427,15 @@ export const TasksScreen: React.FC<{
 
       const stream = parseMediaUrl(c.targetUrl, c.channelHandle);
       const cardPlatform = c.platform || stream.platform || (c.targetUrl?.toLowerCase().includes('facebook.com') ? 'facebook' : (c.targetUrl?.toLowerCase().includes('youtube.com') || c.targetUrl?.toLowerCase().includes('youtu.be')) ? 'youtube' : 'tiktok');
-      const avatar = getTikTokAvatar(c.channelHandle);
+      const avatar = c.channelAvatar || getPlatformAvatar(cardPlatform as any, c.channelHandle);
       const thumbnailMedia = c.videoPreviewUrl || stream.streamUrl || avatar;
 
       return {
         id: c.id,
         category: isLive ? ('live' as const) : ('partner' as const),
         taskType: computedType,
-        title: c.title || `Chiến Dịch: ${c.channelHandle}`,
-        channelName: c.channelHandle,
+        title: c.title || `Chiến Dịch: ${c.channelName || c.channelHandle}`,
+        channelName: c.channelName || c.channelHandle,
         channelHandle: c.channelHandle,
         channelAvatar: avatar,
         thumbnail: thumbnailMedia,

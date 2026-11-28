@@ -143,22 +143,34 @@ export function extractTikTokHandle(rawUrlOrHandle: string): string {
       return '@creator_tiktok';
     }
 
-    // 4. YouTube @handle
-    const ytMatch = clean.match(/youtube\.com\/@([a-zA-Z0-9_\.\-]+)/i);
+    // 4. YouTube @handle (hỗ trợ đầy đủ Unicode Tiếng Việt & ký tự percent-encoded)
+    const ytMatch = clean.match(/youtube\.com\/@([^\/\?\#]+)/i);
     if (ytMatch && ytMatch[1]) {
-      return `@${ytMatch[1]}`;
+      try {
+        return `@${decodeURIComponent(ytMatch[1])}`;
+      } catch {
+        return `@${ytMatch[1]}`;
+      }
     }
 
     // 5. YouTube channel / user / c
-    const ytChannelMatch = clean.match(/youtube\.com\/(?:c|channel|user)\/([a-zA-Z0-9_\.\-]+)/i);
+    const ytChannelMatch = clean.match(/youtube\.com\/(?:c|channel|user)\/([^\/\?\#]+)/i);
     if (ytChannelMatch && ytChannelMatch[1]) {
-      return `@${ytChannelMatch[1]}`;
+      try {
+        return `@${decodeURIComponent(ytChannelMatch[1])}`;
+      } catch {
+        return `@${ytChannelMatch[1]}`;
+      }
     }
 
     // 6. Facebook page / user / profile
-    const fbMatch = clean.match(/facebook\.com\/([a-zA-Z0-9_\.\-]+)/i);
-    if (fbMatch && fbMatch[1] && !['watch', 'reel', 'videos', 'share', 'groups', 'stories', 'events', 'photo', 'profile.php'].includes(fbMatch[1].toLowerCase())) {
-      return `@${fbMatch[1]}`;
+    const fbMatch = clean.match(/facebook\.com\/([^\/\?\#]+)/i);
+    if (fbMatch && fbMatch[1] && !['watch', 'reel', 'reels', 'videos', 'video.php', 'share', 'groups', 'stories', 'events', 'photo', 'photo.php', 'profile.php', 'permalink.php', 'story.php', 'live'].includes(fbMatch[1].toLowerCase())) {
+      try {
+        return `@${decodeURIComponent(fbMatch[1])}`;
+      } catch {
+        return `@${fbMatch[1]}`;
+      }
     }
 
     return '@creator_vietnam';
@@ -287,10 +299,14 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
 
   if (isYouTube) {
     actionCtaLabel = 'Đăng Ký Kênh YouTube';
-    const ytHandleMatch = url.match(/(?:youtube\.com\/|youtu\.be\/)@([a-zA-Z0-9._-]+)/i);
-    const resolvedYtHandle = ytHandleMatch ? ytHandleMatch[1] : (defaultHandle && !defaultHandle.toLowerCase().includes('tiktok') && !defaultHandle.includes('user') ? cleanHandle : '');
-    channelName = resolvedYtHandle ? `Kênh @${resolvedYtHandle}` : 'Kênh YouTube';
-    channelUrl = resolvedYtHandle ? `https://www.youtube.com/@${resolvedYtHandle}` : (url.includes('youtube.com') || url.includes('youtu.be') ? url : (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : url));
+    const ytHandleMatch = url.match(/(?:youtube\.com\/|youtu\.be\/)@([^\/\?\#]+)/i);
+    let rawYtHandle = '';
+    if (ytHandleMatch && ytHandleMatch[1]) {
+      try { rawYtHandle = decodeURIComponent(ytHandleMatch[1]); } catch { rawYtHandle = ytHandleMatch[1]; }
+    }
+    const resolvedYtHandle = rawYtHandle || (defaultHandle && !defaultHandle.toLowerCase().includes('tiktok') && !defaultHandle.includes('creator_vietnam') && !defaultHandle.includes('user') ? cleanHandle : '');
+    channelName = resolvedYtHandle ? resolvedYtHandle : 'Kênh YouTube';
+    channelUrl = resolvedYtHandle ? `https://www.youtube.com/@${encodeURIComponent(resolvedYtHandle)}` : (url.includes('youtube.com') || url.includes('youtu.be') ? url : (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : url));
     if (youtubeId) {
       embedUrl = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`;
       sourceType = 'youtube_embed';
@@ -298,11 +314,13 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
     }
   } else if (isFacebook) {
     actionCtaLabel = 'Theo Dõi Fanpage Facebook';
-    const fbHandleMatch = url.match(/facebook\.com\/([a-zA-Z0-9._-]+)/i);
-    const resolvedFbHandle = (fbHandleMatch && !['watch', 'reel', 'videos', 'share', 'groups'].includes(fbHandleMatch[1].toLowerCase()))
-      ? fbHandleMatch[1]
-      : (defaultHandle && !defaultHandle.toLowerCase().includes('tiktok') && !defaultHandle.includes('user') ? cleanHandle : '');
-    channelName = resolvedFbHandle ? `Fanpage ${resolvedFbHandle}` : 'Fanpage Facebook';
+    const fbHandleMatch = url.match(/facebook\.com\/([^\/\?\#]+)/i);
+    let rawFbSlug = '';
+    if (fbHandleMatch && fbHandleMatch[1] && !['watch', 'reel', 'reels', 'videos', 'video.php', 'share', 'groups', 'stories', 'events', 'photo', 'photo.php', 'profile.php', 'permalink.php', 'story.php', 'live'].includes(fbHandleMatch[1].toLowerCase())) {
+      try { rawFbSlug = decodeURIComponent(fbHandleMatch[1]); } catch { rawFbSlug = fbHandleMatch[1]; }
+    }
+    const resolvedFbHandle = rawFbSlug || (defaultHandle && !defaultHandle.toLowerCase().includes('tiktok') && !defaultHandle.includes('creator_vietnam') && !defaultHandle.includes('user') ? cleanHandle : '');
+    channelName = resolvedFbHandle ? resolvedFbHandle : 'Fanpage Facebook';
     channelUrl = resolvedFbHandle ? `https://www.facebook.com/${resolvedFbHandle}` : url;
     fanpageUrl = channelUrl;
     embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=1&muted=0&allowfullscreen=true`;
@@ -339,7 +357,12 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
     title = `🌐 Facebook Video: ${channelName}`;
   }
 
-  const avatarUrl = getPlatformAvatar(platform, cleanHandle);
+  // Sử dụng metadata thật đã cache nếu có để hiển thị tức thì đúng tên kênh & logo kênh
+  const cachedMeta = getCachedMediaChannelMeta(url);
+  const resolvedChannelName = cachedMeta?.channelName || channelName;
+  const resolvedHandle = cachedMeta?.channelHandle || (isYouTube || isFacebook ? (handle === '@creator_vietnam' ? resolvedChannelName : handle) : handle);
+  const resolvedChannelUrl = cachedMeta?.channelUrl || channelUrl;
+  const avatarUrl = cachedMeta?.channelAvatar || getPlatformAvatar(platform, resolvedHandle);
 
   return {
     platform,
@@ -348,35 +371,224 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
     isYouTube,
     isFacebook,
     isDirectVideo,
-    handle,
-    channelName,
-    channelUrl,
-    fanpageUrl,
+    handle: resolvedHandle,
+    channelName: resolvedChannelName,
+    channelUrl: resolvedChannelUrl,
+    fanpageUrl: isFacebook ? resolvedChannelUrl : fanpageUrl,
     avatarUrl,
     actionCtaLabel,
     videoId: videoId || undefined,
     youtubeId: youtubeId || undefined,
     embedUrl,
     streamUrl,
-    title,
+    title: cachedMeta?.videoTitle || title,
     sourceType
   };
 }
 
-// Lấy Avatar dựa trên Platform & Handle
+// ===== BỘ PHÂN GIẢI TÊN KÊNH & LOGO KÊNH THẬT 100% ĐA NỀN TẢNG (YOUTUBE, FACEBOOK, TIKTOK) =====
+export interface ResolvedMediaChannelMeta {
+  platform: 'tiktok' | 'facebook' | 'youtube' | 'direct';
+  channelName: string;
+  channelHandle: string;
+  channelUrl: string;
+  channelAvatar: string | null;
+  videoTitle: string | null;
+  resolvedUrl: string;
+}
+
+const mediaMetaCache = new Map<string, ResolvedMediaChannelMeta>();
+const mediaMetaPending = new Map<string, Promise<ResolvedMediaChannelMeta | null>>();
+
+export function getCachedMediaChannelMeta(rawUrl: string): ResolvedMediaChannelMeta | null {
+  const clean = sanitizeMediaUrl(rawUrl || '');
+  if (!clean) return null;
+  return mediaMetaCache.get(clean) || null;
+}
+
+export function isGenericPlaceholderHandle(handle?: string): boolean {
+  if (!handle) return true;
+  const clean = handle.replace(/^@+/, '').trim().toLowerCase();
+  return (
+    !clean ||
+    clean === 'creator_vietnam' ||
+    clean === 'creator.vietnam' ||
+    clean === 'creator_tiktok' ||
+    clean === 'tiktok_creator' ||
+    clean === 'youtubecreator' ||
+    clean === 'youtube' ||
+    clean === 'facebook' ||
+    clean === 'kênh youtube' ||
+    clean === 'fanpage facebook'
+  );
+}
+
+export async function resolveRealMediaChannelMeta(rawUrl: string): Promise<ResolvedMediaChannelMeta | null> {
+  const cleanUrl = sanitizeMediaUrl(rawUrl || '');
+  if (!cleanUrl || (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://'))) {
+    return null;
+  }
+
+  const cached = mediaMetaCache.get(cleanUrl);
+  if (cached) return cached;
+
+  const existingPromise = mediaMetaPending.get(cleanUrl);
+  if (existingPromise) return existingPromise;
+
+  const task = (async (): Promise<ResolvedMediaChannelMeta | null> => {
+    const platform = detectPlatform(cleanUrl);
+    let result: ResolvedMediaChannelMeta | null = null;
+
+    // 1. Gọi Serverless API `/api/resolve-media-meta` (hỗ trợ cả YouTube Data API v3, TikTok oEmbed+HTML, Facebook OpenGraph+JSON)
+    try {
+      const apiRes = await fetch(`/api/resolve-media-meta?url=${encodeURIComponent(cleanUrl)}`);
+      if (apiRes.ok) {
+        const data = await apiRes.json();
+        if (data && data.success && (data.channelName || data.channelHandle || data.channelAvatar)) {
+          result = {
+            platform: data.platform || platform,
+            channelName: data.channelName || data.channelHandle || '',
+            channelHandle: data.channelHandle || (data.channelName ? `@${data.channelName}` : ''),
+            channelUrl: data.channelUrl || cleanUrl,
+            channelAvatar: data.channelAvatar || null,
+            videoTitle: data.videoTitle || null,
+            resolvedUrl: data.resolvedUrl || cleanUrl
+          };
+        }
+      }
+    } catch {
+      // Fallback sang gọi trực tiếp YouTube API / oEmbed phía client nếu backend tạm không phản hồi
+    }
+
+    // 2. Fallback chuyên biệt phía Client cho YouTube (nếu thiếu avatar hoặc tên kênh)
+    if (platform === 'youtube' && (!result || !result.channelAvatar || !result.channelName)) {
+      const ytId = extractYouTubeVideoId(cleanUrl);
+      const ytApiKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_YOUTUBE_API_KEY) || '';
+      let chId: string | null = null;
+      let chName = result?.channelName || '';
+      let chHandle = result?.channelHandle || '';
+      let chUrl = result?.channelUrl || cleanUrl;
+      let chAvatar = result?.channelAvatar || null;
+      let vidTitle = result?.videoTitle || null;
+
+      if (ytApiKey) {
+        try {
+          if (ytId) {
+            const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${encodeURIComponent(ytId)}&key=${encodeURIComponent(ytApiKey)}`);
+            if (vRes.ok) {
+              const vJson = await vRes.json();
+              const snip = vJson?.items?.[0]?.snippet;
+              if (snip) {
+                chId = snip.channelId || null;
+                chName = snip.channelTitle || chName;
+                vidTitle = snip.title || vidTitle;
+              }
+            }
+          }
+          const handleMatch = cleanUrl.match(/youtube\.com\/@([^\/\?\#]+)/i);
+          const urlHandle = handleMatch?.[1] ? decodeURIComponent(handleMatch[1]) : null;
+          const channelEndpoint = chId
+            ? `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${encodeURIComponent(chId)}&key=${encodeURIComponent(ytApiKey)}`
+            : urlHandle
+              ? `https://www.googleapis.com/youtube/v3/channels?part=snippet&forHandle=${encodeURIComponent(urlHandle)}&key=${encodeURIComponent(ytApiKey)}`
+              : null;
+          if (channelEndpoint) {
+            const cRes = await fetch(channelEndpoint);
+            if (cRes.ok) {
+              const cJson = await cRes.json();
+              const cSnip = cJson?.items?.[0]?.snippet;
+              if (cSnip) {
+                chName = cSnip.title || chName;
+                if (cSnip.customUrl) {
+                  let decoded = cSnip.customUrl;
+                  try { decoded = decodeURIComponent(decoded); } catch {}
+                  chHandle = decoded.startsWith('@') ? decoded : `@${decoded}`;
+                  chUrl = `https://www.youtube.com/${chHandle}`;
+                }
+                chAvatar = cSnip.thumbnails?.high?.url || cSnip.thumbnails?.medium?.url || cSnip.thumbnails?.default?.url || chAvatar;
+              }
+            }
+          }
+        } catch {
+          // Ignore client YouTube API error
+        }
+      }
+
+      // YouTube oEmbed fallback (hỗ trợ đầy đủ Unicode, không cắt cụt tên tiếng Việt!)
+      if (!chName) {
+        try {
+          const oeRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(ytId ? `https://www.youtube.com/watch?v=${ytId}` : cleanUrl)}&format=json`);
+          if (oeRes.ok) {
+            const oe = await oeRes.json();
+            if (oe?.author_name) chName = oe.author_name;
+            if (oe?.title && !vidTitle) vidTitle = oe.title;
+            if (oe?.author_url) {
+              chUrl = oe.author_url;
+              const m = oe.author_url.match(/@([^\/\?\#]+)/i);
+              if (m && m[1]) {
+                try { chHandle = `@${decodeURIComponent(m[1])}`; } catch { chHandle = `@${m[1]}`; }
+              }
+            }
+          }
+        } catch {
+          // Ignore oEmbed error
+        }
+      }
+
+      if (chName || chHandle || chAvatar) {
+        result = {
+          platform: 'youtube',
+          channelName: chName || chHandle.replace(/^@+/, '') || 'Kênh YouTube',
+          channelHandle: chHandle || (chName ? `@${chName}` : '@YouTube'),
+          channelUrl: chUrl,
+          channelAvatar: chAvatar,
+          videoTitle: vidTitle,
+          resolvedUrl: cleanUrl
+        };
+      }
+    }
+
+    if (result) {
+      mediaMetaCache.set(cleanUrl, result);
+      if (result.resolvedUrl && result.resolvedUrl !== cleanUrl) {
+        mediaMetaCache.set(result.resolvedUrl, result);
+      }
+    }
+    return result;
+  })();
+
+  mediaMetaPending.set(cleanUrl, task);
+  try {
+    return await task;
+  } finally {
+    mediaMetaPending.delete(cleanUrl);
+  }
+}
+
+// Lấy Avatar dựa trên Platform & Handle (TUYỆT ĐỐI KHÔNG lấy nhầm avatar TikTok cho YouTube / Facebook hoặc handle chung)
 export function getPlatformAvatar(platform: 'tiktok' | 'facebook' | 'youtube' | 'direct', handle?: string, fallback?: string): string {
   const clean = (handle || '').replace(/^@+/, '').trim();
   const bg = platform === 'facebook' ? '1877F2' : (platform === 'youtube' ? 'FF0000' : '010101');
-  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(clean || 'User')}&background=${bg}&color=fff&bold=true`;
-  if (!clean) return fallback || defaultAvatar;
-  
+  const displayInitial = clean && !isGenericPlaceholderHandle(clean) ? clean : (platform === 'youtube' ? 'YT' : platform === 'facebook' ? 'FB' : 'TT');
+  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayInitial)}&background=${bg}&color=fff&bold=true&size=128`;
+
+  if (!clean || isGenericPlaceholderHandle(clean)) {
+    return fallback || defaultAvatar;
+  }
+
+  // Chỉ gọi unavatar với handle ASCII hợp lệ; handle Unicode có dấu (vd NGUYỄN...) tránh unavatar trả sai người lạ
+  const isCleanAsciiSlug = /^[a-zA-Z0-9._-]+$/.test(clean);
+  if (!isCleanAsciiSlug) {
+    return fallback || defaultAvatar;
+  }
+
   if (platform === 'youtube') {
-    return `https://unavatar.io/youtube/${clean}?fallback=${encodeURIComponent(defaultAvatar)}`;
+    return `https://unavatar.io/youtube/${encodeURIComponent(clean)}?fallback=${encodeURIComponent(defaultAvatar)}`;
   }
   if (platform === 'facebook') {
-    return `https://unavatar.io/facebook/${clean}?fallback=${encodeURIComponent(defaultAvatar)}`;
+    return `https://unavatar.io/facebook/${encodeURIComponent(clean)}?fallback=${encodeURIComponent(defaultAvatar)}`;
   }
-  return `https://unavatar.io/tiktok/${clean}?fallback=${encodeURIComponent(defaultAvatar)}`;
+  return `https://unavatar.io/tiktok/${encodeURIComponent(clean)}?fallback=${encodeURIComponent(defaultAvatar)}`;
 }
 
 // Lấy Avatar TikTok thật 100% dựa trên Handle chính xác của tài khoản

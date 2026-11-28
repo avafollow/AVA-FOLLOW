@@ -27,7 +27,14 @@ import {
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { TASK_ACTION_REWARDS } from '../../types';
-import { parseMediaUrl } from '../../data/videoSources';
+import {
+  parseMediaUrl,
+  getPlatformAvatar,
+  resolveRealMediaChannelMeta,
+  getCachedMediaChannelMeta,
+  isGenericPlaceholderHandle,
+  type ResolvedMediaChannelMeta
+} from '../../data/videoSources';
 import {
   TikTokVideoEmbedPlayer,
   YouTubeEmbedPlayer,
@@ -72,6 +79,39 @@ export const TikTokTaskRunnerModal: React.FC = () => {
   const isFacebook = Boolean(runnerTask?.platform === 'facebook' || mediaInfo?.isFacebook);
   const taskPlatform = runnerTask?.platform || (isYouTube ? 'youtube' : isFacebook ? 'facebook' : 'tiktok');
   const platformDisplayName = isYouTube ? 'YouTube' : isFacebook ? 'Facebook' : 'TikTok';
+
+  // Tự động tra cứu Tên Kênh THẬT & Logo Kênh THẬT cho task hiện tại
+  const [resolvedTaskMeta, setResolvedTaskMeta] = useState<ResolvedMediaChannelMeta | null>(null);
+  useEffect(() => {
+    let active = true;
+    setResolvedTaskMeta(null);
+    const rawLink = runnerTask?.targetUrl || runnerTask?.videoPreviewUrl || '';
+    if (!isRunnerOpen || !rawLink || (!rawLink.startsWith('http://') && !rawLink.startsWith('https://'))) return;
+    const cached = getCachedMediaChannelMeta(rawLink);
+    if (cached) {
+      setResolvedTaskMeta(cached);
+      return;
+    }
+    resolveRealMediaChannelMeta(rawLink)
+      .then((meta) => {
+        if (active && meta) setResolvedTaskMeta(meta);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [isRunnerOpen, runnerTask?.id, runnerTask?.targetUrl, runnerTask?.videoPreviewUrl]);
+
+  const effectiveTaskChannelName =
+    resolvedTaskMeta?.channelName ||
+    (!isGenericPlaceholderHandle(runnerTask?.channelName) ? runnerTask?.channelName : null) ||
+    (!isGenericPlaceholderHandle(runnerTask?.channelHandle) ? runnerTask?.channelHandle : null) ||
+    (isYouTube ? 'Kênh YouTube' : isFacebook ? 'Fanpage Facebook' : 'Kênh TikTok');
+  const effectiveTaskChannelHandle =
+    resolvedTaskMeta?.channelHandle ||
+    (!isGenericPlaceholderHandle(runnerTask?.channelHandle) ? runnerTask?.channelHandle : effectiveTaskChannelName);
+  const effectiveTaskAvatar =
+    resolvedTaskMeta?.channelAvatar ||
+    (runnerTask?.channelAvatar && !runnerTask.channelAvatar.includes('unsplash.com') && !runnerTask.channelAvatar.includes('creator_vietnam') ? runnerTask.channelAvatar : null) ||
+    getPlatformAvatar(taskPlatform, effectiveTaskChannelHandle);
   const actionFollowName = isYouTube ? 'Đăng ký Kênh' : isFacebook ? 'Theo dõi Trang' : 'Follow Kênh';
   const actionLikeName = isYouTube ? 'Thích Video' : isFacebook ? 'Thích Bài Viết' : 'Thả Tim Video';
   const actionCommentName = isYouTube ? 'Bình luận Video' : isFacebook ? 'Bình luận Bài Viết' : 'Bình luận Video';
@@ -723,9 +763,14 @@ export const TikTokTaskRunnerModal: React.FC = () => {
                 className="w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-[#FE2C55] via-white to-[#25F4EE] shadow-lg cursor-pointer hover:scale-105 transition-transform"
               >
                 <img
-                  src={runnerTask.channelAvatar}
-                  alt=""
-                  className="w-full h-full rounded-full object-cover"
+                  src={effectiveTaskAvatar}
+                  alt={effectiveTaskChannelName}
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const bg = isYouTube ? 'FF0000' : isFacebook ? '1877F2' : '010101';
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(effectiveTaskChannelName || 'Kenh')}&background=${bg}&color=fff&bold=true&size=128`;
+                  }}
+                  className="w-full h-full rounded-full object-cover bg-slate-900"
                 />
               </div>
 
@@ -820,7 +865,16 @@ export const TikTokTaskRunnerModal: React.FC = () => {
             <div className="relative flex items-center justify-center mt-1">
               <div className={`w-10 h-10 rounded-full bg-gradient-to-tr from-zinc-900 via-black to-zinc-800 p-1.5 border border-white/20 shadow-xl ${isPlaying ? 'animate-spin-slow' : ''}`}>
                 <div className="w-full h-full rounded-full overflow-hidden border border-white/30">
-                  <img src={runnerTask.channelAvatar} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={effectiveTaskAvatar}
+                    alt={effectiveTaskChannelName}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const bg = isYouTube ? 'FF0000' : isFacebook ? '1877F2' : '010101';
+                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(effectiveTaskChannelName || 'Kenh')}&background=${bg}&color=fff&bold=true&size=128`;
+                    }}
+                    className="w-full h-full object-cover bg-slate-900"
+                  />
                 </div>
               </div>
               {isPlaying && (
@@ -834,15 +888,15 @@ export const TikTokTaskRunnerModal: React.FC = () => {
 
           {/* LEFT-BOTTOM OVERLAY: CREATOR NAME, CAPTION & MUSIC TICKER */}
           <div className="absolute left-3.5 bottom-4 z-20 max-w-[240px] sm:max-w-[270px] space-y-1.5 text-left pointer-events-none">
-            {/* Channel Handle & Verified Badge */}
+            {/* Channel Name & Verified Badge */}
             <div className="flex items-center gap-1.5 font-display font-black text-white text-sm drop-shadow">
-              <span>{runnerTask.channelHandle}</span>
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#25F4EE] fill-[#25F4EE]/20" />
+              <span className="truncate">{effectiveTaskChannelName}</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#25F4EE] fill-[#25F4EE]/20 shrink-0" />
             </div>
 
             {/* Video Caption & Hashtags */}
             <p className="text-xs text-white/90 line-clamp-2 leading-relaxed drop-shadow">
-              {runnerTask.title} <strong className="text-rose-400">#fyp #viral #trending #tiktokshop</strong>
+              {runnerTask.title} <strong className="text-rose-400">#{platformDisplayName.toLowerCase()} #viral #trending</strong>
             </p>
 
             {/* Music Ticker Marquee */}
@@ -850,7 +904,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
               <Music className="w-3 h-3 text-rose-400 animate-spin-slow shrink-0" />
               <div className="overflow-hidden whitespace-nowrap">
                 <span className="inline-block animate-marquee">
-                  ♫ Âm thanh gốc - {runnerTask.channelName} • Nhạc xu hướng TikTok FYP
+                  ♫ Âm thanh gốc - {effectiveTaskChannelName} • {platformDisplayName}
                 </span>
               </div>
             </div>

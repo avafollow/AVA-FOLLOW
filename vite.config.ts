@@ -1,12 +1,22 @@
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
 function apiDevMiddleware(): Plugin {
   return {
     name: 'api-dev-middleware',
     configureServer(server) {
+      const env = loadEnv(server.config.mode, process.cwd(), '');
+      if (env.VITE_YOUTUBE_API_KEY && !process.env.VITE_YOUTUBE_API_KEY) {
+        process.env.VITE_YOUTUBE_API_KEY = env.VITE_YOUTUBE_API_KEY;
+      }
+
       server.middlewares.use(async (req, res, next) => {
-        if (req.url && (req.url.startsWith('/api/tiktok-resolve') || req.url.startsWith('/api/stream-proxy'))) {
+        if (
+          req.url &&
+          (req.url.startsWith('/api/tiktok-resolve') ||
+            req.url.startsWith('/api/stream-proxy') ||
+            req.url.startsWith('/api/resolve-media-meta'))
+        ) {
           try {
             const urlObj = new URL(req.url, 'http://localhost:3000');
             const pathname = urlObj.pathname;
@@ -32,6 +42,10 @@ function apiDevMiddleware(): Plugin {
               return;
             } else if (pathname === '/api/stream-proxy') {
               const { default: handler } = await import('./api/stream-proxy.js');
+              await handler(req, res);
+              return;
+            } else if (pathname === '/api/resolve-media-meta') {
+              const { default: handler } = await import('./api/resolve-media-meta.js');
               await handler(req, res);
               return;
             }

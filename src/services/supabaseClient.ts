@@ -296,22 +296,18 @@ export async function registerUserToSupabase(user: {
 /**
  * 6. KẾT NỐI ĐĂNG NHẬP OAUTH CÁC NỀN TẢNG QUA SUPABASE & DIRECT LOGIN
  */
-export async function signInWithGoogleOAuth(includeYouTubeScopes = false) {
-  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+export async function signInWithGoogleOAuth(_includeYouTubeScopes = false) {
+  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://avafollowpro.vercel.app';
   try {
-    const options: any = {
-      redirectTo: redirectOrigin,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      }
-    };
-    if (includeYouTubeScopes) {
-      options.scopes = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl';
-    }
+    // 1-Tap Google/YouTube OAuth chuẩn OpenID (email + profile):
+    // Không yêu cầu scope nhạy cảm (youtube.force-ssl) và không ép prompt='consent'
+    // để người dùng đã đăng nhập Google trên điện thoại/máy tính kết nối 1 chạm tức thì,
+    // không bị Google hiện màn hình cảnh báo chặn bảo mật.
     const res = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options
+      options: {
+        redirectTo: redirectOrigin,
+      }
     });
     return res;
   } catch (err: any) {
@@ -334,18 +330,16 @@ export async function signInWithTikTokOAuth() {
   return { data: { url: authUrl, isDirectProvider: true }, error: null };
 }
 
-export async function signInWithFacebookOAuth(includeEngagementScopes = false) {
+export async function signInWithFacebookOAuth(_includeEngagementScopes = false) {
   const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://avafollowpro.vercel.app';
   try {
-    // Supabase tự thêm quyền email cho Facebook nên chỉ truyền public_profile (+ user_likes,user_posts nếu yêu cầu)
-    const scopes = includeEngagementScopes
-      ? 'public_profile,user_likes,user_posts'
-      : 'public_profile';
+    // Chỉ dùng quyền cơ bản public_profile đã được Meta duyệt sẵn mặc định
+    // để đăng nhập 1 chạm mượt mà trên mọi điện thoại & máy tính, không bị Meta chặn quyền bảo mật.
     const res = await supabase.auth.signInWithOAuth({
       provider: 'facebook',
       options: {
         redirectTo: redirectOrigin,
-        scopes
+        scopes: 'public_profile'
       }
     });
     return res;
@@ -357,9 +351,9 @@ export async function signInWithFacebookOAuth(includeEngagementScopes = false) {
 
 /**
  * Kết nối Facebook JS SDK trực tiếp trong trình duyệt (không làm đăng xuất phiên Google hiện tại)
- * Cho phép lấy User Access Token thật từ Meta kèm quyền user_likes, user_posts nếu App cho phép.
+ * Chỉ xin quyền cơ bản public_profile,email để đảm bảo 1 chạm không bị Meta chặn.
  */
-export function loginFacebookWithSDK(includeEngagementScopes = false): Promise<{
+export function loginFacebookWithSDK(_includeEngagementScopes = false): Promise<{
   success: boolean;
   accessToken?: string;
   userId?: string;
@@ -386,9 +380,7 @@ export function loginFacebookWithSDK(includeEngagementScopes = false): Promise<{
         version: 'v19.0'
       });
 
-      const scope = includeEngagementScopes
-        ? 'public_profile,email,user_likes,user_posts'
-        : 'public_profile,email';
+      const scope = 'public_profile,email';
 
       FB.login(
         (response: any) => {

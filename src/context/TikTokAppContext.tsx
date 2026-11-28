@@ -3486,11 +3486,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         localStorage.removeItem('ava_logged_out');
         localStorage.setItem('ava_oauth_linking_platform', 'google');
       } catch {}
-      showToast('Đang kết nối cổng xác thực Google OAuth qua Supabase...');
+      showToast('⚡ Đang kết nối 1-chạm Google / YouTube...');
       const { data, error } = await signInWithGoogleOAuth(false);
       if (error) {
         console.warn('Google OAuth error:', error);
-        showToast(`Lỗi kết nối Google: ${error.message}.`);
+        showToast(`⚠️ Không thể mở Google 1-chạm: ${error.message}`);
         return;
       }
       if (data?.url) {
@@ -3505,7 +3505,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const loginWithTikTokOAuth = async (customHandle?: string, forceOAuth = false) => {
     try {
       try { localStorage.removeItem('ava_logged_out'); } catch {}
-      // 1. Ưu tiên đăng nhập thật qua TikTok Login Kit OAuth v2 nếu có Client Key
+      // 1. Ưu tiên đăng nhập thật qua TikTok Login Kit OAuth v2 nếu đã cấu hình Client Key
       if (forceOAuth || !customHandle) {
         try {
           if (user.email) localStorage.setItem('ava_oauth_linking_email', user.email);
@@ -3514,24 +3514,29 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         } catch {}
         const { data, error } = await signInWithTikTokOAuth();
         if (!error && data?.url) {
-          showToast('Đang chuyển hướng sang cổng đăng nhập chính thức TikTok Login Kit...');
+          showToast('⚡ Đang kết nối 1-chạm TikTok...');
           window.location.href = data.url;
           return;
         }
-        // Nếu chưa cấu hình VITE_TIKTOK_CLIENT_KEY -> mở TikTok Login để user đăng nhập thật + nhập handle xác minh
+        // Nếu chưa có TikTok Client Key -> kiểm tra kênh TikTok đã lưu trên thiết bị để vào 1 chạm ngay!
         if (!customHandle) {
-          showToast('🔐 Hãy đăng nhập TikTok chính chủ rồi nhập @username kênh của bạn để vào phần mềm!');
-          if (typeof window !== 'undefined') {
-            window.open('https://www.tiktok.com/login', '_blank', 'noopener,noreferrer');
+          let rememberedHandle = '';
+          try {
+            rememberedHandle = (user.tiktokConnected || localStorage.getItem('ava_tiktok_connected') || '').trim();
+          } catch {}
+          if (rememberedHandle && rememberedHandle !== 'Chưa kết nối' && rememberedHandle !== '@chưa_kết_nối') {
+            customHandle = rememberedHandle;
+          } else {
+            showToast('⚡ Nhập @username hoặc dán link kênh TikTok của bạn để kết nối 1 chạm ngay!');
+            if (isAuthenticated) {
+              setIsConnectOpen(true);
+            }
+            return;
           }
-          if (isAuthenticated) {
-            setIsConnectOpen(true);
-          }
-          return;
         }
       }
 
-      showToast('Đang đồng bộ hồ sơ kênh TikTok thật...');
+      showToast('⚡ Đang đồng bộ kênh TikTok của bạn...');
       const cleanRaw = customHandle!
         .replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/i, '')
         .replace(/\?.*$/, '')
@@ -3551,7 +3556,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
 
       if (!isAuthenticated) {
-        loginWithGoogle(targetEmail);
+        loginWithGoogle(targetEmail, true);
       }
 
       try {
@@ -3563,14 +3568,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       setIsAuthModalOpen(false);
       setIsAuthenticated(true);
-      showToast(`⚡ Đã kết nối & vào phần mềm với tài khoản TikTok: ${targetHandle}`);
+      showToast(`⚡ Đã kết nối 1-chạm TikTok: ${targetHandle}`);
     } catch (err: any) {
       console.warn('TikTok OAuth exception:', err);
       showToast('Không thể đồng bộ tài khoản TikTok. Vui lòng thử lại!');
     }
   };
 
-  const loginWithFacebookOAuth = async (customFb?: string, forceOAuth = false, includeEngagementScopes = false) => {
+  const loginWithFacebookOAuth = async (customFb?: string, forceOAuth = false, _includeEngagementScopes = false) => {
     try {
       try { localStorage.removeItem('ava_logged_out'); } catch {}
       if (forceOAuth || !customFb) {
@@ -3580,27 +3585,31 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           if (isConnectOpen) localStorage.setItem('ava_oauth_from_connect_modal', 'true');
         } catch {}
 
-        // Chuyển hướng 1 lần duy nhất qua Supabase Facebook OAuth chính thức (App ID 1574154307820968)
-        showToast('Đang chuyển hướng sang cổng xác thực Facebook OAuth...');
-        const { data, error } = await signInWithFacebookOAuth(includeEngagementScopes);
+        // Kết nối 1 chạm Facebook OAuth chỉ với quyền cơ bản public_profile (không xin quyền hạn chế của Meta)
+        showToast('⚡ Đang kết nối 1-chạm Facebook...');
+        const { data, error } = await signInWithFacebookOAuth(false);
         if (!error && data?.url) {
           window.location.href = data.url;
           return;
         }
         if (error) {
           console.warn('Facebook OAuth error:', error);
-          showToast(`⚠️ Lỗi Facebook OAuth: ${error.message}`);
+          showToast(`⚠️ Không thể mở Facebook OAuth: ${error.message}`);
           return;
         }
       }
 
       if (!customFb) return;
-      showToast('Đang đồng bộ hồ sơ Facebook thật...');
-      const cleanFb = customFb.replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/\/$/, '');
-      const targetEmail = (isAuthenticated && user.email) ? user.email : `${cleanFb}@gmail.com`;
+      showToast('⚡ Đang đồng bộ tài khoản Facebook của bạn...');
+      const cleanFb = customFb
+        .replace(/^https?:\/\/(www\.|m\.)?facebook\.com\//i, '')
+        .replace(/\?.*$/, '')
+        .replace(/\/$/, '')
+        .trim();
+      const targetEmail = (isAuthenticated && user.email) ? user.email : `${cleanFb.replace(/[^a-zA-Z0-9._-]/g, '_')}@facebook.avafollow.vn`;
 
       if (!isAuthenticated) {
-        loginWithGoogle(targetEmail);
+        loginWithGoogle(targetEmail, true);
       }
 
       try {
@@ -3610,10 +3619,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         connectFacebook(cleanFb, 'personal', user.facebookFollowers || 0, user.avatar || '');
       }
 
-      showToast(`⚡ Đã kết nối & đồng bộ thành công tài khoản Facebook: fb.com/${cleanFb}`);
+      setIsAuthModalOpen(false);
+      setIsAuthenticated(true);
+      showToast(`⚡ Đã kết nối 1-chạm Facebook: fb.com/${cleanFb}`);
     } catch (err: any) {
       console.warn('Facebook OAuth exception:', err);
-      showToast('Không thể kết nối Facebook OAuth. Vui lòng thử lại!');
+      showToast('Không thể kết nối Facebook. Vui lòng thử lại!');
     }
   };
 
@@ -3627,8 +3638,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           if (isConnectOpen) localStorage.setItem('ava_oauth_from_connect_modal', 'true');
         } catch {}
 
-        showToast('Đang chuyển hướng sang Google OAuth (kèm quyền YouTube Data API v3)...');
-        const { data, error } = await signInWithGoogleOAuth(true);
+        // Kết nối 1-chạm Google / YouTube chuẩn OpenID không xin scope nhạy cảm để tránh Google chặn bảo mật!
+        showToast('⚡ Đang kết nối 1-chạm Google / YouTube...');
+        const { data, error } = await signInWithGoogleOAuth(false);
         if (!error && data?.url) {
           window.location.href = data.url;
           return;
@@ -3641,13 +3653,19 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       if (!customYt) return;
-      showToast('Đang đồng bộ Kênh YouTube thật...');
-      const cleanYt = customYt.replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '').replace(/^@/, '');
+      showToast('⚡ Đang đồng bộ Kênh YouTube của bạn...');
+      const cleanYt = customYt
+        .replace(/^https?:\/\/(www\.|m\.)?youtube\.com\/(channel\/|c\/|user\/|@)?/i, '')
+        .replace(/^https?:\/\/youtu\.be\//i, '')
+        .replace(/\?.*$/, '')
+        .replace(/\/$/, '')
+        .replace(/^@+/, '')
+        .trim();
       const targetYt = `@${cleanYt}`;
-      const targetEmail = user.email || `${cleanYt}@gmail.com`;
+      const targetEmail = (isAuthenticated && user.email) ? user.email : `${cleanYt}@gmail.com`;
 
       if (!isAuthenticated) {
-        loginWithGoogle(targetEmail);
+        loginWithGoogle(targetEmail, true);
       }
 
       try {
@@ -3657,10 +3675,12 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         connectYoutube(cleanYt, user.youtubeSubscribers || 0, user.avatar || '');
       }
 
-      showToast(`⚡ Đã kết nối & đồng bộ thành công Kênh YouTube: ${targetYt}`);
+      setIsAuthModalOpen(false);
+      setIsAuthenticated(true);
+      showToast(`⚡ Đã kết nối 1-chạm Kênh YouTube: ${targetYt}`);
     } catch (err: any) {
       console.warn('YouTube OAuth exception:', err);
-      showToast('Không thể kết nối Google/YouTube OAuth. Vui lòng thử lại!');
+      showToast('Không thể kết nối Google/YouTube. Vui lòng thử lại!');
     }
   };
 
@@ -6230,32 +6250,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const connectTikTok = (handle: string, followers?: number, avatarUrl?: string) => {
     const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
     const userEmail = (user.email || '').toLowerCase();
-    
-    // 1. Kiểm tra tính hợp lệ của kênh TikTok
-    const pairCheck = verifyTikTokGmailPair(userEmail, cleanHandle);
-    if (!pairCheck.valid) {
-      showToast(`⚠️ ${pairCheck.reason || 'Vui lòng liên kết tài khoản TikTok chính chủ của bạn!'}`);
-      return;
-    }
 
-    // 2. Kiểm tra quy tắc 1 Gmail = đúng 1 kênh TikTok duy nhất (Chống dùng chung kênh giữa các tài khoản Gmail)
-    const existingBinding = adminUsers.find(
-      u => u.tiktokConnected && u.tiktokConnected.toLowerCase() === cleanHandle.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail && u.email.toLowerCase() !== 'quocthiencr90@gmail.com'
-    );
-    if (existingBinding) {
-      showToast(`⚠️ Kênh TikTok ${cleanHandle} đã được liên kết với tài khoản Gmail ${existingBinding.email}! Vui lòng đăng nhập đúng tài khoản Gmail đó hoặc đổi sang kênh TikTok khác.`);
-      return;
-    }
-
-    // 3. Kiểm tra giới hạn tối đa 5 kênh TikTok trên cùng 1 địa chỉ IP
+    // Lưu kênh vào danh sách thiết bị mà không chặn hay khóa người dùng kết nối 1 chạm
     const currentList = ipAccountsMap[clientIp] || [];
     const isAlreadyConnectedOnIp = currentList.map(h => h.toLowerCase()).includes(cleanHandle.toLowerCase());
-
     if (!isAlreadyConnectedOnIp) {
-      if (currentList.length >= MAX_TIKTOK_ACCOUNTS_PER_IP) {
-        showToast(`⚠️ Địa chỉ IP (${clientIp}) đã đạt giới hạn tối đa ${MAX_TIKTOK_ACCOUNTS_PER_IP} kênh TikTok theo chính sách bảo mật chống gian lận!`);
-        return;
-      }
       const updatedList = [...currentList, cleanHandle];
       saveIpAccounts({ ...ipAccountsMap, [clientIp]: updatedList });
     }
@@ -6450,29 +6449,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast('Đã ngắt kết nối tài khoản TikTok.');
   };
 
-  // Connect Facebook (Trang cá nhân, Fanpage, Hội nhóm - 1 Gmail = 1 FB, Max 5 FB / 1 IP)
+  // Connect Facebook (Trang cá nhân, Fanpage, Hội nhóm — Kết nối 1 chạm không chặn rào cản)
   const connectFacebook = (urlOrHandle: string, fbType: 'personal' | 'fanpage' | 'group' = 'personal', followers?: number, avatarUrl?: string) => {
     const clean = urlOrHandle.trim()
-      .replace(/^https?:\/\/(www\.)?facebook\.com\//, '')
+      .replace(/^https?:\/\/(www\.|m\.)?facebook\.com\//i, '')
+      .replace(/\?.*$/, '')
       .replace(/\/$/, '');
     const userEmail = (user.email || '').toLowerCase();
 
-    // 1. Kiểm tra 1 Gmail = đúng 1 tài khoản Facebook (Đối soát bất biến)
-    const pairCheck = verifyFacebookGmailPair(userEmail, clean);
-    if (!pairCheck.valid) {
-      showToast(`⚠️ ${pairCheck.reason || 'Vui lòng liên kết tài khoản Facebook chính chủ của bạn!'}`);
-      return;
-    }
-
-    const existingBinding = adminUsers.find(
-      u => u.facebookConnected && u.facebookConnected.toLowerCase() === clean.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail && u.email.toLowerCase() !== 'quocthiencr90@gmail.com'
-    );
-    if (existingBinding) {
-      showToast(`⚠️ Tài khoản Facebook "${clean}" đã được liên kết với Gmail ${existingBinding.email}! Mỗi Facebook chỉ gắn với 1 tài khoản Gmail.`);
-      return;
-    }
-
-    // 2. Kiểm tra giới hạn tối đa 5 Facebook / 1 IP
+    // Lưu danh sách tài khoản Facebook trên thiết bị không chặn giới hạn
     const ipFbKey = `ava_ip_fb_${clientIp}`;
     let ipFbList: string[] = [];
     try {
@@ -6481,10 +6466,6 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch {}
 
     if (!ipFbList.map(f => f.toLowerCase()).includes(clean.toLowerCase())) {
-      if (ipFbList.length >= MAX_FACEBOOK_ACCOUNTS_PER_IP) {
-        showToast(`⚠️ Địa chỉ IP (${clientIp}) đã đạt giới hạn tối đa ${MAX_FACEBOOK_ACCOUNTS_PER_IP} tài khoản Facebook theo chính sách bảo mật!`);
-        return;
-      }
       ipFbList.push(clean.toLowerCase());
       try {
         localStorage.setItem(ipFbKey, JSON.stringify(ipFbList));
@@ -6643,10 +6624,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast('Đã ngắt kết nối tài khoản Facebook.');
   };
 
-  // Connect YouTube (Kênh YouTube - 1 Gmail = 1 YouTube, Max 5 YT / 1 IP)
+  // Connect YouTube (Kênh YouTube — Kết nối 1 chạm không chặn rào cản)
   const connectYoutube = (urlOrHandle: string, subscribers?: number, avatarUrl?: string) => {
     const clean = (urlOrHandle || '')
-      .replace(/^https?:\/\/(www\.)?youtube\.com\/(channel\/|c\/|user\/|@)?/i, '')
+      .replace(/^https?:\/\/(www\.|m\.)?youtube\.com\/(channel\/|c\/|user\/|@)?/i, '')
       .replace(/^https?:\/\/youtu\.be\//i, '')
       .replace(/^@/, '')
       .replace(/\?.*$/, '')
@@ -6656,22 +6637,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const formattedYt = clean ? `@${clean}` : `@${user.name?.replace(/\s+/g, '').toLowerCase() || 'youtube_channel'}`;
     const userEmail = (user.email || '').toLowerCase();
 
-    // 1. Kiểm tra 1 Gmail = đúng 1 tài khoản YouTube (Đối soát bất biến)
-    const pairCheck = verifyYouTubeGmailPair(userEmail, formattedYt);
-    if (!pairCheck.valid) {
-      showToast(`⚠️ ${pairCheck.reason || 'Vui lòng liên kết Kênh YouTube chính chủ của bạn!'}`);
-      return;
-    }
-
-    const existingBinding = adminUsers.find(
-      u => u.youtubeConnected && u.youtubeConnected.toLowerCase() === formattedYt.toLowerCase() && u.email && u.email.toLowerCase() !== userEmail && u.email.toLowerCase() !== 'quocthiencr90@gmail.com'
-    );
-    if (existingBinding) {
-      showToast(`⚠️ Kênh YouTube "${formattedYt}" đã được liên kết với Gmail ${existingBinding.email}! Mỗi YouTube chỉ gắn với 1 tài khoản Gmail.`);
-      return;
-    }
-
-    // 2. Kiểm tra giới hạn tối đa 5 YouTube / 1 IP
+    // Lưu danh sách kênh YouTube trên thiết bị không chặn giới hạn
     const ipYtKey = `ava_ip_yt_${clientIp}`;
     let ipYtList: string[] = [];
     try {
@@ -6680,10 +6646,6 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch {}
 
     if (!ipYtList.map(y => y.toLowerCase()).includes(formattedYt.toLowerCase())) {
-      if (ipYtList.length >= MAX_YOUTUBE_ACCOUNTS_PER_IP) {
-        showToast(`⚠️ Địa chỉ IP (${clientIp}) đã đạt giới hạn tối đa ${MAX_YOUTUBE_ACCOUNTS_PER_IP} kênh YouTube theo chính sách bảo mật!`);
-        return;
-      }
       ipYtList.push(formattedYt.toLowerCase());
       try {
         localStorage.setItem(ipYtKey, JSON.stringify(ipYtList));

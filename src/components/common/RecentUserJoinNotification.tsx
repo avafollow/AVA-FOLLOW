@@ -4,7 +4,15 @@ import { RECENT_JOINED_USERS_100, RecentJoinedUser } from '../../data/recentUser
 import { useTikTokApp } from '../../context/TikTokAppContext';
 
 export const RecentUserJoinNotification: React.FC = () => {
-  const { openAuthModal, isAuthenticated } = useTikTokApp();
+  const {
+    openAuthModal,
+    isAuthenticated,
+    isAuthModalOpen,
+    isConnectOpen,
+    isFeedRunnerOpen,
+    isRunnerOpen,
+    isLiveRunnerOpen
+  } = useTikTokApp();
   const [currentUser, setCurrentUser] = useState<RecentJoinedUser | null>(null);
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -44,11 +52,22 @@ export const RecentUserJoinNotification: React.FC = () => {
     });
   };
 
-  if (!currentUser || !RECENT_JOINED_USERS_100 || RECENT_JOINED_USERS_100.length === 0) return null;
+  if (
+    !currentUser ||
+    !RECENT_JOINED_USERS_100 ||
+    RECENT_JOINED_USERS_100.length === 0 ||
+    isAuthModalOpen ||
+    isConnectOpen ||
+    isFeedRunnerOpen ||
+    isRunnerOpen ||
+    isLiveRunnerOpen
+  ) {
+    return null;
+  }
 
   return (
     <div
-      className={`fixed bottom-20 md:bottom-6 left-3 sm:left-6 z-40 transition-all duration-500 transform pointer-events-auto ${
+      className={`hidden md:block fixed bottom-6 left-6 z-30 transition-all duration-500 transform pointer-events-auto ${
         isVisible
           ? 'translate-y-0 opacity-100 scale-100'
           : 'translate-y-12 opacity-0 scale-95 pointer-events-none'

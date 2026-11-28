@@ -88,11 +88,108 @@ export const HomeScreen: React.FC<{
   return (
     <div className="flex flex-col xl:flex-row gap-6">
       {/* Center / Left Main Column */}
-      <div className="flex-1 space-y-6 min-w-0">
+      <div className="flex-1 space-y-4 sm:space-y-6 min-w-0">
+        {/* ========================================================================= */}
+        {/* THANH KẾT NỐI 1-CHẠM 3 NỀN TẢNG (TIKTOK • YOUTUBE • FACEBOOK) — LUÔN RÕ RÀNG */}
+        {/* ========================================================================= */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-[#0F1426] via-[#0B1020] to-[#120C22] border border-white/15 shadow-lg space-y-2.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="text-[11px] sm:text-xs font-black text-white font-display uppercase tracking-wide">
+                Kết Nối 1-Chạm Đa Nền Tảng
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-mono">
+              Chạm để kết nối ngay không cần xác minh phức tạp
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {/* TikTok Chip */}
+            <button
+              type="button"
+              onClick={() => {
+                try { localStorage.setItem('ava_oauth_reopen_tab', 'tiktok'); } catch {}
+                openConnect();
+              }}
+              className={`p-2.5 rounded-xl border text-left transition-all active:scale-[0.98] cursor-pointer flex items-center gap-2 min-w-0 ${
+                user.isTikTokVerified && user.tiktokConnected
+                  ? 'bg-emerald-950/35 border-emerald-500/40 hover:border-emerald-400'
+                  : 'bg-black/60 border-rose-500/40 hover:border-rose-400'
+              }`}
+            >
+              <div className="w-7 h-7 rounded-lg bg-black border border-white/15 flex items-center justify-center text-[#25F4EE] shrink-0 text-xs font-black">
+                ♪
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-black text-white truncate">TikTok</div>
+                <div className={`text-[10px] font-mono truncate ${
+                  user.isTikTokVerified && user.tiktokConnected ? 'text-emerald-300' : 'text-rose-300'
+                }`}>
+                  {user.isTikTokVerified && user.tiktokConnected ? user.tiktokConnected : '⚡ Kết nối'}
+                </div>
+              </div>
+            </button>
+
+            {/* YouTube Chip */}
+            <button
+              type="button"
+              onClick={() => {
+                try { localStorage.setItem('ava_oauth_reopen_tab', 'youtube'); } catch {}
+                openConnect();
+              }}
+              className={`p-2.5 rounded-xl border text-left transition-all active:scale-[0.98] cursor-pointer flex items-center gap-2 min-w-0 ${
+                user.isYoutubeVerified && user.youtubeConnected
+                  ? 'bg-emerald-950/35 border-emerald-500/40 hover:border-emerald-400'
+                  : 'bg-red-950/30 border-red-500/40 hover:border-red-400'
+              }`}
+            >
+              <div className="w-7 h-7 rounded-lg bg-red-600 flex items-center justify-center text-white shrink-0 text-[10px] font-black">
+                ▶
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-black text-white truncate">YouTube</div>
+                <div className={`text-[10px] font-mono truncate ${
+                  user.isYoutubeVerified && user.youtubeConnected ? 'text-emerald-300' : 'text-red-300'
+                }`}>
+                  {user.isYoutubeVerified && user.youtubeConnected ? user.youtubeConnected : '⚡ 1-Chạm'}
+                </div>
+              </div>
+            </button>
+
+            {/* Facebook Chip */}
+            <button
+              type="button"
+              onClick={() => {
+                try { localStorage.setItem('ava_oauth_reopen_tab', 'facebook'); } catch {}
+                openConnect();
+              }}
+              className={`p-2.5 rounded-xl border text-left transition-all active:scale-[0.98] cursor-pointer flex items-center gap-2 min-w-0 ${
+                user.isFacebookVerified && user.facebookConnected
+                  ? 'bg-emerald-950/35 border-emerald-500/40 hover:border-emerald-400'
+                  : 'bg-blue-950/30 border-blue-500/40 hover:border-blue-400'
+              }`}
+            >
+              <div className="w-7 h-7 rounded-lg bg-[#1877F2] flex items-center justify-center text-white shrink-0 text-xs font-black">
+                f
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-black text-white truncate">Facebook</div>
+                <div className={`text-[10px] font-mono truncate ${
+                  user.isFacebookVerified && user.facebookConnected ? 'text-emerald-300' : 'text-blue-300'
+                }`}>
+                  {user.isFacebookVerified && user.facebookConnected ? user.facebookConnected : '⚡ 1-Chạm'}
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+
         {/* ========================================================================= */}
         {/* HERO BANNER ULTRA-PREMIUM: CỖ MÁY KIẾM TIỀN TẠI NHÀ & BỨT PHÁ TÀI CHÍNH */}
         {/* ========================================================================= */}
-        <div className={`relative overflow-hidden rounded-3xl p-6 sm:p-8 lg:p-10 border-2 shadow-2xl transition-all ${
+        <div className={`relative overflow-hidden rounded-3xl p-4 sm:p-8 lg:p-10 border-2 shadow-2xl transition-all ${
           darkMode 
             ? 'bg-gradient-to-br from-[#1E0916] via-[#120824] to-[#080B1A] border-rose-500/40 shadow-[0_0_60px_rgba(255,0,80,0.22)]' 
             : 'bg-gradient-to-br from-rose-50 via-purple-50 to-pink-50 border-rose-300 shadow-xl'

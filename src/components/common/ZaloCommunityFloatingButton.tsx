@@ -3,9 +3,24 @@ import { Sparkles, MessageCircle, X, Check, Copy, ExternalLink, Users, Coins, Fl
 import { useTikTokApp } from '../../context/TikTokAppContext';
 
 export const ZaloCommunityFloatingButton: React.FC = () => {
-  const { openAuthModal, showToast, isAuthenticated, openLuckyWheel } = useTikTokApp();
+  const {
+    openAuthModal,
+    showToast,
+    isAuthenticated,
+    openLuckyWheel,
+    isAuthModalOpen,
+    isConnectOpen,
+    isFeedRunnerOpen,
+    isRunnerOpen,
+    isLiveRunnerOpen
+  } = useTikTokApp();
   const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
+
+  // Ẩn nút Zalo nổi khi đang mở bảng Đăng nhập / Kết nối / Xem Video để không bao giờ che giao diện trên điện thoại
+  if (isAuthModalOpen || isConnectOpen || isFeedRunnerOpen || isRunnerOpen || isLiveRunnerOpen) {
+    return null;
+  }
 
   const zaloGroupLink = 'https://zalo.me/g/avafull_growth_os_2026';
 
@@ -24,40 +39,39 @@ export const ZaloCommunityFloatingButton: React.FC = () => {
 
   return (
     <>
-      {/* Floating Button at Bottom Right */}
-      <div className="fixed bottom-20 md:bottom-6 right-3 sm:right-6 z-40 flex items-center gap-2 pointer-events-auto">
+      {/* Floating Button at Bottom Right — Gọn gàng trên Mobile, không che nút chính */}
+      <div className="fixed bottom-[76px] md:bottom-6 right-2.5 sm:right-6 z-30 flex items-center gap-2 pointer-events-auto">
         
-
-        {/* Zalo Icon Button with Official Styling & Pulsing Rings */}
+        {/* Zalo Icon Button with Official Styling */}
         <button
           onClick={() => setIsOpenModal(true)}
-          className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#0068FF] hover:bg-[#0055d4] p-0.5 shadow-[0_0_25px_rgba(0,104,255,0.6)] hover:scale-110 active:scale-95 transition-all flex items-center justify-center cursor-pointer group"
+          className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-[#0068FF] hover:bg-[#0055d4] p-0.5 shadow-[0_0_20px_rgba(0,104,255,0.5)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer group"
           title="Kết nối cộng đồng qua Zalo - Nhận 5.000 Xu"
         >
-          {/* Animated pulse halo */}
-          <span className="absolute -inset-1 rounded-2xl bg-blue-500/40 animate-ping pointer-events-none opacity-60" />
-          
           {/* Official Zalo Icon Graphics */}
           <div className="w-full h-full rounded-[14px] bg-[#0068FF] flex flex-col items-center justify-center text-white relative overflow-hidden">
-            <svg viewBox="0 0 48 48" className="w-8 h-8 fill-current">
+            <svg viewBox="0 0 48 48" className="w-6 h-6 sm:w-7 sm:h-7 fill-current">
               <path d="M24 4C12.95 4 4 12.06 4 22c0 5.48 2.76 10.38 7.15 13.73-.31 3.51-1.77 7.02-3.86 9.47 4.95-.54 9.43-2.61 12.44-5.22 1.4.34 2.86.52 4.27.52 11.05 0 20-8.06 20-18S35.05 4 24 4z" fill="#FFFFFF"/>
               <path d="M14 26.5h4.2l-4.2-7.5V17h6.5v2.5h-4.2l4.2 7.5V29H14v-2.5zm10.5-9.5c-2.8 0-4.5 2-4.5 4.5s1.7 4.5 4.5 4.5c2.8 0 4.5-2 4.5-4.5s-1.7-4.5-4.5-4.5zm0 6.5c-1.2 0-2-1-2-2s.8-2 2-2 2 1 2 2-.8 2-2 2zm7.5-6.5h2.5v9.5H32V17z" fill="#0068FF"/>
             </svg>
-            <span className="text-[9px] font-black tracking-tighter text-white font-mono uppercase mt-[-2px]">
+            <span className="text-[8px] sm:text-[9px] font-black tracking-tighter text-white font-mono uppercase mt-[-2px]">
               ZALO
             </span>
           </div>
 
           {/* Top Badge: 5.000 Xu */}
-          <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 text-[9px] font-mono font-black border border-white/50 shadow-md">
-            +5K XU
+          <span className="hidden sm:inline-block absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 text-[9px] font-mono font-black border border-white/50 shadow-md">
+            +5K
           </span>
         </button>
       </div>
 
       {/* Modal: Kết Nối Cộng Đồng Zalo & Nhận 5.000 Xu */}
       {isOpenModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+        <div
+          onClick={() => setIsOpenModal(false)}
+          className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+        >
           <div 
             className="relative w-full max-w-lg rounded-3xl bg-gradient-to-b from-[#0c1328] via-[#090d1a] to-[#060810] border-2 border-blue-500/50 shadow-[0_0_80px_rgba(0,104,255,0.4)] p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200 overflow-hidden"
             onClick={(e) => e.stopPropagation()}

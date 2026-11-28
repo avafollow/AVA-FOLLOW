@@ -255,7 +255,7 @@ function AppContent() {
   // If NOT authenticated, show the TikTok Pro Landing Page outside
   if (!isAuthenticated || showLandingDirectly) {
     return (
-      <div className="min-h-screen bg-[#07090E] text-slate-100 font-sans">
+      <div className="min-h-screen bg-[#07090E] text-slate-100 font-sans overflow-x-hidden">
         {/* Toast Notification */}
         {toastMessage && (
           <div className="fixed top-5 sm:top-6 right-4 sm:right-6 z-[99999] flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-black/95 border border-rose-500/80 shadow-2xl shadow-rose-500/40 text-white text-xs font-mono animate-in slide-in-from-top-4 duration-200 max-w-sm pointer-events-auto">
@@ -437,8 +437,8 @@ function AppContent() {
         </main>
       </div>
 
-      {/* THANH CHỮ CẢNH BÁO BẢO MẬT & CHẾ TÀI PHÁP CHẾ (CHẠY TỪ TỪ Ở ĐÁY MÀN HÌNH) */}
-      <AntiFraudMarqueeTicker onOpenLegalModal={() => setCurrentScreen('profile_wallet')} />
+      {/* THANH CHỮ CẢNH BÁO BẢO MẬT & CHẾ TÀI PHÁP CHẾ (CHỈ HIỂN THỊ DESKTOP ĐỂ KHÔNG CHE MOBILE) */}
+      <AntiFraudMarqueeTicker className="hidden md:block" onOpenLegalModal={() => setCurrentScreen('profile_wallet')} />
 
       {/* Mobile Bottom Navigation Bar (Phone First) */}
       <MobileNav

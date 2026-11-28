@@ -147,14 +147,14 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className={`sticky top-0 z-50 w-full max-w-full overflow-visible border-b transition-colors pt-[env(safe-area-inset-top,0px)] ${
+    <header className={`sticky top-0 z-40 w-full max-w-full overflow-visible border-b transition-colors pt-[env(safe-area-inset-top,0px)] ${
       darkMode 
         ? 'bg-[#0B0F19]/95 border-white/10 text-white backdrop-blur-xl' 
         : 'bg-white/95 border-slate-200 text-slate-900 backdrop-blur-xl shadow-sm'
     }`}>
       {/* BẢNG ĐIỆN LED CHẠY CHỮ TOÀN SÀN NỐI LIỀN NHAU (100% Full-width Continuous Slow LED Marquee Ticker) */}
       {marqueeTickerList.length > 0 && (
-        <div className="bg-gradient-to-r from-rose-950/90 via-[#130722] to-slate-950 border-b border-rose-500/30 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center text-xs select-none overflow-hidden relative shadow-inner min-h-[38px] sm:min-h-[40px] w-full">
+        <div className="bg-gradient-to-r from-rose-950/90 via-[#130722] to-slate-950 border-b border-rose-500/30 px-2 sm:px-4 py-1 sm:py-1.5 flex items-center text-[11px] sm:text-xs select-none overflow-hidden relative shadow-inner min-h-[30px] sm:min-h-[38px] w-full">
           {/* Marquee track running smoothly right to left edge-to-edge */}
           <div className="relative w-full overflow-hidden min-w-0">
             <div className="animate-led-marquee flex items-center gap-6 sm:gap-8 cursor-pointer hover:[animation-play-state:paused]">
@@ -206,13 +206,22 @@ export const Header: React.FC<HeaderProps> = ({
       )}
 
       <div className="flex h-14 sm:h-16 items-center justify-between px-2.5 sm:px-6 max-w-full overflow-visible relative gap-1.5 sm:gap-3">
-        {/* Left: Brand Logo & Tagline */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <BrandLogo
-            size="sm"
-            showSubtitle={false}
-            onClick={() => { window.location.href = '/'; }}
-          />
+        {/* Left: Brand Logo & Tagline (Compact on Mobile to prevent overflow) */}
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 shrink">
+          <span className="sm:hidden">
+            <BrandLogo
+              size="xs"
+              showSubtitle={false}
+              onClick={() => { window.location.href = '/'; }}
+            />
+          </span>
+          <span className="hidden sm:inline-flex">
+            <BrandLogo
+              size="sm"
+              showSubtitle={false}
+              onClick={() => { window.location.href = '/'; }}
+            />
+          </span>
         </div>
 
         {/* Center: Live Token Ticker & Quick Actions */}
@@ -288,13 +297,13 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Right: Search, Balance, Logout & User Avatar */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Right: Search, Balance, Connect, Notifications & User Avatar — Clean & Zero Overflow on Mobile */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
 
-          {/* Global Search shortcut */}
+          {/* Global Search shortcut (Desktop/Tablet) */}
           <button
             onClick={onOpenSearch}
-            className={`p-2 rounded-xl border transition-all ${
+            className={`hidden sm:flex p-2 rounded-xl border transition-all ${
               darkMode ? 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-300' : 'bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-700'
             }`}
             title="Tìm kiếm (Ctrl+K)"
@@ -302,109 +311,108 @@ export const Header: React.FC<HeaderProps> = ({
             <Search className="h-4 w-4" />
           </button>
 
-          {/* Kênh TikTok Đã Kết Nối (Duy trì tài khoản, chuyển đổi nhanh, tối đa 5 TK/IP) */}
+          {/* Kênh Đa Nền Tảng Đã Kết Nối (Compact trên Mobile, Đầy Đủ trên Desktop) */}
           <div className="flex items-center gap-1">
             <button
               onClick={openConnect}
-              className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm group border cursor-pointer ${
-                user.tiktokConnected ? (
+              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all shadow-sm group border cursor-pointer ${
+                user.tiktokConnected || user.youtubeConnected || user.facebookConnected ? (
                   darkMode 
-                    ? 'bg-black/60 hover:bg-white/10 border-rose-500/40 text-white hover:border-rose-400' 
-                    : 'bg-rose-50/80 hover:bg-rose-100 border-rose-200 text-slate-900'
+                    ? 'bg-black/60 hover:bg-white/10 border-emerald-500/40 text-white hover:border-emerald-400' 
+                    : 'bg-emerald-50/80 hover:bg-emerald-100 border-emerald-200 text-slate-900'
                 ) : (
-                  'bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 hover:opacity-90 text-white animate-pulse border-rose-400/50'
+                  'bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 hover:opacity-90 text-white border-rose-400/50'
                 )
               }`}
-              title={
-                user.tiktokConnected 
-                  ? `Tài khoản TikTok đang kết nối: ${user.tiktokConnected} • IP: ${connectedAccountsOnIp.length}/${maxAccountsPerIp || 5} tài khoản (Bấm để đổi kênh)` 
-                  : 'Bấm để kết nối kênh TikTok nhận ngay 1.000 Xu'
-              }
+              title="Kết nối 1-chạm TikTok, Facebook & YouTube"
             >
-              {/* TikTok mini badge */}
-              <div className="w-5 h-5 rounded-lg bg-black flex items-center justify-center text-rose-500 text-[10px] font-black shrink-0 shadow-sm ring-1 ring-white/10">
-                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-md sm:rounded-lg bg-black flex items-center justify-center text-rose-500 text-[10px] font-black shrink-0 shadow-sm ring-1 ring-white/15">
+                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" viewBox="0 0 24 24">
                   <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.67 6.34 6.34 0 0 0 9.34 22a6.34 6.34 0 0 0 6.34-6.33V9.05a8.28 8.28 0 0 0 4.91 1.6v-3.46a4.8 4.8 0 0 1-1-.5z"/>
                 </svg>
               </div>
 
-              {user.tiktokConnected ? (
+              {user.tiktokConnected || user.youtubeConnected || user.facebookConnected ? (
                 <div className="flex flex-col text-left leading-tight">
                   <div className="flex items-center gap-1">
-                    <span className="font-mono font-black text-xs text-white max-w-[85px] sm:max-w-[130px] truncate group-hover:text-rose-400 transition-colors">
-                      {user.tiktokConnected}
+                    <span className="font-mono font-black text-[11px] sm:text-xs text-white max-w-[68px] sm:max-w-[125px] truncate group-hover:text-emerald-300 transition-colors">
+                      {user.tiktokConnected || user.youtubeConnected || user.facebookConnected}
                     </span>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400 shrink-0" />
                   </div>
-                  <div className="text-[9px] text-slate-400 font-mono flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
-                    <span className="hidden sm:inline text-emerald-300">Đã kết nối</span>
-                    <span className="text-purple-300 font-bold">({connectedAccountsOnIp.length}/{maxAccountsPerIp || 5} IP)</span>
+                  <div className="hidden sm:flex text-[9px] text-emerald-300 font-mono items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                    <span>Đã kết nối 1-chạm</span>
                   </div>
                 </div>
               ) : (
                 <span className="whitespace-nowrap font-display text-[11px] sm:text-xs">
-                  + Kết Nối TikTok
+                  <span className="sm:hidden">+ Kết Nối</span>
+                  <span className="hidden sm:inline">+ Kết Nối Kênh</span>
                 </span>
               )}
             </button>
-            <FeatureGuideTooltip 
-              title="Kênh TikTok Đã Kết Nối & Giới Hạn 5 Tài Khoản / IP"
-              description="Kênh TikTok đã kết nối được lưu trữ vĩnh viễn trên thiết bị để đối soát nhận Xu tự động khi lướt video hoặc làm nhiệm vụ. Mỗi địa chỉ IP được liên kết tối đa 5 tài khoản theo chuẩn bảo mật 7 lớp."
-              steps={[
-                'Hệ thống tự động ghi nhớ tài khoản TikTok bạn đã liên kết.',
-                'Bấm vào để đổi kênh hoặc gỡ bớt tài khoản (tối đa 5 tài khoản / IP).',
-                'Hoàn toàn độc lập, an toàn và chống bot 100%.'
-              ]}
-              size="xs"
-            />
+            <div className="hidden xl:block">
+              <FeatureGuideTooltip 
+                title="Kết Nối 1-Chạm Đa Nền Tảng"
+                description="Kết nối nhanh tài khoản TikTok, Facebook và YouTube chính chủ để nhận thưởng làm nhiệm vụ tự động."
+                steps={[
+                  'Bấm vào nút Kết Nối để mở bảng 1-chạm.',
+                  'Chọn TikTok, Facebook hoặc YouTube để đồng bộ tức thì.',
+                  'Tự động lưu trên điện thoại & máy tính.'
+                ]}
+                size="xs"
+              />
+            </div>
           </div>
 
-          {/* Coin Balance Pill with Guide */}
+          {/* Coin Balance Pill (Compact on Mobile) */}
           <div className="flex items-center gap-1">
             <div 
               onClick={onNavigateToProfile}
-              className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 transition-all"
+              className="cursor-pointer flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 transition-all"
             >
-              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-600 flex items-center justify-center text-[10px] font-black text-black">
+              <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-600 flex items-center justify-center text-[9px] sm:text-[10px] font-black text-black shrink-0">
                 X
               </div>
               <div className="text-left font-mono">
-                <div className="text-xs font-black text-amber-400 leading-none font-mono-numbers">
-                  {user.avaliveCoins.toLocaleString()} Xu
+                <div className="text-[11px] sm:text-xs font-black text-amber-400 leading-none font-mono-numbers whitespace-nowrap">
+                  {user.avaliveCoins.toLocaleString()} <span className="hidden xs:inline">Xu</span>
                 </div>
-                <div className="text-[9px] text-slate-400 -mt-0.5 font-mono-numbers">
+                <div className="hidden sm:block text-[9px] text-slate-400 -mt-0.5 font-mono-numbers">
                   ≈ {user.coinsValueVND}
                 </div>
               </div>
             </div>
-            <FeatureGuideTooltip 
-              title="Ví Xu & Quy Đổi VNĐ Rút Tiền Ngân Hàng"
-              description="Số dư Xu trong ví của bạn quy đổi trực tiếp 1 Xu = 1 VNĐ. Bạn có thể rút tiền mặt về thẻ ngân hàng MB, Vietcombank, Techcombank theo kỳ giải ngân định kỳ."
-              steps={[
-                'Kiếm Xu bằng cách Follow, thả tim, comment hoặc xem livestream.',
-                'Bấm vào số dư để vào mục Rút Tiền Ngân Hàng.',
-                'Nhập số Xu cần rút (tối thiểu 200,000 Xu = 200,000đ) và hoàn tất lệnh rút.'
-              ]}
-              tips="Lệnh rút tiền được tổng hợp và giải ngân vào 10:00 Sáng Thứ Hai hàng tuần (xử lý trong 24h)."
-              size="xs"
-            />
+            <div className="hidden xl:block">
+              <FeatureGuideTooltip 
+                title="Ví Xu & Quy Đổi VNĐ Rút Tiền Ngân Hàng"
+                description="Số dư Xu trong ví của bạn quy đổi trực tiếp 1 Xu = 1 VNĐ. Bạn có thể rút tiền mặt về thẻ ngân hàng MB, Vietcombank, Techcombank theo kỳ giải ngân định kỳ."
+                steps={[
+                  'Kiếm Xu bằng cách Follow, thả tim, comment hoặc xem livestream.',
+                  'Bấm vào số dư để vào mục Rút Tiền Ngân Hàng.',
+                  'Nhập số Xu cần rút (tối thiểu 200,000 Xu = 200,000đ) và hoàn tất lệnh rút.'
+                ]}
+                tips="Lệnh rút tiền được tổng hợp và giải ngân vào 10:00 Sáng Thứ Hai hàng tuần (xử lý trong 24h)."
+                size="xs"
+              />
+            </div>
           </div>
 
-          {/* Install PWA App Button */}
+          {/* Install PWA App Button (Tablet/Desktop — Mobile đã có sẵn trong Menu) */}
           <button
             onClick={openPwaModal}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-indigo-500/20 hover:from-cyan-500/30 hover:to-indigo-500/30 border border-cyan-400/40 text-cyan-300 text-xs font-bold transition-all shadow-sm group shrink-0"
+            className="hidden md:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-indigo-500/20 hover:from-cyan-500/30 hover:to-indigo-500/30 border border-cyan-400/40 text-cyan-300 text-xs font-bold transition-all shadow-sm group shrink-0"
             title="Cài đặt AVA FOLLOW làm icon App trên màn hình điện thoại (iOS / Android)"
           >
             <Smartphone className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
-            <span className="hidden sm:inline font-display">Cài App</span>
+            <span className="hidden lg:inline font-display">Cài App</span>
           </button>
 
-          {/* Theme Toggle */}
+          {/* Theme Toggle (Desktop/Tablet) */}
           <button 
             onClick={onToggleDarkMode}
-            className={`p-2 rounded-xl border transition-all shrink-0 ${
+            className={`hidden sm:flex p-2 rounded-xl border transition-all shrink-0 ${
               darkMode ? 'bg-white/5 border-white/10 hover:bg-white/10 text-amber-300' : 'bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-700'
             }`}
           >

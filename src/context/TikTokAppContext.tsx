@@ -5,6 +5,7 @@ import {
   CampaignItem, 
   GrowthServiceItem, 
   AffiliateStats, 
+  AffiliateEventRecord,
   AdminDashboardData,
   BankAccountInfo,
   TransactionRecord,
@@ -221,7 +222,9 @@ interface TikTokAppContextType {
   selectedPackageForOrder: GrowthServiceItem | null;
   openOrderModal: (pkg: GrowthServiceItem) => void;
   closeOrderModal: () => void;
-  purchaseServicePackage: (pkg: GrowthServiceItem, targetUrl: string, instructions?: string, paymentMethod?: 'coins' | 'sepay') => boolean;
+  purchaseServicePackage: (pkg: GrowthServiceItem, targetUrl: string, instructions?: string, paymentMethod?: 'coins' | 'sepay' | 'affiliate') => boolean;
+  withdrawAffiliateCommission: (amountVND: number, bankInfo: BankAccountInfo) => boolean;
+  trackAffiliateEvent: (event: Omit<AffiliateEventRecord, 'id' | 'timestamp'>) => void;
   refundLivestreamOrder: (orderId: string, reason?: string, overrideRefundAmount?: number) => {
     success: boolean;
     refundAmount: number;
@@ -244,12 +247,14 @@ interface TikTokAppContextType {
   
   isFeedRunnerOpen: boolean;
   feedRunnerFilter: 'all' | 'cross_follow' | 'community' | 'partner' | 'live';
+  feedRunnerPlatform: 'all' | 'tiktok' | 'facebook' | 'youtube';
   feedRunnerTargetId: string | null;
   tasksActiveTab: "missions" | "watch_feed" | "livestreams" | "enterprise" | "cross_follow";
   setTasksActiveTab: (tab: "missions" | "watch_feed" | "livestreams" | "enterprise" | "cross_follow") => void;
   setFeedRunnerTargetId: (id: string | null) => void;
   setFeedRunnerFilter: (filter: 'all' | 'cross_follow' | 'community' | 'partner' | 'live') => void;
-  openFeedRunner: (filterOrId?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | string | any) => void;
+  setFeedRunnerPlatform: (platform: 'all' | 'tiktok' | 'facebook' | 'youtube') => void;
+  openFeedRunner: (filterOrId?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | string | any, platform?: 'all' | 'tiktok' | 'facebook' | 'youtube') => void;
   closeFeedRunner: () => void;
 
   activeLiveTask: LivestreamTaskItem | null;
@@ -2917,6 +2922,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
   const [isFeedRunnerOpen, setIsFeedRunnerOpen] = useState(false);
   const [feedRunnerFilter, setFeedRunnerFilter] = useState<'all' | 'cross_follow' | 'community' | 'partner' | 'live'>('all');
+  const [feedRunnerPlatform, setFeedRunnerPlatform] = useState<'all' | 'tiktok' | 'facebook' | 'youtube'>('all');
   const [feedRunnerTargetId, setFeedRunnerTargetId] = useState<string | null>(null);
   const [tasksActiveTab, setTasksActiveTab] = useState<"missions" | "watch_feed" | "livestreams" | "enterprise" | "cross_follow">("missions");
   const [activeLiveTask, setActiveLiveTask] = useState<LivestreamTaskItem | null>(null);
@@ -3158,6 +3164,34 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return null;
   };
 
+  // Ghi nhận toàn bộ sự kiện Tiếp Thị Liên Kết (Click / Vào trang / Đăng ký / Thêm giỏ hàng / Mua gói / Tiêu & Rút hoa hồng) và đồng bộ Supabase + Admin
+  const trackAffiliateEvent = (event: Omit<AffiliateEventRecord, 'id' | 'timestamp'>) => {
+    const now = new Date();
+    const ts = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+    const newEvt: AffiliateEventRecord = {
+      ...event,
+      id: `aff_evt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      timestamp: ts
+    };
+
+    setAffiliateData(prev => {
+      const next: AffiliateStats = {
+        ...prev,
+        totalClicks: prev.totalClicks + (event.type === 'click' ? 1 : 0),
+        totalVisits: (prev.totalVisits || 0) + (event.type === 'visit' ? 1 : 0),
+        totalSignups: prev.totalSignups + (event.type === 'signup' ? 1 : 0),
+        totalCartAdds: (prev.totalCartAdds || 0) + (event.type === 'add_to_cart' ? 1 : 0),
+        totalPurchases: (prev.totalPurchases || 0) + (event.type === 'purchase' ? 1 : 0),
+        eventsLog: [newEvt, ...(prev.eventsLog || [])].slice(0, 150)
+      };
+      try {
+        localStorage.setItem('ava_affiliate_stats', JSON.stringify(next));
+      } catch {}
+      syncAffiliateToSupabase(next);
+      return next;
+    });
+  };
+
   // Supabase Realtime Auth listener: auto-sync session if user logs in via Supabase OAuth redirect
   useEffect(() => {
     // Ghi nhận mã giới thiệu từ URL params (?ref=... hoặc ?refCode=...) & đồng bộ link ref động
@@ -3165,8 +3199,23 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const searchParams = new URLSearchParams(window.location.search);
       const refQuery = searchParams.get('ref') || searchParams.get('refCode') || searchParams.get('r');
       if (refQuery) {
-        saveReferralCookie(refQuery);
-        showToast(`🤝 Đã ghi nhận mã bảo trợ "${refQuery.toUpperCase()}" (Lưu trữ cookie 30 ngày)`);
+        const cleanCode = refQuery.trim().toUpperCase();
+        saveReferralCookie(cleanCode);
+        trackAffiliateEvent({
+          type: 'click',
+          refCode: cleanCode,
+          actorName: user.name || 'Khách truy cập',
+          actorEmail: user.email || '',
+          note: `Khách bấm click link tiếp thị liên kết ?ref=${cleanCode}`
+        });
+        trackAffiliateEvent({
+          type: 'visit',
+          refCode: cleanCode,
+          actorName: user.name || 'Khách truy cập',
+          actorEmail: user.email || '',
+          note: `Khách truy cập trang web qua mã giới thiệu ${cleanCode}`
+        });
+        showToast(`🤝 Đã ghi nhận mã bảo trợ "${cleanCode}" (Lưu trữ cookie 30 ngày)`);
       }
 
       // Cập nhật refLink động theo đúng origin hiện tại (local hoặc production)
@@ -4207,14 +4256,40 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setSelectedPackageForOrder(null);
   };
 
-  // Mua gói dịch vụ & Trả gói tự động sang hàng đợi nhiệm vụ
-  const purchaseServicePackage = (pkg: GrowthServiceItem, targetUrl: string, instructions?: string, paymentMethod: 'coins' | 'sepay' = 'coins'): boolean => {
-    if (paymentMethod === 'coins' && user.avaliveCoins < pkg.priceNum) {
-      showToast('❌ Số dư Xu không đủ để kích hoạt gói này!');
+  // Mua gói dịch vụ & Trả gói tự động sang hàng đợi nhiệm vụ (Hỗ trợ: SePay VietQR, Ví Xu [ưu tiên trừ Xu Follow Chéo trước], hoặc Tiền Hoa Hồng Affiliate!)
+  const purchaseServicePackage = (pkg: GrowthServiceItem, targetUrl: string, instructions?: string, paymentMethod: 'coins' | 'sepay' | 'affiliate' = 'coins'): boolean => {
+    const curCrossCoins = user.crossFollowCoins ?? 0;
+    const curMissionCoins = user.missionCoins ?? Math.max(0, (user.avaliveCoins || 0) - curCrossCoins);
+    const totalSpendableCoins = curCrossCoins + curMissionCoins;
+    const curAffiliateVND = user.affiliateBalanceVND ?? (affiliateData.availableCommissionVND ?? 0);
+
+    if (paymentMethod === 'coins' && totalSpendableCoins < pkg.priceNum) {
+      showToast('❌ Số dư Xu (Xu Follow Chéo + Xu Nhiệm Vụ) không đủ để kích hoạt gói này!');
       return false;
     }
 
-    const newCoins = paymentMethod === 'coins' ? user.avaliveCoins - pkg.priceNum : user.avaliveCoins + pkg.priceNum;
+    if (paymentMethod === 'affiliate' && curAffiliateVND < pkg.priceNum) {
+      showToast(`❌ Số dư Hoa hồng Tiếp thị liên kết (${curAffiliateVND.toLocaleString()}đ) chưa đủ để mua gói ${pkg.priceNum.toLocaleString()}đ!`);
+      return false;
+    }
+
+    let nextCrossCoins = curCrossCoins;
+    let nextMissionCoins = curMissionCoins;
+    let nextAffiliateVND = curAffiliateVND;
+
+    if (paymentMethod === 'coins') {
+      // Ưu tiên trừ từ Ví Xu Follow Chéo (chỉ dùng mua gói) trước -> thiếu mới trừ sang Ví Xu Nhiệm Vụ
+      const fromCross = Math.min(curCrossCoins, pkg.priceNum);
+      const fromMission = pkg.priceNum - fromCross;
+      nextCrossCoins = Math.max(0, curCrossCoins - fromCross);
+      nextMissionCoins = Math.max(0, curMissionCoins - fromMission);
+    } else if (paymentMethod === 'sepay') {
+      nextMissionCoins = curMissionCoins + pkg.priceNum;
+    } else if (paymentMethod === 'affiliate') {
+      nextAffiliateVND = Math.max(0, curAffiliateVND - pkg.priceNum);
+    }
+
+    const newCoins = nextCrossCoins + nextMissionCoins;
     const isLive = pkg.category === 'livestream';
     const newOrder: ServiceOrder = {
       id: `ord_${Date.now()}`,
@@ -4349,46 +4424,90 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       type: paymentMethod === 'sepay' ? 'deposit' : 'spend',
       title: paymentMethod === 'sepay'
         ? `Nạp Xu SePay VietQR gói "${pkg.title}"`
-        : `Kích hoạt gói "${pkg.title}" cho ${targetUrl}`,
-      amount: paymentMethod === 'sepay' ? `+${pkg.priceNum.toLocaleString()} Xu` : `-${pkg.priceNum.toLocaleString()} Xu`,
+        : paymentMethod === 'affiliate'
+          ? `Mua gói "${pkg.title}" bằng Hoa Hồng Tiếp Thị Liên Kết`
+          : `Kích hoạt gói "${pkg.title}" cho ${targetUrl} (Từ Ví Xu)`,
+      amount: paymentMethod === 'sepay'
+        ? `+${pkg.priceNum.toLocaleString()} Xu`
+        : paymentMethod === 'affiliate'
+          ? `-${pkg.priceNum.toLocaleString()}đ (Hoa hồng Affiliate)`
+          : `-${pkg.priceNum.toLocaleString()} Xu`,
       isPositive: paymentMethod === 'sepay',
       date: 'Vừa xong',
       status: 'success'
     };
 
-    setUser(prev => ({
-      ...prev,
+    const nextUserAfterPkg: UserProfileWallet = {
+      ...user,
       avaliveCoins: newCoins,
-      coinsValueVND: `${newCoins.toLocaleString()}đ`,
+      missionCoins: nextMissionCoins,
+      crossFollowCoins: nextCrossCoins,
+      affiliateBalanceVND: nextAffiliateVND,
+      coinsValueVND: `${nextMissionCoins.toLocaleString()}đ`,
       fiatVND: paymentMethod === 'sepay'
-        ? `${(parseInt(prev.fiatVND.replace(/\D/g, '') || '0') + pkg.priceNum).toLocaleString()}đ`
-        : prev.fiatVND,
-      transactions: [newTx, ...prev.transactions],
-      myOrders: [newOrder, ...(prev.myOrders || [])]
-    }));
+        ? `${(parseInt(user.fiatVND.replace(/\D/g, '') || '0') + pkg.priceNum).toLocaleString()}đ`
+        : user.fiatVND,
+      purchasedPackagesCount: (user.purchasedPackagesCount || 0) + 1,
+      transactions: [newTx, ...user.transactions],
+      myOrders: [newOrder, ...(user.myOrders || [])]
+    };
 
-    // Hoa hồng Tiếp thị liên kết (Affiliate Commission): Trích 20% - 35% cho đơn mua ĐẦU TIÊN của người được giới thiệu
-    const firstPurchaseKey = `ava_affiliate_awarded_${user.email || 'guest'}`;
-    const isFirstPurchase = !localStorage.getItem(firstPurchaseKey);
+    setUser(nextUserAfterPkg);
+    try {
+      localStorage.setItem('ava_user_profile', JSON.stringify(nextUserAfterPkg));
+    } catch {}
+    syncUserProfileToSupabase(nextUserAfterPkg);
 
-    if (isFirstPurchase) {
-      try {
-        localStorage.setItem(firstPurchaseKey, 'true');
-        const activeRefCode = getReferralCookie() || affiliateData.refCode || 'THIENVUAAPP88';
+    if (paymentMethod === 'affiliate') {
+      setAffiliateData(prev => {
+        const nextAff = {
+          ...prev,
+          availableCommissionVND: nextAffiliateVND
+        };
+        try { localStorage.setItem('ava_affiliate_stats', JSON.stringify(nextAff)); } catch {}
+        syncAffiliateToSupabase(nextAff);
+        return nextAff;
+      });
+      trackAffiliateEvent({
+        type: 'spend_commission',
+        refCode: affiliateData.refCode || 'AFF',
+        actorName: user.name || 'Thành viên Affiliate',
+        actorEmail: user.email || '',
+        packageTitle: pkg.title,
+        amountVND: pkg.priceNum,
+        note: `Dùng ${pkg.priceNum.toLocaleString()}đ tiền hoa hồng mua gói "${pkg.title}"`
+      });
+    }
 
-        // Tỷ lệ hoa hồng: Kim Cương: 35%, Vàng: 25%, Bạc: 20%, Đồng: 20%
-        let ratePercent = 35;
-        if (affiliateData.tier === 'Bạc') ratePercent = 20;
-        else if (affiliateData.tier === 'Vàng') ratePercent = 25;
-        else if (affiliateData.tier === 'Kim Cương') ratePercent = 35;
+    // Ghi nhận sự kiện Affiliate 'purchase' + tính hoa hồng Tiếp Thị Liên Kết (20% - 35% VNĐ) & đồng bộ Admin + Supabase
+    try {
+      const activeRefCode = getReferralCookie() || affiliateData.refCode || 'AVA2026';
+      let ratePercent = 35;
+      if (affiliateData.tier === 'Bạc') ratePercent = 20;
+      else if (affiliateData.tier === 'Vàng') ratePercent = 25;
+      else if (affiliateData.tier === 'Kim Cương') ratePercent = 35;
 
-        const commissionVND = Math.round((pkg.priceNum * ratePercent) / 100);
+      const commissionVND = paymentMethod === 'affiliate' ? 0 : Math.round((pkg.priceNum * ratePercent) / 100);
 
+      trackAffiliateEvent({
+        type: 'purchase',
+        refCode: activeRefCode,
+        actorName: user.name || 'Thành viên F1',
+        actorEmail: user.email || '',
+        packageTitle: pkg.title,
+        amountVND: pkg.priceNum,
+        commissionVND,
+        note: `Mua gói "${pkg.title}" (${pkg.priceNum.toLocaleString()}đ) • Hoa hồng ${ratePercent}%: +${commissionVND.toLocaleString()}đ`
+      });
+
+      if (commissionVND > 0) {
         setAffiliateData(prev => {
           const currentTotal = parseInt(prev.totalCommissionVND.replace(/\D/g, '') || '0', 10);
           const currentMonth = parseInt(prev.monthlyCommission.replace(/\D/g, '') || '0', 10);
-          return {
+          const nextAvail = (prev.availableCommissionVND ?? nextAffiliateVND) + commissionVND;
+          const updatedAff: AffiliateStats = {
             ...prev,
+            availableCommissionVND: nextAvail,
             totalCommissionVND: `${(currentTotal + commissionVND).toLocaleString()}đ`,
             monthlyCommission: `${(currentMonth + commissionVND).toLocaleString()}đ`,
             referralsList: [
@@ -4399,8 +4518,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 tiktokHandle: user.tiktokConnected || '@f1_user',
                 joinedDate: 'Hôm nay',
                 hasCompletedTask: true,
-                taskCompletedType: `Đơn mua đầu tiên: ${pkg.title}`,
-                status: `Đã trả hoa hồng ${ratePercent}% (${commissionVND.toLocaleString()}đ)`,
+                taskCompletedType: `Mua gói: ${pkg.title}`,
+                status: `Đã cộng hoa hồng ${ratePercent}% (+${commissionVND.toLocaleString()}đ)`,
                 bonusCoins: 5000,
                 isClaimed: true,
                 packageSpentVND: `${pkg.priceNum.toLocaleString()}đ`,
@@ -4409,24 +4528,37 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               ...prev.referralsList
             ]
           };
+          try { localStorage.setItem('ava_affiliate_stats', JSON.stringify(updatedAff)); } catch {}
+          syncAffiliateToSupabase(updatedAff);
+          return updatedAff;
         });
 
-        // Đồng bộ lên Supabase token_ledger
+        setUser(prev => {
+          const updated = {
+            ...prev,
+            affiliateBalanceVND: (prev.affiliateBalanceVND ?? 0) + commissionVND,
+            affiliateTotalEarnedVND: (prev.affiliateTotalEarnedVND ?? 0) + commissionVND
+          };
+          try { localStorage.setItem('ava_user_profile', JSON.stringify(updated)); } catch {}
+          syncUserProfileToSupabase(updated);
+          return updated;
+        });
+
         syncTokenLedgerToSupabase({
           userId: activeRefCode,
           txType: 'affiliate_commission',
           tokenAmount: 0,
           tokenBalanceAfter: 0,
           vndEquivalent: commissionVND,
-          note: `Hoa hồng tiếp thị liên kết ${ratePercent}% (đơn đầu) từ người dùng F1 mua gói ${pkg.title} (+${commissionVND.toLocaleString()}đ)`
+          note: `Hoa hồng tiếp thị liên kết ${ratePercent}% từ đơn mua gói ${pkg.title} (+${commissionVND.toLocaleString()}đ)`
         });
 
         setTimeout(() => {
-          showToast(`💎 [HOA HỒNG BẢO TRỢ]: Đã tự động cộng ${ratePercent}% hoa hồng (+${commissionVND.toLocaleString()}đ) cho người giới thiệu (${activeRefCode})!`);
+          showToast(`💎 [HOA HỒNG TIẾP THỊ]: Đã cộng ${ratePercent}% hoa hồng (+${commissionVND.toLocaleString()}đ) cho mã ${activeRefCode}!`);
         }, 1200);
-      } catch (err) {
-        console.warn('Affiliate commission calculation error:', err);
       }
+    } catch (err) {
+      console.warn('Affiliate commission calculation error:', err);
     }
 
     showToast(`🎉 Kích hoạt thành công gói "${pkg.title}"! Đã đẩy ${pkg.targetQuantity.toLocaleString()} ${pkg.unit} lên hàng đợi cộng đồng trả gói.`);
@@ -4442,8 +4574,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setRunnerTask(null);
   };
 
-  const openFeedRunner = (filterOrId?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | string | any) => {
+  const openFeedRunner = (filterOrId?: 'all' | 'cross_follow' | 'community' | 'partner' | 'live' | string | any, platform?: 'all' | 'tiktok' | 'facebook' | 'youtube') => {
     setTasksActiveTab('watch_feed');
+    if (platform) {
+      setFeedRunnerPlatform(platform);
+    } else {
+      setFeedRunnerPlatform('all');
+    }
     if (typeof filterOrId === 'string') {
       if (['all', 'cross_follow', 'community', 'partner', 'live'].includes(filterOrId)) {
         setFeedRunnerFilter(filterOrId as any);
@@ -5012,21 +5149,32 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const quota = getUserLiveQuota();
     const finalReward = Math.round(baseReward * quota.multiplier);
-    const newCoins = user.avaliveCoins + finalReward;
+    const isCrossFollowWallet = taskId.startsWith('cross_') || (isFeedRunnerOpen && feedRunnerFilter === 'cross_follow');
+    const curCross = user.crossFollowCoins ?? 0;
+    const curMission = user.missionCoins ?? Math.max(0, (user.avaliveCoins || 0) - curCross);
+    const nextCross = isCrossFollowWallet && isInstantRewardEnabled ? curCross + finalReward : curCross;
+    const nextMission = !isCrossFollowWallet && isInstantRewardEnabled ? curMission + finalReward : curMission;
+    const newCoins = nextCross + nextMission;
     const now = new Date();
     const exactTime = `${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
-    const methodLabel = taskPlatform === 'facebook' ? 'Nhiệm Vụ Facebook' : taskPlatform === 'youtube' ? 'Nhiệm Vụ YouTube' : 'Nhiệm Vụ TikTok';
+    const methodLabel = isCrossFollowWallet
+      ? 'Follow Chéo (Ví Mua Gói)'
+      : taskPlatform === 'facebook'
+        ? 'Nhiệm Vụ Facebook'
+        : taskPlatform === 'youtube'
+          ? 'Nhiệm Vụ YouTube'
+          : 'Nhiệm Vụ TikTok';
 
     const newTx: TransactionRecord = {
       id: `tx_act_${Date.now()}`,
       type: 'earn',
-      title: `${label} (Tính 1 lượt • x${quota.multiplier})`,
+      title: `${label} • ${platCheck.requiredAccountName} (${isCrossFollowWallet ? 'Ví Xu Follow Chéo - Chỉ Mua Gói' : 'Ví Xu Nhiệm Vụ - Rút Tiền'})`,
       amount: `+${finalReward.toLocaleString()} Xu`,
       isPositive: true,
       date: exactTime,
       exactTime,
       balanceAfter: newCoins,
-      missionType: actionType,
+      missionType: isCrossFollowWallet ? 'cross_follow' : actionType,
       missionName: label,
       method: methodLabel,
       status: 'success'
@@ -5035,15 +5183,15 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const isFirstTask = (user.completedTasksCount || 0) === 0 && !user.firstTaskCompleted;
     const nextCompletedTasks = (user.completedTasksCount || 0) + 1;
 
-    // Nếu KHÓA XU (isInstantRewardEnabled = false), thì số Xu này sẽ được giữ lại (Tạm Khóa) 
-    // và chỉ cộng vào ví khi gọi completeTask (hoàn thành 100% chiến dịch).
-    const finalBalance = isInstantRewardEnabled ? user.avaliveCoins + finalReward : user.avaliveCoins;
+    const finalBalance = newCoins;
 
     const updatedUser: UserProfileWallet = {
       ...user,
       avaliveCoins: finalBalance,
+      missionCoins: nextMission,
+      crossFollowCoins: nextCross,
       totalEarnedCoins: isInstantRewardEnabled ? (user.totalEarnedCoins || 0) + finalReward : user.totalEarnedCoins,
-      coinsValueVND: `${finalBalance.toLocaleString()}đ`,
+      coinsValueVND: `${nextMission.toLocaleString()}đ`,
       completedTasksCount: isInstantRewardEnabled ? nextCompletedTasks : (user.completedTasksCount || 0),
       firstTaskCompleted: isInstantRewardEnabled ? true : user.firstTaskCompleted,
       transactions: isInstantRewardEnabled ? [newTx, ...user.transactions] : user.transactions
@@ -5059,12 +5207,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       targetHandleOrUrl: targetChannelHandle,
       performerAccount: platCheck.requiredAccountName,
       coinsEarned: finalReward,
-      amountVND: finalReward * 10,
+      amountVND: isCrossFollowWallet ? 0 : finalReward,
       txHash: newTx.id,
       syncMethod: 'api_direct'
     });
 
     setUser(updatedUser);
+    // Đồng bộ ngay toàn bộ hoạt động làm nhiệm vụ lên Supabase
+    syncUserProfileToSupabase(updatedUser);
     try {
       if (typeof window !== 'undefined') {
         localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
@@ -5079,8 +5229,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           channelHandle: targetChannelHandle,
           actionType,
           actionLabel: label,
+          walletType: isCrossFollowWallet ? 'cross_follow' : 'mission',
           coinsEarned: finalReward,
-          amountVND: finalReward * 10,
+          amountVND: isCrossFollowWallet ? 0 : finalReward,
           txHash: newTx.id,
           timestamp: exactTime,
           userHandle: platCheck.requiredAccountName,
@@ -5098,6 +5249,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           return {
             ...u,
             coinsBalance: newCoins,
+            missionCoins: nextMission,
+            crossFollowCoins: nextCross,
             tokenBalance: newCoins,
             completedTasksCount: nextCompletedTasks,
             firstTaskCompleted: true
@@ -6268,29 +6421,31 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     let addedWelcomeBonus = 0;
     let newTransactions = [...user.transactions];
 
-    // Kiểm tra xem Email hoặc TikTok này đã từng nhận thưởng chào mừng chưa (Chống hủy rồi liên kết lại để lặp bonus)
+    // Kiểm tra xem Email hoặc tài khoản này đã từng nhận thưởng chào mừng 500.000 Xu chưa (CHỈ TẶNG 1 LẦN DUY NHẤT cho cả TikTok / Facebook / YouTube!)
     const isBonusEverClaimed = isWelcomeBonusEverClaimed(userEmail, cleanHandle);
 
     if (!user.isNewUserBonusClaimed && !isBonusEverClaimed) {
-      addedWelcomeBonus = 5000;
+      addedWelcomeBonus = 500000;
       const welcomeTx: TransactionRecord = {
         id: `tx_welcome_${Date.now()}`,
         type: 'earn',
-        title: 'Thưởng chào mừng tài khoản mới liên kết TikTok (5.000 Xu = 5.000đ)',
-        amount: '+5.000 Xu (+5.000đ)',
+        title: 'Thưởng chào mừng đăng ký & kết nối tài khoản đầu tiên (+500.000 Xu vào Ví Xu Nhiệm Vụ)',
+        amount: '+500.000 Xu',
         isPositive: true,
         date: 'Vừa xong',
+        method: 'Thưởng Đăng Ký 1 Lần',
         status: 'success'
       };
       newTransactions = [welcomeTx, ...newTransactions];
-    } else if (!user.isNewUserBonusClaimed && isBonusEverClaimed) {
-      showToast(`⚠️ Kênh ${cleanHandle} hoặc Gmail ${userEmail} đã từng nhận thưởng liên kết trước đó. Mỗi tài khoản chỉ nhận 1 lần duy nhất.`);
     }
 
     recordPermanentBinding(userEmail, cleanHandle, true, false, user.referredBy);
     lockTikTokGmailBinding(userEmail, cleanHandle, clientIp);
 
-    const nextCoins = user.avaliveCoins + addedWelcomeBonus;
+    const curCrossTt = user.crossFollowCoins ?? 0;
+    const curMissionTt = user.missionCoins ?? Math.max(0, (user.avaliveCoins || 0) - curCrossTt);
+    const nextMissionTt = curMissionTt + addedWelcomeBonus;
+    const nextCoins = nextMissionTt + curCrossTt;
     const finalAvatar = avatarUrl || user.tiktokAvatar || getTikTokAvatar(cleanHandle.replace(/^@/, ''));
     const finalProfileUrl = `https://www.tiktok.com/@${cleanHandle.replace(/^@/, '')}`;
 
@@ -6318,7 +6473,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       tiktokLastSyncedAt: new Date().toISOString(),
       isNewUserBonusClaimed: true,
       avaliveCoins: nextCoins,
-      coinsValueVND: `${nextCoins.toLocaleString()}đ`,
+      missionCoins: nextMissionTt,
+      crossFollowCoins: curCrossTt,
+      coinsValueVND: `${nextMissionTt.toLocaleString()}đ`,
       transactions: newTransactions
     };
 
@@ -6328,6 +6485,35 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
       }
     } catch {}
+
+    // Tự động lấy đúng tên kênh thật, logo thật, số Follower thật của tài khoản TikTok vừa kết nối/đổi
+    fetchRealTikTokProfile(cleanHandle, followers).then(synced => {
+      if (synced) {
+        setUser(curr => {
+          const nextReal: UserProfileWallet = {
+            ...curr,
+            tiktokNickname: synced.nickname || curr.tiktokNickname,
+            tiktokAvatar: synced.avatar || curr.tiktokAvatar,
+            tiktokFollowers: synced.followers > 0 ? synced.followers : curr.tiktokFollowers,
+            tiktokProfileUrl: synced.profileUrl || curr.tiktokProfileUrl,
+            tiktokLastSyncedAt: synced.syncedAt
+          };
+          try { localStorage.setItem('ava_user_profile', JSON.stringify(nextReal)); } catch {}
+          syncUserProfileToSupabase(nextReal);
+          return nextReal;
+        });
+        setAdminUsers(prev => prev.map(u => (
+          (userEmail && u.email.toLowerCase() === userEmail) || u.id === user.id
+            ? {
+                ...u,
+                tiktokNickname: synced.nickname || u.tiktokNickname,
+                tiktokAvatar: synced.avatar || u.tiktokAvatar,
+                tiktokFollowers: synced.followers > 0 ? synced.followers : u.tiktokFollowers
+              }
+            : u
+        )));
+      }
+    }).catch(() => {});
 
     // Cập nhật ngay lập tức vào adminUsers theo thời gian thực (Real-time)
     setAdminUsers(prev => {
@@ -6474,6 +6660,32 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     lockFacebookGmailBinding(userEmail, clean, clientIp);
 
+    // Thưởng chào mừng 500.000 Xu đúng 1 LẦN DUY NHẤT nếu chưa từng nhận ở bất kỳ nền tảng nào
+    let addedFbWelcome = 0;
+    let nextFbTxs = [...user.transactions];
+    if (!user.isNewUserBonusClaimed && !isWelcomeBonusEverClaimed(userEmail, clean)) {
+      addedFbWelcome = 500000;
+      recordPermanentBinding(userEmail, clean, true, false, user.referredBy);
+      nextFbTxs = [
+        {
+          id: `tx_welcome_fb_${Date.now()}`,
+          type: 'earn',
+          title: 'Thưởng chào mừng đăng ký & kết nối Facebook đầu tiên (+500.000 Xu vào Ví Xu Nhiệm Vụ)',
+          amount: '+500.000 Xu',
+          isPositive: true,
+          date: 'Vừa xong',
+          method: 'Thưởng Đăng Ký 1 Lần',
+          status: 'success'
+        },
+        ...nextFbTxs
+      ];
+    }
+
+    const curCrossFb = user.crossFollowCoins ?? 0;
+    const curMissionFb = user.missionCoins ?? Math.max(0, (user.avaliveCoins || 0) - curCrossFb);
+    const nextMissionFb = curMissionFb + addedFbWelcome;
+    const nextTotalFbCoins = nextMissionFb + curCrossFb;
+
     const finalFbAvatar = avatarUrl || user.facebookAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=1877F2&color=fff&bold=true`;
     const finalFbUrl = urlOrHandle.startsWith('http') ? urlOrHandle : `https://facebook.com/${clean}`;
 
@@ -6496,7 +6708,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       facebookAvatar: finalFbAvatar,
       facebookName: clean.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
       facebookBio: `Tài khoản Facebook chính chủ fb.com/${clean} đã xác thực trực tiếp trên AVA FOLLOW.`,
-      facebookLastSyncedAt: new Date().toISOString()
+      facebookLastSyncedAt: new Date().toISOString(),
+      isNewUserBonusClaimed: true,
+      avaliveCoins: nextTotalFbCoins,
+      missionCoins: nextMissionFb,
+      crossFollowCoins: curCrossFb,
+      coinsValueVND: `${nextMissionFb.toLocaleString()}đ`,
+      transactions: nextFbTxs
     };
 
     setUser(updatedUser);
@@ -6567,18 +6785,45 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     fetchRealFacebookProfile(clean).then(synced => {
       if (synced && synced.name) {
-        setUser(curr => ({
-          ...curr,
-          facebookName: synced.name,
-          facebookAvatar: synced.avatar || curr.facebookAvatar,
-          facebookBio: synced.bio || curr.facebookBio,
-          facebookLastSyncedAt: synced.syncedAt
-        }));
+        setUser(curr => {
+          const nextFbReal: UserProfileWallet = {
+            ...curr,
+            facebookName: synced.name,
+            facebookAvatar: synced.avatar || curr.facebookAvatar,
+            facebookFollowers: synced.followers > 0 ? synced.followers : curr.facebookFollowers,
+            facebookBio: synced.bio || curr.facebookBio,
+            facebookLastSyncedAt: synced.syncedAt
+          };
+          try { localStorage.setItem('ava_user_profile', JSON.stringify(nextFbReal)); } catch {}
+          syncUserProfileToSupabase(nextFbReal);
+          return nextFbReal;
+        });
+        setAdminUsers(prev => prev.map(u => (
+          (userEmail && u.email.toLowerCase() === userEmail) || u.id === user.id
+            ? {
+                ...u,
+                facebookName: synced.name,
+                facebookAvatar: synced.avatar || u.facebookAvatar,
+                facebookFollowers: synced.followers > 0 ? synced.followers : u.facebookFollowers
+              }
+            : u
+        )));
       }
     }).catch(() => {});
 
     syncUserProfileToSupabase(updatedUser);
-    showToast('✅ Kết nối trực tiếp tài khoản Facebook thành công! Đã đồng bộ lên hệ thống.');
+    if (addedFbWelcome > 0) {
+      triggerFireworks({
+        type: 'mission',
+        badge: '🎁 THƯỞNG ĐĂNG KÝ 1 LẦN',
+        title: 'CHÚC MỪNG KẾT NỐI FACEBOOK THÀNH CÔNG!',
+        subtitle: 'Tặng +500.000 Xu vào Ví Xu Làm Nhiệm Vụ (1 lần duy nhất)!',
+        rewardText: '+500.000 XU',
+        message: 'Số Xu thưởng đã được cộng vào Ví Xu Làm Nhiệm Vụ của bạn và đồng bộ lên Supabase!'
+      });
+    } else {
+      showToast('✅ Kết nối trực tiếp tài khoản Facebook thành công! Đã đồng bộ lên hệ thống.');
+    }
     closeConnect();
   };
 
@@ -6654,6 +6899,32 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     lockYouTubeGmailBinding(userEmail, formattedYt, clientIp);
 
+    // Thưởng chào mừng 500.000 Xu đúng 1 LẦN DUY NHẤT nếu chưa từng nhận ở bất kỳ nền tảng nào
+    let addedYtWelcome = 0;
+    let nextYtTxs = [...user.transactions];
+    if (!user.isNewUserBonusClaimed && !isWelcomeBonusEverClaimed(userEmail, formattedYt)) {
+      addedYtWelcome = 500000;
+      recordPermanentBinding(userEmail, formattedYt, true, false, user.referredBy);
+      nextYtTxs = [
+        {
+          id: `tx_welcome_yt_${Date.now()}`,
+          type: 'earn',
+          title: 'Thưởng chào mừng đăng ký & kết nối YouTube đầu tiên (+500.000 Xu vào Ví Xu Nhiệm Vụ)',
+          amount: '+500.000 Xu',
+          isPositive: true,
+          date: 'Vừa xong',
+          method: 'Thưởng Đăng Ký 1 Lần',
+          status: 'success'
+        },
+        ...nextYtTxs
+      ];
+    }
+
+    const curCrossYt = user.crossFollowCoins ?? 0;
+    const curMissionYt = user.missionCoins ?? Math.max(0, (user.avaliveCoins || 0) - curCrossYt);
+    const nextMissionYt = curMissionYt + addedYtWelcome;
+    const nextTotalYtCoins = nextMissionYt + curCrossYt;
+
     const finalYtAvatar = avatarUrl || user.youtubeAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean || 'YT')}&background=FF0000&color=fff&bold=true`;
     const finalYtUrl = urlOrHandle && urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean || 'channel'}`;
     const finalSubs = subscribers !== undefined ? subscribers : (user.youtubeSubscribers || 0);
@@ -6676,7 +6947,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       youtubeChannelTitle: (clean || 'Kênh YouTube').replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
       youtubeVideoCount: user.youtubeVideoCount || 0,
       youtubeDescription: `Kênh YouTube chính chủ ${formattedYt} đã xác thực trực tiếp trên AVA FOLLOW.`,
-      youtubeLastSyncedAt: new Date().toISOString()
+      youtubeLastSyncedAt: new Date().toISOString(),
+      isNewUserBonusClaimed: true,
+      avaliveCoins: nextTotalYtCoins,
+      missionCoins: nextMissionYt,
+      crossFollowCoins: curCrossYt,
+      coinsValueVND: `${nextMissionYt.toLocaleString()}đ`,
+      transactions: nextYtTxs
     };
 
     setUser(updatedUser);
@@ -6750,20 +7027,46 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     fetchRealYouTubeProfile(clean).then(synced => {
       if (synced && synced.channelTitle) {
-        setUser(curr => ({
-          ...curr,
-          youtubeChannelTitle: synced.channelTitle,
-          youtubeAvatar: synced.avatar || curr.youtubeAvatar,
-          youtubeDescription: synced.description || curr.youtubeDescription,
-          youtubeSubscribers: synced.subscribers || curr.youtubeSubscribers,
-          youtubeVideoCount: synced.videoCount || curr.youtubeVideoCount,
-          youtubeLastSyncedAt: synced.syncedAt
-        }));
+        setUser(curr => {
+          const nextYtReal: UserProfileWallet = {
+            ...curr,
+            youtubeChannelTitle: synced.channelTitle,
+            youtubeAvatar: synced.avatar || curr.youtubeAvatar,
+            youtubeDescription: synced.description || curr.youtubeDescription,
+            youtubeSubscribers: synced.subscribers > 0 ? synced.subscribers : curr.youtubeSubscribers,
+            youtubeVideoCount: synced.videoCount || curr.youtubeVideoCount,
+            youtubeLastSyncedAt: synced.syncedAt
+          };
+          try { localStorage.setItem('ava_user_profile', JSON.stringify(nextYtReal)); } catch {}
+          syncUserProfileToSupabase(nextYtReal);
+          return nextYtReal;
+        });
+        setAdminUsers(prev => prev.map(u => (
+          (userEmail && u.email.toLowerCase() === userEmail) || u.id === user.id
+            ? {
+                ...u,
+                youtubeChannelTitle: synced.channelTitle,
+                youtubeAvatar: synced.avatar || u.youtubeAvatar,
+                youtubeSubscribers: synced.subscribers > 0 ? synced.subscribers : u.youtubeSubscribers
+              }
+            : u
+        )));
       }
     }).catch(() => {});
 
     syncUserProfileToSupabase(updatedUser);
-    showToast('✅ Kết nối trực tiếp Kênh YouTube thành công! Đã đồng bộ lên hệ thống.');
+    if (addedYtWelcome > 0) {
+      triggerFireworks({
+        type: 'mission',
+        badge: '🎁 THƯỞNG ĐĂNG KÝ 1 LẦN',
+        title: 'CHÚC MỪNG KẾT NỐI YOUTUBE THÀNH CÔNG!',
+        subtitle: 'Tặng +500.000 Xu vào Ví Xu Làm Nhiệm Vụ (1 lần duy nhất)!',
+        rewardText: '+500.000 XU',
+        message: 'Số Xu thưởng đã được cộng vào Ví Xu Làm Nhiệm Vụ của bạn và đồng bộ lên Supabase!'
+      });
+    } else {
+      showToast('✅ Kết nối trực tiếp Kênh YouTube thành công! Đã đồng bộ lên hệ thống.');
+    }
     closeConnect();
   };
 
@@ -6872,65 +7175,68 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     showToast(`💳 Nạp thành công ${amountVND.toLocaleString()}đ qua ${method}! Số dư đã cập nhật tức thì.`);
   };
 
-  // Withdraw (Lần 1 miễn phí 0% • Từ lần 2 trở đi: Phí 5% & Bắt buộc KYC đầy đủ • Giải ngân 10:00 sáng Thứ Hai trong 24h)
+  // Withdraw từ Ví Xu Làm Nhiệm Vụ (MIN 500.000đ = 500.000 Xu • CHỈ lấy từ Ví Xu Nhiệm Vụ, KHÔNG lấy từ Ví Xu Follow Chéo • Giải ngân 10:00 Sáng Thứ Hai hàng tuần)
   const withdraw = (amountVND: number, bankInfo: BankAccountInfo): boolean => {
     const currentWithdrawCount = user.withdrawCount || 0;
     const isFirstWithdraw = currentWithdrawCount === 0;
+    const curCross = user.crossFollowCoins ?? 0;
+    const curMission = user.missionCoins ?? Math.max(0, (user.avaliveCoins || 0) - curCross);
 
-    // Rút tiền lần 2 trở đi BẮT BUỘC phải cập nhật thông tin hồ sơ KYC đầy đủ mới rút được tiền
     if (!isFirstWithdraw && user.kycStatus !== 'verified') {
       showToast('⚠️ Từ lần rút thứ 2 trở đi, BẮT BUỘC phải cập nhật thông tin hồ sơ KYC đầy đủ mới được rút tiền! Vui lòng hoàn thành KYC.');
       setIsKycModalOpen(true);
       return false;
     }
 
-    if (amountVND < 200000) {
-      showToast('❌ Mức rút tiền tối thiểu quy định là 200,000 VNĐ (200,000 Xu)!');
+    if (amountVND < 500000) {
+      showToast('❌ Mức rút tiền tối thiểu từ Ví Xu Làm Nhiệm Vụ là 500.000 VNĐ (500.000 Xu)!');
       return false;
     }
 
-    if (user.avaliveCoins < amountVND) {
-      showToast('❌ Số dư Xu không đủ để rút số tiền này!');
+    if (curMission < amountVND) {
+      showToast(`❌ Số dư Ví Xu Làm Nhiệm Vụ (${curMission.toLocaleString()} Xu) chưa đủ! Lưu ý: Xu Follow Chéo (${curCross.toLocaleString()} Xu) chỉ dùng mua gói, không rút được tiền mặt.`);
       return false;
     }
 
-    // Lần đầu miễn phí (0%), từ lần 2 trở đi tính theo cấu hình Admin (0 - 100%)
     const configuredFeePercent = commissionSettings?.withdrawFeePercent ?? 5;
     const feeRate = isFirstWithdraw ? 0 : (configuredFeePercent / 100);
     const platformFee = Math.round(amountVND * feeRate);
     const netReceivedVND = amountVND - platformFee;
-    const newCoins = user.avaliveCoins - amountVND;
+    const nextMission = Math.max(0, curMission - amountVND);
+    const newCoins = nextMission + curCross;
 
     const newTx: TransactionRecord = {
       id: `tx_wd_${Date.now()}`,
       type: 'withdraw',
-      title: `Rút tiền về ${bankInfo.bankName} (${bankInfo.accountNumber})`,
+      title: `Rút tiền Ví Xu Nhiệm Vụ về ${bankInfo.bankName} (${bankInfo.accountNumber})`,
       amount: isFirstWithdraw
-        ? `-${amountVND.toLocaleString()} Xu (RÚT LẦN ĐẦU MIỄN PHÍ 0% • Thực nhận: +${netReceivedVND.toLocaleString()}đ)`
+        ? `-${amountVND.toLocaleString()} Xu (LẦN ĐẦU MIỄN PHÍ 0% • Thực nhận: +${netReceivedVND.toLocaleString()}đ)`
         : `-${amountVND.toLocaleString()} Xu (Thực nhận: +${netReceivedVND.toLocaleString()}đ, Phí sàn ${configuredFeePercent}%: -${platformFee.toLocaleString()}đ)`,
       isPositive: false,
       date: 'Vừa xong',
       method: bankInfo.bankName,
-      status: 'pending' // Chờ giải ngân vào 10:00 sáng Thứ Hai trong 24h
+      status: 'pending'
     };
 
     const updatedUser: UserProfileWallet = {
       ...user,
       avaliveCoins: newCoins,
-      coinsValueVND: `${newCoins.toLocaleString()}đ`,
+      missionCoins: nextMission,
+      crossFollowCoins: curCross,
+      coinsValueVND: `${nextMission.toLocaleString()}đ`,
       bankInfo: bankInfo,
       withdrawCount: currentWithdrawCount + 1,
       transactions: [newTx, ...user.transactions]
     };
 
     setUser(updatedUser);
+    syncUserProfileToSupabase(updatedUser);
     try {
       if (typeof window !== 'undefined') {
         localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser));
       }
     } catch {}
 
-    // Cập nhật ngay lập tức vào adminUsers
     setAdminUsers(prev => {
       const idx = prev.findIndex(u => (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id);
       if (idx >= 0) {
@@ -6938,23 +7244,85 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         copy[idx] = {
           ...copy[idx],
           coinsBalance: newCoins,
+          missionCoins: nextMission,
+          crossFollowCoins: curCross,
+          bankInfo,
           tokenBalance: newCoins
         };
-        try {
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('ava_admin_users', JSON.stringify(copy));
-          }
-        } catch {}
+        try { localStorage.setItem('ava_admin_users', JSON.stringify(copy)); } catch {}
         return copy;
       }
       return prev;
     });
 
-    if (isFirstWithdraw) {
-      showToast(`🎉 RÚT TIỀN LẦN ĐẦU MIỄN PHÍ 100%! Lệnh rút ${amountVND.toLocaleString()} Xu không mất phí (thực nhận +${netReceivedVND.toLocaleString()}đ). Tiền sẽ được chuyển tự động vào 10:00 Sáng Thứ Hai (xử lý trong 24h).`);
-    } else {
-      showToast(`💸 Lệnh rút ${amountVND.toLocaleString()} Xu đã tiếp nhận! Phí sàn 5% (-${platformFee.toLocaleString()}đ). Thực nhận ${netReceivedVND.toLocaleString()}đ sẽ được chuyển tự động vào 10:00 Sáng Thứ Hai (xử lý trong 24h).`);
+    showToast(`💸 Lệnh rút ${amountVND.toLocaleString()}đ (Thực nhận +${netReceivedVND.toLocaleString()}đ) đã tiếp nhận! Giải ngân lúc 10:00 Sáng Thứ Hai hàng tuần.`);
+    return true;
+  };
+
+  // Rút tiền Hoa Hồng Tiếp Thị Liên Kết (Affiliate) — MIN 100.000đ • Giải ngân 10:00 Sáng Thứ Hai hàng tuần
+  const withdrawAffiliateCommission = (amountVND: number, bankInfo: BankAccountInfo): boolean => {
+    const curAffVND = user.affiliateBalanceVND ?? (affiliateData.availableCommissionVND ?? 0);
+
+    if (amountVND < 100000) {
+      showToast('❌ Mức rút Hoa hồng Tiếp thị liên kết tối thiểu là 100.000 VNĐ!');
+      return false;
     }
+
+    if (curAffVND < amountVND) {
+      showToast(`❌ Số dư Hoa hồng Affiliate hiện tại (${curAffVND.toLocaleString()}đ) chưa đủ để rút ${amountVND.toLocaleString()}đ!`);
+      return false;
+    }
+
+    const nextAffVND = Math.max(0, curAffVND - amountVND);
+    const newTx: TransactionRecord = {
+      id: `tx_wd_aff_${Date.now()}`,
+      type: 'withdraw',
+      title: `Rút Hoa Hồng Tiếp Thị Liên Kết về ${bankInfo.bankName} (${bankInfo.accountNumber})`,
+      amount: `-${amountVND.toLocaleString()}đ (Giải ngân 10:00 Sáng Thứ Hai)`,
+      isPositive: false,
+      date: 'Vừa xong',
+      method: `Affiliate • ${bankInfo.bankName}`,
+      status: 'pending'
+    };
+
+    const updatedUser: UserProfileWallet = {
+      ...user,
+      affiliateBalanceVND: nextAffVND,
+      bankInfo,
+      transactions: [newTx, ...user.transactions]
+    };
+
+    setUser(updatedUser);
+    syncUserProfileToSupabase(updatedUser);
+    try { localStorage.setItem('ava_user_profile', JSON.stringify(updatedUser)); } catch {}
+
+    setAffiliateData(prev => {
+      const nextAff: AffiliateStats = {
+        ...prev,
+        availableCommissionVND: nextAffVND,
+        withdrawnCommissionVND: (prev.withdrawnCommissionVND || 0) + amountVND
+      };
+      try { localStorage.setItem('ava_affiliate_stats', JSON.stringify(nextAff)); } catch {}
+      syncAffiliateToSupabase(nextAff);
+      return nextAff;
+    });
+
+    trackAffiliateEvent({
+      type: 'withdraw_commission',
+      refCode: affiliateData.refCode || 'AFF',
+      actorName: user.name || 'Thành viên Affiliate',
+      actorEmail: user.email || '',
+      amountVND,
+      note: `Yêu cầu rút ${amountVND.toLocaleString()}đ hoa hồng về ${bankInfo.bankName} - ${bankInfo.accountNumber} (${bankInfo.accountHolder})`
+    });
+
+    setAdminUsers(prev => prev.map(u => (
+      (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id
+        ? { ...u, affiliateBalanceVND: nextAffVND, bankInfo }
+        : u
+    )));
+
+    showToast(`💰 Đã tạo lệnh rút ${amountVND.toLocaleString()}đ Hoa hồng Affiliate! Sẽ được chuyển vào 10:00 Sáng Thứ Hai hàng tuần.`);
     return true;
   };
 
@@ -7335,11 +7703,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const saveBankInfo = (bankInfo: BankAccountInfo) => {
-    setUser(prev => ({
-      ...prev,
-      bankInfo: bankInfo
-    }));
-    showToast('Đã lưu thông tin tài khoản ngân hàng thụ hưởng!');
+    setUser(prev => {
+      const updated: UserProfileWallet = {
+        ...prev,
+        bankInfo
+      };
+      try { localStorage.setItem('ava_user_profile', JSON.stringify(updated)); } catch {}
+      syncUserProfileToSupabase(updated);
+      return updated;
+    });
+    setAdminUsers(prev => prev.map(u => (
+      (user.email && u.email.toLowerCase() === user.email.toLowerCase()) || u.id === user.id
+        ? { ...u, bankInfo }
+        : u
+    )));
+    showToast('✅ Đã lưu thông tin tài khoản ngân hàng nhận tiền & đồng bộ lên hệ thống!');
   };
 
   // Create Campaign
@@ -9335,6 +9713,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         openOrderModal,
         closeOrderModal,
         purchaseServicePackage,
+        withdrawAffiliateCommission,
+        trackAffiliateEvent,
         refundLivestreamOrder,
         updateOrderTargetUrl,
         updateCustomRefCode,
@@ -9344,11 +9724,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         closeRunner,
         isFeedRunnerOpen,
         feedRunnerFilter,
+        feedRunnerPlatform,
         feedRunnerTargetId,
         tasksActiveTab,
         setTasksActiveTab,
         setFeedRunnerTargetId,
         setFeedRunnerFilter,
+        setFeedRunnerPlatform,
         openFeedRunner,
         closeFeedRunner,
         activeLiveTask,

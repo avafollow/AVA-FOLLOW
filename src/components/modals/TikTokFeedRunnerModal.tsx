@@ -123,6 +123,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     openShareModal,
     interactWithLiveBroadcast,
     feedRunnerFilter,
+    feedRunnerPlatform,
     feedRunnerTargetId,
     userMissions,
     openFraudAppealModal,
@@ -432,6 +433,11 @@ export const TikTokFeedRunnerModal: React.FC = () => {
   ].filter(i => {
     if (userCompletedActions?.[i.id]) return false;
     if (i.type === 'follow' && isChannelFollowed(i.channelHandle)) return false;
+    // Lọc nghiêm ngặt đúng chủ đề nền tảng (TikTok chỉ hiện TikTok, Facebook chỉ hiện Facebook, YouTube chỉ hiện YouTube)
+    if (feedRunnerPlatform && feedRunnerPlatform !== 'all' && !i.id.startsWith('test_top1_')) {
+      const itemPlat = i.platform || 'tiktok';
+      if (itemPlat !== feedRunnerPlatform) return false;
+    }
     return true;
   });
 

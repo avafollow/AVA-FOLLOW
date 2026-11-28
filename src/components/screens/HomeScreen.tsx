@@ -50,6 +50,7 @@ import { ScreenId } from '../../types';
 import { KocRegistrationModal } from '../modals/KocRegistrationModal';
 import { BrandLogo } from '../common/BrandLogo';
 import { SmartMediaThumbnail } from '../common/SmartMediaThumbnail';
+import { DualWalletCards } from '../common/DualWalletCards';
 import { getTikTokAvatar, getPlatformAvatar, detectPlatform } from '../../data/videoSources';
 
 export const HomeScreen: React.FC<{
@@ -90,22 +91,22 @@ export const HomeScreen: React.FC<{
       {/* Center / Left Main Column */}
       <div className="flex-1 space-y-4 sm:space-y-6 min-w-0">
         {/* ========================================================================= */}
-        {/* THANH KẾT NỐI 1-CHẠM 3 NỀN TẢNG (TIKTOK • YOUTUBE • FACEBOOK) — LUÔN RÕ RÀNG */}
+        {/* THANH KẾT NỐI 1-CHẠM 3 NỀN TẢNG (HIỂN THỊ ĐÚNG TÊN, LOGO & SỐ FOLLOW THẬT) */}
         {/* ========================================================================= */}
         <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-[#0F1426] via-[#0B1020] to-[#120C22] border border-white/15 shadow-lg space-y-2.5">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               <span className="text-[11px] sm:text-xs font-black text-white font-display uppercase tracking-wide">
-                Kết Nối 1-Chạm Đa Nền Tảng
+                Tài Khoản Thực Hiện Nhiệm Vụ (TikTok • YouTube • Facebook)
               </span>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">
-              Chạm để kết nối ngay không cần xác minh phức tạp
+            <span className="text-[10px] text-amber-300 font-mono font-bold">
+              🎁 Tặng +500.000 Xu lần đầu kết nối (1 lần duy nhất)
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {/* TikTok Chip */}
             <button
               type="button"
@@ -113,21 +114,38 @@ export const HomeScreen: React.FC<{
                 try { localStorage.setItem('ava_oauth_reopen_tab', 'tiktok'); } catch {}
                 openConnect();
               }}
-              className={`p-2.5 rounded-xl border text-left transition-all active:scale-[0.98] cursor-pointer flex items-center gap-2 min-w-0 ${
+              className={`p-2.5 rounded-xl border text-left transition-all active:scale-[0.98] cursor-pointer flex items-center gap-2.5 min-w-0 ${
                 user.isTikTokVerified && user.tiktokConnected
                   ? 'bg-emerald-950/35 border-emerald-500/40 hover:border-emerald-400'
                   : 'bg-black/60 border-rose-500/40 hover:border-rose-400'
               }`}
             >
-              <div className="w-7 h-7 rounded-lg bg-black border border-white/15 flex items-center justify-center text-[#25F4EE] shrink-0 text-xs font-black">
-                ♪
-              </div>
+              {user.isTikTokVerified && user.tiktokConnected ? (
+                <img
+                  src={user.tiktokAvatar || getTikTokAvatar(user.tiktokConnected.replace(/^@+/, ''))}
+                  alt="TikTok"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.tiktokNickname || user.tiktokConnected || 'TT')}&background=010101&color=fff&bold=true`;
+                  }}
+                  className="w-9 h-9 rounded-xl object-cover border border-rose-400/50 shrink-0"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-xl bg-black border border-white/15 flex items-center justify-center text-[#25F4EE] shrink-0 text-sm font-black">
+                  ♪
+                </div>
+              )}
               <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-black text-white truncate">TikTok</div>
+                <div className="text-xs font-black text-white truncate">
+                  {user.isTikTokVerified && user.tiktokConnected
+                    ? (user.tiktokNickname || user.tiktokConnected)
+                    : 'TikTok'}
+                </div>
                 <div className={`text-[10px] font-mono truncate ${
                   user.isTikTokVerified && user.tiktokConnected ? 'text-emerald-300' : 'text-rose-300'
                 }`}>
-                  {user.isTikTokVerified && user.tiktokConnected ? user.tiktokConnected : '⚡ Kết nối'}
+                  {user.isTikTokVerified && user.tiktokConnected
+                    ? `${user.tiktokConnected} • ${(user.tiktokFollowers || 0).toLocaleString()} FL`
+                    : '⚡ Kết nối 1-chạm để làm NV TikTok'}
                 </div>
               </div>
             </button>
@@ -139,21 +157,38 @@ export const HomeScreen: React.FC<{
                 try { localStorage.setItem('ava_oauth_reopen_tab', 'youtube'); } catch {}
                 openConnect();
               }}
-              className={`p-2.5 rounded-xl border text-left transition-all active:scale-[0.98] cursor-pointer flex items-center gap-2 min-w-0 ${
+              className={`p-2.5 rounded-xl border text-left transition-all active:scale-[0.98] cursor-pointer flex items-center gap-2.5 min-w-0 ${
                 user.isYoutubeVerified && user.youtubeConnected
                   ? 'bg-emerald-950/35 border-emerald-500/40 hover:border-emerald-400'
                   : 'bg-red-950/30 border-red-500/40 hover:border-red-400'
               }`}
             >
-              <div className="w-7 h-7 rounded-lg bg-red-600 flex items-center justify-center text-white shrink-0 text-[10px] font-black">
-                ▶
-              </div>
+              {user.isYoutubeVerified && user.youtubeConnected ? (
+                <img
+                  src={user.youtubeAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.youtubeChannelTitle || user.youtubeConnected)}&background=FF0000&color=fff&bold=true`}
+                  alt="YouTube"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.youtubeChannelTitle || 'YT')}&background=FF0000&color=fff&bold=true`;
+                  }}
+                  className="w-9 h-9 rounded-xl object-cover border border-red-400/50 shrink-0"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center text-white shrink-0 text-xs font-black">
+                  ▶
+                </div>
+              )}
               <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-black text-white truncate">YouTube</div>
+                <div className="text-xs font-black text-white truncate">
+                  {user.isYoutubeVerified && user.youtubeConnected
+                    ? (user.youtubeChannelTitle || user.youtubeConnected)
+                    : 'YouTube'}
+                </div>
                 <div className={`text-[10px] font-mono truncate ${
                   user.isYoutubeVerified && user.youtubeConnected ? 'text-emerald-300' : 'text-red-300'
                 }`}>
-                  {user.isYoutubeVerified && user.youtubeConnected ? user.youtubeConnected : '⚡ 1-Chạm'}
+                  {user.isYoutubeVerified && user.youtubeConnected
+                    ? `${user.youtubeConnected} • ${(user.youtubeSubscribers || 0).toLocaleString()} Sub`
+                    : '⚡ Kết nối 1-chạm để làm NV YouTube'}
                 </div>
               </div>
             </button>
@@ -165,26 +200,52 @@ export const HomeScreen: React.FC<{
                 try { localStorage.setItem('ava_oauth_reopen_tab', 'facebook'); } catch {}
                 openConnect();
               }}
-              className={`p-2.5 rounded-xl border text-left transition-all active:scale-[0.98] cursor-pointer flex items-center gap-2 min-w-0 ${
+              className={`p-2.5 rounded-xl border text-left transition-all active:scale-[0.98] cursor-pointer flex items-center gap-2.5 min-w-0 ${
                 user.isFacebookVerified && user.facebookConnected
                   ? 'bg-emerald-950/35 border-emerald-500/40 hover:border-emerald-400'
                   : 'bg-blue-950/30 border-blue-500/40 hover:border-blue-400'
               }`}
             >
-              <div className="w-7 h-7 rounded-lg bg-[#1877F2] flex items-center justify-center text-white shrink-0 text-xs font-black">
-                f
-              </div>
+              {user.isFacebookVerified && user.facebookConnected ? (
+                <img
+                  src={user.facebookAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.facebookName || user.facebookConnected)}&background=1877F2&color=fff&bold=true`}
+                  alt="Facebook"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.facebookName || 'FB')}&background=1877F2&color=fff&bold=true`;
+                  }}
+                  className="w-9 h-9 rounded-xl object-cover border border-blue-400/50 shrink-0"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-xl bg-[#1877F2] flex items-center justify-center text-white shrink-0 text-sm font-black">
+                  f
+                </div>
+              )}
               <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-black text-white truncate">Facebook</div>
+                <div className="text-xs font-black text-white truncate">
+                  {user.isFacebookVerified && user.facebookConnected
+                    ? (user.facebookName || user.facebookConnected)
+                    : 'Facebook'}
+                </div>
                 <div className={`text-[10px] font-mono truncate ${
                   user.isFacebookVerified && user.facebookConnected ? 'text-emerald-300' : 'text-blue-300'
                 }`}>
-                  {user.isFacebookVerified && user.facebookConnected ? user.facebookConnected : '⚡ 1-Chạm'}
+                  {user.isFacebookVerified && user.facebookConnected
+                    ? `fb.com/${user.facebookConnected} • ${(user.facebookFollowers || 0).toLocaleString()} FL`
+                    : '⚡ Kết nối 1-chạm để làm NV Facebook'}
                 </div>
               </div>
             </button>
           </div>
         </div>
+
+        {/* ========================================================================= */}
+        {/* 2 Ô VÍ XU TÁCH BIỆT (VÍ XU LÀM NHIỆM VỤ RÚT MIN 500K & VÍ XU FOLLOW CHÉO) */}
+        {/* ========================================================================= */}
+        <DualWalletCards
+          onOpenWithdraw={onOpenWithdraw}
+          onNavigateToMarketplace={() => onNavigate('marketplace')}
+          compact
+        />
 
         {/* ========================================================================= */}
         {/* HERO BANNER ULTRA-PREMIUM: CỖ MÁY KIẾM TIỀN TẠI NHÀ & BỨT PHÁ TÀI CHÍNH */}

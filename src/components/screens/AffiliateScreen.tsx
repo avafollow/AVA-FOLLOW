@@ -15,25 +15,76 @@ import {
   Clock,
   Sparkles,
   QrCode,
-  ExternalLink
+  ExternalLink,
+  Building2,
+  CreditCard,
+  User as UserIcon,
+  ShoppingBag,
+  MousePointerClick,
+  Globe,
+  ShoppingCart,
+  Activity
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { FeatureGuideTooltip } from '../common/FeatureGuideTooltip';
 import { AFFILIATE_TIER_LEVELS } from '../../data/mockData';
+import { ScreenId } from '../../types';
+
+const AFFILIATE_BANKS = [
+  'MB Bank (Ngân Hàng Quân Đội)',
+  'Vietcombank (Ngoại Thương Việt Nam)',
+  'Techcombank (Kỹ Thương Việt Nam)',
+  'VPBank (Việt Nam Thịnh Vượng)',
+  'ACB (Á Châu)',
+  'BIDV (Đầu Tư & Phát Triển)',
+  'TPBank (Tiên Phong)',
+  'VIB (Quốc Tế Việt Nam)',
+  'Sacombank (Sài Gòn Thương Tín)',
+  'Ví Điện Tử MoMo (Rút qua SĐT)'
+];
 
 export const AffiliateScreen: React.FC<{
   darkMode: boolean;
   onOpenWithdraw?: () => void;
-}> = ({ darkMode }) => {
+  onNavigate?: (screen: ScreenId) => void;
+}> = ({ darkMode, onNavigate }) => {
   const { 
     affiliateData, 
     openWithdraw, 
     showToast,
     updateCustomRefCode,
+    saveBankInfo,
     user
   } = useTikTokApp();
   const [copied, setCopied] = useState(false);
   const [isEditingSlug, setIsEditingSlug] = useState(false);
+  const [affBankName, setAffBankName] = useState(user.bankInfo?.bankName || 'MB Bank (Ngân Hàng Quân Đội)');
+  const [affAccountNumber, setAffAccountNumber] = useState(user.bankInfo?.accountNumber || '');
+  const [affAccountHolder, setAffAccountHolder] = useState(user.bankInfo?.accountHolder || (user.name || '').toUpperCase());
+  const [bankSaved, setBankSaved] = useState(false);
+
+  const availableAffVND = user.affiliateBalanceVND ?? (affiliateData.availableCommissionVND ?? 0);
+  const MIN_AFF_WITHDRAW = 100000;
+
+  const handleOpenAffiliateWithdraw = () => {
+    try { localStorage.setItem('ava_withdraw_tab', 'affiliate'); } catch {}
+    openWithdraw();
+  };
+
+  const handleSaveAffiliateBank = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!affAccountNumber.trim() || !affAccountHolder.trim()) {
+      showToast('⚠️ Vui lòng nhập đầy đủ số tài khoản và tên chủ tài khoản ngân hàng!');
+      return;
+    }
+    saveBankInfo({
+      bankName: affBankName,
+      accountNumber: affAccountNumber.trim(),
+      accountHolder: affAccountHolder.trim().toUpperCase()
+    });
+    setBankSaved(true);
+    setTimeout(() => setBankSaved(false), 3000);
+  };
   
   // Mã Ref gắn liền trực tiếp với tài khoản Gmail của từng người dùng
   const userGmailRef = user.email ? user.email.split('@')[0].toUpperCase().replace(/[^A-Z0-9_-]/g, '') : '';
@@ -103,13 +154,69 @@ export const AffiliateScreen: React.FC<{
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
-              onClick={openWithdraw}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-xs shadow-lg hover:opacity-95 transition-all font-mono"
+              type="button"
+              onClick={handleOpenAffiliateWithdraw}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 font-black text-xs shadow-lg hover:brightness-110 transition-all font-mono cursor-pointer active:scale-95"
             >
-              Rút Hoa Hồng
+              💰 Rút Hoa Hồng (Min 100K)
             </button>
+            {onNavigate && (
+              <button
+                type="button"
+                onClick={() => onNavigate('marketplace')}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-xs shadow-lg hover:brightness-110 transition-all font-mono flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>Dùng Hoa Hồng Mua Gói</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* KHỐI TỔNG QUAN PHỄU TIẾP THỊ LIÊN KẾT REALTIME (CLICK • VÀO WEB • ĐĂNG KÝ • GIỎ HÀNG • MUA GÓI • SỐ DƯ KHẢ DỤNG) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-2">
+          <div className="p-3 rounded-2xl bg-black/50 border border-amber-500/40 space-y-0.5 col-span-2 sm:col-span-3 lg:col-span-2">
+            <span className="text-[10px] text-amber-300 font-mono font-bold uppercase">Số Dư Hoa Hồng Khả Dụng</span>
+            <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">
+              {availableAffVND.toLocaleString()}đ
+            </div>
+            <div className="text-[10px] text-emerald-300 font-mono">
+              Min rút: 100.000đ • Trả 10:00 Sáng Thứ Hai • Mua được mọi gói
+            </div>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-black/45 border border-white/10 space-y-0.5">
+            <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+              <MousePointerClick className="w-3 h-3 text-cyan-400" /> Click Link
+            </span>
+            <div className="text-lg font-black text-cyan-400 font-mono">{(affiliateData.totalClicks || 0).toLocaleString()}</div>
+            <span className="text-[9px] text-slate-500 font-mono">Bấm link ref</span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-black/45 border border-white/10 space-y-0.5">
+            <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+              <Globe className="w-3 h-3 text-blue-400" /> Vào Web
+            </span>
+            <div className="text-lg font-black text-blue-400 font-mono">{(affiliateData.totalVisits ?? affiliateData.totalClicks ?? 0).toLocaleString()}</div>
+            <span className="text-[9px] text-slate-500 font-mono">Truy cập trang</span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-black/45 border border-white/10 space-y-0.5">
+            <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+              <ShoppingCart className="w-3 h-3 text-pink-400" /> Giỏ Hàng
+            </span>
+            <div className="text-lg font-black text-pink-400 font-mono">{(affiliateData.totalCartAdds || 0).toLocaleString()}</div>
+            <span className="text-[9px] text-slate-500 font-mono">Thêm mua gói</span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-black/45 border border-white/10 space-y-0.5">
+            <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+              <ShoppingBag className="w-3 h-3 text-emerald-400" /> Đơn Mua
+            </span>
+            <div className="text-lg font-black text-emerald-400 font-mono">{(affiliateData.totalPurchases || 0).toLocaleString()}</div>
+            <span className="text-[9px] text-slate-500 font-mono">Đăng ký: {affiliateData.totalSignups}</span>
           </div>
         </div>
 
@@ -430,29 +537,25 @@ export const AffiliateScreen: React.FC<{
               </div>
 
               <div className="flex items-center justify-between sm:justify-end gap-4 font-mono">
-                {/* Status & Verification */}
                 <div>
                   {ref.hasCompletedTask ? (
                     <div className="text-right">
                       <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                        <span>Đã Xác Thực (+5,000 Xu)</span>
+                        <span>Đã Xác Thực</span>
                       </span>
                       <span className="text-[9px] text-slate-400 block mt-0.5">{ref.taskCompletedType}</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-amber-400 animate-spin" />
-                        <span>Chờ hoàn thành 1 nhiệm vụ</span>
-                      </span>
-                    </div>
+                    <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-400 animate-spin" />
+                      <span>Chờ hoàn thành 1 nhiệm vụ</span>
+                    </span>
                   )}
                 </div>
 
-                {/* Cash commission */}
                 <div className="text-right min-w-[90px]">
-                  <div className="text-[10px] text-slate-400">Hoa hồng 25%:</div>
+                  <div className="text-[10px] text-slate-400">Hoa hồng:</div>
                   <div className="font-mono font-black text-emerald-400 text-sm">
                     {ref.earnedVND}
                   </div>
@@ -461,6 +564,140 @@ export const AffiliateScreen: React.FC<{
             </div>
           ))}
         </div>
+      </div>
+
+      {/* KHỐI 3: TÀI KHOẢN NGÂN HÀNG NHẬN HOA HỒNG TIẾP THỊ LIÊN KẾT (ĐỒNG BỘ SUPABASE & ADMIN) */}
+      <form
+        onSubmit={handleSaveAffiliateBank}
+        className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-emerald-950/35 via-[#0D111E] to-black border border-emerald-500/35 space-y-4 shadow-xl"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center text-emerald-400">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-white uppercase font-display tracking-wide">
+                Tài Khoản Ngân Hàng Nhận Chính Sách Hoa Hồng
+              </h3>
+              <p className="text-[11px] text-slate-400 font-mono">
+                Tự động thanh toán vào <strong className="text-amber-300">10:00 Sáng Thứ Hai hàng tuần</strong> • Mức rút tối thiểu <strong className="text-emerald-300">100.000đ</strong>
+              </p>
+            </div>
+          </div>
+          {bankSaved && (
+            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/40">
+              ✓ Đã lưu &amp; đồng bộ Admin
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="space-y-1">
+            <label className="text-slate-300 font-bold flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Ngân hàng / Ví MoMo</span>
+            </label>
+            <select
+              value={affBankName}
+              onChange={(e) => setAffBankName(e.target.value)}
+              className="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-emerald-400"
+            >
+              {AFFILIATE_BANKS.map(b => (
+                <option key={b} value={b} className="bg-slate-900 text-white">{b}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-slate-300 font-bold flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Số tài khoản / SĐT MoMo</span>
+            </label>
+            <input
+              type="text"
+              value={affAccountNumber}
+              onChange={(e) => setAffAccountNumber(e.target.value)}
+              placeholder="Nhập số tài khoản nhận tiền..."
+              className="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2.5 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-slate-300 font-bold flex items-center gap-1.5">
+              <UserIcon className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Tên chủ tài khoản</span>
+            </label>
+            <input
+              type="text"
+              value={affAccountHolder}
+              onChange={(e) => setAffAccountHolder(e.target.value.toUpperCase())}
+              placeholder="VD: NGUYEN VAN A"
+              className="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2.5 text-white font-mono uppercase placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+          <p className="text-[11px] text-slate-400 font-mono">
+            * Số tiền hoa hồng ({availableAffVND.toLocaleString()}đ) có thể rút về ngân hàng (từ {MIN_AFF_WITHDRAW.toLocaleString()}đ) hoặc dùng trực tiếp để mua bất kỳ gói dịch vụ nào.
+          </p>
+          <button
+            type="submit"
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-slate-950 font-black text-xs uppercase font-mono shadow-lg cursor-pointer active:scale-95 shrink-0"
+          >
+            💾 Lưu Tài Khoản Ngân Hàng
+          </button>
+        </div>
+      </form>
+
+      {/* KHỐI 4: NHẬT KÝ SỰ KIỆN TIẾP THỊ LIÊN KẾT REALTIME (CLICK • VÀO WEB • ĐĂNG KÝ • GIỎ HÀNG • MUA GÓI) */}
+      <div className="p-5 sm:p-6 rounded-3xl bg-[#0D111E] border border-cyan-500/25 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h3 className="text-sm font-black text-white uppercase font-mono tracking-wider flex items-center gap-2">
+            <Activity className="w-4 h-4 text-cyan-400" />
+            <span>Nhật Ký Hoạt Động Tiếp Thị Liên Kết (Đồng Bộ Admin &amp; Supabase)</span>
+          </h3>
+          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 font-mono font-bold border border-cyan-500/30">
+            {(affiliateData.eventsLog || []).length} Sự Kiện
+          </span>
+        </div>
+
+        {(!affiliateData.eventsLog || affiliateData.eventsLog.length === 0) ? (
+          <div className="p-6 rounded-2xl bg-black/40 border border-white/5 text-center text-xs text-slate-400 font-mono">
+            Mọi lượt click link, vào trang web, đăng ký, thêm giỏ hàng và mua gói qua link <strong className="text-amber-300">?ref={effectiveRefCode}</strong> sẽ hiển thị chi tiết ngay tại đây theo thời gian thực.
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+            {(affiliateData.eventsLog || []).slice(0, 30).map((evt) => (
+              <div key={evt.id} className="p-3 rounded-xl bg-black/45 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                      evt.type === 'purchase'
+                        ? 'bg-emerald-500/20 text-emerald-300'
+                        : evt.type === 'add_to_cart'
+                          ? 'bg-pink-500/20 text-pink-300'
+                          : evt.type === 'signup'
+                            ? 'bg-purple-500/20 text-purple-300'
+                            : evt.type === 'withdraw_commission' || evt.type === 'spend_commission'
+                              ? 'bg-amber-500/20 text-amber-300'
+                              : 'bg-cyan-500/20 text-cyan-300'
+                    }`}>
+                      {evt.type === 'click' ? 'CLICK LINK' : evt.type === 'visit' ? 'VÀO TRANG WEB' : evt.type === 'signup' ? 'ĐĂNG KÝ' : evt.type === 'add_to_cart' ? 'THÊM GIỎ HÀNG' : evt.type === 'purchase' ? 'MUA GÓI' : evt.type === 'spend_commission' ? 'DÙNG HOA HỒNG MUA GÓI' : 'RÚT HOA HỒNG'}
+                    </span>
+                    <span className="text-white font-bold">{evt.actorName}</span>
+                    {evt.commissionVND ? (
+                      <span className="text-emerald-400 font-black">+{evt.commissionVND.toLocaleString()}đ</span>
+                    ) : null}
+                  </div>
+                  <p className="text-[11px] text-slate-300">{evt.note}</p>
+                </div>
+                <span className="text-[10px] text-slate-500 shrink-0">{evt.timestamp}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

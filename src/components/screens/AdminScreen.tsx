@@ -4368,6 +4368,77 @@ export const AdminScreen: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             </div>
           </div>
 
+          {/* 4 Cards Overview + Phễu Tiếp Thị Liên Kết Đầy Đủ */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 rounded-2xl bg-black/50 border border-cyan-500/25 space-y-1">
+              <span className="text-[10px] text-slate-400 font-mono">Click Link / Vào Web</span>
+              <div className="text-xl font-black text-cyan-400 font-mono">
+                {(affiliateData.totalClicks || 0).toLocaleString()} / {(affiliateData.totalVisits ?? affiliateData.totalClicks ?? 0).toLocaleString()}
+              </div>
+              <span className="text-[10px] text-cyan-300 font-mono">Lượt click &amp; truy cập</span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-black/50 border border-pink-500/25 space-y-1">
+              <span className="text-[10px] text-slate-400 font-mono">Thêm Giỏ Hàng / Đơn Mua</span>
+              <div className="text-xl font-black text-pink-400 font-mono">
+                {(affiliateData.totalCartAdds || 0).toLocaleString()} / {(affiliateData.totalPurchases || 0).toLocaleString()}
+              </div>
+              <span className="text-[10px] text-emerald-300 font-mono">Đăng ký F1: {affiliateData.totalSignups}</span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-black/50 border border-amber-500/25 space-y-1">
+              <span className="text-[10px] text-slate-400 font-mono">Hoa Hồng Khả Dụng (Min 100K)</span>
+              <div className="text-xl font-black text-amber-400 font-mono">
+                {(affiliateData.availableCommissionVND ?? 0).toLocaleString()}đ
+              </div>
+              <span className="text-[10px] text-amber-300 font-mono">Trả 10:00 Sáng Thứ Hai</span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-black/50 border border-purple-500/25 space-y-1">
+              <span className="text-[10px] text-slate-400 font-mono">Tổng Hoa Hồng Chi Trả</span>
+              <div className="text-xl font-black text-purple-400 font-mono">
+                {affiliateData.totalCommissionVND}
+              </div>
+              <span className="text-[10px] text-purple-300 font-mono">
+                NH nhận: {user.bankInfo?.accountNumber ? `${user.bankInfo.bankName.split(' ')[0]} ${user.bankInfo.accountNumber}` : 'Chưa lưu NH'}
+              </span>
+            </div>
+          </div>
+
+          {/* NHẬT KÝ TOÀN BỘ SỰ KIỆN TIẾP THỊ LIÊN KẾT (CLICK • VÀO WEB • ĐĂNG KÝ • GIỎ HÀNG • MUA GÓI • RÚT TIỀN) */}
+          <div className="p-4 rounded-2xl bg-black/40 border border-cyan-500/20 space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-cyan-300 font-mono uppercase tracking-wider">
+                Nhật Ký Hoạt Động Tiếp Thị Liên Kết Realtime ({(affiliateData.eventsLog || []).length} Sự kiện)
+              </span>
+              <span className="text-[10px] text-emerald-400 font-mono">Đồng bộ Supabase 100%</span>
+            </div>
+            {(!affiliateData.eventsLog || affiliateData.eventsLog.length === 0) ? (
+              <div className="text-xs text-slate-500 font-mono py-3 text-center">
+                Chưa có sự kiện mới. Mọi lượt click link, vào trang web, đăng ký, thêm giỏ hàng, mua gói &amp; rút hoa hồng sẽ tự động hiển thị tại đây.
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                {(affiliateData.eventsLog || []).slice(0, 40).map(evt => (
+                  <div key={evt.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-mono">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[9px] font-black uppercase">
+                          {evt.type}
+                        </span>
+                        <span className="text-white font-bold">{evt.actorName}</span>
+                        <span className="text-amber-300">[{evt.refCode}]</span>
+                        {evt.amountVND ? <span className="text-emerald-400 font-bold">{evt.amountVND.toLocaleString()}đ</span> : null}
+                      </div>
+                      <div className="text-slate-300">{evt.note}</div>
+                    </div>
+                    <span className="text-[10px] text-slate-500 shrink-0">{evt.timestamp}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* 4 Cards Overview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             <div className="p-4 rounded-2xl bg-black/50 border border-white/5 space-y-1">

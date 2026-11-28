@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
-import { 
-  X, 
-  Wallet, 
-  Building2, 
-  CreditCard, 
-  User, 
-  ArrowDownRight, 
-  CheckCircle2, 
-  AlertCircle,
+import React, { useState, useEffect } from 'react';
+import {
+  X,
+  Wallet,
+  Building2,
+  CreditCard,
+  User,
+  ArrowDownRight,
   AlertTriangle,
   ShieldCheck,
   Zap,
-  Clock
+  Clock,
+  Coins,
+  Share2,
+  Lock
 } from 'lucide-react';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import { BankAccountInfo } from '../../types';
@@ -31,39 +32,73 @@ const VIETNAM_BANKS = [
 ];
 
 export const BankWithdrawModal: React.FC = () => {
-  const { user, isWithdrawOpen, closeWithdraw, withdraw, openKycModal, commissionSettings } = useTikTokApp();
+  const {
+    user,
+    affiliateData,
+    isWithdrawOpen,
+    closeWithdraw,
+    withdraw,
+    withdrawAffiliateCommission,
+    openKycModal,
+    commissionSettings
+  } = useTikTokApp();
 
+  const [withdrawTab, setWithdrawTab] = useState<'mission' | 'affiliate'>('mission');
   const [bankName, setBankName] = useState<string>(user.bankInfo?.bankName || 'MB Bank (Ngân Hàng Quân Đội)');
   const [accountNumber, setAccountNumber] = useState<string>(user.bankInfo?.accountNumber || '');
-  const [accountHolder, setAccountHolder] = useState<string>(user.bankInfo?.accountHolder || user.name.toUpperCase());
-  const [amountStr, setAmountStr] = useState<string>(() => (commissionSettings?.minWithdrawAmount || 200000).toString());
+  const [accountHolder, setAccountHolder] = useState<string>(user.bankInfo?.accountHolder || (user.name || '').toUpperCase());
+  const [amountStr, setAmountStr] = useState<string>('500000');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isWithdrawOpen) return;
+    setBankName(user.bankInfo?.bankName || 'MB Bank (Ngân Hàng Quân Đội)');
+    setAccountNumber(user.bankInfo?.accountNumber || '');
+    setAccountHolder(user.bankInfo?.accountHolder || (user.name || '').toUpperCase());
+    try {
+      const preferred = localStorage.getItem('ava_withdraw_tab');
+      if (preferred === 'affiliate') {
+        setWithdrawTab('affiliate');
+        setAmountStr('100000');
+        localStorage.removeItem('ava_withdraw_tab');
+      } else {
+        setWithdrawTab('mission');
+        setAmountStr('500000');
+      }
+    } catch {
+      setWithdrawTab('mission');
+      setAmountStr('500000');
+    }
+  }, [isWithdrawOpen, user.bankInfo, user.name]);
 
   if (!isWithdrawOpen) return null;
 
-  const currentCoins = user.avaliveCoins;
-  const currentMaxVND = currentCoins; // 1 Xu = 1 VNĐ
-  const amount = parseInt(amountStr.replace(/\D/g, '')) || 0;
+  const crossFollowCoins = user.crossFollowCoins ?? 0;
+  const missionCoins = user.missionCoins ?? Math.max(0, (user.avaliveCoins || 0) - crossFollowCoins);
+  const affiliateBalanceVND = user.affiliateBalanceVND ?? (affiliateData?.availableCommissionVND ?? 0);
+
+  const isAffiliateTab = withdrawTab === 'affiliate';
+  const MIN_WITHDRAW = isAffiliateTab ? 100000 : 500000;
+  const currentMaxVND = isAffiliateTab ? affiliateBalanceVND : missionCoins;
+
+  const amount = parseInt(amountStr.replace(/\D/g, ''), 10) || 0;
   const isKycVerified = user.kycStatus === 'verified';
   const withdrawCount = user.withdrawCount || 0;
   const isFirstWithdraw = withdrawCount === 0;
-  const configuredFeePercent = commissionSettings?.withdrawFeePercent ?? 5;
-  const feePercent = isFirstWithdraw ? 0 : configuredFeePercent;
-  const feeAmount = isFirstWithdraw ? 0 : Math.round(amount * (configuredFeePercent / 100));
-  const netReceived = amount - feeAmount;
-  const MIN_WITHDRAW = commissionSettings?.minWithdrawAmount || 200000;
-  const disbursementTime = commissionSettings?.disbursementTime || '10:00 Sáng Thứ Hai';
-  const processingTime = commissionSettings?.processingTime || 'Trong vòng 24 giờ';
+  const configuredFeePercent = isAffiliateTab ? 0 : (commissionSettings?.withdrawFeePercent ?? 5);
+  const feeAmount = isAffiliateTab || isFirstWithdraw ? 0 : Math.round(amount * (configuredFeePercent / 100));
+  const netReceived = Math.max(0, amount - feeAmount);
+  const disbursementTime = '10:00 Sáng Thứ Hai hàng tuần';
+
+  const handleSwitchTab = (tab: 'mission' | 'affiliate') => {
+    setWithdrawTab(tab);
+    setAmountStr(tab === 'affiliate' ? '100000' : '500000');
+  };
 
   const handleWithdraw = () => {
-    // Rút tiền lần 2 trở đi BẮT BUỘC phải cập nhật thông tin hồ sơ KYC đầy đủ mới rút được tiền
-    if (!isFirstWithdraw && !isKycVerified) {
+    if (!isAffiliateTab && !isFirstWithdraw && !isKycVerified) {
       alert('Từ lần rút thứ 2 trở đi, BẮT BUỘC phải cập nhật thông tin hồ sơ KYC đầy đủ mới được rút tiền!');
       openKycModal();
-      return;
-    }
-    if (!user.tiktokConnected) {
-      alert('Vui lòng kết nối tài khoản TikTok chính chủ trước khi thực hiện rút tiền!');
       return;
     }
     if (!accountNumber.trim()) {
@@ -75,11 +110,19 @@ export const BankWithdrawModal: React.FC = () => {
       return;
     }
     if (amount < MIN_WITHDRAW) {
-      alert(`Số tiền rút tối thiểu là ${MIN_WITHDRAW.toLocaleString()}đ (${MIN_WITHDRAW.toLocaleString()} Xu)!`);
+      alert(
+        isAffiliateTab
+          ? 'Số tiền rút Hoa hồng Tiếp thị liên kết tối thiểu là 100.000đ!'
+          : 'Số tiền rút từ Ví Xu Làm Nhiệm Vụ tối thiểu là 500.000đ (500.000 Xu)!'
+      );
       return;
     }
     if (amount > currentMaxVND) {
-      alert(`Số dư Xu khả dụng không đủ! Hiện tại bạn có ${currentMaxVND.toLocaleString()}đ.`);
+      alert(
+        isAffiliateTab
+          ? `Số dư Hoa hồng Affiliate hiện tại (${currentMaxVND.toLocaleString()}đ) chưa đủ!`
+          : `Số dư Ví Xu Làm Nhiệm Vụ (${currentMaxVND.toLocaleString()} Xu) chưa đủ! Lưu ý: Xu Follow Chéo (${crossFollowCoins.toLocaleString()} Xu) chỉ dùng để mua gói, không rút được tiền mặt.`
+      );
       return;
     }
 
@@ -87,173 +130,180 @@ export const BankWithdrawModal: React.FC = () => {
     setTimeout(() => {
       const bankInfo: BankAccountInfo = {
         bankName,
-        accountNumber,
-        accountHolder: accountHolder.toUpperCase()
+        accountNumber: accountNumber.trim(),
+        accountHolder: accountHolder.trim().toUpperCase()
       };
-      const success = withdraw(amount, bankInfo);
+      const success = isAffiliateTab
+        ? withdrawAffiliateCommission(amount, bankInfo)
+        : withdraw(amount, bankInfo);
       setIsSubmitting(false);
       if (success) {
         closeWithdraw();
       }
-    }, 600);
+    }, 500);
   };
 
-  const QUICK_AMOUNTS = [200000, 500000, 1000000, 2000000, 5000000];
+  const QUICK_AMOUNTS = isAffiliateTab
+    ? [100000, 200000, 500000, 1000000, 2000000]
+    : [500000, 1000000, 2000000, 5000000];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div 
-        className="w-full max-w-lg max-h-[92vh] flex flex-col rounded-3xl bg-[#0D111E] border border-white/15 shadow-2xl relative overflow-hidden"
+    <div
+      onClick={closeWithdraw}
+      className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+    >
+      <div
+        className="w-full max-w-lg max-h-[90dvh] flex flex-col rounded-3xl bg-[#0D111E] border border-white/15 shadow-2xl relative overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Glow */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Modal Header (Fixed) */}
-        <div className="p-5 sm:p-6 border-b border-white/10 shrink-0 flex items-center justify-between bg-white/[0.02]">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+        {/* Header */}
+        <div className="p-4 sm:p-5 border-b border-white/10 shrink-0 flex items-center justify-between bg-white/[0.02]">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
               <ArrowDownRight className="h-5 w-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-base sm:text-lg font-black text-white font-display">Rút Tiền Về Ngân Hàng / MoMo</h3>
-                {isFirstWithdraw ? (
-                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    🎁 LẦN 1: MIỄN PHÍ 0%
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                    LẦN {withdrawCount + 1}: PHÍ 5%
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-400">
-                Lịch giải ngân: <strong className="text-amber-400">10:00 Sáng Thứ Hai hàng tuần</strong> (xử lý trong 24h)
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-black text-white font-display truncate">
+                Rút Tiền Về Ngân Hàng / MoMo
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Giải ngân định kỳ: <strong className="text-amber-400">{disbursementTime}</strong>
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={closeWithdraw}
-            className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+            className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Modal Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs">
-          {/* First withdraw vs Second withdraw banner */}
-          {isFirstWithdraw ? (
-            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-transparent border border-amber-500/30 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5 text-amber-300">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-base">🎁</div>
-                <div>
-                  <strong className="block text-white text-xs">Ưu Đãi Đặc Biệt: Rút Tiền Lần Đầu Miễn Phí 0%!</strong>
-                  <span className="text-[11px] text-amber-200/90 font-mono">
-                    Bạn được miễn 100% phí sàn cho lần rút đầu tiên. Từ lần 2 sẽ áp dụng phí 5% & bắt buộc KYC.
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : isKycVerified ? (
-            <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-emerald-300">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Đã cập nhật KYC CCCD đầy đủ • Đủ điều kiện giải ngân lần {withdrawCount + 1}</span>
-              </div>
-              <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
-                KYC HỢP LỆ ✓
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4 text-xs">
+          {/* 2 Tabs chọn nguồn rút tiền */}
+          <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-black/60 border border-white/10">
+            <button
+              type="button"
+              onClick={() => handleSwitchTab('mission')}
+              className={`py-2.5 px-3 rounded-xl font-bold text-xs flex flex-col items-center gap-0.5 transition-all cursor-pointer ${
+                !isAffiliateTab
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <Coins className="w-3.5 h-3.5" />
+                <span>Xu Làm Nhiệm Vụ</span>
               </span>
-            </div>
-          ) : (
-            <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="flex items-start gap-2 text-rose-300">
-                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <span className="text-[10px] font-mono opacity-90">Min 500.000đ (500K Xu)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSwitchTab('affiliate')}
+              className={`py-2.5 px-3 rounded-xl font-bold text-xs flex flex-col items-center gap-0.5 transition-all cursor-pointer ${
+                isAffiliateTab
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 shadow-lg'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Hoa Hồng Affiliate</span>
+              </span>
+              <span className="text-[10px] font-mono opacity-90">Min 100.000đ</span>
+            </button>
+          </div>
+
+          {/* Số dư nguồn rút */}
+          {!isAffiliateTab ? (
+            <div className="space-y-2.5">
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/50 via-slate-900 to-black border border-emerald-500/35 flex items-center justify-between">
                 <div>
-                  <strong className="block text-white">Yêu Cầu Bắt Buộc: Cập Nhật KYC Để Rút Lần {withdrawCount + 1}</strong>
-                  <span className="text-[11px] text-rose-200">
-                    Theo quy định hệ thống, từ lần rút thứ 2 trở đi bạn bắt buộc phải cập nhật thông tin hồ sơ KYC đầy đủ mới rút được tiền.
-                  </span>
+                  <div className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
+                    <span>Ví Xu Làm Nhiệm Vụ &amp; Thưởng</span>
+                    <FeatureGuideTooltip
+                      title="Quy Định Rút Từ Ví Xu Làm Nhiệm Vụ"
+                      description="Chỉ số Xu kiếm từ Làm Nhiệm Vụ và Xu Thưởng (+500.000 Xu lần đầu) mới được quy đổi rút tiền mặt. Tối thiểu 500.000đ (= 500.000 Xu)."
+                      size="xs"
+                    />
+                  </div>
+                  <div className="text-xl font-black text-emerald-400 font-mono mt-0.5">
+                    {missionCoins.toLocaleString()} Xu
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[11px] text-slate-400 font-mono">Quy đổi tiền mặt (1:1)</div>
+                  <div className="text-xl font-black text-white font-mono mt-0.5">
+                    {missionCoins.toLocaleString()}đ
+                  </div>
                 </div>
               </div>
 
+              <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-500/30 flex items-center justify-between gap-2 text-[11px]">
+                <span className="text-purple-200 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                  <span>Ví Xu Follow Chéo (Chỉ dùng mua gói, không rút tiền):</span>
+                </span>
+                <strong className="text-purple-300 font-mono shrink-0">
+                  {crossFollowCoins.toLocaleString()} Xu
+                </strong>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/50 via-purple-950/30 to-black border border-amber-500/40 flex items-center justify-between">
+              <div>
+                <div className="text-[11px] text-amber-200 font-mono">Hoa Hồng Tiếp Thị Liên Kết Khả Dụng</div>
+                <div className="text-2xl font-black text-amber-400 font-mono mt-0.5">
+                  {affiliateBalanceVND.toLocaleString()}đ
+                </div>
+              </div>
+              <div className="text-right text-[10px] font-mono text-slate-300">
+                <div>Min rút: <strong className="text-white">100.000đ</strong></div>
+                <div className="text-emerald-400">Trả 10:00 Sáng Thứ 2</div>
+              </div>
+            </div>
+          )}
+
+          {/* Policy Card */}
+          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-1.5 text-slate-300">
+            <div className="flex items-center gap-2 text-amber-300 font-bold font-mono text-[11px] uppercase">
+              <Clock className="w-3.5 h-3.5 text-amber-400" />
+              <span>Quy Định Rút Tiền &amp; Giải Ngân</span>
+            </div>
+            <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-0.5 font-mono">
+              <li>Lịch trả tiền hàng tuần: <strong className="text-white">{disbursementTime}</strong>.</li>
+              <li>Rút từ Ví Xu Làm Nhiệm Vụ: <strong className="text-emerald-300">Tối thiểu 500.000đ (500.000 Xu)</strong>.</li>
+              <li>Rút từ Hoa Hồng Affiliate: <strong className="text-amber-300">Tối thiểu 100.000đ</strong> (hoặc dùng mua bất kỳ gói nào).</li>
+              <li>Xu Follow Chéo: <strong className="text-purple-300">Chỉ dùng mua gói, không quy đổi rút tiền</strong>.</li>
+            </ul>
+          </div>
+
+          {/* KYC check for 2nd mission withdraw */}
+          {!isAffiliateTab && !isFirstWithdraw && !isKycVerified && (
+            <div className="p-3 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-between gap-2">
+              <div className="flex items-start gap-2 text-rose-300 text-[11px]">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>Từ lần rút thứ 2 trở đi cần cập nhật hồ sơ KYC đầy đủ.</span>
+              </div>
               <button
                 type="button"
-                onClick={() => {
-                  closeWithdraw();
-                  openKycModal();
-                }}
-                className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shrink-0 shadow-md transition-colors"
+                onClick={() => { closeWithdraw(); openKycModal(); }}
+                className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold text-[11px] shrink-0 cursor-pointer"
               >
-                Cập Nhật KYC Ngay
+                KYC Ngay
               </button>
             </div>
           )}
 
-          {/* Withdrawal Policy & Timing Card */}
-          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-1.5 text-slate-300">
-            <div className="flex items-center gap-2 text-amber-300 font-bold font-mono text-[11px] uppercase">
-              <Clock className="w-3.5 h-3.5 text-amber-400" />
-              <span>Chính Sách Rút Tiền &amp; Thời Gian Giải Ngân</span>
-            </div>
-            <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-0.5 font-mono">
-              <li>Lần rút đầu tiên: <strong className="text-emerald-400">MIỄN PHÍ 0% PHÍ SÀN</strong>.</li>
-              <li>Từ lần thứ 2 trở đi: <strong className="text-amber-400">Phí xử lý {configuredFeePercent}%</strong> và <strong className="text-rose-400">Bắt buộc cập nhật KYC đầy đủ</strong>.</li>
-              <li>Cơ chế bảo chứng: <strong className="text-emerald-300">Xu nhiệm vụ được bảo lưu 7 ngày</strong> chống gian lận &amp; hủy tương tác. Sau 7 ngày tự động mở khóa rút tiền mặt.</li>
-              <li>Lịch giải ngân: <strong className="text-white">{disbursementTime} hàng tuần</strong> ({processingTime}).</li>
-              <li>Số tiền rút tối thiểu: <strong className="text-white">{MIN_WITHDRAW.toLocaleString()} VNĐ</strong> ({MIN_WITHDRAW.toLocaleString()} Xu).</li>
-            </ul>
-          </div>
-
-          {/* TikTok Account Binding Info */}
-          <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-xs shrink-0">
-                ♪
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs font-bold text-white flex items-center gap-1.5 truncate">
-                  <span>Kênh TikTok Đối Soát:</span>
-                  <strong className="text-cyan-300 font-mono truncate">{user.tiktokConnected || 'Chưa liên kết'}</strong>
-                </div>
-                <div className="text-[10px] text-slate-400 font-mono">
-                  {(user.tiktokFollowers || 0).toLocaleString()} Followers • Khóa đối soát chống tráo tài khoản
-                </div>
-              </div>
-            </div>
-            {user.tiktokConnected ? (
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
-                Khóa KYC ✓
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
-                Chưa Nối Kênh
-              </span>
-            )}
-          </div>
-
-          {/* Current Balance Bar */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-purple-950/30 to-black border border-emerald-500/30 flex items-center justify-between">
-            <div>
-              <div className="text-[11px] text-slate-400 font-mono">Số dư Xu khả dụng</div>
-              <div className="text-xl font-black text-white font-mono mt-0.5">
-                {currentCoins.toLocaleString()} <span className="text-xs text-neonGold font-normal">Xu</span>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-[11px] text-slate-400 font-mono">Quy đổi tiền mặt (1:1)</div>
-              <div className="text-xl font-black text-emerald-400 font-mono mt-0.5">
-                {currentMaxVND.toLocaleString()}đ
-              </div>
-            </div>
-          </div>
-
           {/* Bank Form */}
-          <div className="space-y-3.5">
-            {/* Bank Selection */}
-            <div className="space-y-1.5">
+          <div className="space-y-3">
+            <div className="space-y-1">
               <label className="text-slate-300 font-bold flex items-center gap-1.5">
                 <Building2 className="h-3.5 w-3.5 text-emerald-400" />
                 <span>Ngân hàng thụ hưởng / Ví MoMo</span>
@@ -261,7 +311,7 @@ export const BankWithdrawModal: React.FC = () => {
               <select
                 value={bankName}
                 onChange={(e) => setBankName(e.target.value)}
-                className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-emerald-500"
+                className="w-full bg-black/50 border border-white/15 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-emerald-500"
               >
                 {VIETNAM_BANKS.map((b) => (
                   <option key={b.id} value={b.name} className="bg-slate-900 text-white">
@@ -271,49 +321,46 @@ export const BankWithdrawModal: React.FC = () => {
               </select>
             </div>
 
-            {/* Account Number */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <label className="text-slate-300 font-bold flex items-center gap-1.5">
                 <CreditCard className="h-3.5 w-3.5 text-emerald-400" />
-                <span>Số tài khoản ngân hàng hoặc SĐT MoMo</span>
+                <span>Số tài khoản ngân hàng / SĐT MoMo</span>
               </label>
               <input
                 type="text"
                 value={accountNumber}
                 onChange={(e) => setAccountNumber(e.target.value)}
                 placeholder="Nhập chính xác số tài khoản..."
-                className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-black/50 border border-white/15 rounded-xl px-3.5 py-2.5 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
             </div>
 
-            {/* Account Holder */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <label className="text-slate-300 font-bold flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5 text-emerald-400" />
-                <span>Tên chủ tài khoản (Trùng khớp với CCCD)</span>
+                <span>Tên chủ tài khoản</span>
               </label>
               <input
                 type="text"
                 value={accountHolder}
                 onChange={(e) => setAccountHolder(e.target.value.toUpperCase())}
-                placeholder="VD: NGUYEN VAN MINH"
-                className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-white font-mono placeholder-slate-500 uppercase focus:outline-none focus:border-emerald-500"
+                placeholder="VD: NGUYEN VAN A"
+                className="w-full bg-black/50 border border-white/15 rounded-xl px-3.5 py-2.5 text-white font-mono uppercase placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
             </div>
 
-            {/* Amount to Withdraw */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-slate-300 font-bold flex items-center gap-1.5">
                   <Wallet className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>Số tiền muốn rút (Tối thiểu {MIN_WITHDRAW.toLocaleString()}đ)</span>
+                  <span>Số tiền rút (Min {MIN_WITHDRAW.toLocaleString()}đ)</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setAmountStr(currentMaxVND.toString())}
-                  className="text-[11px] text-emerald-400 hover:underline font-mono"
+                  className="text-[11px] text-emerald-400 hover:underline font-mono cursor-pointer"
                 >
-                  Rút tất cả ({currentMaxVND.toLocaleString()}đ)
+                  Tối đa ({currentMaxVND.toLocaleString()}đ)
                 </button>
               </div>
               <input
@@ -321,17 +368,16 @@ export const BankWithdrawModal: React.FC = () => {
                 value={amountStr}
                 onChange={(e) => setAmountStr(e.target.value)}
                 placeholder={`Tối thiểu ${MIN_WITHDRAW.toLocaleString()}đ`}
-                className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-white font-mono text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-black/50 border border-white/15 rounded-xl px-3.5 py-2.5 text-white font-mono text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500"
               />
 
-              {/* Quick chips (200k, 500k, 1M, 2M, 5M) */}
               <div className="flex items-center gap-1.5 flex-wrap pt-1">
                 {QUICK_AMOUNTS.map((amt) => (
                   <button
                     key={amt}
                     type="button"
                     onClick={() => setAmountStr(amt.toString())}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono border transition-all ${
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono border transition-all cursor-pointer ${
                       amount === amt
                         ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold'
                         : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
@@ -344,68 +390,59 @@ export const BankWithdrawModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Transparent Fee & Net Payout Calculation */}
+          {/* Summary */}
           {amount > 0 && (
-            <div className="p-3.5 rounded-2xl bg-black/60 border border-emerald-500/30 space-y-2">
+            <div className="p-3.5 rounded-2xl bg-black/60 border border-emerald-500/30 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Số Xu chuyển đổi rút:</span>
-                <span className="text-white font-mono font-bold">{amount.toLocaleString()} Xu</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 flex items-center gap-1">
-                  <span>Phí sàn chuyển đổi hệ thống:</span>
-                  {isFirstWithdraw ? (
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold">
-                      MIỄN PHÍ LẦN ĐẦU (0%)
-                    </span>
-                  ) : (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-mono font-bold">
-                      {configuredFeePercent}%
-                    </span>
-                  )}
-                </span>
-                <span className={`font-mono font-bold ${isFirstWithdraw ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {isFirstWithdraw ? '0đ (Miễn phí)' : `-${feeAmount.toLocaleString()}đ`}
+                <span className="text-slate-400">Số tiền yêu cầu rút:</span>
+                <span className="text-white font-mono font-bold">
+                  {amount.toLocaleString()}đ {!isAffiliateTab && `(${amount.toLocaleString()} Xu)`}
                 </span>
               </div>
-              <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-                <span className="text-xs font-bold text-white">Thực nhận về tài khoản ATM / MoMo:</span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400">Phí xử lý:</span>
+                <span className={`font-mono font-bold ${feeAmount === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {feeAmount === 0 ? '0đ (Miễn phí)' : `-${feeAmount.toLocaleString()}đ (${configuredFeePercent}%)`}
+                </span>
+              </div>
+              <div className="pt-1.5 border-t border-white/10 flex items-center justify-between">
+                <span className="text-xs font-bold text-white">Thực nhận về ngân hàng:</span>
                 <span className="text-base font-black text-emerald-400 font-mono">
-                  +{netReceived.toLocaleString()} VNĐ
+                  +{netReceived.toLocaleString()}đ
                 </span>
               </div>
             </div>
           )}
         </div>
 
-        {/* Modal Fixed Footer with Submit Button */}
-        <div className="p-4 sm:p-5 border-t border-white/10 bg-black/60 shrink-0 space-y-2">
+        {/* Footer */}
+        <div className="p-4 border-t border-white/10 bg-black/60 shrink-0 space-y-1.5">
           <button
+            type="button"
             onClick={handleWithdraw}
-            disabled={isSubmitting || amount < MIN_WITHDRAW || amount > currentMaxVND || (!isFirstWithdraw && !isKycVerified)}
-            className={`w-full py-3.5 px-4 rounded-2xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-xl ${
-              !isFirstWithdraw && !isKycVerified
-                ? 'bg-slate-800 text-rose-300 border border-rose-500/30 cursor-pointer'
-                : isSubmitting || amount < MIN_WITHDRAW || amount > currentMaxVND
+            disabled={isSubmitting || amount < MIN_WITHDRAW || amount > currentMaxVND || (!isAffiliateTab && !isFirstWithdraw && !isKycVerified)}
+            className={`w-full py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-xl ${
+              isSubmitting || amount < MIN_WITHDRAW || amount > currentMaxVND || (!isAffiliateTab && !isFirstWithdraw && !isKycVerified)
                 ? 'bg-slate-800 text-slate-500 border border-white/10 cursor-not-allowed'
-                : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:opacity-95 shadow-emerald-600/25 cursor-pointer'
+                : isAffiliateTab
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 hover:brightness-110 cursor-pointer'
+                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:brightness-110 cursor-pointer'
             }`}
           >
-            {isSubmitting ? (
-              <span>Đang tiếp nhận lệnh rút...</span>
-            ) : !isFirstWithdraw && !isKycVerified ? (
-              <span>Bắt Buộc Cập Nhật KYC Để Rút Lần {withdrawCount + 1}</span>
-            ) : (
-              <>
-                <Zap className="h-4 w-4 text-neonGold" />
-                <span>
-                  Tạo Lệnh Rút {amount >= MIN_WITHDRAW ? `(+${netReceived.toLocaleString()}đ)` : ''} • {disbursementTime}
-                </span>
-              </>
-            )}
+            <Zap className="h-4 w-4" />
+            <span>
+              {isSubmitting
+                ? 'Đang tạo lệnh rút...'
+                : amount < MIN_WITHDRAW
+                  ? `Cần tối thiểu ${MIN_WITHDRAW.toLocaleString()}đ để rút`
+                  : amount > currentMaxVND
+                    ? 'Số dư khả dụng chưa đủ'
+                    : `Tạo Lệnh Rút (+${netReceived.toLocaleString()}đ)`}
+            </span>
           </button>
-          <p className="text-[10px] text-center text-slate-500 font-mono">
-            Lịch giải ngân: {disbursementTime} hàng tuần • {processingTime} qua Napas247
+          <p className="text-[10px] text-center text-slate-500 font-mono flex items-center justify-center gap-1">
+            <ShieldCheck className="w-3 h-3 text-emerald-400" />
+            <span>Giải ngân tự động lúc 10:00 Sáng Thứ Hai hàng tuần</span>
           </p>
         </div>
       </div>

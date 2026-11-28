@@ -564,7 +564,11 @@ export interface AdminUserManagementItem {
   isTikTokVerified: boolean;
   rankLevel: MissionRank | string;
   coinsBalance: number;
+  missionCoins?: number;
+  crossFollowCoins?: number;
+  affiliateBalanceVND?: number;
   tokenBalance: number;
+  bankInfo?: BankAccountInfo;
   completedTasksCount: number;
   createdCampaignsCount: number;
   purchasedPackagesCount: number;
@@ -837,12 +841,31 @@ export interface AffiliateTierInfo {
   description: string;
 }
 
+// Nhật ký chi tiết mọi hành động Tiếp thị liên kết (Click / Vào trang / Đăng ký / Thêm giỏ hàng / Mua gói / Rút hoa hồng)
+export interface AffiliateEventRecord {
+  id: string;
+  type: 'click' | 'visit' | 'signup' | 'add_to_cart' | 'purchase' | 'spend_commission' | 'withdraw_commission';
+  refCode: string;
+  actorName: string;
+  actorEmail?: string;
+  packageTitle?: string;
+  amountVND?: number;
+  commissionVND?: number;
+  note: string;
+  timestamp: string;
+}
+
 // Dữ liệu Tiếp thị liên kết & Giới thiệu bạn bè (Affiliate & Referral Hub)
 export interface AffiliateStats {
   refCode: string;
   refLink: string;
   totalClicks: number;
+  totalVisits?: number;
   totalSignups: number;
+  totalCartAdds?: number;
+  totalPurchases?: number;
+  availableCommissionVND?: number;
+  withdrawnCommissionVND?: number;
   // 1. Quỹ Xu Giới Thiệu (5,000 Xu / bạn kích hoạt nhiệm vụ)
   referralBonusCoinsTotal: number; // Tổng số Xu đã nhận từ giới thiệu
   referralPendingCoins: number;   // Số Xu đang chờ bạn bè làm nhiệm vụ
@@ -854,6 +877,7 @@ export interface AffiliateStats {
   tier: 'Bạc' | 'Vàng' | 'Bạch Kim' | 'Kim Cương';
   monthlyCommission: string;
   referralsList: ReferralItem[];
+  eventsLog?: AffiliateEventRecord[];
 }
 
 // Bảng điều khiển Admin
@@ -1096,7 +1120,11 @@ export interface UserProfileWallet {
   bioVerificationCode: string;
   isNewUserBonusClaimed?: boolean;
   withdrawCount?: number; // Số lần đã rút tiền (Lần 1 miễn phí, lần 2 trở đi phí 5% & bắt buộc KYC)
-  avaliveCoins: number;
+  avaliveCoins: number;         // Tổng Xu hiện có (missionCoins + crossFollowCoins)
+  missionCoins?: number;        // Ví 1: Xu Làm Nhiệm Vụ & Thưởng (Được rút tiền mặt từ 500.000đ = 500.000 Xu & mua gói)
+  crossFollowCoins?: number;    // Ví 2: Xu Follow Chéo (CHỈ dùng để mua gói, KHÔNG rút thành tiền mặt)
+  affiliateBalanceVND?: number; // Số dư Hoa hồng Tiếp thị liên kết khả dụng (Mua gói hoặc rút min 100.000đ mỗi 10h Sáng Thứ 2)
+  affiliateTotalEarnedVND?: number;
   totalEarnedCoins?: number;
   coinsValueVND: string;
   tokenBalance: number;

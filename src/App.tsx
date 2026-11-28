@@ -404,6 +404,7 @@ function AppContent() {
             <AffiliateScreen
               darkMode={darkMode}
               onOpenWithdraw={openWithdraw}
+              onNavigate={(scr) => setCurrentScreen(scr)}
             />
           )}
 

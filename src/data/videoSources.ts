@@ -408,6 +408,7 @@ export interface ResolvedMediaChannelMeta {
   channelHandle: string;
   channelUrl: string;
   channelAvatar: string | null;
+  followerCount?: number;
   videoTitle: string | null;
   resolvedUrl: string;
 }
@@ -468,6 +469,7 @@ export async function resolveRealMediaChannelMeta(rawUrl: string): Promise<Resol
             channelHandle: data.channelHandle || (data.channelName ? `@${data.channelName}` : ''),
             channelUrl: data.channelUrl || cleanUrl,
             channelAvatar: data.channelAvatar || null,
+            followerCount: typeof data.followerCount === 'number' ? data.followerCount : 0,
             videoTitle: data.videoTitle || null,
             resolvedUrl: data.resolvedUrl || cleanUrl
           };

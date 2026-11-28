@@ -9,14 +9,9 @@
  * 5. Đồng bộ dữ liệu liên kết chéo giữa các nền tảng vào hồ sơ người dùng và hệ thống quản trị Supabase
  */
 
-import { getTikTokAvatar } from '../data/videoSources';
+import { getTikTokAvatar, resolveRealMediaChannelMeta } from '../data/videoSources';
 import { UserProfileWallet } from '../types';
 import { fetchYouTubeChannelProfile } from './youtubeApiService';
-import { 
-  verifyTikTokGmailPair, 
-  verifyFacebookGmailPair, 
-  verifyYouTubeGmailPair 
-} from './antiFraudEngine';
 
 export interface SyncedTikTokProfile {
   handle: string;
@@ -113,29 +108,35 @@ export async function fetchRealTikTokProfile(inputHandleOrUrl: string, customFol
   let bio = `Kênh TikTok chính chủ ${formattedHandle} đã xác thực trực tiếp trên AVA FOLLOW.`;
   let isValidRealAccount = true;
 
-  // Thử gọi TikTok public oEmbed endpoint
+  // 1. Gọi /api/resolve-media-meta (lấy đúng tên kênh thật, avatar 1080p thật và followerCount thật!)
   try {
-    const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(profileUrl)}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-    const res = await fetch(oembedUrl, { signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data.author_name) {
-        nickname = data.author_name;
-      }
-      if (data.thumbnail_url) {
-        avatar = data.thumbnail_url;
-      }
-      if (data.title) {
-        bio = data.title;
+    const meta = await resolveRealMediaChannelMeta(profileUrl);
+    if (meta) {
+      if (meta.channelName && !meta.channelName.startsWith('@')) nickname = meta.channelName;
+      if (meta.channelAvatar) avatar = meta.channelAvatar;
+      if (meta.followerCount && meta.followerCount > 0 && (!customFollowers || customFollowers <= 0)) {
+        followers = meta.followerCount;
       }
     }
-  } catch (err) {
-    avatar = getTikTokAvatar(cleanHandle);
+  } catch {}
+
+  // 2. Dự phòng gọi TikTok public oEmbed endpoint
+  if (!avatar || nickname === cleanHandle) {
+    try {
+      const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(profileUrl)}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const res = await fetch(oembedUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.author_name) nickname = data.author_name;
+        if (data.thumbnail_url && !avatar) avatar = data.thumbnail_url;
+        if (data.title) bio = data.title;
+      }
+    } catch {}
   }
 
   return {
@@ -161,24 +162,37 @@ export async function fetchRealFacebookProfile(inputUrlOrHandle: string, customF
   const cleanInput = (inputUrlOrHandle || '').trim();
   
   let cleanFb = cleanInput
-    .replace(/^https?:\/\/(www\.)?facebook\.com\//, '')
+    .replace(/^https?:\/\/(www\.|m\.)?facebook\.com\//i, '')
     .replace(/\?.*$/, '')
     .replace(/\/$/, '')
+    .replace(/^@+/, '')
     .trim();
 
   if (!cleanFb) {
     cleanFb = 'fb.user';
   }
 
-  const profileUrl = inputUrlOrHandle.startsWith('http') ? inputUrlOrHandle : `https://facebook.com/${cleanFb}`;
-  const displayName = cleanFb.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1877F2&color=fff&bold=true`;
+  const profileUrl = inputUrlOrHandle.startsWith('http') ? inputUrlOrHandle : `https://www.facebook.com/${cleanFb}`;
+  let displayName = cleanFb.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  let avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1877F2&color=fff&bold=true`;
+  let followers = customFollowers !== undefined && customFollowers > 0 ? customFollowers : 0;
+
+  try {
+    const meta = await resolveRealMediaChannelMeta(profileUrl);
+    if (meta) {
+      if (meta.channelName && meta.channelName !== 'Fanpage Facebook') displayName = meta.channelName;
+      if (meta.channelAvatar) avatar = meta.channelAvatar;
+      if (meta.followerCount && meta.followerCount > 0 && (!customFollowers || customFollowers <= 0)) {
+        followers = meta.followerCount;
+      }
+    }
+  } catch {}
 
   return {
     usernameOrId: cleanFb,
     name: displayName,
     avatar,
-    followers: customFollowers !== undefined && customFollowers > 0 ? customFollowers : 0,
+    followers,
     bio: `Tài khoản Facebook chính chủ fb.com/${cleanFb} đã xác thực trực tiếp trên AVA FOLLOW.`,
     profileUrl,
     isVerified: true,
@@ -191,16 +205,59 @@ export async function fetchRealFacebookProfile(inputUrlOrHandle: string, customF
  * 3. ĐỒNG BỘ TRỰC TIẾP KÊNH YOUTUBE QUA API THẬT
  */
 export async function fetchRealYouTubeProfile(inputUrlOrHandle: string, customSubs?: number): Promise<SyncedYouTubeProfile> {
-  const profile = await fetchYouTubeChannelProfile(inputUrlOrHandle);
-  
+  const raw = (inputUrlOrHandle || '').trim();
+  const cleanYt = raw
+    .replace(/^https?:\/\/(www\.|m\.)?youtube\.com\/(channel\/|c\/|user\/|@)?/i, '')
+    .replace(/^@+/, '')
+    .replace(/\?.*$/, '')
+    .replace(/\/$/, '');
+  const fullUrl = raw.startsWith('http') ? raw : `https://www.youtube.com/@${cleanYt}`;
+
+  let channelTitle = cleanYt || 'Kênh YouTube';
+  let handle = cleanYt ? `@${cleanYt}` : '@YouTube';
+  let avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanYt || 'YT')}&background=FF0000&color=fff&bold=true`;
+  let subscribers = customSubs !== undefined && customSubs > 0 ? customSubs : 0;
+  let videoCount = 0;
+  let description = `Kênh YouTube chính chủ ${handle} đã xác thực trực tiếp trên AVA FOLLOW.`;
+  let profileUrl = fullUrl;
+
+  try {
+    const [meta, profile] = await Promise.all([
+      resolveRealMediaChannelMeta(fullUrl).catch(() => null),
+      fetchYouTubeChannelProfile(raw).catch(() => null)
+    ]);
+
+    if (profile) {
+      if (profile.title) channelTitle = profile.title;
+      if (profile.handle) handle = profile.handle;
+      if (profile.avatar) avatar = profile.avatar;
+      if (profile.subscribers && profile.subscribers > 0 && (!customSubs || customSubs <= 0)) {
+        subscribers = profile.subscribers;
+      }
+      if (profile.videoCount) videoCount = profile.videoCount;
+      if (profile.description) description = profile.description;
+      if (profile.customUrl) profileUrl = profile.customUrl;
+    }
+
+    if (meta) {
+      if (meta.channelName && meta.channelName !== 'Kênh YouTube') channelTitle = meta.channelName;
+      if (meta.channelHandle && meta.channelHandle !== '@YouTube') handle = meta.channelHandle;
+      if (meta.channelAvatar) avatar = meta.channelAvatar;
+      if (meta.followerCount && meta.followerCount > 0 && subscribers <= 0) {
+        subscribers = meta.followerCount;
+      }
+      if (meta.channelUrl) profileUrl = meta.channelUrl;
+    }
+  } catch {}
+
   return {
-    handleOrId: profile.handle,
-    channelTitle: profile.title,
-    avatar: profile.avatar,
-    subscribers: customSubs !== undefined && customSubs > 0 ? customSubs : profile.subscribers,
-    videoCount: profile.videoCount,
-    description: profile.description,
-    profileUrl: profile.customUrl || `https://www.youtube.com/${profile.handle}`,
+    handleOrId: handle,
+    channelTitle,
+    avatar,
+    subscribers,
+    videoCount,
+    description,
+    profileUrl,
     isVerified: true,
     isValidRealAccount: true,
     syncedAt: new Date().toISOString()
@@ -327,20 +384,20 @@ export function recordMultiPlatformTaskAction(input: MultiPlatformTaskRecordInpu
 
 /**
  * 6. KIỂM TRA ĐIỀU KIỆN TÀI KHOẢN NỀN TẢNG TRƯỚC KHI THỰC HIỆN NHIỆM VỤ
+ * Bắt buộc đã kết nối đúng tài khoản nền tảng tương ứng (TikTok / Facebook / YouTube),
+ * hỗ trợ đổi tài khoản linh hoạt không bị khóa cứng.
  */
 export function verifyPlatformAccountForTask(
   platform: 'tiktok' | 'facebook' | 'youtube',
   user: UserProfileWallet
 ): { canExecute: boolean; requiredAccountName: string; reason?: string } {
-  const userEmail = (user.email || '').toLowerCase().trim();
-
   if (platform === 'facebook') {
     const fb = (user.facebookConnected || '').trim();
     if (!fb || fb === 'Chưa kết nối' || fb.includes('chưa_kết_nối')) {
       return {
         canExecute: false,
         requiredAccountName: 'Facebook',
-        reason: 'Bạn cần kết nối và xác thực tài khoản Facebook chính chủ trước khi làm nhiệm vụ Facebook!'
+        reason: '⚠️ Bắt buộc kết nối tài khoản Facebook trước khi làm nhiệm vụ Facebook!'
       };
     }
     const val = validateRealAccountName(fb);
@@ -351,20 +408,7 @@ export function verifyPlatformAccountForTask(
         reason: val.reason || 'Tài khoản Facebook không hợp lệ!'
       };
     }
-
-    // Kiểm tra ràng buộc cố định 1 Gmail = 1 Facebook
-    if (userEmail) {
-      const pairCheck = verifyFacebookGmailPair(userEmail, fb);
-      if (!pairCheck.valid && pairCheck.reason) {
-        return {
-          canExecute: false,
-          requiredAccountName: fb,
-          reason: pairCheck.reason
-        };
-      }
-    }
-
-    return { canExecute: true, requiredAccountName: fb };
+    return { canExecute: true, requiredAccountName: user.facebookName || fb };
   }
 
   if (platform === 'youtube') {
@@ -373,7 +417,7 @@ export function verifyPlatformAccountForTask(
       return {
         canExecute: false,
         requiredAccountName: 'YouTube',
-        reason: 'Bạn cần kết nối và xác thực Kênh YouTube chính chủ trước khi làm nhiệm vụ YouTube!'
+        reason: '⚠️ Bắt buộc kết nối kênh YouTube trước khi làm nhiệm vụ YouTube!'
       };
     }
     const val = validateRealAccountName(yt);
@@ -384,20 +428,7 @@ export function verifyPlatformAccountForTask(
         reason: val.reason || 'Kênh YouTube không hợp lệ!'
       };
     }
-
-    // Kiểm tra ràng buộc cố định 1 Gmail = 1 YouTube
-    if (userEmail) {
-      const pairCheck = verifyYouTubeGmailPair(userEmail, yt);
-      if (!pairCheck.valid && pairCheck.reason) {
-        return {
-          canExecute: false,
-          requiredAccountName: yt,
-          reason: pairCheck.reason
-        };
-      }
-    }
-
-    return { canExecute: true, requiredAccountName: yt };
+    return { canExecute: true, requiredAccountName: user.youtubeChannelTitle || yt };
   }
 
   // Mặc định TikTok
@@ -406,7 +437,7 @@ export function verifyPlatformAccountForTask(
     return {
       canExecute: false,
       requiredAccountName: 'TikTok',
-      reason: 'Bạn cần kết nối và xác thực kênh TikTok chính chủ trước khi thực hiện nhiệm vụ!'
+      reason: '⚠️ Bắt buộc kết nối kênh TikTok trước khi làm nhiệm vụ TikTok!'
     };
   }
   const val = validateRealAccountName(tt);
@@ -417,19 +448,6 @@ export function verifyPlatformAccountForTask(
       reason: val.reason || 'Kênh TikTok không hợp lệ!'
     };
   }
-
-  // Kiểm tra ràng buộc cố định 1 Gmail = 1 TikTok
-  if (userEmail) {
-    const pairCheck = verifyTikTokGmailPair(userEmail, tt);
-    if (!pairCheck.valid && pairCheck.reason) {
-      return {
-        canExecute: false,
-        requiredAccountName: tt,
-        reason: pairCheck.reason
-      };
-    }
-  }
-
-  return { canExecute: true, requiredAccountName: tt };
+  return { canExecute: true, requiredAccountName: user.tiktokNickname ? `${user.tiktokNickname} (${tt})` : tt };
 }
 

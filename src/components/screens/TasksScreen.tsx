@@ -169,6 +169,7 @@ export const TasksScreen: React.FC<{
 
     const platCheck = verifyPlatformAccountForTask(targetPlatform, user);
     if (!platCheck.canExecute) {
+      try { localStorage.setItem('ava_oauth_reopen_tab', targetPlatform); } catch {}
       showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${targetPlatform.toUpperCase()}: Bạn cần liên kết tài khoản thật chính chủ trước khi làm nhiệm vụ kiếm Xu!`);
       openConnect();
       return;
@@ -178,13 +179,14 @@ export const TasksScreen: React.FC<{
       setActiveTab("missions");
       return;
     }
-    openFeedRunner(initialTaskId);
+    openFeedRunner(initialTaskId, feedPlatformFilter !== 'all' ? feedPlatformFilter : targetPlatform);
   };
 
   const handleOpenRunner = (task: TikTokTaskItem) => {
     const taskPlatform = task.platform || 'tiktok';
     const platCheck = verifyPlatformAccountForTask(taskPlatform, user);
     if (!platCheck.canExecute) {
+      try { localStorage.setItem('ava_oauth_reopen_tab', taskPlatform); } catch {}
       showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${taskPlatform.toUpperCase()}: Bạn cần liên kết tài khoản thật chính chủ trước khi làm nhiệm vụ kiếm Xu!`);
       openConnect();
       return;
@@ -201,6 +203,7 @@ export const TasksScreen: React.FC<{
     const livePlatform = live.platform || 'tiktok';
     const platCheck = verifyPlatformAccountForTask(livePlatform, user);
     if (!platCheck.canExecute) {
+      try { localStorage.setItem('ava_oauth_reopen_tab', livePlatform); } catch {}
       showToast(platCheck.reason || `⚠️ BẮT BUỘC KẾT NỐI ${livePlatform.toUpperCase()}: Bạn cần liên kết tài khoản thật chính chủ trước khi xem livestream nhận Xu!`);
       openConnect();
       return;
@@ -289,9 +292,10 @@ export const TasksScreen: React.FC<{
     return !!(history.followed || history.viewed || history.liked || history.commented || history.shared || ((history as any).totalCoinsEarned && (history as any).totalCoinsEarned > 0));
   };
 
-  // Filtered & Sorted Partner Campaigns (Ẩn các nhiệm vụ đã hoàn thành toàn bộ hoặc hết suất)
+  // Filtered & Sorted Partner Campaigns (Lọc chuẩn theo nền tảng TikTok / Facebook / YouTube & ẩn nhiệm vụ đã xong)
   const filteredPartnerTasks = tasks
     .filter(t => {
+      if (feedPlatformFilter !== 'all' && (t.platform || 'tiktok') !== feedPlatformFilter) return false;
       if (t.type === 'follow' && isChannelFollowed(t.channelHandle)) return false;
       return t.campaignCategory === "partner" && t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !isTaskFinishedByUser(t.id, t.type, t.channelHandle);
     })
@@ -333,9 +337,12 @@ export const TasksScreen: React.FC<{
     return 0;
   });
 
-  // Filtered Livestream Rooms (Chỉ hiển thị phòng Live đang phát sóng, tự động ẩn khi kết thúc hoặc đã xem)
+  // Filtered Livestream Rooms (Lọc theo đúng nền tảng & chỉ hiển thị phòng Live đang phát sóng)
   const filteredLiveTasks = livestreamTasks
-    .filter(live => live.status === 'live' && (live.remainingSlots === undefined || live.remainingSlots > 0) && !isTaskFinishedByUser(live.id, 'livestream', live.channelHandle))
+    .filter(live => {
+      if (feedPlatformFilter !== 'all' && (live.platform || 'tiktok') !== feedPlatformFilter) return false;
+      return live.status === 'live' && (live.remainingSlots === undefined || live.remainingSlots > 0) && !isTaskFinishedByUser(live.id, 'livestream', live.channelHandle);
+    })
     .filter((live) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -349,9 +356,10 @@ export const TasksScreen: React.FC<{
       return true;
     });
 
-  // Video Campaigns (all tasks with watch type or with videos, chưa làm và còn hiệu lực)
+  // Video Campaigns (Lọc đúng theo nền tảng đang chọn)
   const videoCampaignTasks = tasks
     .filter(t => {
+      if (feedPlatformFilter !== 'all' && (t.platform || 'tiktok') !== feedPlatformFilter) return false;
       if (t.type === 'follow' && isChannelFollowed(t.channelHandle)) return false;
       return t.status !== 'completed' && (t.remainingSlots === undefined || t.remainingSlots > 0) && !isTaskFinishedByUser(t.id, t.type, t.channelHandle);
     })
@@ -1103,6 +1111,145 @@ export const TasksScreen: React.FC<{
                 </a>
               </div>
             </div>
+          </div>
+        );
+      })()}
+
+      {/* ========================================================================= */}
+      {/* THANH CHỌN NỀN TẢNG NHIỆM VỤ & HIỂN THỊ TÀI KHOẢN THẬT ĐANG LÀM NHIỆM VỤ */}
+      {/* ========================================================================= */}
+      {(() => {
+        const activePlat = feedPlatformFilter;
+        const isTtOk = Boolean(user.tiktokConnected && user.tiktokConnected.trim() && user.tiktokConnected !== '@chưa_kết_nối' && user.tiktokConnected !== 'Chưa kết nối');
+        const isFbOk = Boolean(user.facebookConnected && user.facebookConnected.trim() && user.facebookConnected !== 'Chưa kết nối');
+        const isYtOk = Boolean(user.youtubeConnected && user.youtubeConnected.trim() && user.youtubeConnected !== 'Chưa kết nối');
+
+        const activePlatConnected =
+          activePlat === 'tiktok' ? isTtOk : activePlat === 'facebook' ? isFbOk : activePlat === 'youtube' ? isYtOk : (isTtOk || isFbOk || isYtOk);
+
+        const activePlatInfo =
+          activePlat === 'tiktok'
+            ? {
+                label: 'TikTok',
+                name: user.tiktokNickname || user.tiktokConnected || '',
+                handle: user.tiktokConnected || '',
+                avatar: user.tiktokAvatar || getTikTokAvatar((user.tiktokConnected || '').replace(/^@+/, '')),
+                stat: `${(user.tiktokFollowers || 0).toLocaleString()} Followers`,
+                accent: 'border-rose-500/50 bg-rose-950/25 text-rose-300'
+              }
+            : activePlat === 'facebook'
+              ? {
+                  label: 'Facebook',
+                  name: user.facebookName || user.facebookConnected || '',
+                  handle: user.facebookConnected ? `fb.com/${user.facebookConnected}` : '',
+                  avatar: user.facebookAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.facebookName || user.facebookConnected || 'FB')}&background=1877F2&color=fff&bold=true`,
+                  stat: `${(user.facebookFollowers || 0).toLocaleString()} Followers`,
+                  accent: 'border-blue-500/50 bg-blue-950/25 text-blue-300'
+                }
+              : activePlat === 'youtube'
+                ? {
+                    label: 'YouTube',
+                    name: user.youtubeChannelTitle || user.youtubeConnected || '',
+                    handle: user.youtubeConnected || '',
+                    avatar: user.youtubeAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.youtubeChannelTitle || user.youtubeConnected || 'YT')}&background=FF0000&color=fff&bold=true`,
+                    stat: `${(user.youtubeSubscribers || 0).toLocaleString()} Subscribers`,
+                    accent: 'border-red-500/50 bg-red-950/25 text-red-300'
+                  }
+                : null;
+
+        return (
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0B1020] border border-white/10 space-y-3 shadow-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="text-xs font-black text-white font-display uppercase tracking-wide">
+                Chọn Nền Tảng Làm Nhiệm Vụ &amp; Lọc Feed Tương Ứng:
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {([
+                  { id: 'all', label: 'Tất Cả' },
+                  { id: 'tiktok', label: `♪ TikTok ${isTtOk ? '✓' : '🔒'}` },
+                  { id: 'facebook', label: `f Facebook ${isFbOk ? '✓' : '🔒'}` },
+                  { id: 'youtube', label: `▶ YouTube ${isYtOk ? '✓' : '🔒'}` }
+                ] as const).map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setFeedPlatformFilter(p.id)}
+                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold font-mono transition-all cursor-pointer border ${
+                      feedPlatformFilter === p.id
+                        ? p.id === 'tiktok'
+                          ? 'bg-gradient-to-r from-[#FF0050] to-pink-600 text-white border-rose-400 shadow-md'
+                          : p.id === 'facebook'
+                            ? 'bg-gradient-to-r from-[#1877F2] to-indigo-600 text-white border-blue-400 shadow-md'
+                            : p.id === 'youtube'
+                              ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white border-red-400 shadow-md'
+                              : 'bg-white text-slate-950 border-white shadow-md'
+                        : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {activePlat !== 'all' && activePlatInfo && (
+              activePlatConnected ? (
+                <div className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${activePlatInfo.accent}`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={activePlatInfo.avatar}
+                      alt={activePlatInfo.label}
+                      onError={(e) => {
+                        const bg = activePlat === 'facebook' ? '1877F2' : activePlat === 'youtube' ? 'FF0000' : '010101';
+                        (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activePlatInfo.name || activePlatInfo.label)}&background=${bg}&color=fff&bold=true`;
+                      }}
+                      className="w-10 h-10 rounded-xl object-cover border border-white/25 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-black text-white truncate">{activePlatInfo.name}</span>
+                        <span className="text-[10px] font-mono text-slate-300 truncate">({activePlatInfo.handle})</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-emerald-400/35">
+                          ✓ Tài khoản đang đi làm nhiệm vụ {activePlatInfo.label}
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-mono font-bold mt-0.5">
+                        {activePlatInfo.stat} • Đang hiển thị 100% nhiệm vụ &amp; feed chủ đề {activePlatInfo.label}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try { localStorage.setItem('ava_oauth_reopen_tab', activePlat); } catch {}
+                      openConnect();
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold font-mono cursor-pointer shrink-0"
+                  >
+                    Đổi Tài Khoản
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 text-xs text-amber-200">
+                    <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      Bạn cần kết nối tài khoản <strong className="text-white">{activePlatInfo.label}</strong> mới có thể làm nhiệm vụ &amp; lướt feed bên {activePlatInfo.label}!
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try { localStorage.setItem('ava_oauth_reopen_tab', activePlat); } catch {}
+                      openConnect();
+                    }}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black text-xs font-mono cursor-pointer shrink-0 active:scale-95"
+                  >
+                    ⚡ Kết Nối {activePlatInfo.label} 1-Chạm Ngay
+                  </button>
+                </div>
+              )
+            )}
           </div>
         );
       })()}

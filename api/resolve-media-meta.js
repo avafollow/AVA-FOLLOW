@@ -71,10 +71,25 @@ async function resolveYouTube(targetUrl) {
   let channelUrl = null;
   let channelAvatar = null;
   let videoTitle = null;
+  let followerCount = 0;
+
+  const parseHumanCount = (str) => {
+    if (!str) return 0;
+    const clean = String(str).replace(/,/g, '.').trim().toUpperCase();
+    const m = clean.match(/([\d.]+)\s*(K|M|B|TR|N|NGHÌN|TRIỆU)?/i);
+    if (!m) return 0;
+    const num = parseFloat(m[1]);
+    if (Number.isNaN(num)) return 0;
+    const unit = (m[2] || '').toUpperCase();
+    if (unit === 'B') return Math.round(num * 1_000_000_000);
+    if (unit === 'M' || unit === 'TR' || unit === 'TRIỆU') return Math.round(num * 1_000_000);
+    if (unit === 'K' || unit === 'N' || unit === 'NGHÌN') return Math.round(num * 1_000);
+    return Math.round(num);
+  };
 
   const apiKey = process.env.VITE_YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY || '';
 
-  // 1. Official YouTube Data API v3 (100% accurate channel title & channel logo)
+  // 1. Official YouTube Data API v3 (100% accurate channel title, logo & subscriberCount)
   if (apiKey) {
     try {
       if (videoId) {
@@ -94,10 +109,10 @@ async function resolveYouTube(targetUrl) {
 
       let channelApiUrl = null;
       if (channelId) {
-        channelApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(apiKey)}`;
+        channelApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(apiKey)}`;
       } else if (channelHandle) {
         const cleanForHandle = channelHandle.replace(/^@+/, '');
-        channelApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&forHandle=${encodeURIComponent(cleanForHandle)}&key=${encodeURIComponent(apiKey)}`;
+        channelApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=${encodeURIComponent(cleanForHandle)}&key=${encodeURIComponent(apiKey)}`;
       }
 
       if (channelApiUrl) {
@@ -106,6 +121,9 @@ async function resolveYouTube(targetUrl) {
           const chJson = await chRes.json();
           const chItem = chJson?.items?.[0];
           const chSnippet = chItem?.snippet;
+          if (chItem?.statistics?.subscriberCount) {
+            followerCount = parseInt(chItem.statistics.subscriberCount, 10) || followerCount;
+          }
           if (chSnippet) {
             channelId = chItem.id || channelId;
             channelName = chSnippet.title || channelName;
@@ -220,6 +238,17 @@ async function resolveYouTube(targetUrl) {
             channelHandle = safeDecodeURIComponent(decodeHtmlEntities(handleInHtml[1]));
           }
         }
+
+        // Extract subscriber count from YouTube page HTML if missing
+        if (!followerCount) {
+          const subMatch =
+            html.match(/"subscriberCountText":\{"(?:accessibility":\{[^}]+\},"?)?simpleText":"([^"]+)"/i) ||
+            html.match(/"subscriberCountText":\{"runs":\[\{"text":"([^"]+)"/i) ||
+            html.match(/([\d.,]+\s*(?:K|M|B|N|Tr|nghìn|triệu)?)\s*(?:subscribers|người đăng ký)/i);
+          if (subMatch && subMatch[1]) {
+            followerCount = parseHumanCount(subMatch[1]);
+          }
+        }
       }
     } catch {
       // Ignore HTML fetch error
@@ -239,6 +268,7 @@ async function resolveYouTube(targetUrl) {
     channelHandle: finalHandle,
     channelUrl: finalChannelUrl,
     channelAvatar: channelAvatar || null,
+    followerCount: followerCount || 0,
     videoTitle: videoTitle || null,
     resolvedUrl: targetUrl
   };
@@ -356,9 +386,10 @@ async function resolveTikTok(targetUrl) {
     }
   }
 
-  // 4. Official TikTok Live/User JSON API (/api-live/user/room) — returns exact 1080px avatarLarger & nickname!
+  // 4. Official TikTok Live/User JSON API (/api-live/user/room) — returns exact 1080px avatarLarger, nickname & followerCount!
+  let followerCount = 0;
   const cleanHandleForApi = (channelHandle || '').replace(/^@+/, '').trim();
-  if (cleanHandleForApi && (!channelAvatar || !channelName)) {
+  if (cleanHandleForApi) {
     try {
       const apiRes = await fetchWithTimeout(
         `https://www.tiktok.com/api-live/user/room/?aid=1988&sourceType=54&uniqueId=${encodeURIComponent(cleanHandleForApi)}`,
@@ -373,6 +404,10 @@ async function resolveTikTok(targetUrl) {
       if (apiRes.ok) {
         const j = await apiRes.json();
         const u = j?.data?.user;
+        const st = j?.data?.stats;
+        if (st && typeof st.followerCount === 'number') {
+          followerCount = st.followerCount;
+        }
         if (u) {
           if (u.nickname) channelName = u.nickname;
           if (u.uniqueId) {
@@ -401,6 +436,7 @@ async function resolveTikTok(targetUrl) {
     channelHandle: finalHandle,
     channelUrl: channelUrl || finalUrl,
     channelAvatar: channelAvatar || (cleanHandle ? `https://unavatar.io/tiktok/${encodeURIComponent(cleanHandle)}` : null),
+    followerCount: followerCount || 0,
     videoTitle: videoTitle || null,
     resolvedUrl: finalUrl
   };
@@ -414,6 +450,7 @@ async function resolveFacebook(targetUrl) {
   let channelAvatar = null;
   let videoTitle = null;
   let ownerId = null;
+  let fbFollowerCount = 0;
 
   // Extract slug from URL if it's a direct page/profile URL
   const reservedPaths = ['watch', 'reel', 'reels', 'videos', 'video.php', 'share', 'groups', 'stories', 'events', 'photo', 'photo.php', 'profile.php', 'permalink.php', 'story.php', 'live'];
@@ -550,10 +587,19 @@ async function resolveFacebook(targetUrl) {
           }
         }
 
-        // Extract owner ID if still missing
+        // Extract owner ID & followerCount if present
         if (!ownerId) {
           const idMatch = html.match(/"(?:pageID|entity_id|owner_id|actor_id|profile_id)":"?(\d{6,})"?/i);
           if (idMatch && idMatch[1]) ownerId = idMatch[1];
+        }
+        if (!fbFollowerCount) {
+          const flMatch =
+            html.match(/"followers_count":(\d+)/i) ||
+            html.match(/"follower_count":(\d+)/i) ||
+            html.match(/"subscribers_count":(\d+)/i);
+          if (flMatch && flMatch[1]) {
+            fbFollowerCount = parseInt(flMatch[1], 10) || 0;
+          }
         }
       }
     } catch {
@@ -581,6 +627,7 @@ async function resolveFacebook(targetUrl) {
     channelHandle: finalHandle,
     channelUrl: channelUrl || (ownerId ? `https://www.facebook.com/${ownerId}` : finalUrl),
     channelAvatar: channelAvatar || null,
+    followerCount: fbFollowerCount || 0,
     videoTitle: videoTitle || null,
     resolvedUrl: finalUrl
   };

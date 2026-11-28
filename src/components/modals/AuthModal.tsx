@@ -167,7 +167,7 @@ export const AuthModal: React.FC = () => {
 
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-rose-500/20 via-purple-600/20 to-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] sm:text-[11px] font-bold font-mono">
               <Flame className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-              <span>TẶNG +5.000 XU KHI KẾT NỐI LẦN ĐẦU</span>
+              <span>TẶNG +500.000 XU KHI KẾT NỐI TÀI KHOẢN ĐẦU TIÊN (1 LẦN)</span>
             </div>
           </div>
 

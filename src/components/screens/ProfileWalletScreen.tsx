@@ -63,6 +63,7 @@ import { EscrowBookingContract } from '../../types';
 import { getTikTokSyncLogs, TikTokSyncLog } from '../../services/tiktokActionSync';
 import { getMultiPlatformTaskRecords } from '../../services/platformProfileSyncService';
 import { LegalSecurityComplianceView } from '../profile/LegalSecurityComplianceView';
+import { DualWalletCards } from '../common/DualWalletCards';
 
 export const ProfileWalletScreen: React.FC<{
   darkMode: boolean;
@@ -320,57 +321,81 @@ export const ProfileWalletScreen: React.FC<{
                   </div>
                 </div>
 
-                {/* 2. Social Execution Channels (TikTok, Facebook, YouTube) */}
-                <div className="flex items-center gap-2 flex-wrap">
+                {/* 2. Social Execution Channels (TikTok, Facebook, YouTube) — Đầy đủ Logo thật, Tên kênh thật, Số Follow/Sub thật */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                   {/* TikTok */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/60 border border-rose-500/20 text-[11px] font-mono">
-                    <span className="text-rose-400 font-bold">♪</span>
-                    <span className="text-slate-400">TikTok:</span>
-                    <strong className="text-rose-300">{user.tiktokConnected || '@chưa_kết_nối'}</strong>
-                    {user.isTikTokVerified && (
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
-                        {(user.tiktokFollowers || 0).toLocaleString()} FL
-                      </span>
+                  <div className="flex items-center gap-2 p-2 rounded-xl bg-black/60 border border-rose-500/30 text-[11px] font-mono">
+                    {user.tiktokConnected ? (
+                      <img
+                        src={user.tiktokAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.tiktokNickname || user.tiktokConnected)}&background=010101&color=fff&bold=true`}
+                        alt="TikTok"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.tiktokNickname || 'TT')}&background=010101&color=fff&bold=true`;
+                        }}
+                        className="w-8 h-8 rounded-lg object-cover border border-rose-400/50 shrink-0"
+                      />
+                    ) : (
+                      <span className="w-8 h-8 rounded-lg bg-black border border-white/15 flex items-center justify-center text-rose-400 font-bold shrink-0">♪</span>
                     )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-white truncate">{user.tiktokNickname || user.tiktokConnected || 'Chưa nối TikTok'}</div>
+                      <div className="text-[10px] text-rose-300 truncate">
+                        {user.tiktokConnected ? `${user.tiktokConnected} • ${(user.tiktokFollowers || 0).toLocaleString()} FL` : 'Bấm Kết Nối MXH'}
+                      </div>
+                    </div>
                   </div>
-                  {user.tiktokConnected && (
-                    <a
-                      href={`https://www.tiktok.com/${user.tiktokConnected}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-[10px] text-rose-300 font-mono border border-rose-500/30 transition-colors"
-                      title="Mở kênh TikTok"
-                    >
-                      <span>Mở</span>
-                      <ExternalLink className="w-2.5 h-2.5" />
-                    </a>
-                  )}
 
                   {/* Facebook */}
-                  {user.facebookConnected && (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/60 border border-blue-500/20 text-[11px] font-mono">
-                      <span className="text-blue-400 font-bold">f</span>
-                      <span className="text-slate-400">FB:</span>
-                      <strong className="text-blue-300">{user.facebookConnected}</strong>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 font-bold">✓</span>
+                  <div className="flex items-center gap-2 p-2 rounded-xl bg-black/60 border border-blue-500/30 text-[11px] font-mono">
+                    {user.facebookConnected ? (
+                      <img
+                        src={user.facebookAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.facebookName || user.facebookConnected)}&background=1877F2&color=fff&bold=true`}
+                        alt="Facebook"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.facebookName || 'FB')}&background=1877F2&color=fff&bold=true`;
+                        }}
+                        className="w-8 h-8 rounded-lg object-cover border border-blue-400/50 shrink-0"
+                      />
+                    ) : (
+                      <span className="w-8 h-8 rounded-lg bg-[#1877F2] flex items-center justify-center text-white font-bold shrink-0">f</span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-white truncate">{user.facebookName || user.facebookConnected || 'Chưa nối Facebook'}</div>
+                      <div className="text-[10px] text-blue-300 truncate">
+                        {user.facebookConnected ? `fb.com/${user.facebookConnected} • ${(user.facebookFollowers || 0).toLocaleString()} FL` : 'Bấm Kết Nối MXH'}
+                      </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* YouTube */}
-                  {user.youtubeConnected && (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/60 border border-red-500/20 text-[11px] font-mono">
-                      <span className="text-red-400 font-bold">▶</span>
-                      <span className="text-slate-400">YT:</span>
-                      <strong className="text-red-300">{user.youtubeConnected}</strong>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 font-bold">✓</span>
+                  <div className="flex items-center gap-2 p-2 rounded-xl bg-black/60 border border-red-500/30 text-[11px] font-mono">
+                    {user.youtubeConnected ? (
+                      <img
+                        src={user.youtubeAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.youtubeChannelTitle || user.youtubeConnected)}&background=FF0000&color=fff&bold=true`}
+                        alt="YouTube"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.youtubeChannelTitle || 'YT')}&background=FF0000&color=fff&bold=true`;
+                        }}
+                        className="w-8 h-8 rounded-lg object-cover border border-red-400/50 shrink-0"
+                      />
+                    ) : (
+                      <span className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white font-bold shrink-0">▶</span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-white truncate">{user.youtubeChannelTitle || user.youtubeConnected || 'Chưa nối YouTube'}</div>
+                      <div className="text-[10px] text-red-300 truncate">
+                        {user.youtubeConnected ? `${user.youtubeConnected} • ${(user.youtubeSubscribers || 0).toLocaleString()} Sub` : 'Bấm Kết Nối MXH'}
+                      </div>
                     </div>
-                  )}
+                  </div>
+                </div>
 
+                <div className="pt-1">
                   <button
                     onClick={openConnect}
-                    className="px-2.5 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 font-mono transition-colors cursor-pointer flex items-center gap-1"
+                    className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] text-cyan-300 font-mono font-bold transition-colors cursor-pointer inline-flex items-center gap-1.5 border border-white/10"
                   >
-                    <span>{user.isTikTokVerified ? 'Quản Lý MXH' : 'Kết Nối MXH (+5.000 Xu)'}</span>
+                    <span>⚡ Quản Lý / Đổi Tài Khoản MXH (Thưởng +500.000 Xu 1 lần)</span>
                   </button>
                 </div>
               </div>
@@ -396,8 +421,13 @@ export const ProfileWalletScreen: React.FC<{
           </div>
         </div>
 
+        {/* 2 Ô VÍ XU TÁCH BIỆT (VÍ XU LÀM NHIỆM VỤ RÚT MIN 500K & VÍ XU FOLLOW CHÉO CHỈ MUA GÓI — CÓ DẤU ? HƯỚNG DẪN) */}
+        <div className="pt-4 border-t border-white/5">
+          <DualWalletCards onOpenWithdraw={openWithdraw} compact />
+        </div>
+
         {/* 3 Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-white/5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3">
           <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1">
             <span className="text-[10px] text-slate-400 font-mono">Số Dư Xu Hiện Có</span>
             <div className="text-2xl font-black text-amber-400 font-mono">

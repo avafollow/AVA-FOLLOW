@@ -38,7 +38,7 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
   onClose,
   onNavigate
 }) => {
-  const { user, purchaseServicePackage, showToast, addNotification } = useTikTokApp();
+  const { user, affiliateData, purchaseServicePackage, trackAffiliateEvent, showToast, addNotification } = useTikTokApp();
   const [targetUrl, setTargetUrl] = useState(user.tiktokConnected ? `https://www.tiktok.com/${user.tiktokConnected}` : '');
   const [error, setError] = useState('');
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -76,6 +76,19 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
       setVerifyProgress(20);
       setConfirmedRefId('');
 
+      // Ghi nhận sự kiện Affiliate: Thêm vào giỏ hàng / Mở mua gói (đồng bộ Admin + Supabase)
+      try {
+        trackAffiliateEvent({
+          type: 'add_to_cart',
+          refCode: affiliateData?.refCode || 'AVA2026',
+          actorName: user?.name || 'Thành viên',
+          actorEmail: user?.email || '',
+          packageTitle: packageItem.title,
+          amountVND: packageItem.priceNum,
+          note: `Đã thêm gói "${packageItem.title}" (${packageItem.priceNum.toLocaleString()}đ) vào giỏ hàng thanh toán`
+        });
+      } catch {}
+
       // Auto-fill targetUrl if user is connected
       if (user.tiktokConnected) {
         setTargetUrl(`https://www.tiktok.com/${user.tiktokConnected}`);
@@ -104,7 +117,12 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
     effectivePriceNum = Math.max(35000, effectivePriceNum);
   }
 
-  const isCoinsEnough = (user?.avaliveCoins || 0) >= effectivePriceNum;
+  const crossFollowCoins = user?.crossFollowCoins ?? 0;
+  const missionCoins = user?.missionCoins ?? Math.max(0, (user?.avaliveCoins || 0) - crossFollowCoins);
+  const totalSpendableCoins = crossFollowCoins + missionCoins;
+  const isCoinsEnough = totalSpendableCoins >= effectivePriceNum;
+  const affiliateBalanceVND = user?.affiliateBalanceVND ?? (affiliateData?.availableCommissionVND ?? 0);
+  const isAffiliateEnough = affiliateBalanceVND >= effectivePriceNum;
 
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -216,7 +234,7 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
     showToast(`🎉 Đã duyệt thử nghiệm! Tài khoản nhận +${effectivePriceNum.toLocaleString()} Xu vào ví.`);
   };
 
-  // Thanh toán bằng số dư Ví Xu (nếu có đủ Xu)
+  // Thanh toán bằng số dư Ví Xu (Ưu tiên trừ Ví Xu Follow Chéo trước -> Ví Xu Nhiệm Vụ)
   const handlePayWithCoins = () => {
     if (!isCoinsEnough) {
       setError('Số dư Xu không đủ. Vui lòng chuyển khoản ngân hàng qua mã QR SePay bên dưới.');
@@ -239,6 +257,31 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
     onClose();
   };
 
+  // Thanh toán bằng Tiền Hoa Hồng Tiếp Thị Liên Kết (Affiliate VNĐ) — Mua bất kỳ gói nào!
+  const handlePayWithAffiliate = () => {
+    if (!isAffiliateEnough) {
+      setError(`Số dư Hoa hồng Tiếp thị liên kết (${affiliateBalanceVND.toLocaleString()}đ) chưa đủ để mua gói ${effectivePriceNum.toLocaleString()}đ.`);
+      return;
+    }
+
+    const packageToOrder: GrowthServiceItem = {
+      ...packageItem,
+      priceNum: effectivePriceNum,
+      price: `${effectivePriceNum.toLocaleString()}đ`,
+      title: isLivestream 
+        ? `${packageItem.title.replace(/\(.*?\)/g, '').trim()} (${selectedDuration} Phút)`
+        : packageItem.title,
+      unit: isLivestream ? `Mắt xem / ${selectedDuration} phút` : packageItem.unit
+    };
+
+    const channelTarget = targetUrl.trim() || user?.tiktokConnected || user?.handle || user?.name || 'Tài khoản AVA';
+    const ok = purchaseServicePackage(packageToOrder, channelTarget, undefined, 'affiliate');
+    if (ok) {
+      showToast(`🎉 Đã dùng ${effectivePriceNum.toLocaleString()}đ Hoa Hồng Affiliate mua gói "${packageToOrder.title}"!`);
+      onClose();
+    }
+  };
+
   const sepayQrUrl = generateSepayQrUrl({
     amount: effectivePriceNum,
     orderCode: orderCode || 'AVAPKG'
@@ -250,7 +293,7 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg bg-[#0D111E] border border-purple-500/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header Tối Giản, Sang Trọng */}
@@ -519,10 +562,32 @@ export const OrderServiceModal: React.FC<OrderServiceModalProps> = ({
                 <button
                   type="button"
                   onClick={handlePayWithCoins}
-                  className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/40 text-purple-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
                   <Coins className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Hoặc Trừ Bằng Số Dư Ví Xu ({effectivePriceNum.toLocaleString()} Xu)</span>
+                  <span>
+                    Trừ Bằng Ví Xu ({effectivePriceNum.toLocaleString()} Xu • Ưu tiên Ví Follow Chéo: {crossFollowCoins.toLocaleString()} Xu)
+                  </span>
+                </button>
+              )}
+
+              {affiliateBalanceVND > 0 && (
+                <button
+                  type="button"
+                  onClick={handlePayWithAffiliate}
+                  disabled={!isAffiliateEnough}
+                  className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                    isAffiliateEnough
+                      ? 'bg-amber-500/20 hover:bg-amber-500/30 border-amber-400/50 text-amber-200 cursor-pointer'
+                      : 'bg-white/5 border-white/10 text-slate-500 cursor-not-allowed'
+                  }`}
+                >
+                  <Award className="w-3.5 h-3.5 text-amber-400" />
+                  <span>
+                    {isAffiliateEnough
+                      ? `Dùng Tiền Hoa Hồng Affiliate Mua Gói (-${effectivePriceNum.toLocaleString()}đ / Có ${affiliateBalanceVND.toLocaleString()}đ)`
+                      : `Tiền Hoa Hồng Affiliate hiện có: ${affiliateBalanceVND.toLocaleString()}đ (Chưa đủ mua gói)`}
+                  </span>
                 </button>
               )}
 

@@ -3144,11 +3144,13 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // 0. Ping keep-alive để đảm bảo Supabase luôn hoạt động
     pingSupabaseKeepAlive('web_app_boot');
 
-    // 1. Kiểm tra session hiện tại từ Supabase
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.provider_token) {
+    const syncOAuthSession = (session: any) => {
+      if (!session?.user) return;
+      const provider = session.user?.app_metadata?.provider;
+      const meta = session.user?.user_metadata || {};
+
+      if (session.provider_token) {
         try {
-          const provider = session.user?.app_metadata?.provider;
           if (provider === 'facebook') {
             localStorage.setItem('ava_facebook_oauth_token', session.provider_token);
           } else {
@@ -3156,31 +3158,50 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
         } catch {}
       }
-      if (session?.user && localStorage.getItem('ava_logged_out') !== 'true') {
-        const email = (session.user.email || '').toLowerCase().trim();
-        if (email) {
-          loginWithGoogle(email);
-        }
+
+      if (localStorage.getItem('ava_logged_out') === 'true') return;
+      const email = (session.user.email || meta.email || '').toLowerCase().trim();
+      if (email) {
+        loginWithGoogle(email);
       }
+
+      // Tự động liên kết Facebook profile thật nếu đăng nhập qua Facebook OAuth
+      if (provider === 'facebook') {
+        const fbName = (meta.full_name || meta.name || meta.user_name || (email ? email.split('@')[0] : 'fb_user')).trim();
+        const fbAvatar = meta.avatar_url || meta.picture || '';
+        setTimeout(() => {
+          connectFacebook(fbName, 'personal', 0, fbAvatar);
+        }, 300);
+      }
+
+      // Tự động liên kết Kênh YouTube thật nếu đăng nhập Google OAuth kèm YouTube scope
+      if (provider === 'google' && session.provider_token) {
+        fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true', {
+          headers: { Authorization: `Bearer ${session.provider_token}` }
+        })
+          .then(r => (r.ok ? r.json() : null))
+          .then(data => {
+            const ch = data?.items?.[0];
+            if (ch?.snippet) {
+              const handle = ch.snippet.customUrl || ch.snippet.title || ch.id;
+              const subs = parseInt(ch.statistics?.subscriberCount || '0', 10) || 0;
+              const avatar = ch.snippet.thumbnails?.default?.url || '';
+              connectYoutube(handle, subs, avatar);
+            }
+          })
+          .catch(() => {});
+      }
+    };
+
+    // 1. Kiểm tra session hiện tại từ Supabase
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      syncOAuthSession(session);
     });
 
     // 2. Lắng nghe thay đổi trạng thái Auth từ Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.provider_token) {
-        try {
-          const provider = session.user?.app_metadata?.provider;
-          if (provider === 'facebook') {
-            localStorage.setItem('ava_facebook_oauth_token', session.provider_token);
-          } else {
-            localStorage.setItem('ava_youtube_oauth_token', session.provider_token);
-          }
-        } catch {}
-      }
       if (event === 'SIGNED_IN' && session?.user) {
-        const email = (session.user.email || '').toLowerCase().trim();
-        if (email) {
-          loginWithGoogle(email);
-        }
+        syncOAuthSession(session);
       } else if (event === 'SIGNED_OUT') {
         try {
           localStorage.removeItem('ava_youtube_oauth_token');

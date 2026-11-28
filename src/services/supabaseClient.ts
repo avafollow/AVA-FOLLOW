@@ -327,11 +327,24 @@ export async function signInWithTikTokOAuth() {
   return { data: { url: authUrl, isDirectProvider: true }, error: null };
 }
 
-export async function signInWithFacebookOAuth() {
-  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5050';
-  const fbAppId = '1088492089381928';
-  const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${fbAppId}&redirect_uri=${encodeURIComponent(redirectOrigin)}&scope=email,public_profile`;
-  return { data: { url: authUrl, isDirectProvider: true }, error: null };
+export async function signInWithFacebookOAuth(includeEngagementScopes = false) {
+  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  try {
+    const scopes = includeEngagementScopes
+      ? 'email,public_profile,user_likes,user_posts'
+      : 'email,public_profile';
+    const res = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: {
+        redirectTo: redirectOrigin,
+        scopes
+      }
+    });
+    return res;
+  } catch (err: any) {
+    console.warn('Facebook OAuth error:', err);
+    return { data: null, error: err };
+  }
 }
 
 /**

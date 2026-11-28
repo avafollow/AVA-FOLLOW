@@ -49,7 +49,8 @@ import {
   extractTikTokHandle,
   parseMediaUrl,
   resolveRealMediaChannelMeta,
-  isGenericPlaceholderHandle
+  isGenericPlaceholderHandle,
+  isLiveMediaUrl
 } from '../../data/videoSources';
 
 interface TargetOptionDef {
@@ -284,7 +285,11 @@ export const CreateCampaignScreen: React.FC<{
         if (meta.channelAvatar) {
           setChannelAvatar(meta.channelAvatar);
         }
-        if (meta.resolvedUrl && meta.resolvedUrl !== cleanVal && (cleanVal.includes('vt.tiktok.com') || cleanVal.includes('vm.tiktok.com') || cleanVal.includes('fb.watch'))) {
+        if (
+          meta.resolvedUrl &&
+          meta.resolvedUrl !== cleanVal &&
+          /vt\.tiktok\.com|vm\.tiktok\.com|tiktok\.com\/t\/|m\.tiktok\.com\/v\/|fb\.watch|facebook\.com\/share\//i.test(cleanVal)
+        ) {
           setTargetUrl(meta.resolvedUrl);
         }
       })
@@ -390,27 +395,33 @@ export const CreateCampaignScreen: React.FC<{
       }
       resolveChannelMetadataForUrl(cleanVal);
 
-      // Tự động phân giải link TikTok siêu tốc nếu là shortlink di động
-      if (lower.includes('vt.tiktok.com') || lower.includes('vm.tiktok.com') || lower.includes('tiktok.com/t') || lower.includes('/t/')) {
-        fetch(`/api/tiktok-resolve?url=${encodeURIComponent(cleanVal)}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data && data.resolved) {
-              setTargetUrl(data.resolved);
-              if (data.authorHandle) {
-                setChannelHandle(data.authorHandle);
-              }
-              if (data.authorName) {
-                setChannelDisplayName(data.authorName);
-              }
-              if (data.title && !title) {
-                setTitle(data.title);
-              }
-              resolveChannelMetadataForUrl(data.resolved);
-            }
-          })
-          .catch(() => {});
-      }
+      // Tự động phân giải mọi đường link TikTok (kể cả link chia sẻ di động vt.tiktok.com, vm.tiktok.com, tiktok.com/t/, m.tiktok.com/v/)
+      fetch(`/api/tiktok-resolve?url=${encodeURIComponent(cleanVal)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data) return;
+          if (data.resolved && data.resolved !== cleanVal && /vt\.tiktok\.com|vm\.tiktok\.com|tiktok\.com\/t\/|m\.tiktok\.com\/v\//i.test(cleanVal)) {
+            setTargetUrl(data.resolved);
+          }
+          if (data.authorHandle && !isGenericPlaceholderHandle(data.authorHandle)) {
+            setChannelHandle(data.authorHandle);
+          }
+          if (data.authorName && !isGenericPlaceholderHandle(data.authorName)) {
+            setChannelDisplayName(data.authorName);
+          }
+          if (data.authorAvatar) {
+            setChannelAvatar(data.authorAvatar);
+          }
+          if (data.title && !title) {
+            setTitle(data.title);
+          }
+          if (data.isLive && !data.videoId) {
+            setSelectedTargets(prev => ({ ...prev, livestream: true, watch: false }));
+          } else if (data.videoId) {
+            setSelectedTargets(prev => ({ ...prev, livestream: false, watch: true }));
+          }
+        })
+        .catch(() => {});
     } else if (cleanVal.startsWith('@')) {
       setChannelHandle(cleanVal);
       setChannelDisplayName(cleanVal);
@@ -419,9 +430,8 @@ export const CreateCampaignScreen: React.FC<{
       setChannelDisplayName(cleanVal);
     }
 
-    // Tự động nhận diện link Live (TikTok / YouTube / Facebook Live) vs Video thường và phát tức thì
-    const mediaParsed = parseMediaUrl(cleanVal);
-    const isLiveUrl = mediaParsed.isLive || cleanVal.includes('/live') || cleanVal.toLowerCase().includes('live') || cleanVal.toLowerCase().includes('livestream');
+    // Tự động nhận diện link Live (TikTok / YouTube / Facebook Live) vs Video thường (KHÔNG nhầm username có chữ 'live')
+    const isLiveUrl = isLiveMediaUrl(cleanVal);
     if (isLiveUrl) {
       setSelectedTargets(prev => ({
         ...prev,
@@ -1281,14 +1291,14 @@ export const CreateCampaignScreen: React.FC<{
             {/* Khung phát video to đúng chuẩn kích thước 9:16 trên điện thoại di động & máy tính */}
             <div className="w-full max-w-full sm:max-w-[380px] lg:max-w-[380px] aspect-[9/16] min-h-[520px] sm:min-h-[580px] lg:h-[640px] shrink-0 rounded-3xl overflow-hidden shadow-2xl border-2 border-rose-500/60 ring-4 ring-rose-500/15 relative bg-black transition-all">
               <TikTokVideoPreviewPlayer
-                key={`preview-${targetUrl}-${channelHandle}-${(selectedTargets.livestream || parseMediaUrl(targetUrl).isLive) ? 'live' : 'vod'}`}
+                key={`preview-${targetUrl}-${channelHandle}-${(isLiveMediaUrl(targetUrl) || (selectedTargets.livestream && !parseMediaUrl(targetUrl).videoId)) ? 'live' : 'vod'}`}
                 url={targetUrl}
                 channelHandle={channelHandle}
                 channelName={channelDisplayName}
                 channelAvatar={channelAvatar || undefined}
-                isLive={Boolean(selectedTargets.livestream || parseMediaUrl(targetUrl).isLive)}
+                isLive={Boolean(isLiveMediaUrl(targetUrl) || (selectedTargets.livestream && !parseMediaUrl(targetUrl).videoId))}
                 className="w-full h-full"
-                badgeText={Boolean(selectedTargets.livestream || parseMediaUrl(targetUrl).isLive) ? 'LIVE' : 'FYP'}
+                badgeText={Boolean(isLiveMediaUrl(targetUrl) || (selectedTargets.livestream && !parseMediaUrl(targetUrl).videoId)) ? 'LIVE' : 'FYP'}
                 autoPlay={true}
                 muted={true}
                 fullSize={true}
@@ -1388,7 +1398,7 @@ export const CreateCampaignScreen: React.FC<{
                 <button
                   type="button"
                   onClick={() => {
-                    const isLiveMode = selectedTargets.livestream || targetUrl.includes('/live') || targetUrl.toLowerCase().includes('live');
+                    const isLiveMode = selectedTargets.livestream || isLiveMediaUrl(targetUrl);
                     const finalName = channelDisplayName || channelHandle;
                     const finalAvt = channelAvatar || getPlatformAvatar(campaignPlatform, channelHandle);
                     if (isLiveMode) {

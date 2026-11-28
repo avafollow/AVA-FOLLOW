@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Hls from 'hls.js';
 import { Users, ExternalLink, Radio, Volume2, VolumeX, ShieldCheck, Play } from 'lucide-react';
-import { extractTikTokHandle, getPlatformAvatar, getFallbackLiveStreamUrl } from '../../../data/videoSources';
+import { extractTikTokHandle, getPlatformAvatar, getFallbackLiveStreamUrl, resolveRealMediaChannelMeta } from '../../../data/videoSources';
 
 export interface FacebookLiveEmbedPlayerProps {
   url: string;
@@ -24,15 +24,34 @@ export const FacebookLiveEmbedPlayer: React.FC<FacebookLiveEmbedPlayerProps> = (
   onToggleMute,
   className = ''
 }) => {
-  const handle = channelHandle || extractTikTokHandle(url);
+  const [resolvedFbLiveUrl, setResolvedFbLiveUrl] = useState<string | null>(null);
+  const handle = channelHandle || extractTikTokHandle(resolvedFbLiveUrl || url);
   const cleanHandle = (handle || '').replace(/^@+/, '');
 
-  let normalizedUrl = url && url.startsWith('http')
-    ? url
+  useEffect(() => {
+    let active = true;
+    setResolvedFbLiveUrl(null);
+    if (!url) return;
+    if (/fb\.watch|facebook\.com\/share\/|m\.facebook\.com|mobile\.facebook\.com/i.test(url)) {
+      resolveRealMediaChannelMeta(url)
+        .then((meta) => {
+          if (active && meta?.resolvedUrl && meta.resolvedUrl.includes('facebook.com')) {
+            setResolvedFbLiveUrl(meta.resolvedUrl);
+          }
+        })
+        .catch(() => {});
+    }
+    return () => { active = false; };
+  }, [url]);
+
+  let normalizedUrl = (resolvedFbLiveUrl || url) && (resolvedFbLiveUrl || url).startsWith('http')
+    ? (resolvedFbLiveUrl || url)
     : (cleanHandle ? `https://www.facebook.com/${cleanHandle}/live` : 'https://www.facebook.com');
 
-  // Chuẩn hóa Facebook URL loại bỏ @ và thay thế m.facebook.com thành www.facebook.com
-  normalizedUrl = normalizedUrl.replace('facebook.com/@', 'facebook.com/').replace('m.facebook.com', 'www.facebook.com');
+  // Chuẩn hóa Facebook URL loại bỏ @ và thay thế m./mobile./web.facebook.com thành www.facebook.com
+  normalizedUrl = normalizedUrl
+    .replace('facebook.com/@', 'facebook.com/')
+    .replace(/https?:\/\/(?:m|mobile|web)\.facebook\.com/i, 'https://www.facebook.com');
 
   const directUrl = normalizedUrl;
   const isFacebookEmbeddable = Boolean(

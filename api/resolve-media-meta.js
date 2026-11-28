@@ -202,6 +202,17 @@ async function resolveYouTube(targetUrl) {
           }
         }
 
+        // Extract YouTube UC... channelId if missing (required for /embed/live_stream?channel=UC...)
+        if (!channelId) {
+          const cidMatch =
+            html.match(/"externalId":"(UC[a-zA-Z0-9_-]{20,})"/i) ||
+            html.match(/"channelId":"(UC[a-zA-Z0-9_-]{20,})"/i) ||
+            html.match(/<meta\s+itemprop="identifier"\s+content="(UC[a-zA-Z0-9_-]{20,})"/i);
+          if (cidMatch && cidMatch[1]) {
+            channelId = cidMatch[1];
+          }
+        }
+
         // Extract channel canonical handle if missing
         if (!channelHandle) {
           const handleInHtml = html.match(/"canonicalBaseUrl":"\/(@[^"]+)"/i);
@@ -223,6 +234,7 @@ async function resolveYouTube(targetUrl) {
   return {
     success: true,
     platform: 'youtube',
+    channelId: channelId || null,
     channelName: finalChannelName,
     channelHandle: finalHandle,
     channelUrl: finalChannelUrl,
@@ -239,34 +251,51 @@ async function resolveTikTok(targetUrl) {
   let channelUrl = null;
   let channelAvatar = null;
   let videoTitle = null;
+  let videoId = null;
 
-  // 1. Follow redirects for mobile shortlinks (vt.tiktok.com, vm.tiktok.com, tiktok.com/t/)
-  if (/vt\.tiktok\.com|vm\.tiktok\.com|tiktok\.com\/t\//i.test(targetUrl)) {
-    try {
-      const mobileRes = await fetchWithTimeout(targetUrl, {
-        redirect: 'manual',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+  // 1. Follow multi-hop redirects for mobile shortlinks (vt.tiktok.com, vm.tiktok.com, tiktok.com/t/, m.tiktok.com/v/)
+  if (/vt\.tiktok\.com|vm\.tiktok\.com|tiktok\.com\/t\/|m\.tiktok\.com\/v\//i.test(targetUrl)) {
+    let curr = targetUrl;
+    const seen = new Set([curr]);
+    for (let hop = 0; hop < 6; hop++) {
+      try {
+        const res = await fetchWithTimeout(curr, {
+          redirect: 'manual',
+          headers: {
+            'User-Agent': hop === 0
+              ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1'
+              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+          }
+        }, 6000);
+        if (res.status >= 300 && res.status < 400) {
+          const loc = res.headers.get('location');
+          if (!loc) break;
+          const next = new URL(loc, curr).href;
+          if (seen.has(next) || /tiktok\.com\/(?:login|foryou|explore)\/?(\?|$)/i.test(next)) break;
+          seen.add(next);
+          curr = next;
+          continue;
         }
-      });
-      if (mobileRes.status >= 300 && mobileRes.status < 400) {
-        const loc = mobileRes.headers.get('location');
-        if (loc) finalUrl = loc;
-      } else if (mobileRes.url && mobileRes.url !== targetUrl) {
-        finalUrl = mobileRes.url;
+        break;
+      } catch {
+        break;
       }
-    } catch {
-      // Keep original URL
     }
+    finalUrl = curr;
   }
 
-  const handleMatch = finalUrl.match(/tiktok\.com\/@([a-zA-Z0-9._-]+)/i);
+  const vidMatch =
+    finalUrl.match(/\/(?:video|photo|v|embed\/v2|embed|player\/v1)\/(\d{10,24})/i) ||
+    finalUrl.match(/[?&](?:item_id|video_id)=(\d{10,24})/i);
+  if (vidMatch && vidMatch[1]) videoId = vidMatch[1];
+
+  const handleMatch = finalUrl.match(/(?:live\.)?tiktok\.com\/@([a-zA-Z0-9._-]+)/i);
   if (handleMatch && handleMatch[1]) {
     channelHandle = `@${handleMatch[1]}`;
     channelUrl = `https://www.tiktok.com/@${handleMatch[1]}`;
   }
 
-  // 2. TikTok official oEmbed API (returns exact author_name & author_unique_id)
+  // 2. TikTok official oEmbed API (returns exact author_name, author_unique_id, embed_product_id)
   try {
     const oembedRes = await fetchWithTimeout(
       `https://www.tiktok.com/oembed?url=${encodeURIComponent(finalUrl)}`,
@@ -274,10 +303,14 @@ async function resolveTikTok(targetUrl) {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
         }
-      }
+      },
+      6000
     );
     if (oembedRes.ok) {
       const oembed = await oembedRes.json();
+      if (oembed.embed_product_id && /^\d{10,24}$/.test(String(oembed.embed_product_id))) {
+        videoId = videoId || String(oembed.embed_product_id);
+      }
       if (oembed.author_name) channelName = decodeHtmlEntities(oembed.author_name);
       if (oembed.author_unique_id) {
         channelHandle = `@${oembed.author_unique_id}`;
@@ -290,64 +323,70 @@ async function resolveTikTok(targetUrl) {
       if (oembed.title) videoTitle = decodeHtmlEntities(oembed.title);
     }
   } catch {
-    // Continue to HTML extraction
+    // Continue
   }
 
-  // 3. Fetch TikTok profile / video page HTML to extract REAL channel avatar (avatarLarger / avatarMedium)
-  const profileToFetch = channelUrl || finalUrl;
-  try {
-    const pageRes = await fetchWithTimeout(profileToFetch, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8'
-      }
-    });
-    if (pageRes.ok) {
-      const html = await pageRes.text();
-
-      // Try __UNIVERSAL_DATA_FOR_REHYDRATION__ JSON first for exact user avatar & nickname
-      const uniMatch = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
-      if (uniMatch && uniMatch[1]) {
-        try {
-          const json = JSON.parse(uniMatch[1]);
-          const scope = json['__DEFAULT_SCOPE__'] || json;
-          const userInfo =
-            scope?.['webapp.user-detail']?.userInfo?.user ||
-            scope?.['webapp.video-detail']?.itemInfo?.itemStruct?.author ||
-            scope?.['webapp.live-detail']?.liveRoomInfo?.owner;
-          if (userInfo) {
-            channelAvatar = userInfo.avatarLarger || userInfo.avatarMedium || userInfo.avatarThumb || channelAvatar;
-            channelName = userInfo.nickname || channelName;
-            if (userInfo.uniqueId) {
-              channelHandle = `@${userInfo.uniqueId}`;
-              channelUrl = `https://www.tiktok.com/@${userInfo.uniqueId}`;
-            }
+  // 3. TikWM API (reliable direct author avatar, nickname, unique_id & videoId even for shortlinks)
+  if (!channelAvatar || !channelName || !channelHandle) {
+    try {
+      const twRes = await fetchWithTimeout(
+        `https://www.tikwm.com/api/?url=${encodeURIComponent(finalUrl)}`,
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
           }
-        } catch {
-          // Fallback to regex
+        },
+        6000
+      );
+      if (twRes.ok) {
+        const tw = await twRes.json();
+        if (tw?.code === 0 && tw?.data) {
+          if (tw.data.id && !videoId) videoId = String(tw.data.id);
+          if (tw.data.title && !videoTitle) videoTitle = tw.data.title;
+          if (tw.data.author?.nickname) channelName = tw.data.author.nickname;
+          if (tw.data.author?.unique_id) {
+            channelHandle = `@${tw.data.author.unique_id}`;
+            channelUrl = `https://www.tiktok.com/@${tw.data.author.unique_id}`;
+          }
+          if (tw.data.author?.avatar) channelAvatar = tw.data.author.avatar;
         }
       }
-
-      if (!channelAvatar) {
-        const avatarMatch =
-          html.match(/"avatarLarger":"(https:[^"]+)"/i) ||
-          html.match(/"avatarMedium":"(https:[^"]+)"/i) ||
-          html.match(/"avatarThumb":"(https:[^"]+)"/i);
-        if (avatarMatch && avatarMatch[1]) {
-          channelAvatar = decodeHtmlEntities(avatarMatch[1]);
-        }
-      }
-
-      if (!channelName) {
-        const nickMatch = html.match(/"nickname":"([^"]+)"/i);
-        if (nickMatch && nickMatch[1]) {
-          channelName = decodeHtmlEntities(nickMatch[1]);
-        }
-      }
+    } catch {
+      // Continue
     }
-  } catch {
-    // Ignore HTML error
+  }
+
+  // 4. Official TikTok Live/User JSON API (/api-live/user/room) — returns exact 1080px avatarLarger & nickname!
+  const cleanHandleForApi = (channelHandle || '').replace(/^@+/, '').trim();
+  if (cleanHandleForApi && (!channelAvatar || !channelName)) {
+    try {
+      const apiRes = await fetchWithTimeout(
+        `https://www.tiktok.com/api-live/user/room/?aid=1988&sourceType=54&uniqueId=${encodeURIComponent(cleanHandleForApi)}`,
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Referer': 'https://www.tiktok.com/'
+          }
+        },
+        6000
+      );
+      if (apiRes.ok) {
+        const j = await apiRes.json();
+        const u = j?.data?.user;
+        if (u) {
+          if (u.nickname) channelName = u.nickname;
+          if (u.uniqueId) {
+            channelHandle = `@${u.uniqueId}`;
+            channelUrl = `https://www.tiktok.com/@${u.uniqueId}`;
+          }
+          if (u.avatarLarger || u.avatarMedium || u.avatarThumb) {
+            channelAvatar = u.avatarLarger || u.avatarMedium || u.avatarThumb;
+          }
+        }
+      }
+    } catch {
+      // Ignore
+    }
   }
 
   const cleanHandle = (channelHandle || '').replace(/^@+/, '');
@@ -357,6 +396,7 @@ async function resolveTikTok(targetUrl) {
   return {
     success: true,
     platform: 'tiktok',
+    videoId: videoId || null,
     channelName: finalChannelName,
     channelHandle: finalHandle,
     channelUrl: channelUrl || finalUrl,
@@ -418,6 +458,18 @@ async function resolveFacebook(targetUrl) {
 
       if (res.ok) {
         const html = await res.text();
+
+        // 0. Extract canonical og:url so /share/v/, /share/r/, fb.watch resolve cleanly for plugins/video.php
+        const ogUrlMatch =
+          html.match(/<meta\s+property="og:url"\s+content="(https?:\/\/[^"]+)"/i) ||
+          html.match(/<link\s+rel="canonical"\s+href="(https?:\/\/[^"]+)"/i);
+        if (ogUrlMatch && ogUrlMatch[1] && ogUrlMatch[1].includes('facebook.com')) {
+          const decodedOgUrl = decodeHtmlEntities(ogUrlMatch[1])
+            .replace(/https?:\/\/(?:m|mobile|web)\.facebook\.com/i, 'https://www.facebook.com');
+          if (!/facebook\.com\/(?:login|share\/)/i.test(decodedOgUrl)) {
+            finalUrl = decodedOgUrl;
+          }
+        }
 
         // 1. Extract real Facebook Page/User owner name from embedded JSON
         if (!channelName) {

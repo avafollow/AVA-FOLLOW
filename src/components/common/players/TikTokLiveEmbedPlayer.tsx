@@ -8,9 +8,16 @@ import {
   Users, 
   ShieldCheck, 
   Heart,
-  Play
+  Play,
+  RefreshCw
 } from 'lucide-react';
-import { extractTikTokHandle, extractTikTokVideoId, getTikTokAvatar } from '../../../data/videoSources';
+import {
+  extractTikTokHandle,
+  extractTikTokVideoId,
+  getPlatformAvatar,
+  isLiveMediaUrl,
+  isGenericPlaceholderHandle
+} from '../../../data/videoSources';
 
 export interface TikTokLiveEmbedPlayerProps {
   channelHandle: string;
@@ -42,82 +49,111 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   onCompensate
 }) => {
   const [resolvedHandle, setResolvedHandle] = useState<string | null>(null);
+  const [resolvedAuthorName, setResolvedAuthorName] = useState<string | null>(null);
+  const [resolvedAvatar, setResolvedAvatar] = useState<string | null>(null);
+  const [resolvedVideoId, setResolvedVideoId] = useState<string | null>(null);
+  const [resolvedCanonicalUrl, setResolvedCanonicalUrl] = useState<string | null>(null);
   const [roomCover, setRoomCover] = useState<string | null>(null);
   const [roomTitle, setRoomTitle] = useState<string | null>(null);
   const [isResolving, setIsResolving] = useState<boolean>(true);
   const [isEnded, setIsEnded] = useState<boolean>(false);
-  
-  // Trích xuất @handle chính xác từ URL người dùng dán vào
+  const [retryNonce, setRetryNonce] = useState<number>(0);
+
+  // Trích xuất @handle chính xác từ URL người dùng dán vào (không dùng placeholder @creator_vietnam)
   const rawHandle = extractTikTokHandle(targetUrl || channelHandle || '');
-  const cleanHandle = resolvedHandle || (rawHandle || channelHandle || '').replace(/^@+/, '').trim();
+  const safeInitialHandle = !isGenericPlaceholderHandle(rawHandle)
+    ? rawHandle.replace(/^@+/, '').trim()
+    : (!isGenericPlaceholderHandle(channelHandle) ? (channelHandle || '').replace(/^@+/, '').trim() : '');
+  const cleanHandle = resolvedHandle || safeInitialHandle;
 
   // URL thật đến phiên live của creator
-  const directLiveUrl = targetUrl && targetUrl.startsWith('http')
-    ? targetUrl
-    : `https://www.tiktok.com/@${cleanHandle}/live`;
+  const directLiveUrl =
+    resolvedCanonicalUrl ||
+    (targetUrl && targetUrl.startsWith('http')
+      ? targetUrl
+      : (cleanHandle ? `https://www.tiktok.com/@${cleanHandle}/live` : 'https://www.tiktok.com/live'));
 
-  const displayName = channelName || (cleanHandle ? `@${cleanHandle}` : 'TikTok Creator');
+  const displayName =
+    resolvedAuthorName ||
+    (!isGenericPlaceholderHandle(channelName) ? channelName : null) ||
+    (cleanHandle ? `@${cleanHandle}` : 'Kênh TikTok Live');
 
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const [viewers, setViewers] = useState<number>(viewersCount);
   const [hearts, setHearts] = useState<{ id: number; x: number; color: string }[]>([]);
   const [hlsStreamUrl, setHlsStreamUrl] = useState<string | null>(null);
   const [hasStreamError, setHasStreamError] = useState<boolean>(false);
-  
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
-  // Video ID chỉ kiểm tra nếu KHÔNG phải link livestream
-  const isTargetLive = Boolean(
-    targetUrl && (
-      targetUrl.includes('/live') ||
-      targetUrl.toLowerCase().includes('live') ||
-      targetUrl.includes('room_id') ||
-      targetUrl.includes('webcast')
-    )
-  );
-  const possibleVideoId = (!isTargetLive && targetUrl) ? extractTikTokVideoId(targetUrl) : null;
+  // Kiểm tra chính xác xem URL có phải video TikTok không (chỉ dùng isLiveMediaUrl chặt chẽ)
+  const isTargetLive = Boolean(targetUrl && isLiveMediaUrl(targetUrl));
+  const possibleVideoId =
+    resolvedVideoId || ((!isTargetLive && targetUrl) ? extractTikTokVideoId(targetUrl) : null);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
   useEffect(() => {
-    let urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
-    if (!urlToResolve.includes('/live') && !urlToResolve.includes('/video/') && urlToResolve.includes('@')) {
-       urlToResolve = urlToResolve.endsWith('/') ? urlToResolve + 'live' : urlToResolve + '/live';
+    let urlToResolve = targetUrl || (safeInitialHandle ? `https://www.tiktok.com/@${safeInitialHandle}/live` : '');
+    if (!urlToResolve) {
+      setIsResolving(false);
+      return;
     }
-    
+    if (
+      !urlToResolve.includes('/live') &&
+      !urlToResolve.includes('/video/') &&
+      !urlToResolve.includes('/photo/') &&
+      !/vt\.tiktok\.com|vm\.tiktok\.com|tiktok\.com\/t\//i.test(urlToResolve) &&
+      urlToResolve.includes('@')
+    ) {
+      urlToResolve = urlToResolve.endsWith('/') ? urlToResolve + 'live' : urlToResolve + '/live';
+    }
+
     setIsResolving(true);
+    setHasStreamError(false);
+    setResolvedVideoId(null);
     let isCancelled = false;
     fetch(`/api/tiktok-resolve?url=${encodeURIComponent(urlToResolve)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (isCancelled) return;
+      .then((res) => res.json())
+      .then((data) => {
+        if (isCancelled || !data) return;
         setIsResolving(false);
-        if (data && data.resolved) {
+        if (data.resolved) {
+          setResolvedCanonicalUrl(data.resolved);
           const extracted = extractTikTokHandle(data.resolved);
-          if (extracted) {
+          if (extracted && !isGenericPlaceholderHandle(extracted)) {
             setResolvedHandle(extracted.replace(/^@+/, '').trim());
           }
         }
-        if (data && data.liveViewers) setViewers(data.liveViewers);
-        if (data && data.roomCover) setRoomCover(data.roomCover);
-        if (data && data.roomTitle) setRoomTitle(data.roomTitle);
-        if (data && data.roomStatus === 4) {
+        if (data.authorHandle && !isGenericPlaceholderHandle(data.authorHandle)) {
+          setResolvedHandle(data.authorHandle.replace(/^@+/, '').trim());
+        }
+        if (data.authorName) setResolvedAuthorName(data.authorName);
+        if (data.authorAvatar) setResolvedAvatar(data.authorAvatar);
+        if (data.videoId && !data.isLive) {
+          setResolvedVideoId(data.videoId);
+        }
+        if (data.liveViewers) setViewers(data.liveViewers);
+        if (data.roomCover) setRoomCover(data.roomCover);
+        if (data.roomTitle || data.title) setRoomTitle(data.roomTitle || data.title);
+        if (data.hlsUrl && data.roomStatus !== 4) {
+          setHlsStreamUrl(data.hlsUrl);
+          setHasStreamError(false);
+          setIsEnded(false);
+        } else if (data.roomStatus === 4 || (!data.isLive && !data.videoId)) {
+          setHlsStreamUrl(null);
           setIsEnded(true);
         } else {
           setIsEnded(false);
-        }
-        if (data && data.hlsUrl) {
-          setHlsStreamUrl(data.hlsUrl);
-          setHasStreamError(false);
-        } else if (data && !data.isLive) {
-          setIsEnded(true);
         }
       })
       .catch(() => {
         if (!isCancelled) setIsResolving(false);
       });
-    return () => { isCancelled = true; };
-  }, [targetUrl, cleanHandle]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [targetUrl, safeInitialHandle, retryNonce]);
 
   useEffect(() => { 
     setInternalMuted(isMuted); 
@@ -281,7 +317,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     }, 1200);
   };
 
-  const avatarUrl = getTikTokAvatar(cleanHandle);
+  const avatarUrl = resolvedAvatar || getPlatformAvatar('tiktok', cleanHandle);
 
   return (
     <div
@@ -292,10 +328,10 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
         {possibleVideoId ? (
           <iframe
-            key={`tt-vid-embed-${possibleVideoId}`}
-            src={`https://www.tiktok.com/embed/v2/${possibleVideoId}?lang=vi-VN&autoplay=1&muted=${internalMuted ? 1 : 0}&playsinline=1`}
-            title={`TikTok Video: @${cleanHandle}`}
-            allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
+            key={`tt-vid-player-v1-${possibleVideoId}`}
+            src={`https://www.tiktok.com/player/v1/${possibleVideoId}?embed_from=oembed&music_info=1&description=1&autoplay=1&muted=${internalMuted ? 1 : 0}&loop=1&controls=1`}
+            title={`TikTok Video: ${displayName}`}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
             allowFullScreen
             className="w-full h-full border-0 bg-black pointer-events-auto"
             style={{ width: '100%', height: '100%', border: 'none' }}
@@ -308,6 +344,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
               className={`w-full h-full object-cover pointer-events-auto ${(hasStreamError || isEnded || (!activeStreamSrc && !isResolving)) ? 'opacity-20 blur-md scale-105' : ''}`}
               autoPlay
               playsInline
+              {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
               loop
               muted={internalMuted}
               onError={() => {
@@ -324,7 +361,8 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
                   <div className="w-20 h-20 rounded-full border-2 border-rose-500/80 p-1 shadow-[0_0_30px_rgba(244,63,94,0.6)] animate-pulse">
                     <img
                       src={roomCover || avatarUrl}
-                      alt={cleanHandle}
+                      alt={displayName}
+                      referrerPolicy="no-referrer"
                       onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarUrl; }}
                       className="w-full h-full rounded-full object-cover"
                     />
@@ -335,7 +373,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
                   </span>
                 </div>
                 <h3 className="text-white font-bold text-sm line-clamp-1 max-w-[280px]">
-                  {roomTitle || `Phiên Live @${cleanHandle}`}
+                  {roomTitle || `Phiên Live ${displayName}`}
                 </h3>
                 <p className="text-[11px] text-rose-300 font-mono mt-2 flex items-center gap-1.5 justify-center">
                   <Radio className="w-3.5 h-3.5 animate-spin text-rose-400" />
@@ -351,7 +389,8 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-rose-500/80 p-1 shadow-[0_0_30px_rgba(244,63,94,0.6)] animate-pulse">
                     <img
                       src={roomCover || avatarUrl}
-                      alt={cleanHandle}
+                      alt={displayName}
+                      referrerPolicy="no-referrer"
                       onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarUrl; }}
                       className="w-full h-full rounded-full object-cover"
                     />
@@ -363,11 +402,13 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
                 </div>
 
                 <h3 className="text-white font-black text-sm sm:text-base line-clamp-1 max-w-[280px]">
-                  {roomTitle || `Phiên Live Trực Tiếp @${cleanHandle}`}
+                  {roomTitle || `Phiên Live Trực Tiếp ${displayName}`}
                 </h3>
                 <p className="text-[11px] text-rose-300 font-mono mt-1 flex items-center gap-1.5 justify-center">
                   <Radio className="w-3.5 h-3.5 animate-spin text-rose-400" style={{ animationDuration: '3s' }} />
-                  {isEnded ? 'Phiên Live đã kết thúc (Streamer chưa lên sóng)' : 'Đang phát sóng trực tiếp trên TikTok'}
+                  {isEnded
+                    ? 'Kênh hiện chưa phát sóng Live (hoặc phiên Live vừa kết thúc)'
+                    : 'Đang kết nối phiên phát sóng trực tiếp trên TikTok'}
                 </p>
 
                 {/* Equalizer Sound Waves */}
@@ -379,8 +420,19 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
                   <span className="w-1 bg-rose-300 rounded-full animate-bounce h-2" style={{ animationDelay: '0.6s' }} />
                 </div>
 
-                {/* Multi-Device Direct Action Button */}
+                {/* Multi-Device Direct Action Buttons */}
                 <div className="mt-2 space-y-2 max-w-xs w-full">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRetryNonce((n) => n + 1);
+                    }}
+                    className="w-full px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-cyan-300" />
+                    <span>Kiểm Tra Lại Luồng Live</span>
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -397,7 +449,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                   <p className="text-[10px] text-slate-400 font-mono">
-                    🛡️ Tự động kết nối phòng Live thật trên đa thiết bị
+                    🛡️ Hỗ trợ phát trực tiếp HLS trên iPhone, iPad, Android &amp; PC
                   </p>
                 </div>
               </div>

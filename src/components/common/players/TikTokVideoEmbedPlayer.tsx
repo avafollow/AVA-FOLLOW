@@ -1,6 +1,20 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { extractTikTokVideoId, extractTikTokHandle, getTikTokAvatar, getFallbackVideoUrl } from '../../../data/videoSources';
-import { Play, Pause, ExternalLink, CheckCircle2, Sparkles, Volume2, VolumeX, Loader2, ShieldCheck, RefreshCw } from 'lucide-react';
+import {
+  extractTikTokVideoId,
+  extractTikTokHandle,
+  getPlatformAvatar,
+  isGenericPlaceholderHandle
+} from '../../../data/videoSources';
+import {
+  Play,
+  ExternalLink,
+  CheckCircle2,
+  Volume2,
+  VolumeX,
+  Loader2,
+  ShieldCheck,
+  RefreshCw
+} from 'lucide-react';
 
 export interface TikTokVideoEmbedPlayerProps {
   videoId?: string;
@@ -13,12 +27,11 @@ export interface TikTokVideoEmbedPlayerProps {
 }
 
 /**
- * Component chuyên biệt: Trình phát Video TikTok Đa Thiết Bị (iOS Safari, iPad, Android, macOS, Windows)
- * Đảm bảo:
- * 1. Tự động phát video chuyển động 100% ngay khi dán link trên mọi thiết bị.
- * 2. Phân giải link rút gọn di động (vt.tiktok.com, vm.tiktok.com, tiktok.com/t) siêu tốc.
- * 3. Hỗ trợ cả 2 luồng: Trình phát TikTok Player chính thức (player/v1) & Luồng Video trực tiếp HTML5.
- * 4. Hệ thống âm thanh chuẩn, có nút bật/tắt tiếng và nút chạm trung tâm mở âm thanh tức thì.
+ * Trình phát Video TikTok Đa Thiết Bị (iOS Safari, iPadOS, Android Chrome, macOS, Windows)
+ * 1. Tự động phân giải mọi định dạng link (vt.tiktok.com, vm.tiktok.com, tiktok.com/t/..., /video/, /photo/, m.tiktok.com/v/).
+ * 2. Luồng 1 (Ưu tiên siêu mượt đa thiết bị): Luồng MP4 thật của chính video TikTok đó qua proxy hỗ trợ Range 206 (iOS/iPad).
+ * 3. Luồng 2 (Chuẩn chính thức TikTok 2026): Trình phát chính thức https://www.tiktok.com/player/v1/{videoId}?embed_from=oembed.
+ * 4. Nút chuyển đổi qua lại 1 chạm giữa MP4 Siêu Mượt và TikTok Player, không che khuất nút bấm video.
  */
 export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   videoId,
@@ -29,35 +42,48 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   className = '',
   autoPlay = true
 }) => {
-  const [resolvedId, setResolvedId] = useState<string | null>(videoId || null);
+  const [resolvedId, setResolvedId] = useState<string | null>(
+    videoId || (directUrl ? extractTikTokVideoId(directUrl) : null)
+  );
   const [resolvedHandle, setResolvedHandle] = useState<string | null>(null);
+  const [resolvedAuthorName, setResolvedAuthorName] = useState<string | null>(null);
+  const [resolvedAvatar, setResolvedAvatar] = useState<string | null>(null);
+  const [resolvedCover, setResolvedCover] = useState<string | null>(null);
+  const [resolvedTitle, setResolvedTitle] = useState<string | null>(null);
+  const [resolvedMp4Url, setResolvedMp4Url] = useState<string | null>(null);
+  const [resolvedCanonicalUrl, setResolvedCanonicalUrl] = useState<string | null>(null);
   const [isResolving, setIsResolving] = useState<boolean>(false);
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [mp4Failed, setMp4Failed] = useState<boolean>(false);
   const [hasIframeError, setHasIframeError] = useState<boolean>(false);
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const [isPlaying, setIsPlaying] = useState<boolean>(autoPlay);
   const [playerMode, setPlayerMode] = useState<'official' | 'direct'>('official');
 
-  // Trích xuất @handle chính xác
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
   const extractedHandle = directUrl ? extractTikTokHandle(directUrl) : null;
-  const rawHandle = resolvedHandle || extractedHandle || '@creator';
+  const rawHandle =
+    resolvedHandle ||
+    (extractedHandle && !isGenericPlaceholderHandle(extractedHandle) ? extractedHandle : null) ||
+    '@tiktok';
   const cleanHandle = rawHandle.replace(/^@+/, '').trim();
-  const finalOpenUrl = directUrl && directUrl.startsWith('http') ? directUrl : `https://www.tiktok.com/@${cleanHandle}`;
+  const displayTitle = resolvedTitle || title;
+  const displayName = resolvedAuthorName || (cleanHandle && cleanHandle !== 'tiktok' ? `@${cleanHandle}` : 'Kênh TikTok');
+  const finalOpenUrl =
+    resolvedCanonicalUrl ||
+    (directUrl && directUrl.startsWith('http') ? directUrl : `https://www.tiktok.com/@${cleanHandle}`);
 
-  // ID video thuần túy
   const effectiveId = resolvedId || videoId || (directUrl ? extractTikTokVideoId(directUrl) : null);
-  const isValidNumericId = Boolean(effectiveId && /^\d{10,24}$/.test(effectiveId));
+  const isValidNumericId = Boolean(effectiveId && /^\d{8,24}$/.test(effectiveId));
 
-  // Nguồn luồng video trực tiếp dự phòng đảm bảo luôn phát chuyển động mượt mà
-  const fallbackSrc = getFallbackVideoUrl(cleanHandle || effectiveId || 'tiktok');
-  const activeStreamSrc = directUrl && (directUrl.includes('.mp4') || directUrl.includes('.webm') || directUrl.includes('blob:'))
-    ? directUrl 
-    : fallbackSrc;
-
-  // TikTok Official Embed (embed/v2) tương thích 100%, không bị lỗi Player authentication failed
+  // TikTok Official Player v1 (2026 standard — tương thích 100% iOS Safari, iPad, Android, PC)
   const officialPlayerUrl = isValidNumericId
-    ? `https://www.tiktok.com/embed/v2/${effectiveId}?lang=vi-VN`
+    ? `https://www.tiktok.com/player/v1/${effectiveId}?embed_from=oembed&music_info=1&description=1&autoplay=1&muted=${internalMuted ? 1 : 0}&loop=1&controls=1&rel=0`
+    : null;
+
+  const directMp4Src: string | null = !mp4Failed
+    ? resolvedMp4Url || (directUrl && /\.(mp4|webm|mov)(\?.*)?$/i.test(directUrl) ? directUrl : null)
     : null;
 
   useEffect(() => {
@@ -71,73 +97,87 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
     }
   }, [internalMuted]);
 
-  // Tự động phân giải video ID nếu là shortlink (vt.tiktok.com, vm.tiktok.com, tiktok.com/t)
+  // Tự động phân giải mọi đường link TikTok (kể cả link chia sẻ di động vt.tiktok.com, vm.tiktok.com, tiktok.com/t/...)
   useEffect(() => {
-    if (videoId) {
-      setResolvedId(videoId);
-      return;
-    }
+    let cancelled = false;
+    setMp4Failed(false);
+    setHasIframeError(false);
+    setResolvedMp4Url(null);
+    setResolvedCanonicalUrl(null);
 
-    if (!directUrl) return;
+    const immediateId = videoId || (directUrl ? extractTikTokVideoId(directUrl) : null);
+    setResolvedId(immediateId);
 
-    const extracted = extractTikTokVideoId(directUrl);
-    if (extracted) {
-      setResolvedId(extracted);
-      return;
-    }
+    const urlToResolve =
+      directUrl && directUrl.startsWith('http')
+        ? directUrl
+        : immediateId
+          ? `https://www.tiktok.com/@tiktok/video/${immediateId}`
+          : null;
 
-    // Nếu là shortlink hoặc URL chưa có ID, gọi API nội bộ để resolve
-    if (
-      directUrl.includes('vt.tiktok.com') || 
-      directUrl.includes('vm.tiktok.com') || 
-      directUrl.includes('tiktok.com/t') ||
-      directUrl.includes('/t/')
-    ) {
-      setIsResolving(true);
-      fetch(`/api/tiktok-resolve?url=${encodeURIComponent(directUrl)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.videoId) {
-            setResolvedId(data.videoId);
-          } else if (data && data.resolved) {
-            const ext = extractTikTokVideoId(data.resolved);
-            if (ext) setResolvedId(ext);
-          }
-          if (data && data.authorHandle) {
-            setResolvedHandle(data.authorHandle);
-          }
-        })
-        .catch(() => {})
-        .finally(() => {
-          setIsResolving(false);
-        });
-    }
+    if (!urlToResolve) return;
+
+    setIsResolving(true);
+    fetch(`/api/tiktok-resolve?url=${encodeURIComponent(urlToResolve)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const vid = data.videoId || (data.resolved ? extractTikTokVideoId(data.resolved) : null);
+        if (vid) setResolvedId(vid);
+        if (data.resolved) setResolvedCanonicalUrl(data.resolved);
+        if (data.authorHandle) setResolvedHandle(data.authorHandle);
+        if (data.authorName) setResolvedAuthorName(data.authorName);
+        if (data.authorAvatar) setResolvedAvatar(data.authorAvatar);
+        if (data.thumbnailUrl) setResolvedCover(data.thumbnailUrl);
+        if (data.title) setResolvedTitle(data.title);
+        if (data.directPlayProxyUrl || data.directPlayUrl) {
+          setResolvedMp4Url(data.directPlayProxyUrl || data.directPlayUrl);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsResolving(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [directUrl, videoId]);
 
-  // Gửi lệnh phát video và bật tiếng qua giao thức postMessage
-  const triggerPlayAndSound = useCallback(() => {
-    try {
-      if (!iframeRef.current?.contentWindow) return;
-      const cw = iframeRef.current.contentWindow;
+  // Tự động gửi lệnh play/mute cho TikTok player/v1 qua postMessage
+  const triggerPlayAndSound = useCallback(
+    (mutedFlag: boolean) => {
+      try {
+        if (!iframeRef.current?.contentWindow) return;
+        const cw = iframeRef.current.contentWindow;
+        cw.postMessage({ 'x-tiktok-player': true, type: 'play' }, '*');
+        cw.postMessage({ 'x-tiktok-player': true, type: mutedFlag ? 'mute' : 'unMute' }, '*');
+        cw.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', event: 'command', method: 'play' }), '*');
+        cw.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', event: 'command', method: mutedFlag ? 'mute' : 'unmute' }), '*');
+      } catch {}
+    },
+    []
+  );
 
-      cw.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', event: 'command', method: 'play' }), '*');
-      cw.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', event: 'command', method: internalMuted ? 'mute' : 'unmute' }), '*');
-
-      cw.postMessage({ 'tiktok-embed': true, type: 'play' }, '*');
-      cw.postMessage({ 'tiktok-embed': true, type: internalMuted ? 'mute' : 'unmute' }, '*');
-      cw.postMessage({ type: 'play' }, '*');
-      cw.postMessage({ type: internalMuted ? 'mute' : 'unmute' }, '*');
-    } catch (err) {}
-  }, [internalMuted]);
-
+  // Tự động phát video HTML5 MP4 khi ở chế độ direct (tương thích iOS Safari / iPadOS)
   useEffect(() => {
-    setHasIframeError(false);
-    if (!officialPlayerUrl) return;
-    const timers = [150, 500, 1000, 1800].map(delay =>
-      setTimeout(triggerPlayAndSound, delay)
-    );
-    return () => timers.forEach(t => clearTimeout(t));
-  }, [officialPlayerUrl, triggerPlayAndSound]);
+    const video = videoRef.current;
+    if (!video || !directMp4Src) return;
+    video.playsInline = true;
+    video.muted = internalMuted;
+    video.defaultMuted = internalMuted;
+    if (autoPlay) {
+      video
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {
+          video.muted = true;
+          video.defaultMuted = true;
+          setInternalMuted(true);
+          video.play().then(() => setIsPlaying(true)).catch(() => {});
+        });
+    }
+  }, [directMp4Src, autoPlay, playerMode, internalMuted]);
 
   const handleToggleSound = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -146,199 +186,205 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
     if (videoRef.current) {
       videoRef.current.muted = nextMuted;
       videoRef.current.volume = 1.0;
+      if (!nextMuted && videoRef.current.paused) {
+        videoRef.current.play().catch(() => {});
+      }
     }
-    triggerPlayAndSound();
+    triggerPlayAndSound(nextMuted);
     if (onToggleMute) onToggleMute();
   };
 
   const handleTogglePlay = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const nextPlay = !isPlaying;
-    setIsPlaying(nextPlay);
-    if (videoRef.current) {
-      if (nextPlay) {
-        videoRef.current.play().catch(() => {});
-      } else {
-        videoRef.current.pause();
-      }
+    if (!videoRef.current) return;
+    if (videoRef.current.paused) {
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    } else {
+      videoRef.current.pause();
+      setIsPlaying(false);
     }
-    triggerPlayAndSound();
   };
 
-  // Nếu người dùng chọn phát luồng trực tiếp hoặc iframe bị chặn trên thiết bị
-  const shouldRenderIframe = playerMode === 'official' && isValidNumericId && !hasIframeError;
+  // Xác định chế độ phát tối ưu:
+  // - Nếu chọn 'direct' và có MP4 thật (hoặc iframe bị lỗi / chưa có videoId nhưng có MP4) -> phát HTML5 <video> siêu mượt đa thiết bị
+  // - Ngược lại nếu có officialPlayerUrl (player/v1) -> phát trình phát chính thức TikTok 2026
+  const showDirectMp4 = Boolean(directMp4Src && (playerMode === 'direct' || hasIframeError || !officialPlayerUrl));
+  const showOfficialIframe = Boolean(!showDirectMp4 && officialPlayerUrl && !hasIframeError);
 
   return (
-    <div 
+    <div
       className={`relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-3xl select-none ${className}`}
-      onClick={handleTogglePlay}
     >
-      {/* 1. TOP HUD BAR: Chế độ phát & Nút bật/tắt âm thanh */}
+      {/* 1. TOP HUD BAR: Chế độ phát & Âm thanh (gọn trên cùng, không che nút phát của TikTok) */}
       <div className="absolute top-3 inset-x-3 z-30 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-1.5 pointer-events-auto">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-rose-500/40 text-[10px] font-mono font-bold text-rose-300 shadow-lg">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-rose-500/40 text-[10px] font-mono font-bold text-rose-300 shadow-lg">
             <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
             <span>TIKTOK VIDEO</span>
           </div>
 
-          {/* Nút chuyển đổi nhanh chế độ phát */}
-          {isValidNumericId && (
+          {directMp4Src && officialPlayerUrl && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setPlayerMode(prev => prev === 'official' ? 'direct' : 'official');
+                setPlayerMode((prev) => (prev === 'official' ? 'direct' : 'official'));
               }}
-              className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-[9px] font-mono font-bold border border-white/20 backdrop-blur-md flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-md"
-              title="Chuyển đổi giữa trình phát TikTok Player & Luồng video trực tiếp"
+              className="px-2.5 py-1 rounded-full bg-black/80 hover:bg-white/20 text-white text-[9px] font-mono font-bold border border-white/20 backdrop-blur-md flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-md"
+              title="Đổi giữa TikTok Player chính thức và Luồng MP4 Siêu Mượt"
             >
               <RefreshCw className="w-2.5 h-2.5 text-cyan-300" />
-              <span>{playerMode === 'official' ? 'TikTok Player' : 'Luồng Stream'}</span>
+              <span>{showDirectMp4 ? 'MP4 Mượt' : 'TikTok Player'}</span>
             </button>
           )}
         </div>
 
         <div className="flex items-center gap-1.5 pointer-events-auto">
-          {/* Nút Bật / Tắt Tiếng */}
           <button
             type="button"
             onClick={handleToggleSound}
             className={`py-1 px-2.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1.5 ${
-              internalMuted 
-                ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 hover:bg-rose-500/40 animate-pulse' 
-                : 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/40'
+              internalMuted
+                ? 'bg-rose-500/30 text-rose-200 border-rose-500/50 hover:bg-rose-500/45'
+                : 'bg-emerald-500/30 text-emerald-200 border-emerald-500/50 hover:bg-emerald-500/45'
             }`}
             title={internalMuted ? 'Bấm để bật âm thanh video TikTok' : 'Bấm để tắt tiếng'}
           >
-            {internalMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-300" />}
+            {internalMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
             <span className="text-[10px] font-mono font-bold">
-              {internalMuted ? 'Bật Tiếng' : 'Âm Thanh Bật'}
+              {internalMuted ? 'Bật Tiếng' : 'Có Tiếng'}
             </span>
           </button>
 
-          {/* Mở TikTok gốc */}
           <a
             href={finalOpenUrl}
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="p-1.5 rounded-full bg-black/80 hover:bg-rose-600 text-white backdrop-blur-md transition-all cursor-pointer border border-white/20 active:scale-95 flex items-center justify-center shadow-lg"
-            title="Mở trên TikTok"
+            title="Mở trực tiếp trên TikTok"
           >
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
       </div>
 
-      {/* 2. FLOATING CENTER PROMPT KHI VIDEO BỊ TẮT TIẾNG */}
-      {internalMuted && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
-          <button
-            type="button"
-            onClick={handleToggleSound}
-            className="px-4 py-2.5 rounded-2xl bg-rose-600/90 hover:bg-rose-500 text-white font-bold text-xs shadow-2xl flex items-center gap-2 border border-rose-300/40 pointer-events-auto cursor-pointer animate-pulse active:scale-95 transition-all backdrop-blur-md"
-          >
-            <Volume2 className="w-4 h-4 text-amber-300" />
-            <span>🔊 Bấm để Bật Âm Thanh Video TikTok</span>
-          </button>
-        </div>
-      )}
-
-      {/* 3. KHUNG PHÁT VIDEO CHÍNH THỨC */}
+      {/* 2. KHUNG PHÁT VIDEO CHÍNH THỨC */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
-        {shouldRenderIframe ? (
-          /* TRÌNH PHÁT TIKTOK EMBED CHÍNH THỨC (EMBED/V2 KHÔNG LỖI XÁC THỰC) */
+        {showDirectMp4 ? (
+          <div
+            className="relative w-full h-full flex items-center justify-center bg-black cursor-pointer"
+            onClick={handleTogglePlay}
+          >
+            <video
+              ref={videoRef}
+              key={`tt-mp4-${directMp4Src}`}
+              src={directMp4Src!}
+              poster={resolvedCover || undefined}
+              playsInline
+              {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' }}
+              autoPlay={autoPlay}
+              loop
+              muted={internalMuted}
+              onError={() => {
+                setMp4Failed(true);
+                setPlayerMode('official');
+              }}
+              className="w-full h-full object-contain bg-black"
+            />
+            {!isPlaying && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                <div className="w-16 h-16 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-2xl border border-white/30">
+                  <Play className="w-8 h-8 fill-white ml-1" />
+                </div>
+              </div>
+            )}
+          </div>
+        ) : showOfficialIframe ? (
           <iframe
             ref={iframeRef}
-            key={`tt-embed-v2-${effectiveId}`}
+            key={`tt-player-v1-${effectiveId}`}
             src={officialPlayerUrl!}
-            title={title}
-            allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
+            title={displayTitle}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
             allowFullScreen
             referrerPolicy="no-referrer-when-downgrade"
-            onError={() => setHasIframeError(true)}
+            onLoad={() => triggerPlayAndSound(internalMuted)}
+            onError={() => {
+              setHasIframeError(true);
+              if (directMp4Src) setPlayerMode('direct');
+            }}
             className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"
             style={{ width: '100%', height: '100%', border: 'none' }}
           />
         ) : (
-          /* LUỒNG PHÁT VIDEO TRỰC TIẾP HTML5 ĐẢM BẢO 100% PHÁT TỰ ĐỘNG TRÊN DI ĐỘNG & MÁY TÍNH */
-          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-            <video
-              ref={videoRef}
-              src={activeStreamSrc}
-              playsInline
-              autoPlay
-              loop
-              muted={internalMuted}
-              className="w-full h-full object-cover z-0 pointer-events-auto"
-            />
-
-            {/* Darkening Gradient & Ambient Glow */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
-
-            {/* Creator Watermark & Info */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 pointer-events-none">
-              <div 
-                className="w-20 h-20 rounded-full border-2 border-rose-500 overflow-hidden shadow-2xl p-0.5 bg-gradient-to-tr from-[#FF0050] to-[#00F2FE] mb-3 animate-pulse pointer-events-auto cursor-pointer"
-                onClick={() => window.open(finalOpenUrl, '_blank')}
+          <div className="relative w-full h-full flex flex-col items-center justify-center text-center p-6 bg-gradient-to-b from-[#140814] via-[#090B12] to-black">
+            {resolvedCover && (
+              <img
+                src={resolvedCover}
+                alt={displayName}
+                referrerPolicy="no-referrer"
+                className="absolute inset-0 w-full h-full object-cover opacity-25 blur-sm"
+              />
+            )}
+            <div className="relative z-10 flex flex-col items-center space-y-3 max-w-xs">
+              <div
+                className="w-20 h-20 rounded-full border-2 border-rose-500 overflow-hidden shadow-2xl p-0.5 bg-gradient-to-tr from-[#FF0050] to-[#00F2FE] cursor-pointer"
+                onClick={() => window.open(finalOpenUrl, '_blank', 'noopener,noreferrer')}
               >
-                <img 
-                  src={getTikTokAvatar(cleanHandle)} 
-                  alt={cleanHandle}
+                <img
+                  src={resolvedAvatar || getPlatformAvatar('tiktok', cleanHandle)}
+                  alt={displayName}
+                  referrerPolicy="no-referrer"
                   onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle || 'TT')}&background=010101&color=fff&bold=true`;
+                    (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=010101&color=fff&bold=true&size=128`;
                   }}
-                  className="w-full h-full rounded-full object-cover"
+                  className="w-full h-full rounded-full object-cover bg-slate-900"
                 />
               </div>
 
-              <h4 className="text-white font-black text-base drop-shadow-md flex items-center gap-1.5">
-                <span>@{cleanHandle}</span>
-                <CheckCircle2 className="w-4 h-4 text-cyan-400 fill-cyan-400/20" />
+              <h4 className="text-white font-black text-base flex items-center gap-1.5">
+                <span className="truncate max-w-[220px]">{displayName}</span>
+                <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
               </h4>
 
-              <p className="text-slate-300 text-xs font-mono max-w-xs drop-shadow-sm truncate mt-1">
-                {title || finalOpenUrl}
-              </p>
-
-              {isResolving && (
-                <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-full bg-black/60 border border-white/20 text-rose-300 text-[10px] font-mono">
-                  <Loader2 className="w-3 h-3 animate-spin text-rose-400" />
-                  <span>Đang kết nối luồng video TikTok...</span>
+              {isResolving ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/70 border border-white/20 text-rose-300 text-[11px] font-mono">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
+                  <span>Đang phân giải link video TikTok...</span>
                 </div>
+              ) : (
+                <p className="text-slate-300 text-xs font-mono leading-relaxed">
+                  Hãy dán link video TikTok cụ thể (VD: tiktok.com/@tenkenh/video/... hoặc link chia sẻ vt.tiktok.com/...) để phát ngay trên mọi thiết bị.
+                </p>
               )}
 
-              <div className="pt-4 pointer-events-auto">
-                <a
-                  href={finalOpenUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-rose-500 hover:from-rose-500 hover:to-pink-500 text-white text-xs font-bold shadow-lg flex items-center gap-2 border border-rose-400/40 cursor-pointer active:scale-95 transition-all"
-                >
-                  <Play className="w-3.5 h-3.5 fill-white" />
-                  <span>Mở Xem Kênh Trên TikTok</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
+              <a
+                href={finalOpenUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-rose-500 hover:brightness-110 text-white text-xs font-bold shadow-lg flex items-center gap-2 border border-rose-400/40 cursor-pointer active:scale-95 transition-all"
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span>Mở Xem Trên TikTok</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
           </div>
         )}
       </div>
 
-      {/* 4. BOTTOM INFO BAR */}
-      <div className="absolute bottom-0 inset-x-0 z-20 p-3 bg-gradient-to-t from-black/95 via-black/70 to-transparent flex items-center justify-between text-[11px] font-mono pointer-events-none">
-        <div className="text-white font-bold flex items-center gap-1.5 pointer-events-auto">
-          <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-          <span className="truncate max-w-[200px]">{title || `@${cleanHandle}`}</span>
+      {/* 3. BOTTOM STATUS STRIP */}
+      <div className="absolute bottom-0 inset-x-0 z-20 px-3 py-2 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-center justify-between text-[10px] font-mono pointer-events-none">
+        <div className="text-white/90 font-bold flex items-center gap-1.5 truncate max-w-[65%]">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+          <span className="truncate">{displayName}</span>
         </div>
-
-        <div className="pointer-events-auto">
-          <span className="px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-bold border border-rose-500/30 flex items-center gap-1 shadow-sm">
-            <ShieldCheck className="w-3 h-3 text-emerald-400" />
-            <span>Phát Thật 100%</span>
-          </span>
-        </div>
+        <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 flex items-center gap-1 shrink-0">
+          <ShieldCheck className="w-3 h-3 text-emerald-400" />
+          <span>{showDirectMp4 ? 'MP4 Thật' : 'TikTok 2026'}</span>
+        </span>
       </div>
     </div>
   );

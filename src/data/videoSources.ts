@@ -94,7 +94,9 @@ export function detectPlatform(rawUrl: string): 'tiktok' | 'facebook' | 'youtube
     clean.includes('fb.watch') || 
     clean.includes('fb.com') || 
     clean.includes('fb.gg') ||
-    clean.includes('m.facebook.com')
+    clean.includes('m.facebook.com') ||
+    clean.includes('mobile.facebook.com') ||
+    clean.includes('web.facebook.com')
   ) {
     return 'facebook';
   }
@@ -184,34 +186,53 @@ export function extractTikTokHandle(rawUrlOrHandle: string): string {
   return `@${clean}`;
 }
 
-// Hàm trích xuất Video ID từ TikTok URL (hỗ trợ tất cả định dạng di động & máy tính)
+// Nhận diện chính xác link Livestream thật (TUYỆT ĐỐI KHÔNG nhận nhầm username chứa chữ 'live' như @avalive, @oliver...)
+export function isLiveMediaUrl(rawUrl: string): boolean {
+  if (!rawUrl) return false;
+  const clean = sanitizeMediaUrl(rawUrl);
+  // Nếu rõ ràng là link video hoặc photo TikTok -> KHÔNG phải live
+  if (/tiktok\.com\/.*\/(?:video|photo)\/\d{8,24}/i.test(clean) || /m\.tiktok\.com\/v\/\d+/i.test(clean)) {
+    return false;
+  }
+  return (
+    /tiktok\.com\/@[^\/\?\#]+\/live(?:\/|\?|$)/i.test(clean) ||
+    /live\.tiktok\.com\//i.test(clean) ||
+    /tiktok\.com\/live(?:\/|\?|$)/i.test(clean) ||
+    /[?&]room_id=\d+/i.test(clean) ||
+    /webcast\.tiktok\.com/i.test(clean) ||
+    /youtube\.com\/live\/[a-zA-Z0-9_-]{11}/i.test(clean) ||
+    /youtube\.com\/(?:@[^\/\?\#]+|channel\/[^\/\?\#]+)\/live(?:\/|\?|$)/i.test(clean) ||
+    /facebook\.com\/[^\/\?\#]+\/live(?:\/|\?|$)/i.test(clean) ||
+    /facebook\.com\/watch\/live/i.test(clean) ||
+    /facebook\.com\/live\/producer/i.test(clean) ||
+    /\/livestream(?:\/|\?|$)/i.test(clean) ||
+    /\.m3u8(?:\?.*)?$/i.test(clean)
+  );
+}
+
+// Hàm trích xuất Video ID từ TikTok URL (hỗ trợ tất cả định dạng di động, tablet & máy tính: /video/, /photo/, /v/, /player/v1/)
 export function extractTikTokVideoId(rawUrl: string): string | null {
   if (!rawUrl) return null;
   const clean = sanitizeMediaUrl(rawUrl);
-  
-  // Bỏ qua nếu là link live stream (room_id / livestream không phải là video_id)
-  if (
-    clean.includes('/live') || 
-    clean.toLowerCase().includes('live') || 
-    clean.includes('room_id') || 
-    clean.includes('webcast')
-  ) {
+
+  // Bỏ qua nếu là link live stream thật (room_id / livestream không phải là video_id)
+  if (isLiveMediaUrl(clean)) {
     return null;
   }
-  
+
   // 1. Dạng số thuần túy (10-24 chữ số)
   if (/^\d{10,24}$/.test(clean)) {
     return clean;
   }
-  
-  // 2. /video/12345... hoặc /v/12345... hoặc /embed/v2/12345... hoặc /share/video/12345...
-  const match = clean.match(/\/(?:video|v|embed\/v2|embed|player\/v1|share\/video)\/(\d{10,24})/i);
+
+  // 2. /video/12345..., /photo/12345..., /v/12345..., /embed/v2/..., /player/v1/..., /share/video/...
+  const match = clean.match(/\/(?:video|photo|v|embed\/v2|embed|player\/v1|share\/video)\/(\d{10,24})/i);
   if (match && match[1]) {
     return match[1];
   }
 
-  // 3. Query param ?item_id=123... hoặc ?video_id=123... hoặc &id=123...
-  const paramMatch = clean.match(/[?&](?:item_id|video_id|mid|id)=(\d{10,24})/i);
+  // 3. Query param ?item_id=123... hoặc ?video_id=123... hoặc ?aweme_id=123...
+  const paramMatch = clean.match(/[?&](?:item_id|video_id|aweme_id|mid|id)=(\d{10,24})/i);
   if (paramMatch && paramMatch[1]) {
     return paramMatch[1];
   }
@@ -222,15 +243,15 @@ export function extractTikTokVideoId(rawUrl: string): string | null {
     return mobileMatch[1];
   }
 
-  // 5. Fallback bất kỳ /video/ hoặc /v/ kèm chữ số
-  const matchAny = clean.match(/\/(?:video|v)\/(\d+)/i);
+  // 5. Fallback bất kỳ /video/ hoặc /photo/ hoặc /v/ kèm chữ số
+  const matchAny = clean.match(/\/(?:video|photo|v)\/(\d+)/i);
   if (matchAny && matchAny[1] && matchAny[1].length >= 8) {
     return matchAny[1];
   }
 
-  // 6. Chuỗi bất kỳ chứa dãy số 12-24 chữ số trong URL tiktok
+  // 6. Chuỗi bất kỳ chứa dãy số 15-24 chữ số trong URL tiktok
   if (clean.includes('tiktok.com')) {
-    const longDigits = clean.match(/(\d{12,24})/);
+    const longDigits = clean.match(/(\d{15,24})/);
     if (longDigits && longDigits[1]) {
       return longDigits[1];
     }
@@ -269,15 +290,7 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
   const cleanHandle = handle.replace(/^@+/, '');
 
   const lowerUrl = url.toLowerCase();
-  const isLive = /\/(live|livestream)($|\/|\?)/i.test(url) || 
-    /tiktok\.com\/@[\w\.-]+\/live/i.test(url) || 
-    /tiktok\.com\/live/i.test(url) ||
-    /youtube\.com\/(?:.*\/live|live\/[\w\-]+)/i.test(url) ||
-    /facebook\.com\/.*\/live/i.test(url) ||
-    /facebook\.com\/watch\/live/i.test(url) ||
-    /fb\.watch\/.*live/i.test(url) ||
-    lowerUrl.includes('/live') ||
-    lowerUrl.includes('/livestream');
+  const isLive = isLiveMediaUrl(url);
   const isYouTube = lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be');
   const isFacebook = lowerUrl.includes('facebook.com') || lowerUrl.includes('fb.watch') || lowerUrl.includes('fb.com') || lowerUrl.includes('fb.gg');
   const isDirectVideo = /\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i.test(url);
@@ -331,7 +344,7 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
     channelName = `@${cleanHandle}`;
     channelUrl = `https://www.tiktok.com/@${cleanHandle}`;
     if (videoId) {
-      embedUrl = `https://www.tiktok.com/embed/v2/${videoId}`;
+      embedUrl = `https://www.tiktok.com/player/v1/${videoId}?embed_from=oembed&music_info=1&description=1&autoplay=1&muted=1&loop=1&controls=1`;
       sourceType = 'tiktok_embed';
       streamUrl = url;
     } else if (isLive) {
@@ -389,6 +402,8 @@ export function parseMediaUrl(inputUrl: string, defaultHandle?: string): ParsedM
 // ===== BỘ PHÂN GIẢI TÊN KÊNH & LOGO KÊNH THẬT 100% ĐA NỀN TẢNG (YOUTUBE, FACEBOOK, TIKTOK) =====
 export interface ResolvedMediaChannelMeta {
   platform: 'tiktok' | 'facebook' | 'youtube' | 'direct';
+  channelId?: string | null;
+  videoId?: string | null;
   channelName: string;
   channelHandle: string;
   channelUrl: string;
@@ -444,9 +459,11 @@ export async function resolveRealMediaChannelMeta(rawUrl: string): Promise<Resol
       const apiRes = await fetch(`/api/resolve-media-meta?url=${encodeURIComponent(cleanUrl)}`);
       if (apiRes.ok) {
         const data = await apiRes.json();
-        if (data && data.success && (data.channelName || data.channelHandle || data.channelAvatar)) {
+        if (data && data.success && (data.channelName || data.channelHandle || data.channelAvatar || data.resolvedUrl)) {
           result = {
             platform: data.platform || platform,
+            channelId: data.channelId || null,
+            videoId: data.videoId || null,
             channelName: data.channelName || data.channelHandle || '',
             channelHandle: data.channelHandle || (data.channelName ? `@${data.channelName}` : ''),
             channelUrl: data.channelUrl || cleanUrl,

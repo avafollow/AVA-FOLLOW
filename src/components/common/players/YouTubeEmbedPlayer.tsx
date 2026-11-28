@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Play, ExternalLink, CheckCircle2, Sparkles } from 'lucide-react';
 
 export interface YouTubeEmbedPlayerProps {
@@ -9,8 +9,8 @@ export interface YouTubeEmbedPlayerProps {
 }
 
 /**
- * Component chuyên biệt: Trình phát YouTube Embed
- * Tách biệt hoàn toàn, xử lý video hoặc live stream từ YouTube với cơ chế fallback 100% Mobile & Desktop
+ * Component chuyên biệt: Trình phát YouTube Embed Đa Thiết Bị (iOS Safari, iPadOS, Android, PC)
+ * Giữ nguyên iframe không reload khi bật/tắt tiếng, hỗ trợ playsinline=1 cho iPhone/iPad.
  */
 export const YouTubeEmbedPlayer: React.FC<YouTubeEmbedPlayerProps> = ({
   youtubeId,
@@ -19,6 +19,25 @@ export const YouTubeEmbedPlayer: React.FC<YouTubeEmbedPlayerProps> = ({
   className = ''
 }) => {
   const [hasError, setHasError] = useState<boolean>(false);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const initialMutedRef = useRef<boolean>(isMuted);
+
+  useEffect(() => {
+    if (!iframeRef.current?.contentWindow) return;
+    try {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func: isMuted ? 'mute' : 'unMute', args: [] }),
+        '*'
+      );
+      if (!isMuted) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }),
+          '*'
+        );
+      }
+    } catch {}
+  }, [isMuted]);
+
   if (!youtubeId) return null;
 
   const directUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
@@ -81,10 +100,11 @@ export const YouTubeEmbedPlayer: React.FC<YouTubeEmbedPlayerProps> = ({
   return (
     <div className={`relative w-full h-full bg-black flex items-center justify-center overflow-hidden rounded-3xl ${className}`}>
       <iframe
-        key={`yt-embed-${youtubeId}-${isMuted}`}
-        src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`}
+        ref={iframeRef}
+        key={`yt-embed-${youtubeId}`}
+        src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=${initialMutedRef.current ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${youtubeId}&modestbranding=1&rel=0&enablejsapi=1`}
         title={title}
-        allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
         allowFullScreen
         onError={() => setHasError(true)}
         className="w-full h-full border-0 bg-black pointer-events-auto rounded-3xl"

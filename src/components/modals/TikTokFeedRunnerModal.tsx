@@ -39,6 +39,7 @@ import {
   getCachedMediaChannelMeta,
   isGenericPlaceholderHandle,
   sanitizeMediaUrl,
+  isLiveMediaUrl,
   type ResolvedMediaChannelMeta
 } from '../../data/videoSources';
 import {
@@ -312,11 +313,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     const testChannelName = cachedTestMeta?.channelName || (!isGenericPlaceholderHandle(parsedTest.channelName) ? parsedTest.channelName : (testPlatform === 'youtube' ? 'Kênh YouTube' : testPlatform === 'facebook' ? 'Fanpage Facebook' : 'Kênh TikTok'));
     const testChannelHandle = cachedTestMeta?.channelHandle || (!isGenericPlaceholderHandle(parsedTest.handle) ? parsedTest.handle : testChannelName);
     const testAvatar = cachedTestMeta?.channelAvatar || getPlatformAvatar(testPlatform, testChannelHandle);
+    const testIsLive = isLiveMediaUrl(feedRunnerTargetId);
     return {
       id: `test_top1_${feedRunnerTargetId}`,
-      kind: (feedRunnerTargetId.includes('/live') || feedRunnerTargetId.toLowerCase().includes('live')) ? 'livestream' : 'video',
+      kind: testIsLive ? 'livestream' : 'video',
       title: cachedTestMeta?.videoTitle ? `🔥 [ĐANG XEM THỬ #1] ${cachedTestMeta.videoTitle}` : `🔥 [ĐANG XEM THỬ #1] ${testChannelName}`,
-      type: (feedRunnerTargetId.includes('/live') || feedRunnerTargetId.toLowerCase().includes('live')) ? 'livestream' : 'watch',
+      type: testIsLive ? 'livestream' : 'watch',
       requiresWatch: false,
       channelName: testChannelName,
       channelHandle: testChannelHandle,

@@ -1,6 +1,6 @@
-import React from 'react';
-import { Users, ExternalLink, Radio, Volume2, VolumeX, ShieldCheck, Play } from 'lucide-react';
-import { extractYouTubeVideoId, extractTikTokHandle } from '../../../data/videoSources';
+import React, { useState, useEffect, useRef } from 'react';
+import { ExternalLink, Radio, Volume2, VolumeX, ShieldCheck, Play } from 'lucide-react';
+import { extractYouTubeVideoId, extractTikTokHandle, resolveRealMediaChannelMeta } from '../../../data/videoSources';
 
 export interface YouTubeLiveEmbedPlayerProps {
   youtubeId?: string;
@@ -13,8 +13,8 @@ export interface YouTubeLiveEmbedPlayerProps {
 }
 
 /**
- * Component chuyên biệt: Trình phát LIVE YOUTUBE THẬT 100% (Đa thiết bị: iOS, Android, PC)
- * Hỗ trợ URL video live, URL kênh @handle/live, hoặc ID video 11 ký tự.
+ * Component chuyên biệt: Trình phát LIVE YOUTUBE THẬT 100% (Đa thiết bị: iOS, iPad, Android, PC)
+ * Hỗ trợ URL video live, URL kênh @handle/live (tự phân giải Channel ID UC...), hoặc ID video 11 ký tự.
  */
 export const YouTubeLiveEmbedPlayer: React.FC<YouTubeLiveEmbedPlayerProps> = ({
   youtubeId,
@@ -25,16 +25,49 @@ export const YouTubeLiveEmbedPlayer: React.FC<YouTubeLiveEmbedPlayerProps> = ({
   onToggleMute,
   className = ''
 }) => {
+  const [resolvedChannelId, setResolvedChannelId] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const initialMutedRef = useRef<boolean>(isMuted);
+
   const resolvedId = youtubeId || (targetUrl ? extractYouTubeVideoId(targetUrl) : null);
   const handle = channelHandle || (targetUrl ? extractTikTokHandle(targetUrl) : '@creator');
   const cleanHandle = (handle || '').replace(/^@+/, '');
 
+  // Phân giải UC... channelId khi người dùng dán link dạng youtube.com/@tenkenh/live
+  useEffect(() => {
+    let active = true;
+    if (resolvedId || !targetUrl) return;
+    const directCid = targetUrl.match(/youtube\.com\/channel\/(UC[a-zA-Z0-9_-]+)/i);
+    if (directCid && directCid[1]) {
+      setResolvedChannelId(directCid[1]);
+      return;
+    }
+    resolveRealMediaChannelMeta(targetUrl)
+      .then((meta) => {
+        if (active && meta?.channelId) {
+          setResolvedChannelId(meta.channelId);
+        }
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [resolvedId, targetUrl]);
+
+  useEffect(() => {
+    if (!iframeRef.current?.contentWindow) return;
+    try {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func: isMuted ? 'mute' : 'unMute', args: [] }),
+        '*'
+      );
+    } catch {}
+  }, [isMuted]);
+
   const directUrl = targetUrl || (resolvedId ? `https://www.youtube.com/watch?v=${resolvedId}` : (cleanHandle ? `https://www.youtube.com/@${cleanHandle}/live` : 'https://www.youtube.com'));
 
   const embedSrc = resolvedId
-    ? `https://www.youtube.com/embed/${resolvedId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1&loop=1&playlist=${resolvedId}&modestbranding=1&rel=0&enablejsapi=1`
-    : (cleanHandle
-      ? `https://www.youtube.com/embed/live_stream?channel=${cleanHandle}&autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=1`
+    ? `https://www.youtube.com/embed/${resolvedId}?autoplay=1&mute=${initialMutedRef.current ? 1 : 0}&playsinline=1&controls=1&modestbranding=1&rel=0&enablejsapi=1`
+    : (resolvedChannelId
+      ? `https://www.youtube.com/embed/live_stream?channel=${resolvedChannelId}&autoplay=1&mute=${initialMutedRef.current ? 1 : 0}&playsinline=1&controls=1&enablejsapi=1`
       : null);
 
   return (
@@ -89,10 +122,11 @@ export const YouTubeLiveEmbedPlayer: React.FC<YouTubeLiveEmbedPlayerProps> = ({
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
         {embedSrc ? (
           <iframe
-            key={`yt-live-${resolvedId || cleanHandle}-${isMuted}`}
+            ref={iframeRef}
+            key={`yt-live-${resolvedId || resolvedChannelId || cleanHandle}`}
             src={embedSrc}
             title={title}
-            allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share; fullscreen"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
             allowFullScreen
             className="w-full h-full border-0 bg-black pointer-events-auto object-cover"
             style={{ width: '100%', height: '100%', border: 'none' }}

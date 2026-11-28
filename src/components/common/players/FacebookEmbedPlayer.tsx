@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, ExternalLink, CheckCircle2, Sparkles, Volume2, VolumeX } from 'lucide-react';
-import { extractTikTokHandle, getPlatformAvatar } from '../../../data/videoSources';
+import { extractTikTokHandle, getPlatformAvatar, resolveRealMediaChannelMeta } from '../../../data/videoSources';
 
 export interface FacebookEmbedPlayerProps {
   url: string;
@@ -24,12 +24,30 @@ export const FacebookEmbedPlayer: React.FC<FacebookEmbedPlayerProps> = ({
 }) => {
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const [hasError, setHasError] = useState<boolean>(false);
+  const [resolvedFbUrl, setResolvedFbUrl] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const fbPlayerInstanceRef = useRef<any>(null);
 
   useEffect(() => {
     setInternalMuted(isMuted);
   }, [isMuted]);
+
+  // Tự động phân giải link chia sẻ di động Facebook (fb.watch, facebook.com/share/v/, /share/r/, m.facebook.com)
+  useEffect(() => {
+    let active = true;
+    setResolvedFbUrl(null);
+    if (!url) return;
+    if (/fb\.watch|facebook\.com\/share\/|m\.facebook\.com|mobile\.facebook\.com/i.test(url)) {
+      resolveRealMediaChannelMeta(url)
+        .then((meta) => {
+          if (active && meta?.resolvedUrl && meta.resolvedUrl.includes('facebook.com')) {
+            setResolvedFbUrl(meta.resolvedUrl);
+          }
+        })
+        .catch(() => {});
+    }
+    return () => { active = false; };
+  }, [url]);
 
   // Lắng nghe sự kiện từ Facebook SDK nếu có sẵn trên trang
   useEffect(() => {
@@ -50,9 +68,9 @@ export const FacebookEmbedPlayer: React.FC<FacebookEmbedPlayerProps> = ({
 
   if (!url) return null;
 
-  const normalizedUrl = url
+  const normalizedUrl = (resolvedFbUrl || url)
     .replace('facebook.com/@', 'facebook.com/')
-    .replace('m.facebook.com', 'www.facebook.com');
+    .replace(/https?:\/\/(?:m|mobile|web)\.facebook\.com/i, 'https://www.facebook.com');
 
   const handle = extractTikTokHandle(normalizedUrl);
   const cleanHandle = handle.replace(/^@+/, '');

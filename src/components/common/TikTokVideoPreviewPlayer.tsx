@@ -21,7 +21,8 @@ import {
   ParsedMediaInfo,
   getPlatformAvatar,
   resolveRealMediaChannelMeta,
-  ResolvedMediaChannelMeta
+  ResolvedMediaChannelMeta,
+  isLiveMediaUrl
 } from '../../data/videoSources';
 import { useTikTokApp } from '../../context/TikTokAppContext';
 import {
@@ -66,7 +67,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
 }) => {
   const { openFeedRunner } = useTikTokApp();
   const mediaInfo: ParsedMediaInfo = parseMediaUrl(url, channelHandle);
-  const effectiveIsLive = isLive || mediaInfo.isLive || (Boolean(url) && (url.toLowerCase().includes('live') || url.toLowerCase().includes('livestream')));
+  const effectiveIsLive = isLive || mediaInfo.isLive || isLiveMediaUrl(url);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState<boolean>(autoPlay);
@@ -220,12 +221,12 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             className="pb-16"
           />
         ) : mediaInfo.isTikTok || url.includes('tiktok.com') || (!isYouTube && !isFacebook && !isDirectVideo) ? (
-          /* TAB 4: TIKTOK VIDEO EMBED PLAYER (THẬT 100% TỪ LINK) */
+          /* TAB 4: TIKTOK VIDEO EMBED PLAYER (THẬT 100% TỪ LINK - ĐA THIẾT BỊ) */
           <TikTokVideoEmbedPlayer
-            key={'preview_tt_' + encodeURIComponent(url)}
-            videoId={mediaInfo.videoId}
-            directUrl={url}
-            title={mediaInfo.title}
+            key={'preview_tt_' + encodeURIComponent(resolvedMeta?.resolvedUrl || url)}
+            videoId={mediaInfo.videoId || resolvedMeta?.videoId || undefined}
+            directUrl={resolvedMeta?.resolvedUrl || url}
+            title={resolvedMeta?.videoTitle || mediaInfo.title}
             isMuted={isMuted}
             onToggleMute={toggleMute}
           />

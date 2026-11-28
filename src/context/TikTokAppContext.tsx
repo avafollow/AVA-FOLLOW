@@ -1082,89 +1082,119 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [user]);
 
   useEffect(() => {
+    const activeCount = (campaigns || []).filter(c => c.status === 'running' || c.status === 'pending').length;
     setAdminData(prev => {
+      const nextTotal = Math.max(prev.totalRegisteredUsers || 100, 100);
+      if (prev.totalRegisteredUsers === nextTotal && prev.activeCampaignsCount === activeCount) {
+        return prev;
+      }
       return {
         ...prev,
-        totalRegisteredUsers: Math.max(prev.totalRegisteredUsers || 100, 100),
-        activeCampaignsCount: (campaigns || []).filter(c => c.status === 'running' || c.status === 'pending').length
+        totalRegisteredUsers: nextTotal,
+        activeCampaignsCount: activeCount
       };
     });
-  }, [user.avaliveCoins, user.rankLevel, user.kycStatus, user.tiktokConnected, user.tiktokFollowers, user.completedTasksCount, user.name, user.email, user.transactions, user.myOrders, campaigns.length, escrowBookings.length]);
+  }, [campaigns.length]);
 
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('ava_campaigns', JSON.stringify(campaigns));
-      }
-      syncCampaignsToSupabase(campaigns);
-    } catch {}
+    const t = setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_campaigns', JSON.stringify(campaigns));
+        }
+        syncCampaignsToSupabase(campaigns);
+      } catch {}
+    }, 1200);
+    return () => clearTimeout(t);
   }, [campaigns]);
 
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('ava_tasks', JSON.stringify(tasks));
-        localStorage.setItem('ava_livestream_tasks', JSON.stringify(livestreamTasks));
-      }
-      syncTasksToSupabase(tasks, livestreamTasks);
-    } catch {}
+    const t = setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_tasks', JSON.stringify(tasks));
+          localStorage.setItem('ava_livestream_tasks', JSON.stringify(livestreamTasks));
+        }
+        syncTasksToSupabase(tasks, livestreamTasks);
+      } catch {}
+    }, 1200);
+    return () => clearTimeout(t);
   }, [tasks, livestreamTasks]);
 
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('ava_growth_packages', JSON.stringify(growthServices));
-      }
-    } catch {}
+    const t = setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_growth_packages', JSON.stringify(growthServices));
+        }
+      } catch {}
+    }, 1000);
+    return () => clearTimeout(t);
   }, [growthServices]);
 
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('ava_admin_users', JSON.stringify(adminUsers));
-      }
-    } catch {}
+    const t = setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_admin_users', JSON.stringify(adminUsers));
+        }
+      } catch {}
+    }, 1200);
+    return () => clearTimeout(t);
   }, [adminUsers]);
 
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('ava_affiliate_data', JSON.stringify(affiliateData));
-        const currentEmail = (user.email || localStorage.getItem('ava_user_email') || '').toLowerCase().trim();
-        if (currentEmail) {
-          localStorage.setItem(`ava_affiliate_data_${currentEmail}`, JSON.stringify(affiliateData));
+    const t = setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_affiliate_data', JSON.stringify(affiliateData));
+          const currentEmail = (user.email || localStorage.getItem('ava_user_email') || '').toLowerCase().trim();
+          if (currentEmail) {
+            localStorage.setItem(`ava_affiliate_data_${currentEmail}`, JSON.stringify(affiliateData));
+          }
         }
-      }
-      syncAffiliateToSupabase(affiliateData);
-    } catch {}
+        syncAffiliateToSupabase(affiliateData);
+      } catch {}
+    }, 1500);
+    return () => clearTimeout(t);
   }, [affiliateData, user.email]);
 
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('ava_escrow_bookings', JSON.stringify(escrowBookings));
-      }
-    } catch {}
+    const t = setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_escrow_bookings', JSON.stringify(escrowBookings));
+        }
+      } catch {}
+    }, 1000);
+    return () => clearTimeout(t);
   }, [escrowBookings]);
 
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('ava_admin_data', JSON.stringify(adminData));
-      }
-    } catch {}
+    const t = setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_admin_data', JSON.stringify(adminData));
+        }
+      } catch {}
+    }, 1000);
+    return () => clearTimeout(t);
   }, [adminData]);
 
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('ava_tokenomics_data', JSON.stringify(tokenomics));
-      }
-    } catch {}
+    const t = setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ava_tokenomics_data', JSON.stringify(tokenomics));
+        }
+      } catch {}
+    }, 1000);
+    return () => clearTimeout(t);
   }, [tokenomics]);
 
-  // Master Snapshot Backup Định kỳ lên Supabase
+  // Master Snapshot Backup Định kỳ lên Supabase (Debounce 15s tránh nghẽn mạng & đứng giao diện)
   useEffect(() => {
+    if (!user.email) return;
     const backupTimer = setTimeout(() => {
       syncMasterSnapshotToSupabase({
         user,
@@ -1176,9 +1206,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         affiliateData,
         adminData
       });
-    }, 4000);
+    }, 15000);
     return () => clearTimeout(backupTimer);
-  }, [user, adminUsers.length, campaigns.length, tasks.length]);
+  }, [user.avaliveCoins, user.facebookConnected, user.youtubeConnected, user.tiktokConnected, adminUsers.length, campaigns.length, tasks.length]);
 
   // ĐỒNG BỘ ĐA THIẾT BỊ REAL-TIME TỪ SUPABASE CLOUD (MÁY TÍNH, ĐIỆN THOẠI, TABLET, TẤT CẢ TÀI KHOẢN)
   useEffect(() => {
@@ -1359,8 +1389,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     loadCloudData();
 
-    // Polling định kỳ mỗi 60 giây (tối ưu hóa tài nguyên CPU & RAM cho trải nghiệm mượt mà)
-    const cloudInterval = setInterval(loadCloudData, 60000);
+    // Polling định kỳ mỗi 180 giây (3 phút) và tạm dừng khi ẩn tab để giải phóng tối đa CPU/RAM
+    const cloudInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      loadCloudData();
+    }, 180000);
     return () => {
       isMounted = false;
       clearInterval(cloudInterval);

@@ -50,6 +50,19 @@ function apiDevMiddleware(): Plugin {
 
 export default defineConfig({
   plugins: [react(), apiDevMiddleware()],
+  build: {
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-lucide': ['lucide-react'],
+          'vendor-hls': ['hls.js']
+        }
+      }
+    }
+  },
   server: {
     port: 3000,
     host: true

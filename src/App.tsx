@@ -1,61 +1,69 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { ScreenId } from './types';
 import { TikTokAppProvider, useTikTokApp } from './context/TikTokAppContext';
 
-// Landing Page Outside
-import { LandingPage } from './components/landing/LandingPage';
-import { AuthModal } from './components/modals/AuthModal';
+// Landing Page Outside (Lazy-loaded to shrink initial bundle)
+const LandingPage = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
+const AuthModal = lazy(() => import('./components/modals/AuthModal').then(m => ({ default: m.AuthModal })));
 
-// Layout
+// Layout (Keep lightweight shell eager)
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { MobileNav } from './components/layout/MobileNav';
-import { CommandPalette } from './components/layout/CommandPalette';
 
-// Dedicated Screens
-import { HomeScreen } from './components/screens/HomeScreen';
-import { TasksScreen } from './components/screens/TasksScreen';
-import { CreateCampaignScreen } from './components/screens/CreateCampaignScreen';
-import { MarketplaceScreen } from './components/screens/MarketplaceScreen';
-import { AffiliateScreen } from './components/screens/AffiliateScreen';
-import { CommunityScreen } from './components/screens/CommunityScreen';
-import { ProfileWalletScreen } from './components/screens/ProfileWalletScreen';
-import { AdminScreen } from './components/screens/AdminScreen';
-import { AnalyticsScreen } from './components/screens/AnalyticsScreen';
-import { TokenomicsScreen } from './components/screens/TokenomicsScreen';
-import { BookingEscrowScreen } from './components/screens/BookingEscrowScreen';
-import { BusinessPortalScreen } from './components/screens/BusinessPortalScreen';
-import { AppMarketplaceScreen } from './components/screens/AppMarketplaceScreen';
-import { PolicyGuideScreen } from './components/screens/PolicyGuideScreen';
+// Dedicated Screens (Code-split per route so mobile loads ultra-fast)
+const HomeScreen = lazy(() => import('./components/screens/HomeScreen').then(m => ({ default: m.HomeScreen })));
+const TasksScreen = lazy(() => import('./components/screens/TasksScreen').then(m => ({ default: m.TasksScreen })));
+const CreateCampaignScreen = lazy(() => import('./components/screens/CreateCampaignScreen').then(m => ({ default: m.CreateCampaignScreen })));
+const MarketplaceScreen = lazy(() => import('./components/screens/MarketplaceScreen').then(m => ({ default: m.MarketplaceScreen })));
+const AffiliateScreen = lazy(() => import('./components/screens/AffiliateScreen').then(m => ({ default: m.AffiliateScreen })));
+const CommunityScreen = lazy(() => import('./components/screens/CommunityScreen').then(m => ({ default: m.CommunityScreen })));
+const ProfileWalletScreen = lazy(() => import('./components/screens/ProfileWalletScreen').then(m => ({ default: m.ProfileWalletScreen })));
+const AdminScreen = lazy(() => import('./components/screens/AdminScreen').then(m => ({ default: m.AdminScreen })));
+const AnalyticsScreen = lazy(() => import('./components/screens/AnalyticsScreen').then(m => ({ default: m.AnalyticsScreen })));
+const TokenomicsScreen = lazy(() => import('./components/screens/TokenomicsScreen').then(m => ({ default: m.TokenomicsScreen })));
+const BookingEscrowScreen = lazy(() => import('./components/screens/BookingEscrowScreen').then(m => ({ default: m.BookingEscrowScreen })));
+const BusinessPortalScreen = lazy(() => import('./components/screens/BusinessPortalScreen').then(m => ({ default: m.BusinessPortalScreen })));
+const AppMarketplaceScreen = lazy(() => import('./components/screens/AppMarketplaceScreen').then(m => ({ default: m.AppMarketplaceScreen })));
+const PolicyGuideScreen = lazy(() => import('./components/screens/PolicyGuideScreen').then(m => ({ default: m.PolicyGuideScreen })));
 
-// Modals
-import { TikTokTaskRunnerModal } from './components/modals/TikTokTaskRunnerModal';
-import { TikTokFeedRunnerModal } from './components/modals/TikTokFeedRunnerModal';
-import { LivestreamRunnerModal } from './components/modals/LivestreamRunnerModal';
-import { LuckyWheelModal } from './components/modals/LuckyWheelModal';
-import { TikTokConnectModal } from './components/modals/TikTokConnectModal';
-import { BankWithdrawModal } from './components/modals/BankWithdrawModal';
-import { KycVerificationModal } from './components/modals/KycVerificationModal';
-import { PolicyGuideModal } from './components/modals/PolicyGuideModal';
-import { PaymentModal } from './components/common/PaymentModal';
-import { SepayUniversalCheckoutModal, SepayCheckoutItem } from './components/modals/SepayUniversalCheckoutModal';
-import { CreateBookingModal } from './components/modals/CreateBookingModal';
-import { SubmitDemoModal } from './components/modals/SubmitDemoModal';
-import { BuyerLiveManagerModal } from './components/modals/BuyerLiveManagerModal';
-import { ShareVideoModal } from './components/modals/ShareVideoModal';
-import { MarqueeBoostModal } from './components/modals/MarqueeBoostModal';
-import { MarqueeHistoryModal } from './components/modals/MarqueeHistoryModal';
-import { FireworksCongratulationModal } from './components/modals/FireworksCongratulationModal';
-import { PwaInstallGuideModal } from './components/modals/PwaInstallGuideModal';
-import { FraudAppealModal } from './components/modals/FraudAppealModal';
-import { TaskHistoryDetailModal } from './components/modals/TaskHistoryDetailModal';
-import { LivestreamBannerPopup } from './components/common/LivestreamBannerPopup';
-import { RecentUserJoinNotification } from './components/common/RecentUserJoinNotification';
+// Modals (Lazy-loaded & mounted ONLY when open — eliminates 20+ idle modal re-renders!)
+const CommandPalette = lazy(() => import('./components/layout/CommandPalette').then(m => ({ default: m.CommandPalette })));
+const TikTokTaskRunnerModal = lazy(() => import('./components/modals/TikTokTaskRunnerModal').then(m => ({ default: m.TikTokTaskRunnerModal })));
+const TikTokFeedRunnerModal = lazy(() => import('./components/modals/TikTokFeedRunnerModal').then(m => ({ default: m.TikTokFeedRunnerModal })));
+const LivestreamRunnerModal = lazy(() => import('./components/modals/LivestreamRunnerModal').then(m => ({ default: m.LivestreamRunnerModal })));
+const LuckyWheelModal = lazy(() => import('./components/modals/LuckyWheelModal').then(m => ({ default: m.LuckyWheelModal })));
+const TikTokConnectModal = lazy(() => import('./components/modals/TikTokConnectModal').then(m => ({ default: m.TikTokConnectModal })));
+const BankWithdrawModal = lazy(() => import('./components/modals/BankWithdrawModal').then(m => ({ default: m.BankWithdrawModal })));
+const KycVerificationModal = lazy(() => import('./components/modals/KycVerificationModal').then(m => ({ default: m.KycVerificationModal })));
+const PolicyGuideModal = lazy(() => import('./components/modals/PolicyGuideModal').then(m => ({ default: m.PolicyGuideModal })));
+const PaymentModal = lazy(() => import('./components/common/PaymentModal').then(m => ({ default: m.PaymentModal })));
+const SepayUniversalCheckoutModal = lazy(() => import('./components/modals/SepayUniversalCheckoutModal').then(m => ({ default: m.SepayUniversalCheckoutModal })));
+import type { SepayCheckoutItem } from './components/modals/SepayUniversalCheckoutModal';
+const CreateBookingModal = lazy(() => import('./components/modals/CreateBookingModal').then(m => ({ default: m.CreateBookingModal })));
+const SubmitDemoModal = lazy(() => import('./components/modals/SubmitDemoModal').then(m => ({ default: m.SubmitDemoModal })));
+const BuyerLiveManagerModal = lazy(() => import('./components/modals/BuyerLiveManagerModal').then(m => ({ default: m.BuyerLiveManagerModal })));
+const ShareVideoModal = lazy(() => import('./components/modals/ShareVideoModal').then(m => ({ default: m.ShareVideoModal })));
+const MarqueeBoostModal = lazy(() => import('./components/modals/MarqueeBoostModal').then(m => ({ default: m.MarqueeBoostModal })));
+const MarqueeHistoryModal = lazy(() => import('./components/modals/MarqueeHistoryModal').then(m => ({ default: m.MarqueeHistoryModal })));
+const FireworksCongratulationModal = lazy(() => import('./components/modals/FireworksCongratulationModal').then(m => ({ default: m.FireworksCongratulationModal })));
+const PwaInstallGuideModal = lazy(() => import('./components/modals/PwaInstallGuideModal').then(m => ({ default: m.PwaInstallGuideModal })));
+const FraudAppealModal = lazy(() => import('./components/modals/FraudAppealModal').then(m => ({ default: m.FraudAppealModal })));
+const TaskHistoryDetailModal = lazy(() => import('./components/modals/TaskHistoryDetailModal').then(m => ({ default: m.TaskHistoryDetailModal })));
+const LivestreamBannerPopup = lazy(() => import('./components/common/LivestreamBannerPopup').then(m => ({ default: m.LivestreamBannerPopup })));
+const RecentUserJoinNotification = lazy(() => import('./components/common/RecentUserJoinNotification').then(m => ({ default: m.RecentUserJoinNotification })));
 import { ZaloCommunityFloatingButton } from './components/common/ZaloCommunityFloatingButton';
 import { AntiFraudMarqueeTicker } from './components/common/AntiFraudMarqueeTicker';
-import { OnboardingTourGuide } from './components/common/OnboardingTourGuide';
+const OnboardingTourGuide = lazy(() => import('./components/common/OnboardingTourGuide').then(m => ({ default: m.OnboardingTourGuide })));
 
 import { CheckCircle2, ArrowLeft } from 'lucide-react';
+
+const ScreenFallback = () => (
+  <div className="w-full min-h-[55vh] flex flex-col items-center justify-center gap-3 text-slate-400">
+    <div className="w-9 h-9 rounded-full border-2 border-rose-500/30 border-t-rose-500 animate-spin" />
+    <span className="text-xs font-mono">Đang tải giao diện mượt mà...</span>
+  </div>
+);
 
 class ScreenErrorBoundary extends React.Component<
   { children: React.ReactNode; onReset: () => void },
@@ -143,7 +151,21 @@ function AppContent() {
     fraudAppealTargetTask,
     selectedTaskDetail,
     isTaskDetailModalOpen,
-    closeTaskDetail
+    closeTaskDetail,
+    isAuthModalOpen,
+    isRunnerOpen,
+    isFeedRunnerOpen,
+    isLiveRunnerOpen,
+    isBuyerPortalOpen,
+    isLuckyWheelOpen,
+    isConnectOpen,
+    isWithdrawOpen,
+    isPolicyOpen,
+    isBookingModalOpen,
+    isSubmitDemoModalOpen,
+    isShareModalOpen,
+    isMarqueeBoostModalOpen,
+    isMarqueeHistoryModalOpen
   } = useTikTokApp();
 
   // Ref tới phần tử nội dung cuộn chính
@@ -254,11 +276,11 @@ function AppContent() {
           </div>
         )}
 
-        <LandingPage />
-        <AuthModal />
-
-        {/* Bottom-Left Floating User Join Notification (Every 20s) */}
-        <RecentUserJoinNotification />
+        <Suspense fallback={<ScreenFallback />}>
+          <LandingPage />
+          {isAuthModalOpen && <AuthModal />}
+          <RecentUserJoinNotification />
+        </Suspense>
 
         {/* Bottom-Right Floating Zalo Community Button */}
         <ZaloCommunityFloatingButton />
@@ -326,7 +348,8 @@ function AppContent() {
             </div>
           )}
 
-          <ScreenErrorBoundary onReset={() => setCurrentScreen('home')}>
+          <ScreenErrorBoundary key={currentScreen} onReset={() => setCurrentScreen('home')}>
+          <Suspense fallback={<ScreenFallback />}>
           {currentScreen === 'home' && (
             <HomeScreen
               darkMode={darkMode}
@@ -409,6 +432,7 @@ function AppContent() {
           {currentScreen === 'policy_guide' && (
             <PolicyGuideScreen darkMode={darkMode} />
           )}
+          </Suspense>
           </ScreenErrorBoundary>
         </main>
       </div>
@@ -422,78 +446,94 @@ function AppContent() {
         onSelectScreen={(scr) => setCurrentScreen(scr)}
       />
 
-      {/* Interactive Modals */}
-      <TikTokTaskRunnerModal />
-      <TikTokFeedRunnerModal />
-      <LivestreamRunnerModal />
-      <BuyerLiveManagerModal />
-      <LuckyWheelModal />
-      <TikTokConnectModal />
-      <BankWithdrawModal />
-      <KycVerificationModal isOpen={isKycModalOpen} onClose={closeKycModal} />
-      <PolicyGuideModal />
-      <CreateBookingModal />
-      <SubmitDemoModal />
-      <ShareVideoModal />
-      <MarqueeBoostModal />
-      <MarqueeHistoryModal />
-      <AuthModal />
-      <FireworksCongratulationModal
-        data={fireworksData}
-        isOpen={isFireworksOpen}
-        onClose={closeFireworks}
-      />
-      <PwaInstallGuideModal
-        isOpen={isPwaModalOpen}
-        onClose={closePwaModal}
-      />
-      <FraudAppealModal
-        isOpen={isFraudAppealModalOpen}
-        onClose={closeFraudAppealModal}
-        targetTask={fraudAppealTargetTask}
-      />
-      <TaskHistoryDetailModal
-        isOpen={isTaskDetailModalOpen}
-        onClose={closeTaskDetail}
-        item={selectedTaskDetail}
-      />
-      <LivestreamBannerPopup />
+      {/* Interactive Modals (Chỉ mount vào DOM khi đang mở — tăng tốc giao diện gấp nhiều lần!) */}
+      <Suspense fallback={null}>
+        {isRunnerOpen && <TikTokTaskRunnerModal />}
+        {isFeedRunnerOpen && <TikTokFeedRunnerModal />}
+        {isLiveRunnerOpen && <LivestreamRunnerModal />}
+        {isBuyerPortalOpen && <BuyerLiveManagerModal />}
+        {isLuckyWheelOpen && <LuckyWheelModal />}
+        {isConnectOpen && <TikTokConnectModal />}
+        {isWithdrawOpen && <BankWithdrawModal />}
+        {isKycModalOpen && <KycVerificationModal isOpen={isKycModalOpen} onClose={closeKycModal} />}
+        {isPolicyOpen && <PolicyGuideModal />}
+        {isBookingModalOpen && <CreateBookingModal />}
+        {isSubmitDemoModalOpen && <SubmitDemoModal />}
+        {isShareModalOpen && <ShareVideoModal />}
+        {isMarqueeBoostModalOpen && <MarqueeBoostModal />}
+        {isMarqueeHistoryModalOpen && <MarqueeHistoryModal />}
+        {isAuthModalOpen && <AuthModal />}
+        {isFireworksOpen && (
+          <FireworksCongratulationModal
+            data={fireworksData}
+            isOpen={isFireworksOpen}
+            onClose={closeFireworks}
+          />
+        )}
+        {isPwaModalOpen && (
+          <PwaInstallGuideModal
+            isOpen={isPwaModalOpen}
+            onClose={closePwaModal}
+          />
+        )}
+        {isFraudAppealModalOpen && (
+          <FraudAppealModal
+            isOpen={isFraudAppealModalOpen}
+            onClose={closeFraudAppealModal}
+            targetTask={fraudAppealTargetTask}
+          />
+        )}
+        {isTaskDetailModalOpen && (
+          <TaskHistoryDetailModal
+            isOpen={isTaskDetailModalOpen}
+            onClose={closeTaskDetail}
+            item={selectedTaskDetail}
+          />
+        )}
+        <LivestreamBannerPopup />
 
-      {/* Global Command Palette (Ctrl + K) */}
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        onNavigate={(screen) => {
-          setCurrentScreen(screen);
-          setIsCommandPaletteOpen(false);
-        }}
-      />
+        {/* Global Command Palette (Ctrl + K) */}
+        {isCommandPaletteOpen && (
+          <CommandPalette
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            onNavigate={(screen) => {
+              setCurrentScreen(screen);
+              setIsCommandPaletteOpen(false);
+            }}
+          />
+        )}
 
-      {/* SePay VietQR Deposit Modal */}
-      <PaymentModal
-        isOpen={isDepositOpen}
-        onClose={closeDeposit}
-        onDepositSuccess={handleDepositSuccess}
-        onNavigate={(scr) => setCurrentScreen(scr)}
-      />
+        {/* SePay VietQR Deposit Modal */}
+        {isDepositOpen && (
+          <PaymentModal
+            isOpen={isDepositOpen}
+            onClose={closeDeposit}
+            onDepositSuccess={handleDepositSuccess}
+            onNavigate={(scr) => setCurrentScreen(scr)}
+          />
+        )}
 
-      {/* SePay Universal Checkout Modal (Cho mọi giao dịch: Mua App, Mua Gói, Mua Xu, Ký Quỹ) */}
-      <SepayUniversalCheckoutModal
-        isOpen={isSepayModalOpen}
-        item={sepayCheckoutItem}
-        onClose={closeSepayModal}
-        onSuccess={handleSepaySuccess}
-        onNavigate={(scr) => setCurrentScreen(scr)}
-      />
+        {/* SePay Universal Checkout Modal */}
+        {isSepayModalOpen && (
+          <SepayUniversalCheckoutModal
+            isOpen={isSepayModalOpen}
+            item={sepayCheckoutItem}
+            onClose={closeSepayModal}
+            onSuccess={handleSepaySuccess}
+            onNavigate={(scr) => setCurrentScreen(scr)}
+          />
+        )}
 
-      {/* Bottom-Left Floating User Join Notification (Every 20s) */}
-      <RecentUserJoinNotification />
+        {/* Bottom-Left Floating User Join Notification */}
+        <RecentUserJoinNotification />
+
+        {/* New User Onboarding Tour Guide */}
+        <OnboardingTourGuide onNavigate={(scr) => setCurrentScreen(scr)} />
+      </Suspense>
 
       {/* Bottom-Right Floating Zalo Community Button */}
       <ZaloCommunityFloatingButton />
-
-      {/* New User Onboarding Tour Guide (Only shown once for new users) */}
-      <OnboardingTourGuide onNavigate={(scr) => setCurrentScreen(scr)} />
     </div>
   );
 }

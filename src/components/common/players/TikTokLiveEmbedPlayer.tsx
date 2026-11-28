@@ -84,7 +84,8 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const [hlsStreamUrl, setHlsStreamUrl] = useState<string | null>(null);
   const [proxyHlsStreamUrl, setProxyHlsStreamUrl] = useState<string | null>(null);
   const [flvStreamUrl, setFlvStreamUrl] = useState<string | null>(null);
-  const [activeEngine, setActiveEngine] = useState<'hls_direct' | 'hls_proxy' | 'flv'>('hls_direct');
+  const [liveEmbedUrl, setLiveEmbedUrl] = useState<string | null>(null);
+  const [activeEngine, setActiveEngine] = useState<'hls_direct' | 'hls_proxy' | 'flv' | 'embed_live'>('hls_direct');
   const [hasStreamError, setHasStreamError] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -144,12 +145,22 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         const nextDirectHls = data.rawHlsUrl || data.hlsUrl || null;
         const nextProxyHls = data.proxyHlsUrl || (nextDirectHls ? `/api/stream-proxy?url=${encodeURIComponent(nextDirectHls)}` : null);
         const nextFlv = data.flvUrl || null;
+        const nextEmbedLive = data.liveEmbedUrl || (data.roomId ? `https://www.tiktok.com/embed/live/${data.roomId}?lang=vi-VN` : null);
+        setLiveEmbedUrl(nextEmbedLive);
 
         if ((nextDirectHls || nextFlv) && data.roomStatus !== 4) {
           setHlsStreamUrl(nextDirectHls);
           setProxyHlsStreamUrl(nextProxyHls);
           setFlvStreamUrl(nextFlv);
           setActiveEngine(nextDirectHls ? 'hls_direct' : 'flv');
+          setHasStreamError(false);
+          setIsEnded(false);
+        } else if (data.isLive && nextEmbedLive && data.roomStatus !== 4) {
+          // Phòng Live TikTok giới hạn ẩn danh (4003110 / Shop / 18+) -> Tự động mở bằng TikTok Official Embed LIVE!
+          setHlsStreamUrl(null);
+          setProxyHlsStreamUrl(null);
+          setFlvStreamUrl(null);
+          setActiveEngine('embed_live');
           setHasStreamError(false);
           setIsEnded(false);
         } else if (data.roomStatus === 4 || (!data.isLive && !data.videoId)) {
@@ -236,12 +247,21 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
       if (isDisposed) return;
       if (activeEngine === 'hls_direct' && proxyHlsStreamUrl && proxyHlsStreamUrl !== activeStreamSrc) {
         setActiveEngine('hls_proxy');
-      } else if (activeEngine !== 'flv' && flvStreamUrl) {
+      } else if (activeEngine !== 'flv' && activeEngine !== 'embed_live' && flvStreamUrl) {
         setActiveEngine('flv');
+      } else if (activeEngine !== 'embed_live' && liveEmbedUrl) {
+        setActiveEngine('embed_live');
       } else {
         setHasStreamError(true);
       }
     };
+
+    if (activeEngine === 'embed_live') {
+      return () => {
+        isDisposed = true;
+        cleanupPlayers();
+      };
+    }
 
     const isFlvSource = activeEngine === 'flv' || (activeStreamSrc.includes('.flv') && !activeStreamSrc.includes('.m3u8'));
     const isHlsSource = activeStreamSrc.includes('.m3u8') || activeStreamSrc.includes('m3u8');
@@ -438,15 +458,27 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
       className={`relative w-full h-full bg-[#080B11] flex flex-col overflow-hidden select-none cursor-pointer ${className}`}
       onClick={handleTapScreen}
     >
-      {/* 1. KHUNG PHÁT VIDEO / LIVE STREAM THẬT */}
+      {/* 1. KHUNG PHÁT VIDEO / LIVE STREAM THẬT (4 ĐỘNG CƠ TỰ ĐỘNG: VIDEO V1 / TIKTOK EMBED LIVE / HLS / HTTP-FLV) */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
         {possibleVideoId ? (
           <iframe
-            key={`tt-vid-player-v1-${possibleVideoId}`}
+            key={`tt-vid-player-v1-${possibleVideoId}-${internalMuted ? 'm' : 'u'}`}
             src={`https://www.tiktok.com/player/v1/${possibleVideoId}?embed_from=oembed&music_info=1&description=1&autoplay=1&muted=${internalMuted ? 1 : 0}&loop=1&controls=1`}
             title={`TikTok Video: ${displayName}`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
             allowFullScreen
+            className="w-full h-full border-0 bg-black pointer-events-auto"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+          />
+        ) : activeEngine === 'embed_live' && liveEmbedUrl && !isEnded && !hasStreamError ? (
+          <iframe
+            key={`tt-embed-live-${liveEmbedUrl}`}
+            src={liveEmbedUrl}
+            title={`TikTok Live: ${displayName}`}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+            onError={() => setHasStreamError(true)}
             className="w-full h-full border-0 bg-black pointer-events-auto"
             style={{ width: '100%', height: '100%', border: 'none' }}
           />

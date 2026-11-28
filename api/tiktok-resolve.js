@@ -261,21 +261,27 @@ export default async function handler(req, res) {
     let roomTitle = null;
     let roomStatus = null;
     let resolvedRoomId = roomIdFromUrl || null;
+    let isRestrictedRoom = false;
+
+    const tiktokSessionCookie = process.env.TIKTOK_SESSION_ID
+      ? `sessionid=${process.env.TIKTOK_SESSION_ID.trim()}`
+      : '';
 
     if (looksLikeLive && !videoId) {
       // 4A. Official TikTok JSON API: /api-live/user/room/?aid=1988&sourceType=54&uniqueId=...
       if (cleanHandle) {
         try {
+          const liveHeaders = {
+            'User-Agent': DESKTOP_UA,
+            'Referer': 'https://www.tiktok.com/',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7'
+          };
+          if (tiktokSessionCookie) liveHeaders.Cookie = tiktokSessionCookie;
+
           const liveApiRes = await fetchWithTimeout(
             `https://www.tiktok.com/api-live/user/room/?aid=1988&sourceType=54&uniqueId=${encodeURIComponent(cleanHandle)}`,
-            {
-              headers: {
-                'User-Agent': DESKTOP_UA,
-                'Referer': 'https://www.tiktok.com/',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7'
-              }
-            },
+            { headers: liveHeaders },
             7000
           );
           if (liveApiRes.ok) {
@@ -308,7 +314,6 @@ export default async function handler(req, res) {
               if (!hlsUrl && liveRoom.hevcStreamData?.pull_data?.stream_data) {
                 const hevc = extractHlsAndFlvFromStreamStr(liveRoom.hevcStreamData.pull_data.stream_data);
                 hlsUrl = hevc.hlsUrl || hlsUrl;
-                // Only use HEVC flv if we don't already have H.264 flv from primary streamData
                 if (!flvUrl) flvUrl = hevc.flvUrl || flvUrl;
               }
 
@@ -324,20 +329,25 @@ export default async function handler(req, res) {
       // 4B. Webcast Room Info API using exact string roomId (guarantees hls_pull_url even from US/EU regions!)
       if ((!hlsUrl || !flvUrl || !cleanHandle) && resolvedRoomId && roomStatus !== 4) {
         try {
+          const wcHeaders = {
+            'User-Agent': DESKTOP_UA,
+            'Referer': 'https://www.tiktok.com/'
+          };
+          if (tiktokSessionCookie) wcHeaders.Cookie = tiktokSessionCookie;
+
           const webcastRes = await fetchWithTimeout(
             `https://webcast.tiktok.com/webcast/room/info/?aid=1988&room_id=${encodeURIComponent(resolvedRoomId)}`,
-            {
-              headers: {
-                'User-Agent': DESKTOP_UA,
-                'Referer': 'https://www.tiktok.com/'
-              }
-            },
+            { headers: wcHeaders },
             6500
           );
           if (webcastRes.ok) {
             const wcJson = await webcastRes.json();
+            if (wcJson?.status_code === 4003110) {
+              // Phòng live giới hạn tuổi / TikTok Shop / yêu cầu đăng nhập (4003110) -> dùng TikTok Official Embed LIVE!
+              isRestrictedRoom = true;
+            }
             const rData = wcJson?.data;
-            if (rData) {
+            if (rData && !wcJson?.status_code) {
               roomStatus = rData.status ?? roomStatus;
               roomTitle = rData.title || roomTitle;
               liveViewers = rData.user_count || liveViewers;
@@ -368,7 +378,32 @@ export default async function handler(req, res) {
             }
           }
         } catch {
-          // Fall through to HTML fallback
+          // Fall through
+        }
+      }
+
+      // 4C. Kiểm tra chính xác phòng có đang LIVE thật không qua webcast/room/check_alive
+      if (resolvedRoomId && !hlsUrl && !flvUrl) {
+        try {
+          const aliveRes = await fetchWithTimeout(
+            `https://webcast.tiktok.com/webcast/room/check_alive/?aid=1988&room_ids=${encodeURIComponent(resolvedRoomId)}`,
+            { headers: { 'User-Agent': DESKTOP_UA, Referer: 'https://www.tiktok.com/' } },
+            5000
+          );
+          if (aliveRes.ok) {
+            const aliveJson = await aliveRes.json();
+            const aliveEntry = aliveJson?.data?.[0];
+            if (aliveEntry?.alive === true) {
+              isLive = true;
+              roomStatus = 2;
+              isRestrictedRoom = true;
+            } else if (aliveEntry?.alive === false) {
+              isLive = false;
+              roomStatus = 4;
+            }
+          }
+        } catch {
+          // ignore
         }
       }
 
@@ -404,13 +439,20 @@ export default async function handler(req, res) {
     const authorHandle = cleanHandle ? `@${cleanHandle}` : null;
     const streamProxyUrl = hlsUrl ? `/api/stream-proxy?url=${encodeURIComponent(hlsUrl)}` : null;
     const directPlayProxyUrl = directPlayUrl ? `/api/stream-proxy?url=${encodeURIComponent(directPlayUrl)}` : null;
+    const liveEmbedUrl = resolvedRoomId
+      ? `https://www.tiktok.com/embed/live/${encodeURIComponent(resolvedRoomId)}?lang=vi-VN`
+      : cleanHandle
+        ? `https://www.tiktok.com/embed/live/@${encodeURIComponent(cleanHandle)}?lang=vi-VN`
+        : null;
 
     return res.status(200).json({
       original: rawUrl,
       resolved: finalUrl,
       isLive,
+      isRestrictedRoom,
       videoId: videoId || null,
       playerUrl,
+      liveEmbedUrl,
       directPlayUrl: directPlayUrl || null,
       directPlayProxyUrl,
       hdPlayUrl: hdPlayUrl || null,

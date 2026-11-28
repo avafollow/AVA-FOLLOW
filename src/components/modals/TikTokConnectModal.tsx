@@ -334,11 +334,9 @@ export const TikTokConnectModal: React.FC = () => {
       setIsVerifying(true);
       setVerifyingPlatform('tiktok');
       try {
-        await loginWithTikTokOAuth(rawInput || undefined);
+        await loginWithTikTokOAuth(undefined, true);
         setIsVerifying(false);
         setVerifyingPlatform(null);
-        setSuccessBanner(`⚡ Đã xác thực TikTok Login Kit OAuth 2.0 & kết nối thành công!`);
-        setTimeout(() => setSuccessBanner(null), 4000);
       } catch (err) {
         setIsVerifying(false);
         setVerifyingPlatform(null);
@@ -370,28 +368,22 @@ export const TikTokConnectModal: React.FC = () => {
       connectTikTok(formattedHandle, parsedFollowers, finalTtAvatar);
       setIsTtEditing(false);
       setSuccessBanner(`⚡ Đã xác thực & kết nối thành công kênh TikTok ${formattedHandle}!`);
-      showToast(`✓ Đã đồng bộ tài khoản TikTok 1-chạm: ${formattedHandle}`);
+      showToast(`✓ Đã đồng bộ tài khoản TikTok: ${formattedHandle}`);
       setTimeout(() => setSuccessBanner(null), 4000);
     }, 800);
   };
 
-  // 2. KẾT NỐI FACEBOOK QUA OAUTH 1-CHẠM HOẶC NHẬP TAY
-  const handleConnectFacebook = async (isDirectOAuth = false) => {
+  // 2. KẾT NỐI FACEBOOK QUA OAUTH 1-CHẠM (MỞ TRỰC TIẾP META / SUPABASE OAUTH) HOẶC NHẬP TAY
+  const handleConnectFacebook = async (isDirectOAuth = false, includeEngagementScopes = false) => {
     let rawFb = fbUrl.trim();
     
     if (isDirectOAuth) {
-      if (!rawFb && !user.facebookConnected) {
-        showToast('Vui lòng dán link Facebook cá nhân hoặc Fanpage thật của bạn vào ô bên dưới!');
-        return;
-      }
       setIsFbVerifying(true);
       setVerifyingPlatform('facebook');
       try {
-        await loginWithFacebookOAuth(rawFb || undefined);
+        await loginWithFacebookOAuth(undefined, true, includeEngagementScopes);
         setIsFbVerifying(false);
         setVerifyingPlatform(null);
-        setSuccessBanner(`⚡ Đã xác thực Facebook OAuth 2.0 & kết nối thành công!`);
-        setTimeout(() => setSuccessBanner(null), 4000);
       } catch (err) {
         setIsFbVerifying(false);
         setVerifyingPlatform(null);
@@ -420,13 +412,13 @@ export const TikTokConnectModal: React.FC = () => {
       const finalFbAvatar = fbAvatar.trim() || user.avatar || '';
       connectFacebook(cleanFb, 'personal', parsedFollowers, finalFbAvatar);
       setIsFbEditing(false);
-      setSuccessBanner(`⚡ Đã xác thực OAuth 2.0 & kết nối thành công Facebook fb.com/${cleanFb}!`);
-      showToast(`✓ Đã đồng bộ tài khoản Facebook 1-chạm: fb.com/${cleanFb}`);
+      setSuccessBanner(`⚡ Đã đồng bộ thành công Facebook fb.com/${cleanFb}!`);
+      showToast(`✓ Đã đồng bộ tài khoản Facebook: fb.com/${cleanFb}`);
       setTimeout(() => setSuccessBanner(null), 4000);
     }, 800);
   };
 
-  // 3. KẾT NỐI YOUTUBE / GOOGLE QUA OAUTH 1-CHẠM HOẶC NHẬP TAY
+  // 3. KẾT NỐI YOUTUBE / GOOGLE QUA OAUTH 1-CHẠM (XIN QUYỀN YOUTUBE API V3) HOẶC NHẬP TAY
   const handleConnectYoutube = async (isDirectOAuth = false) => {
     let rawYt = ytUrl.trim();
     
@@ -434,11 +426,9 @@ export const TikTokConnectModal: React.FC = () => {
       setIsYtVerifying(true);
       setVerifyingPlatform('youtube');
       try {
-        await loginWithYoutubeOAuth(rawYt || undefined);
+        await loginWithYoutubeOAuth(undefined, true);
         setIsYtVerifying(false);
         setVerifyingPlatform(null);
-        setSuccessBanner(`⚡ Đã xác thực Google / YouTube OAuth 2.0 & kết nối thành công!`);
-        setTimeout(() => setSuccessBanner(null), 4000);
       } catch (err) {
         setIsYtVerifying(false);
         setVerifyingPlatform(null);
@@ -1228,12 +1218,12 @@ export const TikTokConnectModal: React.FC = () => {
 
                   <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs gap-2 flex-wrap">
                     <button
-                      onClick={() => handleConnectFacebook(true)}
+                      onClick={() => handleConnectFacebook(true, true)}
                       disabled={isFbVerifying}
                       className="px-3.5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 flex items-center gap-1.5 transition-all text-xs font-mono font-bold cursor-pointer"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isFbVerifying ? 'animate-spin' : ''}`} />
-                      <span>Đồng Bộ Lại Số Liệu Trang Thật</span>
+                      <span>Cấp Quyền OAuth (Like / Post / Follow)</span>
                     </button>
 
                     <button
@@ -1530,21 +1520,30 @@ export const TikTokConnectModal: React.FC = () => {
                   </p>
 
                   <button
-                    onClick={() => handleConnectFacebook(true)}
+                    onClick={() => handleConnectFacebook(true, false)}
                     disabled={isFbVerifying}
                     className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:opacity-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-blue-600/30 cursor-pointer disabled:opacity-50 hover:scale-[1.01] active:scale-98 transition-all"
                   >
                     {isFbVerifying && verifyingPlatform === 'facebook' ? (
                       <>
                         <RefreshCw className="h-4 w-4 animate-spin text-white" />
-                        <span>Đang đồng bộ tài khoản Facebook...</span>
+                        <span>Đang mở cổng Facebook OAuth...</span>
                       </>
                     ) : (
                       <>
                         <Facebook className="h-4 w-4" />
-                        <span>⚡ KẾT NỐI 1-CHẠM TRỰC TIẾP FACEBOOK</span>
+                        <span>⚡ ĐĂNG NHẬP &amp; KẾT NỐI FACEBOOK OAUTH</span>
                       </>
                     )}
+                  </button>
+
+                  <button
+                    onClick={() => handleConnectFacebook(true, true)}
+                    disabled={isFbVerifying}
+                    className="w-full py-2.5 px-4 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/40 text-blue-200 font-bold text-[11px] font-mono flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>Cấp Quyền Mở Rộng Facebook (user_likes, user_posts)</span>
                   </button>
                 </div>
 

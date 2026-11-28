@@ -321,18 +321,26 @@ export async function signInWithGoogleOAuth(includeYouTubeScopes = false) {
 }
 
 export async function signInWithTikTokOAuth() {
-  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5050';
-  const clientKey = 'aw4178gvdksjfkse';
-  const authUrl = `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}&scope=user.info.basic,user.info.profile,video.list&response_type=code&redirect_uri=${encodeURIComponent(redirectOrigin)}&state=tiktok_auth_state`;
+  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://avafollowpro.vercel.app';
+  const clientKey = ((import.meta as any).env?.VITE_TIKTOK_CLIENT_KEY || '').trim();
+  if (!clientKey) {
+    return {
+      data: null,
+      error: { message: 'Chưa cấu hình VITE_TIKTOK_CLIENT_KEY trên Vercel/ứng dụng.' }
+    };
+  }
+  const redirectUri = `${redirectOrigin}/?tiktok_oauth=1`;
+  const authUrl = `https://www.tiktok.com/v2/auth/authorize/?client_key=${encodeURIComponent(clientKey)}&scope=user.info.basic,user.info.profile,user.info.stats,video.list&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&state=ava_tiktok_oauth`;
   return { data: { url: authUrl, isDirectProvider: true }, error: null };
 }
 
 export async function signInWithFacebookOAuth(includeEngagementScopes = false) {
-  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://avafollowpro.vercel.app';
   try {
+    // Supabase tự thêm quyền email cho Facebook nên chỉ truyền public_profile (+ user_likes,user_posts nếu yêu cầu)
     const scopes = includeEngagementScopes
-      ? 'email,public_profile,user_likes,user_posts'
-      : 'email,public_profile';
+      ? 'public_profile,user_likes,user_posts'
+      : 'public_profile';
     const res = await supabase.auth.signInWithOAuth({
       provider: 'facebook',
       options: {
@@ -345,6 +353,74 @@ export async function signInWithFacebookOAuth(includeEngagementScopes = false) {
     console.warn('Facebook OAuth error:', err);
     return { data: null, error: err };
   }
+}
+
+/**
+ * Kết nối Facebook JS SDK trực tiếp trong trình duyệt (không làm đăng xuất phiên Google hiện tại)
+ * Cho phép lấy User Access Token thật từ Meta kèm quyền user_likes, user_posts nếu App cho phép.
+ */
+export function loginFacebookWithSDK(includeEngagementScopes = false): Promise<{
+  success: boolean;
+  accessToken?: string;
+  userId?: string;
+  name?: string;
+  avatar?: string;
+  error?: string;
+}> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !(window as any).FB) {
+      resolve({ success: false, error: 'Facebook SDK chưa sẵn sàng trên trình duyệt.' });
+      return;
+    }
+    const appId =
+      ((import.meta as any).env?.VITE_FACEBOOK_APP_ID || '').trim() ||
+      localStorage.getItem('ava_facebook_app_id') ||
+      '1574154307820968';
+
+    try {
+      const FB = (window as any).FB;
+      FB.init({
+        appId,
+        cookie: true,
+        xfbml: true,
+        version: 'v19.0'
+      });
+
+      const scope = includeEngagementScopes
+        ? 'public_profile,email,user_likes,user_posts'
+        : 'public_profile,email';
+
+      FB.login(
+        (response: any) => {
+          if (response?.authResponse?.accessToken) {
+            const accessToken = response.authResponse.accessToken;
+            const userId = response.authResponse.userID || '';
+            try {
+              localStorage.setItem('ava_facebook_oauth_token', accessToken);
+            } catch {}
+
+            FB.api('/me', { fields: 'id,name,picture.type(large)' }, (me: any) => {
+              resolve({
+                success: true,
+                accessToken,
+                userId: me?.id || userId,
+                name: me?.name || userId || 'Facebook User',
+                avatar: me?.picture?.data?.url || ''
+              });
+            });
+          } else {
+            resolve({
+              success: false,
+              error: 'Người dùng đã hủy hoặc Meta từ chối cấp quyền đăng nhập Facebook.'
+            });
+          }
+        },
+        { scope, return_scopes: true }
+      );
+    } catch (err: any) {
+      resolve({ success: false, error: err?.message || 'Lỗi Facebook SDK.' });
+    }
+  });
 }
 
 /**

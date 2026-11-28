@@ -101,6 +101,7 @@ import {
   signInWithGoogleOAuth,
   signInWithTikTokOAuth,
   signInWithFacebookOAuth,
+  loginFacebookWithSDK,
   syncTokenLedgerToSupabase, 
   syncKycToSupabase, 
   syncOrderToSupabase,
@@ -199,9 +200,9 @@ interface TikTokAppContextType {
   closeAuthModal: () => void;
   loginWithGoogle: (customEmail?: string) => void;
   loginWithGoogleOAuth: () => Promise<void>;
-  loginWithTikTokOAuth: (customHandle?: string) => Promise<void>;
-  loginWithFacebookOAuth: (customFb?: string) => Promise<void>;
-  loginWithYoutubeOAuth: (customYt?: string) => Promise<void>;
+  loginWithTikTokOAuth: (customHandle?: string, forceOAuth?: boolean) => Promise<void>;
+  loginWithFacebookOAuth: (customFb?: string, forceOAuth?: boolean, includeEngagementScopes?: boolean) => Promise<void>;
+  loginWithYoutubeOAuth: (customYt?: string, forceOAuth?: boolean) => Promise<void>;
   loginWithEmail: (email: string, name: string, handle?: string) => void;
   logout: () => void;
 
@@ -3144,14 +3145,75 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // 0. Ping keep-alive để đảm bảo Supabase luôn hoạt động
     pingSupabaseKeepAlive('web_app_boot');
 
+    // 0b. Xử lý callback đăng nhập TikTok Login Kit OAuth v2 (?tiktok_oauth=1&code=...)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ttCode = params.get('code');
+      const isTtOAuth = params.get('tiktok_oauth') === '1' || params.get('state') === 'ava_tiktok_oauth';
+      if (isTtOAuth && ttCode) {
+        const redirectUri = `${window.location.origin}/?tiktok_oauth=1`;
+        fetch(`/api/tiktok-oauth-callback?code=${encodeURIComponent(ttCode)}&redirect_uri=${encodeURIComponent(redirectUri)}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data?.success && data.profile) {
+              try {
+                if (data.accessToken) localStorage.setItem('ava_tiktok_oauth_token', data.accessToken);
+              } catch {}
+              const linkingEmail = (localStorage.getItem('ava_oauth_linking_email') || '').toLowerCase().trim();
+              const ttUsername = (data.profile.username || data.profile.displayName || 'tiktok_user').replace(/^@+/, '');
+              const formattedHandle = `@${ttUsername}`;
+              const finalEmail = linkingEmail || `${ttUsername}@tiktok.avafollow.vn`;
+              const ttUrl = `https://www.tiktok.com/@${ttUsername}`;
+              const ttAvatar = data.profile.avatarUrl || getTikTokAvatar(ttUsername);
+              const ttFollowers = Number(data.profile.followerCount || 0);
+
+              saveConnectionsForUser(finalEmail, {
+                tiktokConnected: formattedHandle,
+                tiktokProfileUrl: ttUrl,
+                tiktokFollowers: ttFollowers,
+                tiktokAvatar: ttAvatar,
+                isTikTokVerified: true
+              });
+              loginWithGoogle(finalEmail);
+              setUser(prev => {
+                const next = {
+                  ...prev,
+                  email: prev.email || finalEmail,
+                  tiktokConnected: formattedHandle,
+                  tiktokProfileUrl: ttUrl,
+                  tiktokFollowers: ttFollowers,
+                  tiktokAvatar: ttAvatar,
+                  isTikTokVerified: true
+                };
+                try { localStorage.setItem('ava_user_profile', JSON.stringify(next)); } catch {}
+                return next;
+              });
+              showToast(`⚡ Đã xác thực TikTok Login Kit OAuth thành công: ${formattedHandle}`);
+            } else if (data?.message) {
+              showToast(`⚠️ TikTok OAuth: ${data.message}`);
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            try {
+              localStorage.removeItem('ava_oauth_linking_email');
+              localStorage.removeItem('ava_oauth_linking_platform');
+              window.history.replaceState({}, document.title, window.location.pathname);
+            } catch {}
+          });
+      }
+    }
+
     const syncOAuthSession = (session: any) => {
       if (!session?.user) return;
       const provider = session.user?.app_metadata?.provider;
       const meta = session.user?.user_metadata || {};
+      const linkingEmail = (localStorage.getItem('ava_oauth_linking_email') || '').toLowerCase().trim();
+      const linkingPlatform = (localStorage.getItem('ava_oauth_linking_platform') || '').toLowerCase().trim();
 
       if (session.provider_token) {
         try {
-          if (provider === 'facebook') {
+          if (provider === 'facebook' || linkingPlatform === 'facebook') {
             localStorage.setItem('ava_facebook_oauth_token', session.provider_token);
           } else {
             localStorage.setItem('ava_youtube_oauth_token', session.provider_token);
@@ -3160,22 +3222,57 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       if (localStorage.getItem('ava_logged_out') === 'true') return;
-      const email = (session.user.email || meta.email || '').toLowerCase().trim();
-      if (email) {
-        loginWithGoogle(email);
+
+      const fbSub = meta.provider_id || meta.sub || session.user.id || '';
+      const rawSessionEmail = (session.user.email || meta.email || '').toLowerCase().trim();
+      const primaryEmail = linkingEmail || rawSessionEmail || (provider === 'facebook' ? `fb_${fbSub.slice(0, 12)}@facebook.avafollow.vn` : '');
+
+      try {
+        localStorage.removeItem('ava_oauth_linking_email');
+        localStorage.removeItem('ava_oauth_linking_platform');
+      } catch {}
+
+      if (primaryEmail) {
+        loginWithGoogle(primaryEmail);
       }
 
-      // Tự động liên kết Facebook profile thật nếu đăng nhập qua Facebook OAuth
-      if (provider === 'facebook') {
-        const fbName = (meta.full_name || meta.name || meta.user_name || (email ? email.split('@')[0] : 'fb_user')).trim();
-        const fbAvatar = meta.avatar_url || meta.picture || '';
-        setTimeout(() => {
-          connectFacebook(fbName, 'personal', 0, fbAvatar);
-        }, 300);
+      // 1. Tự động liên kết Facebook profile thật nếu đăng nhập qua Facebook OAuth (không bị stale closure)
+      if (provider === 'facebook' || linkingPlatform === 'facebook') {
+        const fbName = (meta.full_name || meta.name || meta.user_name || (rawSessionEmail ? rawSessionEmail.split('@')[0] : `fb_${fbSub.slice(0, 8)}`)).trim();
+        const fbAvatar = meta.avatar_url || meta.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbName)}&background=1877F2&color=fff&bold=true`;
+        const fbUrl = fbSub ? `https://www.facebook.com/${fbSub}` : `https://www.facebook.com/${encodeURIComponent(fbName)}`;
+        const bindEmail = primaryEmail || 'creator@avafollow.vn';
+
+        saveConnectionsForUser(bindEmail, {
+          facebookConnected: fbName,
+          facebookProfileUrl: fbUrl,
+          facebookType: 'personal',
+          facebookFollowers: 0,
+          facebookAvatar: fbAvatar,
+          isFacebookVerified: true
+        });
+
+        setUser(prev => {
+          const next = {
+            ...prev,
+            email: prev.email || bindEmail,
+            facebookConnected: fbName,
+            facebookProfileUrl: fbUrl,
+            facebookType: 'personal' as const,
+            facebookAvatar: fbAvatar,
+            facebookName: fbName,
+            isFacebookVerified: true,
+            facebookLastSyncedAt: new Date().toISOString()
+          };
+          try { localStorage.setItem('ava_user_profile', JSON.stringify(next)); } catch {}
+          return next;
+        });
+        showToast(`✅ Đã kết nối Facebook OAuth chính chủ: ${fbName}`);
       }
 
-      // Tự động liên kết Kênh YouTube thật nếu đăng nhập Google OAuth kèm YouTube scope
-      if (provider === 'google' && session.provider_token) {
+      // 2. Tự động liên kết Kênh YouTube thật nếu đăng nhập Google OAuth kèm YouTube scope
+      if ((provider === 'google' || linkingPlatform === 'youtube') && session.provider_token) {
+        const bindEmail = primaryEmail || rawSessionEmail || 'creator@avafollow.vn';
         fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true', {
           headers: { Authorization: `Bearer ${session.provider_token}` }
         })
@@ -3183,10 +3280,62 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           .then(data => {
             const ch = data?.items?.[0];
             if (ch?.snippet) {
-              const handle = ch.snippet.customUrl || ch.snippet.title || ch.id;
+              const rawHandle = (ch.snippet.customUrl || ch.snippet.title || ch.id).replace(/^@+/, '');
+              const formattedYt = `@${rawHandle}`;
               const subs = parseInt(ch.statistics?.subscriberCount || '0', 10) || 0;
-              const avatar = ch.snippet.thumbnails?.default?.url || '';
-              connectYoutube(handle, subs, avatar);
+              const avatar = ch.snippet.thumbnails?.default?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(rawHandle)}&background=FF0000&color=fff&bold=true`;
+              const ytProfileUrl = ch.snippet.customUrl
+                ? `https://www.youtube.com/${ch.snippet.customUrl}`
+                : `https://www.youtube.com/channel/${ch.id}`;
+
+              saveConnectionsForUser(bindEmail, {
+                youtubeConnected: formattedYt,
+                youtubeProfileUrl: ytProfileUrl,
+                youtubeSubscribers: subs,
+                youtubeAvatar: avatar,
+                isYoutubeVerified: true
+              });
+
+              setUser(prev => {
+                const next = {
+                  ...prev,
+                  email: prev.email || bindEmail,
+                  youtubeConnected: formattedYt,
+                  youtubeProfileUrl: ytProfileUrl,
+                  youtubeSubscribers: subs,
+                  youtubeAvatar: avatar,
+                  youtubeChannelTitle: ch.snippet.title || rawHandle,
+                  isYoutubeVerified: true,
+                  youtubeLastSyncedAt: new Date().toISOString()
+                };
+                try { localStorage.setItem('ava_user_profile', JSON.stringify(next)); } catch {}
+                return next;
+              });
+              showToast(`✅ Đã đồng bộ Kênh YouTube OAuth chính chủ: ${formattedYt}`);
+            } else if (linkingPlatform === 'youtube') {
+              // Google OAuth thành công nhưng tài khoản chưa tạo kênh YouTube hoặc chưa cấp scope
+              const fallbackName = (meta.full_name || meta.name || (bindEmail ? bindEmail.split('@')[0] : 'youtube_user')).replace(/\s+/g, '');
+              const formattedYt = `@${fallbackName}`;
+              saveConnectionsForUser(bindEmail, {
+                youtubeConnected: formattedYt,
+                youtubeProfileUrl: `https://www.youtube.com/@${fallbackName}`,
+                youtubeSubscribers: 0,
+                youtubeAvatar: meta.avatar_url || '',
+                isYoutubeVerified: true
+              });
+              setUser(prev => {
+                const next = {
+                  ...prev,
+                  email: prev.email || bindEmail,
+                  youtubeConnected: formattedYt,
+                  youtubeProfileUrl: `https://www.youtube.com/@${fallbackName}`,
+                  isYoutubeVerified: true,
+                  youtubeLastSyncedAt: new Date().toISOString()
+                };
+                try { localStorage.setItem('ava_user_profile', JSON.stringify(next)); } catch {}
+                return next;
+              });
+              showToast(`✅ Đã kết nối Google/YouTube OAuth: ${formattedYt}`);
             }
           })
           .catch(() => {});
@@ -3206,6 +3355,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         try {
           localStorage.removeItem('ava_youtube_oauth_token');
           localStorage.removeItem('ava_facebook_oauth_token');
+          localStorage.removeItem('ava_tiktok_oauth_token');
         } catch {}
         logout();
       }
@@ -3219,11 +3369,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const loginWithGoogleOAuth = async () => {
     try {
       showToast('Đang kết nối cổng xác thực Google OAuth qua Supabase...');
-      const { data, error } = await signInWithGoogleOAuth();
+      const { data, error } = await signInWithGoogleOAuth(false);
       if (error) {
         console.warn('Google OAuth error:', error);
-        showToast(`Lỗi kết nối Google: ${error.message}. Chuyển sang chế độ kết nối nội bộ.`);
-        loginWithGoogle();
+        showToast(`Lỗi kết nối Google: ${error.message}.`);
         return;
       }
       if (data?.url) {
@@ -3231,33 +3380,45 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     } catch (err: any) {
       console.warn('OAuth redirect exception:', err);
-      loginWithGoogle();
+      showToast('Không thể chuyển hướng tới Google OAuth. Vui lòng thử lại!');
     }
   };
 
-  const loginWithTikTokOAuth = async (customHandle?: string) => {
+  const loginWithTikTokOAuth = async (customHandle?: string, forceOAuth = false) => {
     try {
-      showToast('Đang đồng bộ trực tiếp tài khoản TikTok trên thiết bị (1-Chạm)...');
-      
-      const pairs = getPermanentTikTokGmailPairs();
-      const boundPair = pairs.find(p => p.email.toLowerCase() === (user.email || '').toLowerCase());
-      const fallbackHandle = boundPair?.tiktokHandle 
-        ? `@${boundPair.tiktokHandle.replace(/^@/, '')}` 
-        : (user.email ? `@${user.email.split('@')[0].replace(/[^a-z0-9._]/gi, '')}` : '@tiktok_user');
+      // 1. Ưu tiên đăng nhập thật qua TikTok Login Kit OAuth v2 nếu có Client Key
+      if (forceOAuth || !customHandle) {
+        try {
+          if (user.email) localStorage.setItem('ava_oauth_linking_email', user.email);
+          localStorage.setItem('ava_oauth_linking_platform', 'tiktok');
+        } catch {}
+        const { data, error } = await signInWithTikTokOAuth();
+        if (!error && data?.url) {
+          showToast('Đang chuyển hướng sang cổng đăng nhập chính thức TikTok Login Kit...');
+          window.location.href = data.url;
+          return;
+        }
+        // Nếu chưa cấu hình VITE_TIKTOK_CLIENT_KEY -> mở TikTok Login để user đăng nhập thật + nhập handle xác minh
+        if (!customHandle) {
+          showToast('🔐 Mở trang đăng nhập TikTok chính chủ! Hãy đăng nhập TikTok rồi dán @username kênh của bạn vào ô kết nối.');
+          if (typeof window !== 'undefined') {
+            window.open('https://www.tiktok.com/login', '_blank', 'noopener,noreferrer');
+          }
+          if (!isAuthenticated) {
+            setIsConnectOpen(true);
+          }
+          return;
+        }
+      }
 
-      const targetHandle = customHandle 
-        ? (customHandle.startsWith('@') ? customHandle : `@${customHandle}`) 
-        : (user.tiktokConnected && user.tiktokConnected !== '@chưa_kết_nối' && user.tiktokConnected !== 'Chưa kết nối'
-            ? user.tiktokConnected 
-            : fallbackHandle);
-      
+      showToast('Đang đồng bộ hồ sơ kênh TikTok thật...');
+      const targetHandle = customHandle!.startsWith('@') ? customHandle! : `@${customHandle!}`;
       const targetEmail = user.email || `${targetHandle.replace(/^@/, '')}@gmail.com`;
-      
+
       if (!isAuthenticated) {
         loginWithGoogle(targetEmail);
       }
-      
-      // Đồng bộ profile thật trực tiếp từ TikTok API / oEmbed / CDN
+
       try {
         const synced = await fetchRealTikTokProfile(targetHandle, user.tiktokFollowers || 0);
         connectTikTok(synced.handle, synced.followers, synced.avatar);
@@ -3267,30 +3428,48 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       showToast(`⚡ Đã kết nối & đồng bộ thành công tài khoản TikTok: ${targetHandle}`);
     } catch (err: any) {
-      console.warn('TikTok 1-Touch exception:', err);
-      if (!isAuthenticated) loginWithGoogle();
+      console.warn('TikTok OAuth exception:', err);
+      showToast('Không thể đồng bộ tài khoản TikTok. Vui lòng thử lại!');
     }
   };
 
-  const loginWithFacebookOAuth = async (customFb?: string) => {
+  const loginWithFacebookOAuth = async (customFb?: string, forceOAuth = false, includeEngagementScopes = false) => {
     try {
-      if (!customFb) {
-        showToast('Đang kết nối cổng xác thực Facebook OAuth qua Supabase...');
-        const { data, error } = await signInWithFacebookOAuth(false);
+      if (forceOAuth || !customFb) {
+        try {
+          if (user.email) localStorage.setItem('ava_oauth_linking_email', user.email);
+          localStorage.setItem('ava_oauth_linking_platform', 'facebook');
+        } catch {}
+
+        // Nếu đang ở trong app và Facebook JS SDK sẵn sàng -> thử kết nối popup SDK trước (không làm mất phiên Google)
+        if (isAuthenticated && typeof window !== 'undefined' && (window as any).FB) {
+          showToast('Đang mở cửa sổ đăng nhập Facebook chính chủ (Meta SDK)...');
+          const sdkRes = await loginFacebookWithSDK(includeEngagementScopes);
+          if (sdkRes.success && sdkRes.name) {
+            const fbUrl = sdkRes.userId ? `https://www.facebook.com/${sdkRes.userId}` : `https://www.facebook.com/${encodeURIComponent(sdkRes.name)}`;
+            connectFacebook(sdkRes.name, 'personal', user.facebookFollowers || 0, sdkRes.avatar || '');
+            showToast(`✅ Đã kết nối Facebook chính chủ & nhận Access Token từ Meta: ${sdkRes.name}`);
+            return;
+          }
+        }
+
+        // Chuyển hướng qua Supabase Facebook OAuth chính thức (App ID 1574154307820968)
+        showToast('Đang chuyển hướng sang cổng xác thực Facebook OAuth...');
+        const { data, error } = await signInWithFacebookOAuth(includeEngagementScopes);
         if (!error && data?.url) {
           window.location.href = data.url;
           return;
         }
         if (error) {
           console.warn('Facebook OAuth error:', error);
-          showToast(`Lỗi kết nối Facebook OAuth: ${error.message}. Chuyển sang đồng bộ cấu hình.`);
+          showToast(`⚠️ Lỗi Facebook OAuth: ${error.message}`);
+          return;
         }
       }
 
-      showToast('Đang đồng bộ trực tiếp tài khoản Facebook trên thiết bị (1-Chạm)...');
-      
-      const rawFb = customFb || (user.facebookConnected && user.facebookConnected !== 'Chưa kết nối' ? user.facebookConnected : (user.email ? user.email.split('@')[0].replace(/[^a-z0-9.]/gi, '') : 'fb_creator'));
-      const cleanFb = rawFb.replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/\/$/, '');
+      if (!customFb) return;
+      showToast('Đang đồng bộ hồ sơ Facebook thật...');
+      const cleanFb = customFb.replace(/^https?:\/\/(www\.)?facebook\.com\//, '').replace(/\/$/, '');
       const targetEmail = user.email || `${cleanFb}@gmail.com`;
 
       if (!isAuthenticated) {
@@ -3306,15 +3485,20 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       showToast(`⚡ Đã kết nối & đồng bộ thành công tài khoản Facebook: fb.com/${cleanFb}`);
     } catch (err: any) {
-      console.warn('Facebook 1-Touch exception:', err);
-      if (!isAuthenticated) loginWithGoogle();
+      console.warn('Facebook OAuth exception:', err);
+      showToast('Không thể kết nối Facebook OAuth. Vui lòng kiểm tra cửa sổ popup và thử lại!');
     }
   };
 
-  const loginWithYoutubeOAuth = async (customYt?: string) => {
+  const loginWithYoutubeOAuth = async (customYt?: string, forceOAuth = false) => {
     try {
-      if (!customYt) {
-        showToast('Đang kết nối Google OAuth (kèm quyền YouTube Data API v3)...');
+      if (forceOAuth || !customYt) {
+        try {
+          if (user.email) localStorage.setItem('ava_oauth_linking_email', user.email);
+          localStorage.setItem('ava_oauth_linking_platform', 'youtube');
+        } catch {}
+
+        showToast('Đang chuyển hướng sang Google OAuth (kèm quyền YouTube Data API v3)...');
         const { data, error } = await signInWithGoogleOAuth(true);
         if (!error && data?.url) {
           window.location.href = data.url;
@@ -3322,14 +3506,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
         if (error) {
           console.warn('YouTube OAuth error:', error);
-          showToast(`Lỗi kết nối YouTube OAuth: ${error.message}. Chuyển sang đồng bộ cấu hình.`);
+          showToast(`⚠️ Lỗi Google/YouTube OAuth: ${error.message}`);
+          return;
         }
       }
 
-      showToast('Đang đồng bộ trực tiếp Kênh YouTube trên thiết bị (1-Chạm)...');
-      
-      const rawYt = customYt || (user.youtubeConnected && user.youtubeConnected !== 'Chưa kết nối' ? user.youtubeConnected : (user.email ? user.email.split('@')[0].replace(/[^a-z0-9_]/gi, '') : 'youtube_creator'));
-      const cleanYt = rawYt.replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '').replace(/^@/, '');
+      if (!customYt) return;
+      showToast('Đang đồng bộ Kênh YouTube thật...');
+      const cleanYt = customYt.replace(/^https?:\/\/(www\.)?youtube\.com\/(@)?/, '').replace(/^@/, '');
       const targetYt = `@${cleanYt}`;
       const targetEmail = user.email || `${cleanYt}@gmail.com`;
 
@@ -3346,8 +3530,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       showToast(`⚡ Đã kết nối & đồng bộ thành công Kênh YouTube: ${targetYt}`);
     } catch (err: any) {
-      console.warn('YouTube 1-Touch exception:', err);
-      if (!isAuthenticated) loginWithGoogle();
+      console.warn('YouTube OAuth exception:', err);
+      showToast('Không thể kết nối Google/YouTube OAuth. Vui lòng thử lại!');
     }
   };
 

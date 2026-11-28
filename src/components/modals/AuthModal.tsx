@@ -15,8 +15,7 @@ export const AuthModal: React.FC = () => {
     closeAuthModal, 
     loginWithGoogleOAuth, 
     loginWithTikTokOAuth,
-    loginWithFacebookOAuth,
-    loginWithGoogle 
+    loginWithFacebookOAuth
   } = useTikTokApp();
 
   const [loadingPlatform, setLoadingPlatform] = useState<string | null>(null);
@@ -26,56 +25,39 @@ export const AuthModal: React.FC = () => {
   const handleConnectTikTok = async () => {
     setLoadingPlatform('tiktok');
     try {
-      await loginWithTikTokOAuth();
+      await loginWithTikTokOAuth(undefined, true);
       setTimeout(() => {
         setLoadingPlatform(null);
-        closeAuthModal();
-      }, 600);
+      }, 800);
     } catch (err) {
       console.warn('TikTok login exception:', err);
-      loginWithGoogle('creator_tiktok@avafollow.vn');
       setLoadingPlatform(null);
-      closeAuthModal();
     }
   };
 
   const handleConnectGoogle = async () => {
     setLoadingPlatform('google');
     try {
-      const isLocalhost = typeof window !== 'undefined' && 
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-      if (isLocalhost) {
-        setTimeout(() => {
-          loginWithGoogle('quocthiencr90@gmail.com');
-          setLoadingPlatform(null);
-          closeAuthModal();
-        }, 400);
-      } else {
-        await loginWithGoogleOAuth();
+      await loginWithGoogleOAuth();
+      setTimeout(() => {
         setLoadingPlatform(null);
-      }
+      }, 800);
     } catch (err) {
       console.warn('Google login exception:', err);
-      loginWithGoogle('quocthiencr90@gmail.com');
       setLoadingPlatform(null);
-      closeAuthModal();
     }
   };
 
   const handleConnectFacebook = async () => {
     setLoadingPlatform('facebook');
     try {
-      await loginWithFacebookOAuth();
+      await loginWithFacebookOAuth(undefined, true, false);
       setTimeout(() => {
         setLoadingPlatform(null);
-        closeAuthModal();
-      }, 600);
+      }, 800);
     } catch (err) {
       console.warn('Facebook login exception:', err);
-      loginWithGoogle('creator_fb@avafollow.vn');
       setLoadingPlatform(null);
-      closeAuthModal();
     }
   };
 

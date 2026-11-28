@@ -347,7 +347,7 @@ const LandingPageCore: React.FC = () => {
                 <span>Đăng Nhập &amp; Kết Nối 1-Chạm Ngay</span>
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-mono font-bold">
-                +500.000 XU ĐĂNG KÝ 1 LẦN
+                +500.000 XU FOLLOW CHÉO (1 LẦN)
               </span>
             </div>
 

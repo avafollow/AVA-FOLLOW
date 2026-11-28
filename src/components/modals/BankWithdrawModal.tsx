@@ -226,10 +226,10 @@ export const BankWithdrawModal: React.FC = () => {
               <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/50 via-slate-900 to-black border border-emerald-500/35 flex items-center justify-between">
                 <div>
                   <div className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
-                    <span>Ví Xu Làm Nhiệm Vụ &amp; Thưởng</span>
+                    <span>Ví Xu Làm Nhiệm Vụ (Chỉ Từ Nhiệm Vụ Thật)</span>
                     <FeatureGuideTooltip
                       title="Quy Định Rút Từ Ví Xu Làm Nhiệm Vụ"
-                      description="Chỉ số Xu kiếm từ Làm Nhiệm Vụ và Xu Thưởng (+500.000 Xu lần đầu) mới được quy đổi rút tiền mặt. Tối thiểu 500.000đ (= 500.000 Xu)."
+                      description="CHỈ số Xu bạn tự tay làm Nhiệm Vụ thật mới được quy đổi rút tiền mặt (tối thiểu 500.000đ = 500.000 Xu). Quà tặng +500.000 Xu đăng ký và Xu Follow Chéo nằm ở Ví Follow Chéo, chỉ dùng để mua gói, không cộng dồn để rút tiền."
                       size="xs"
                     />
                   </div>
@@ -280,7 +280,7 @@ export const BankWithdrawModal: React.FC = () => {
               <li>Lịch trả tiền hàng tuần: <strong className="text-white">{disbursementTime}</strong>.</li>
               <li>Rút từ Ví Xu Làm Nhiệm Vụ: <strong className="text-emerald-300">Tối thiểu 500.000đ (500.000 Xu)</strong>.</li>
               <li>Rút từ Hoa Hồng Affiliate: <strong className="text-amber-300">Tối thiểu 100.000đ</strong> (hoặc dùng mua bất kỳ gói nào).</li>
-              <li>Xu Follow Chéo: <strong className="text-purple-300">Chỉ dùng mua gói, không quy đổi rút tiền</strong>.</li>
+              <li>Xu Follow Chéo &amp; 500.000 Xu quà tặng đăng ký: <strong className="text-purple-300">Chỉ dùng mua gói kéo follow, không cộng dồn rút tiền</strong>.</li>
             </ul>
           </div>
 

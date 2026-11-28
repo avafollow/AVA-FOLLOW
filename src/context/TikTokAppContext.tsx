@@ -6429,11 +6429,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const welcomeTx: TransactionRecord = {
         id: `tx_welcome_${Date.now()}`,
         type: 'earn',
-        title: 'Thưởng chào mừng đăng ký & kết nối tài khoản đầu tiên (+500.000 Xu vào Ví Xu Nhiệm Vụ)',
-        amount: '+500.000 Xu',
+        title: 'Thưởng chào mừng đăng ký lần đầu (+500.000 Xu vào Ví Xu Follow Chéo — Chỉ dùng mua gói, không rút tiền)',
+        amount: '+500.000 Xu (Ví Follow Chéo)',
         isPositive: true,
         date: 'Vừa xong',
-        method: 'Thưởng Đăng Ký 1 Lần',
+        method: 'Quà Tặng Follow Chéo (1 Lần)',
         status: 'success'
       };
       newTransactions = [welcomeTx, ...newTransactions];
@@ -6444,8 +6444,10 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const curCrossTt = user.crossFollowCoins ?? 0;
     const curMissionTt = user.missionCoins ?? Math.max(0, (user.avaliveCoins || 0) - curCrossTt);
-    const nextMissionTt = curMissionTt + addedWelcomeBonus;
-    const nextCoins = nextMissionTt + curCrossTt;
+    // 500.000 Xu thưởng đăng ký CHỈ cộng vào Ví Xu Follow Chéo (chỉ dùng mua gói kéo follow, KHÔNG cộng vào Ví Nhiệm Vụ rút tiền)
+    const nextCrossTt = curCrossTt + addedWelcomeBonus;
+    const nextMissionTt = curMissionTt;
+    const nextCoins = nextMissionTt + nextCrossTt;
     const finalAvatar = avatarUrl || user.tiktokAvatar || getTikTokAvatar(cleanHandle.replace(/^@/, ''));
     const finalProfileUrl = `https://www.tiktok.com/@${cleanHandle.replace(/^@/, '')}`;
 
@@ -6474,7 +6476,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       isNewUserBonusClaimed: true,
       avaliveCoins: nextCoins,
       missionCoins: nextMissionTt,
-      crossFollowCoins: curCrossTt,
+      crossFollowCoins: nextCrossTt,
       coinsValueVND: `${nextMissionTt.toLocaleString()}đ`,
       transactions: newTransactions
     };
@@ -6578,11 +6580,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (addedWelcomeBonus > 0) {
       triggerFireworks({
         type: 'mission',
-        badge: '🎁 THƯỞNG CHÀO MỪNG',
-        title: 'CHÀO MỪNG BẠN MỚI LIÊN KẾT TIKTOK!',
-        subtitle: 'Tài khoản TikTok đã xác thực thành công!',
-        rewardText: `+${addedWelcomeBonus.toLocaleString()} XU (+5.000đ)`,
-        message: `Bạn đã nhận thưởng nóng +${addedWelcomeBonus.toLocaleString()} Xu (+5.000đ) vào ví chính! Hãy bắt đầu lướt video và làm nhiệm vụ kiếm tiền ngay.`
+        badge: '🎁 QUÀ TẶNG FOLLOW CHÉO (1 LẦN)',
+        title: 'CHÀO MỪNG KẾT NỐI TIKTOK THÀNH CÔNG!',
+        subtitle: 'Tặng +500.000 Xu vào Ví Xu Follow Chéo!',
+        rewardText: `+${addedWelcomeBonus.toLocaleString()} XU (CHỈ MUA GÓI)`,
+        message: 'Bạn nhận được +500.000 Xu vào Ví Xu Follow Chéo để mua bất kỳ gói kéo follow/tương tác nào cho kênh (không quy đổi rút tiền mặt). Muốn rút tiền mặt, hãy đi làm Nhiệm Vụ!'
       });
     } else {
       showToast('✅ Kết nối tài khoản TikTok thành công! Đã đồng bộ lên hệ thống quản trị.');
@@ -6660,7 +6662,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     lockFacebookGmailBinding(userEmail, clean, clientIp);
 
-    // Thưởng chào mừng 500.000 Xu đúng 1 LẦN DUY NHẤT nếu chưa từng nhận ở bất kỳ nền tảng nào
+    // Thưởng chào mừng 500.000 Xu đúng 1 LẦN DUY NHẤT -> CHỈ cộng vào Ví Xu Follow Chéo (mua gói kéo follow, KHÔNG rút tiền)
     let addedFbWelcome = 0;
     let nextFbTxs = [...user.transactions];
     if (!user.isNewUserBonusClaimed && !isWelcomeBonusEverClaimed(userEmail, clean)) {
@@ -6670,11 +6672,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         {
           id: `tx_welcome_fb_${Date.now()}`,
           type: 'earn',
-          title: 'Thưởng chào mừng đăng ký & kết nối Facebook đầu tiên (+500.000 Xu vào Ví Xu Nhiệm Vụ)',
-          amount: '+500.000 Xu',
+          title: 'Thưởng chào mừng kết nối Facebook đầu tiên (+500.000 Xu vào Ví Xu Follow Chéo — Chỉ mua gói, không rút tiền)',
+          amount: '+500.000 Xu (Ví Follow Chéo)',
           isPositive: true,
           date: 'Vừa xong',
-          method: 'Thưởng Đăng Ký 1 Lần',
+          method: 'Quà Tặng Follow Chéo (1 Lần)',
           status: 'success'
         },
         ...nextFbTxs
@@ -6683,8 +6685,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const curCrossFb = user.crossFollowCoins ?? 0;
     const curMissionFb = user.missionCoins ?? Math.max(0, (user.avaliveCoins || 0) - curCrossFb);
-    const nextMissionFb = curMissionFb + addedFbWelcome;
-    const nextTotalFbCoins = nextMissionFb + curCrossFb;
+    const nextCrossFb = curCrossFb + addedFbWelcome;
+    const nextMissionFb = curMissionFb;
+    const nextTotalFbCoins = nextMissionFb + nextCrossFb;
 
     const finalFbAvatar = avatarUrl || user.facebookAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean)}&background=1877F2&color=fff&bold=true`;
     const finalFbUrl = urlOrHandle.startsWith('http') ? urlOrHandle : `https://facebook.com/${clean}`;
@@ -6712,7 +6715,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       isNewUserBonusClaimed: true,
       avaliveCoins: nextTotalFbCoins,
       missionCoins: nextMissionFb,
-      crossFollowCoins: curCrossFb,
+      crossFollowCoins: nextCrossFb,
       coinsValueVND: `${nextMissionFb.toLocaleString()}đ`,
       transactions: nextFbTxs
     };
@@ -6815,11 +6818,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (addedFbWelcome > 0) {
       triggerFireworks({
         type: 'mission',
-        badge: '🎁 THƯỞNG ĐĂNG KÝ 1 LẦN',
+        badge: '🎁 QUÀ TẶNG FOLLOW CHÉO (1 LẦN)',
         title: 'CHÚC MỪNG KẾT NỐI FACEBOOK THÀNH CÔNG!',
-        subtitle: 'Tặng +500.000 Xu vào Ví Xu Làm Nhiệm Vụ (1 lần duy nhất)!',
-        rewardText: '+500.000 XU',
-        message: 'Số Xu thưởng đã được cộng vào Ví Xu Làm Nhiệm Vụ của bạn và đồng bộ lên Supabase!'
+        subtitle: 'Tặng +500.000 Xu vào Ví Xu Follow Chéo (1 lần duy nhất)!',
+        rewardText: '+500.000 XU (CHỈ MUA GÓI)',
+        message: 'Số Xu thưởng đã cộng vào Ví Xu Follow Chéo để mua bất kỳ gói nào kéo follow cho kênh của bạn (không cộng vào Ví Nhiệm Vụ & không rút tiền mặt)!'
       });
     } else {
       showToast('✅ Kết nối trực tiếp tài khoản Facebook thành công! Đã đồng bộ lên hệ thống.');
@@ -6899,7 +6902,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     lockYouTubeGmailBinding(userEmail, formattedYt, clientIp);
 
-    // Thưởng chào mừng 500.000 Xu đúng 1 LẦN DUY NHẤT nếu chưa từng nhận ở bất kỳ nền tảng nào
+    // Thưởng chào mừng 500.000 Xu đúng 1 LẦN DUY NHẤT -> CHỈ cộng vào Ví Xu Follow Chéo (mua gói kéo follow, KHÔNG rút tiền)
     let addedYtWelcome = 0;
     let nextYtTxs = [...user.transactions];
     if (!user.isNewUserBonusClaimed && !isWelcomeBonusEverClaimed(userEmail, formattedYt)) {
@@ -6909,11 +6912,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         {
           id: `tx_welcome_yt_${Date.now()}`,
           type: 'earn',
-          title: 'Thưởng chào mừng đăng ký & kết nối YouTube đầu tiên (+500.000 Xu vào Ví Xu Nhiệm Vụ)',
-          amount: '+500.000 Xu',
+          title: 'Thưởng chào mừng kết nối YouTube đầu tiên (+500.000 Xu vào Ví Xu Follow Chéo — Chỉ mua gói, không rút tiền)',
+          amount: '+500.000 Xu (Ví Follow Chéo)',
           isPositive: true,
           date: 'Vừa xong',
-          method: 'Thưởng Đăng Ký 1 Lần',
+          method: 'Quà Tặng Follow Chéo (1 Lần)',
           status: 'success'
         },
         ...nextYtTxs
@@ -6922,8 +6925,9 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const curCrossYt = user.crossFollowCoins ?? 0;
     const curMissionYt = user.missionCoins ?? Math.max(0, (user.avaliveCoins || 0) - curCrossYt);
-    const nextMissionYt = curMissionYt + addedYtWelcome;
-    const nextTotalYtCoins = nextMissionYt + curCrossYt;
+    const nextCrossYt = curCrossYt + addedYtWelcome;
+    const nextMissionYt = curMissionYt;
+    const nextTotalYtCoins = nextMissionYt + nextCrossYt;
 
     const finalYtAvatar = avatarUrl || user.youtubeAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(clean || 'YT')}&background=FF0000&color=fff&bold=true`;
     const finalYtUrl = urlOrHandle && urlOrHandle.startsWith('http') ? urlOrHandle : `https://youtube.com/@${clean || 'channel'}`;
@@ -6951,7 +6955,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       isNewUserBonusClaimed: true,
       avaliveCoins: nextTotalYtCoins,
       missionCoins: nextMissionYt,
-      crossFollowCoins: curCrossYt,
+      crossFollowCoins: nextCrossYt,
       coinsValueVND: `${nextMissionYt.toLocaleString()}đ`,
       transactions: nextYtTxs
     };
@@ -7058,11 +7062,11 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (addedYtWelcome > 0) {
       triggerFireworks({
         type: 'mission',
-        badge: '🎁 THƯỞNG ĐĂNG KÝ 1 LẦN',
+        badge: '🎁 QUÀ TẶNG FOLLOW CHÉO (1 LẦN)',
         title: 'CHÚC MỪNG KẾT NỐI YOUTUBE THÀNH CÔNG!',
-        subtitle: 'Tặng +500.000 Xu vào Ví Xu Làm Nhiệm Vụ (1 lần duy nhất)!',
-        rewardText: '+500.000 XU',
-        message: 'Số Xu thưởng đã được cộng vào Ví Xu Làm Nhiệm Vụ của bạn và đồng bộ lên Supabase!'
+        subtitle: 'Tặng +500.000 Xu vào Ví Xu Follow Chéo (1 lần duy nhất)!',
+        rewardText: '+500.000 XU (CHỈ MUA GÓI)',
+        message: 'Số Xu thưởng đã cộng vào Ví Xu Follow Chéo để mua bất kỳ gói nào kéo follow/sub cho kênh của bạn (không cộng vào Ví Nhiệm Vụ & không rút tiền mặt)!'
       });
     } else {
       showToast('✅ Kết nối trực tiếp Kênh YouTube thành công! Đã đồng bộ lên hệ thống.');
@@ -7751,12 +7755,21 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       rawBudget = parseInt(firstChunk.replace(/\D/g, ''), 10) || 0;
     }
 
-    if ((user.avaliveCoins || 0) < rawBudget) {
-      showToast(`❌ Số dư Xu không đủ (${(user.avaliveCoins || 0).toLocaleString()} Xu < ${rawBudget.toLocaleString()} Xu). Vui lòng nạp thêm Xu để chạy chiến dịch!`);
+    const curCrossCamp = user.crossFollowCoins ?? 0;
+    const curMissionCamp = user.missionCoins ?? Math.max(0, (user.avaliveCoins || 0) - curCrossCamp);
+    const totalCampCoins = curCrossCamp + curMissionCamp;
+
+    if (totalCampCoins < rawBudget) {
+      showToast(`❌ Số dư Xu không đủ (${totalCampCoins.toLocaleString()} Xu < ${rawBudget.toLocaleString()} Xu). Vui lòng nạp thêm Xu để chạy chiến dịch!`);
       setIsDepositOpen(true);
       return false;
     }
-    const newCoins = Math.max(0, (user.avaliveCoins || 0) - rawBudget);
+    // Ưu tiên trừ Ví Xu Follow Chéo (gồm 500.000 Xu quà tặng & Xu follow chéo) trước -> thiếu mới trừ sang Ví Xu Nhiệm Vụ
+    const campFromCross = Math.min(curCrossCamp, rawBudget);
+    const campFromMission = rawBudget - campFromCross;
+    const nextCrossCamp = Math.max(0, curCrossCamp - campFromCross);
+    const nextMissionCamp = Math.max(0, curMissionCamp - campFromMission);
+    const newCoins = nextCrossCamp + nextMissionCamp;
     let singleNewTask: TikTokTaskItem | null = null;
 
     // Phân bổ chuẩn xác 40% ngân sách cho thợ làm nhiệm vụ
@@ -7977,13 +7990,20 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     setCampaigns(prev => [newCampaign, ...prev]);
 
-    setUser(prev => ({
-      ...prev,
-      avaliveCoins: newCoins,
-      coinsValueVND: `${newCoins.toLocaleString()}đ`,
-      createdCampaignsCount: prev.createdCampaignsCount + 1,
-      transactions: [newTx, ...prev.transactions]
-    }));
+    setUser(prev => {
+      const updated: UserProfileWallet = {
+        ...prev,
+        avaliveCoins: newCoins,
+        missionCoins: nextMissionCamp,
+        crossFollowCoins: nextCrossCamp,
+        coinsValueVND: `${nextMissionCamp.toLocaleString()}đ`,
+        createdCampaignsCount: prev.createdCampaignsCount + 1,
+        transactions: [newTx, ...prev.transactions]
+      };
+      try { localStorage.setItem('ava_user_profile', JSON.stringify(updated)); } catch {}
+      syncUserProfileToSupabase(updated);
+      return updated;
+    });
 
     setAdminData(prev => ({
       ...prev,

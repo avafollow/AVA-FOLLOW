@@ -39,14 +39,14 @@ export const DualWalletCards: React.FC<DualWalletCardsProps> = ({
                   Ví Xu Làm Nhiệm Vụ
                 </h4>
                 <FeatureGuideTooltip
-                  title="Ví Xu Làm Nhiệm Vụ & Xu Thưởng (Rút Tiền Mặt)"
-                  description="Ví này chỉ nhận Xu từ việc làm Nhiệm Vụ (TikTok, Facebook, YouTube, Livestream) và Xu Thưởng đăng ký lần đầu (+500.000 Xu chỉ tặng 1 lần duy nhất). Quy đổi 1 Xu = 1 VNĐ."
+                  title="Ví Xu Làm Nhiệm Vụ (Chỉ Từ Làm Nhiệm Vụ Thật — Rút Tiền Mặt)"
+                  description="Ví này CHỈ ghi nhận Xu bạn tự tay đi làm Nhiệm Vụ thật (TikTok, Facebook, YouTube, Livestream). Quy đổi 1 Xu = 1 VNĐ. Tuyệt đối KHÔNG cộng dồn 500.000 Xu quà tặng đăng ký hay Xu Follow chéo vào ví này."
                   steps={[
-                    'Đủ tối thiểu 500.000 Xu (= 500.000đ tiền Việt) là có thể tạo lệnh rút tiền mặt về Ngân hàng / MoMo.',
+                    'Đủ tối thiểu 500.000 Xu (= 500.000đ tiền Việt) kiếm từ làm nhiệm vụ là được rút tiền mặt về Ngân hàng / MoMo.',
                     'Tiền rút được giải ngân định kỳ lúc 10:00 Sáng Thứ Hai hàng tuần.',
                     'Ngoài rút tiền mặt, bạn cũng có thể dùng Xu này để mua bất kỳ gói dịch vụ nào.'
                   ]}
-                  tips="Hãy chăm chỉ làm nhiệm vụ hàng ngày để tăng số dư Ví Xu Làm Nhiệm Vụ và rút tiền mặt!"
+                  tips="Hãy chăm chỉ làm nhiệm vụ thật hàng ngày để tích lũy Ví Xu Làm Nhiệm Vụ và rút tiền mặt!"
                   badge="RÚT TIỀN MIN 500K"
                   size="sm"
                 />
@@ -94,7 +94,7 @@ export const DualWalletCards: React.FC<DualWalletCardsProps> = ({
             />
           </div>
           <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-            <span>Gồm: Nhiệm vụ + Xu thưởng (+500K 1 lần)</span>
+            <span>Chỉ tính Xu làm nhiệm vụ thật (Không gồm Xu tặng)</span>
             <span className="text-emerald-300">Trả 10:00 Sáng Thứ 2</span>
           </div>
         </div>
@@ -112,18 +112,18 @@ export const DualWalletCards: React.FC<DualWalletCardsProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h4 className="text-xs sm:text-sm font-black text-white font-display uppercase tracking-wide">
-                  Ví Xu Follow Chéo
+                  Ví Xu Follow Chéo &amp; Quà Tặng
                 </h4>
                 <FeatureGuideTooltip
-                  title="Ví Xu Follow Chéo (Chỉ Dùng Mua Gói — Không Rút Tiền)"
-                  description="Ví này tách riêng hoàn toàn với Ví Xu Làm Nhiệm Vụ. Mọi lượt đi Follow chéo, tương tác chéo giữa các thành viên đều được cộng Xu vào ví này."
+                  title="Ví Xu Follow Chéo & Quà Tặng 500.000 Xu (Chỉ Mua Gói — Không Rút Tiền)"
+                  description="Ví này chứa phần quà tặng đăng ký lần đầu (+500.000 Xu — chỉ tặng 1 lần duy nhất) và toàn bộ số Xu kiếm từ đi Follow chéo / tương tác chéo. Tách riêng hoàn toàn với Ví Xu Làm Nhiệm Vụ!"
                   steps={[
-                    'Xu Follow Chéo KHÔNG được quy đổi thành tiền mặt để rút về ngân hàng.',
-                    'Bạn được tự do sử dụng 100% số Xu Follow Chéo này để MUA BẤT KỲ GÓI dịch vụ nào hoặc chạy chiến dịch tăng tương tác cho kênh của bạn.',
-                    'Khi mua gói bằng Xu, hệ thống tự động ưu tiên trừ Ví Xu Follow Chéo trước để giữ nguyên tiền rút ở Ví Nhiệm Vụ cho bạn!'
+                    '500.000 Xu quà tặng và Xu Follow Chéo KHÔNG được cộng dồn vào Ví Nhiệm Vụ và KHÔNG được rút thành tiền mặt.',
+                    'Bạn được tự do dùng 100% số Xu trong ví này để MUA BẤT KỲ GÓI dịch vụ nào để người khác follow / tương tác cho kênh của bạn.',
+                    'Khi mua gói bằng Xu, hệ thống tự ưu tiên trừ Ví Xu Follow Chéo này trước!'
                   ]}
-                  tips="Muốn kiếm tiền rút về tài khoản ngân hàng (min 500.000đ), hãy làm các Nhiệm Vụ chính thức trên hệ thống."
-                  badge="CHỈ MUA GÓI"
+                  tips="Muốn kiếm tiền rút về tài khoản ngân hàng (min 500.000đ), hãy đi làm Nhiệm Vụ chính thức để cộng vào Ví Xu Làm Nhiệm Vụ."
+                  badge="CHỈ MUA GÓI • KHÔNG RÚT"
                   size="sm"
                 />
               </div>

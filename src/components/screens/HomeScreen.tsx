@@ -102,7 +102,7 @@ export const HomeScreen: React.FC<{
               </span>
             </div>
             <span className="text-[10px] text-amber-300 font-mono font-bold">
-              🎁 Tặng +500.000 Xu lần đầu kết nối (1 lần duy nhất)
+              🎁 Tặng +500.000 Xu vào Ví Follow Chéo (mua gói kéo follow, 1 lần duy nhất)
             </span>
           </div>
 

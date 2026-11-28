@@ -82,10 +82,14 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
   const [viewers, setViewers] = useState<number>(viewersCount);
   const [hearts, setHearts] = useState<{ id: number; x: number; color: string }[]>([]);
   const [hlsStreamUrl, setHlsStreamUrl] = useState<string | null>(null);
+  const [proxyHlsStreamUrl, setProxyHlsStreamUrl] = useState<string | null>(null);
+  const [flvStreamUrl, setFlvStreamUrl] = useState<string | null>(null);
+  const [activeEngine, setActiveEngine] = useState<'hls_direct' | 'hls_proxy' | 'flv'>('hls_direct');
   const [hasStreamError, setHasStreamError] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const mpegtsRef = useRef<any>(null);
 
   // Kiểm tra chính xác xem URL có phải video TikTok không (chỉ dùng isLiveMediaUrl chặt chẽ)
   const isTargetLive = Boolean(targetUrl && isLiveMediaUrl(targetUrl));
@@ -136,12 +140,22 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
         if (data.liveViewers) setViewers(data.liveViewers);
         if (data.roomCover) setRoomCover(data.roomCover);
         if (data.roomTitle || data.title) setRoomTitle(data.roomTitle || data.title);
-        if (data.hlsUrl && data.roomStatus !== 4) {
-          setHlsStreamUrl(data.hlsUrl);
+
+        const nextDirectHls = data.rawHlsUrl || data.hlsUrl || null;
+        const nextProxyHls = data.proxyHlsUrl || (nextDirectHls ? `/api/stream-proxy?url=${encodeURIComponent(nextDirectHls)}` : null);
+        const nextFlv = data.flvUrl || null;
+
+        if ((nextDirectHls || nextFlv) && data.roomStatus !== 4) {
+          setHlsStreamUrl(nextDirectHls);
+          setProxyHlsStreamUrl(nextProxyHls);
+          setFlvStreamUrl(nextFlv);
+          setActiveEngine(nextDirectHls ? 'hls_direct' : 'flv');
           setHasStreamError(false);
           setIsEnded(false);
         } else if (data.roomStatus === 4 || (!data.isLive && !data.videoId)) {
           setHlsStreamUrl(null);
+          setProxyHlsStreamUrl(null);
+          setFlvStreamUrl(null);
           setIsEnded(true);
         } else {
           setIsEnded(false);
@@ -155,8 +169,8 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     };
   }, [targetUrl, safeInitialHandle, retryNonce]);
 
-  useEffect(() => { 
-    setInternalMuted(isMuted); 
+  useEffect(() => {
+    setInternalMuted(isMuted);
   }, [isMuted]);
 
   useEffect(() => {
@@ -166,82 +180,168 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     }
   }, [internalMuted]);
 
-  // KHÔNG PHÁT VIDEO GIẢ LẬP: Chỉ nhận luồng Live stream HLS m3u8 thật 100%
-  const activeStreamSrc = hlsStreamUrl || (
-    targetUrl && (targetUrl.includes('.m3u8') || targetUrl.includes('.mp4') || targetUrl.includes('blob:')) ? targetUrl : null
-  );
+  // Chọn luồng Live thật (Ưu tiên: HLS Direct -> HLS Proxy -> HTTP-FLV mpegts.js)
+  const fallbackDirectTarget =
+    targetUrl && (targetUrl.includes('.m3u8') || targetUrl.includes('.mp4') || targetUrl.includes('.flv') || targetUrl.includes('blob:'))
+      ? targetUrl
+      : null;
 
-  // Khởi tạo luồng phát HLS / Video trực tiếp đảm bảo luôn có video phát 100% trên mọi thiết bị
+  const activeStreamSrc =
+    activeEngine === 'hls_direct'
+      ? (hlsStreamUrl || proxyHlsStreamUrl || flvStreamUrl || fallbackDirectTarget)
+      : activeEngine === 'hls_proxy'
+        ? (proxyHlsStreamUrl || flvStreamUrl || hlsStreamUrl || fallbackDirectTarget)
+        : (flvStreamUrl || hlsStreamUrl || proxyHlsStreamUrl || fallbackDirectTarget);
+
+  // Khởi tạo trình phát Live đa engine (HLS.js + Apple Native HLS cho iPhone/iPad + mpegts.js HTTP-FLV)
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !activeStreamSrc) return;
 
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
+    let isDisposed = false;
+    let hlsRetryCount = 0;
+
+    const cleanupPlayers = () => {
+      if (hlsRef.current) {
+        try { hlsRef.current.destroy(); } catch {}
+        hlsRef.current = null;
+      }
+      if (mpegtsRef.current) {
+        try {
+          mpegtsRef.current.pause?.();
+          mpegtsRef.current.unload?.();
+          mpegtsRef.current.detachMediaElement?.();
+          mpegtsRef.current.destroy?.();
+        } catch {}
+        mpegtsRef.current = null;
+      }
+    };
+
+    cleanupPlayers();
 
     video.muted = internalMuted;
     video.defaultMuted = internalMuted;
     video.playsInline = true;
 
-    if (activeStreamSrc.includes('.m3u8')) {
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true,
-          backBufferLength: 30
-        });
-        hlsRef.current = hls;
-        hls.loadSource(activeStreamSrc);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().then(() => setIsPaused(false)).catch(() => {
-            video.muted = true;
-            video.defaultMuted = true;
-            setInternalMuted(true);
-            video.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
-          });
-        });
-        hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (data && data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                hls.recoverMediaError();
-                break;
-              default:
-                setHasStreamError(true);
-                hls.destroy();
-                break;
-            }
-          }
-        });
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        // Hỗ trợ trực tiếp cho iOS Safari / iPad / Mac Safari
-        video.src = activeStreamSrc;
-        video.play().then(() => setIsPaused(false)).catch(() => {
-          video.muted = true;
-          video.defaultMuted = true;
-          setInternalMuted(true);
-          video.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
-        });
-      } else {
-        setHasStreamError(true);
-      }
-    } else {
-      video.src = activeStreamSrc;
+    const tryPlayVideo = () => {
       video.play().then(() => setIsPaused(false)).catch(() => {
         video.muted = true;
         video.defaultMuted = true;
         setInternalMuted(true);
         video.play().then(() => setIsPaused(false)).catch(() => setIsPaused(true));
       });
+    };
+
+    const advanceToNextEngine = () => {
+      if (isDisposed) return;
+      if (activeEngine === 'hls_direct' && proxyHlsStreamUrl && proxyHlsStreamUrl !== activeStreamSrc) {
+        setActiveEngine('hls_proxy');
+      } else if (activeEngine !== 'flv' && flvStreamUrl) {
+        setActiveEngine('flv');
+      } else {
+        setHasStreamError(true);
+      }
+    };
+
+    const isFlvSource = activeEngine === 'flv' || (activeStreamSrc.includes('.flv') && !activeStreamSrc.includes('.m3u8'));
+    const isHlsSource = activeStreamSrc.includes('.m3u8') || activeStreamSrc.includes('m3u8');
+
+    if (isFlvSource) {
+      // Engine 2: HTTP-FLV Live Stream via mpegts.js (H.264 720p siêu mượt, độ trễ < 1s)
+      import('mpegts.js')
+        .then((mod) => {
+          if (isDisposed) return;
+          const mpegts = mod.default || mod;
+          if (!mpegts.isSupported()) {
+            // iPhone Safari không hỗ trợ MSE FLV -> chuyển sang HLS nếu có
+            if (hlsStreamUrl && activeEngine === 'flv') {
+              setActiveEngine('hls_direct');
+            } else {
+              setHasStreamError(true);
+            }
+            return;
+          }
+          const player = mpegts.createPlayer(
+            {
+              type: 'flv',
+              isLive: true,
+              url: activeStreamSrc,
+              cors: true,
+              hasAudio: true,
+              hasVideo: true
+            },
+            {
+              enableWorker: false,
+              enableStashBuffer: false,
+              stashInitialSize: 128,
+              liveBufferLatencyChasing: true,
+              autoCleanupSourceBuffer: true
+            }
+          );
+          mpegtsRef.current = player;
+          player.attachMediaElement(video);
+          player.load();
+          player.on(mpegts.Events.ERROR, () => {
+            if (!isDisposed) setHasStreamError(true);
+          });
+          tryPlayVideo();
+        })
+        .catch(() => {
+          if (!isDisposed) setHasStreamError(true);
+        });
+    } else if (isHlsSource) {
+      // Engine 1: Universal HLS (Native trên iPhone/iPad Safari & Hls.js trên Chrome/Android/PC)
+      const isAppleNativeOnly = !Hls.isSupported() && Boolean(video.canPlayType('application/vnd.apple.mpegurl'));
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 30,
+          maxBufferLength: 20,
+          liveSyncDurationCount: 2
+        });
+        hlsRef.current = hls;
+        hls.loadSource(activeStreamSrc);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          setHasStreamError(false);
+          tryPlayVideo();
+        });
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (data && data.fatal) {
+            hlsRetryCount += 1;
+            if (hlsRetryCount <= 2) {
+              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                hls.startLoad();
+                return;
+              }
+              if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                hls.recoverMediaError();
+                return;
+              }
+            }
+            hls.destroy();
+            hlsRef.current = null;
+            advanceToNextEngine();
+          }
+        });
+      } else if (isAppleNativeOnly) {
+        video.src = activeStreamSrc;
+        const onNativeErr = () => advanceToNextEngine();
+        video.addEventListener('error', onNativeErr, { once: true });
+        tryPlayVideo();
+      } else {
+        advanceToNextEngine();
+      }
+    } else {
+      video.src = activeStreamSrc;
+      tryPlayVideo();
     }
 
-    const handlePlayEvent = () => setIsPaused(false);
+    const handlePlayEvent = () => {
+      setIsPaused(false);
+      setHasStreamError(false);
+    };
     const handlePauseEvent = () => setIsPaused(true);
     video.addEventListener('play', handlePlayEvent);
     video.addEventListener('pause', handlePauseEvent);
@@ -255,33 +355,47 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
     window.addEventListener('click', resumeOnTouch, { passive: true, once: true });
 
     return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
+      isDisposed = true;
+      cleanupPlayers();
       video.removeEventListener('play', handlePlayEvent);
       video.removeEventListener('pause', handlePauseEvent);
       window.removeEventListener('touchstart', resumeOnTouch);
       window.removeEventListener('click', resumeOnTouch);
     };
-  }, [activeStreamSrc, internalMuted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStreamSrc, activeEngine]);
 
   // Bộ đếm mắt xem THẬT (Cập nhật 15s 1 lần)
   useEffect(() => {
     const timer = setInterval(() => {
-      let urlToResolve = targetUrl || `https://www.tiktok.com/@${cleanHandle}/live`;
+      let urlToResolve = targetUrl || (cleanHandle ? `https://www.tiktok.com/@${cleanHandle}/live` : '');
+      if (!urlToResolve) return;
       if (!urlToResolve.includes('/live') && !urlToResolve.includes('/video/') && urlToResolve.includes('@')) {
-         urlToResolve = urlToResolve.endsWith('/') ? urlToResolve + 'live' : urlToResolve + '/live';
+        urlToResolve = urlToResolve.endsWith('/') ? urlToResolve + 'live' : urlToResolve + '/live';
       }
       fetch(`/api/tiktok-resolve?url=${encodeURIComponent(urlToResolve)}`)
         .then(res => res.json())
         .then(data => {
           if (data && data.liveViewers) setViewers(data.liveViewers);
-          if (data && data.hlsUrl && !hlsStreamUrl) setHlsStreamUrl(data.hlsUrl);
+          if (data && data.roomStatus !== 4) {
+            const nextHls = data.rawHlsUrl || data.hlsUrl || null;
+            if (nextHls && !hlsStreamUrl) {
+              setHlsStreamUrl(nextHls);
+              setProxyHlsStreamUrl(data.proxyHlsUrl || `/api/stream-proxy?url=${encodeURIComponent(nextHls)}`);
+              setActiveEngine('hls_direct');
+              setHasStreamError(false);
+              setIsEnded(false);
+            } else if (data.flvUrl && !flvStreamUrl && !hlsStreamUrl) {
+              setFlvStreamUrl(data.flvUrl);
+              setActiveEngine('flv');
+              setHasStreamError(false);
+              setIsEnded(false);
+            }
+          }
         }).catch(() => {});
     }, 15000);
     return () => clearInterval(timer);
-  }, [targetUrl, cleanHandle, hlsStreamUrl]);
+  }, [targetUrl, cleanHandle, hlsStreamUrl, flvStreamUrl]);
 
   const handleToggleSound = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -348,7 +462,7 @@ export const TikTokLiveEmbedPlayer: React.FC<TikTokLiveEmbedPlayerProps> = ({
               loop
               muted={internalMuted}
               onError={() => {
-                if (!activeStreamSrc?.includes('.m3u8')) {
+                if (!activeStreamSrc?.includes('.m3u8') && !activeStreamSrc?.includes('.flv') && activeEngine !== 'flv') {
                   setHasStreamError(true);
                 }
               }}

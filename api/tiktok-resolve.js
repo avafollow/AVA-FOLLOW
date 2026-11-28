@@ -260,6 +260,7 @@ export default async function handler(req, res) {
     let roomCover = null;
     let roomTitle = null;
     let roomStatus = null;
+    let resolvedRoomId = roomIdFromUrl || null;
 
     if (looksLikeLive && !videoId) {
       // 4A. Official TikTok JSON API: /api-live/user/room/?aid=1988&sourceType=54&uniqueId=...
@@ -286,6 +287,9 @@ export default async function handler(req, res) {
               authorName = userObj.nickname || authorName;
               cleanHandle = userObj.uniqueId || cleanHandle;
               authorAvatar = userObj.avatarLarger || userObj.avatarMedium || userObj.avatarThumb || authorAvatar;
+              if (userObj.roomId) {
+                resolvedRoomId = String(userObj.roomId);
+              }
             }
 
             if (liveRoom) {
@@ -304,7 +308,8 @@ export default async function handler(req, res) {
               if (!hlsUrl && liveRoom.hevcStreamData?.pull_data?.stream_data) {
                 const hevc = extractHlsAndFlvFromStreamStr(liveRoom.hevcStreamData.pull_data.stream_data);
                 hlsUrl = hevc.hlsUrl || hlsUrl;
-                flvUrl = hevc.flvUrl || flvUrl;
+                // Only use HEVC flv if we don't already have H.264 flv from primary streamData
+                if (!flvUrl) flvUrl = hevc.flvUrl || flvUrl;
               }
 
               // status === 2 means actively broadcasting LIVE; status === 4 means stream ended
@@ -316,11 +321,11 @@ export default async function handler(req, res) {
         }
       }
 
-      // 4B. Webcast Room Info API if room_id is known and we still need stream URLs
-      if ((!hlsUrl || !cleanHandle) && roomIdFromUrl) {
+      // 4B. Webcast Room Info API using exact string roomId (guarantees hls_pull_url even from US/EU regions!)
+      if ((!hlsUrl || !flvUrl || !cleanHandle) && resolvedRoomId && roomStatus !== 4) {
         try {
           const webcastRes = await fetchWithTimeout(
-            `https://webcast.tiktok.com/webcast/room/info/?aid=1988&room_id=${encodeURIComponent(roomIdFromUrl)}`,
+            `https://webcast.tiktok.com/webcast/room/info/?aid=1988&room_id=${encodeURIComponent(resolvedRoomId)}`,
             {
               headers: {
                 'User-Agent': DESKTOP_UA,
@@ -342,17 +347,22 @@ export default async function handler(req, res) {
                 authorAvatar = rData.owner.avatar_large?.url_list?.[0] || rData.owner.avatar_medium?.url_list?.[0] || authorAvatar;
               }
               if (rData.cover?.url_list?.[0]) roomCover = rData.cover.url_list[0];
-              if (rData.stream_url?.hls_pull_url) {
+              if (!hlsUrl && rData.stream_url?.hls_pull_url) {
                 hlsUrl = cleanEscapedUrl(rData.stream_url.hls_pull_url);
               }
-              if (rData.stream_url?.flv_pull_url) {
-                const firstFlv = Object.values(rData.stream_url.flv_pull_url)[0];
-                if (typeof firstFlv === 'string') flvUrl = cleanEscapedUrl(firstFlv);
+              if (!hlsUrl && rData.stream_url?.hls_pull_url_map) {
+                const mapVals = Object.values(rData.stream_url.hls_pull_url_map).filter(v => typeof v === 'string' && v.includes('.m3u8'));
+                if (mapVals.length > 0) hlsUrl = cleanEscapedUrl(mapVals[0]);
+              }
+              if (!flvUrl && rData.stream_url?.flv_pull_url) {
+                const flvMap = rData.stream_url.flv_pull_url;
+                const preferredFlv = flvMap.HD1 || flvMap.FULL_HD1 || flvMap.SD2 || flvMap.SD1 || Object.values(flvMap)[0];
+                if (typeof preferredFlv === 'string') flvUrl = cleanEscapedUrl(preferredFlv);
               }
               if (!hlsUrl && rData.stream_url?.live_core_sdk_data?.pull_data?.stream_data) {
                 const sdk = extractHlsAndFlvFromStreamStr(rData.stream_url.live_core_sdk_data.pull_data.stream_data);
                 hlsUrl = sdk.hlsUrl || hlsUrl;
-                flvUrl = sdk.flvUrl || flvUrl;
+                flvUrl = flvUrl || sdk.flvUrl;
               }
               isLive = roomStatus === 2 || (roomStatus !== 4 && Boolean(hlsUrl || flvUrl));
             }
@@ -410,8 +420,10 @@ export default async function handler(req, res) {
       authorAvatar: authorAvatar || null,
       thumbnailUrl: roomCover || thumbnailUrl || null,
       roomStatus,
+      roomId: resolvedRoomId,
       liveViewers,
-      hlsUrl: streamProxyUrl || hlsUrl || null,
+      hlsUrl: hlsUrl || null,
+      proxyHlsUrl: streamProxyUrl || null,
       rawHlsUrl: hlsUrl || null,
       flvUrl: flvUrl || null,
       roomCover,

@@ -19,18 +19,46 @@ export const AuthModal: React.FC = () => {
   } = useTikTokApp();
 
   const [loadingPlatform, setLoadingPlatform] = useState<string | null>(null);
+  const [showTikTokInput, setShowTikTokInput] = useState<boolean>(false);
+  const [tiktokHandleInput, setTiktokHandleInput] = useState<string>('');
+  const [tiktokError, setTiktokError] = useState<string>('');
 
   if (!isAuthModalOpen) return null;
 
+  const hasTikTokClientKey = Boolean(((import.meta as any).env?.VITE_TIKTOK_CLIENT_KEY || '').trim());
+
   const handleConnectTikTok = async () => {
+    if (hasTikTokClientKey) {
+      setLoadingPlatform('tiktok');
+      try {
+        await loginWithTikTokOAuth(undefined, true);
+        setTimeout(() => setLoadingPlatform(null), 800);
+      } catch (err) {
+        console.warn('TikTok login exception:', err);
+        setLoadingPlatform(null);
+      }
+      return;
+    }
+    // Chưa có TikTok Client Key -> mở form xác thực tài khoản TikTok trực tiếp ngay trong AuthModal
+    setShowTikTokInput(prev => !prev);
+    setTiktokError('');
+  };
+
+  const handleSubmitTikTokDirect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = tiktokHandleInput.trim();
+    if (!trimmed || trimmed === '@') {
+      setTiktokError('Vui lòng nhập @username hoặc dán đường link kênh TikTok của bạn!');
+      return;
+    }
+    setTiktokError('');
     setLoadingPlatform('tiktok');
     try {
-      await loginWithTikTokOAuth(undefined, true);
-      setTimeout(() => {
-        setLoadingPlatform(null);
-      }, 800);
+      await loginWithTikTokOAuth(trimmed, false);
+      setLoadingPlatform(null);
+      closeAuthModal();
     } catch (err) {
-      console.warn('TikTok login exception:', err);
+      console.warn('TikTok direct login exception:', err);
       setLoadingPlatform(null);
     }
   };
@@ -124,6 +152,45 @@ export const AuthModal: React.FC = () => {
             </div>
             <Zap className="w-4 h-4 text-cyan-400 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all" />
           </button>
+
+          {showTikTokInput && (
+            <form
+              onSubmit={handleSubmitTikTokDirect}
+              className="p-4 rounded-2xl bg-black/70 border border-[#25F4EE]/40 space-y-3 animate-in fade-in duration-200"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-[#25F4EE] font-mono">XÁC THỰC TÀI KHOẢN TIKTOK CHÍNH CHỦ</span>
+                <a
+                  href="https://www.tiktok.com/login"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] font-mono text-amber-300 underline hover:text-amber-200"
+                >
+                  Mở TikTok Đăng Nhập ↗
+                </a>
+              </div>
+              <input
+                type="text"
+                value={tiktokHandleInput}
+                onChange={(e) => {
+                  setTiktokHandleInput(e.target.value);
+                  setTiktokError('');
+                }}
+                placeholder="Nhập @username hoặc dán link kênh TikTok của bạn..."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#25F4EE] font-mono"
+              />
+              {tiktokError && (
+                <div className="text-[11px] text-rose-400 font-mono">{tiktokError}</div>
+              )}
+              <button
+                type="submit"
+                disabled={!!loadingPlatform}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#25F4EE] via-cyan-500 to-[#FE2C55] text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer active:scale-95 transition-all disabled:opacity-50"
+              >
+                {loadingPlatform === 'tiktok' ? 'Đang đồng bộ kênh TikTok...' : '⚡ Xác Thực & Vào Phần Mềm Ngay'}
+              </button>
+            </form>
+          )}
 
           {/* GOOGLE / YOUTUBE 1-TOUCH OAUTH */}
           <button

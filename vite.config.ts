@@ -15,7 +15,8 @@ function apiDevMiddleware(): Plugin {
           req.url &&
           (req.url.startsWith('/api/tiktok-resolve') ||
             req.url.startsWith('/api/stream-proxy') ||
-            req.url.startsWith('/api/resolve-media-meta'))
+            req.url.startsWith('/api/resolve-media-meta') ||
+            req.url.startsWith('/api/tiktok-verify-bot'))
         ) {
           try {
             const urlObj = new URL(req.url, 'http://localhost:3000');
@@ -46,6 +47,10 @@ function apiDevMiddleware(): Plugin {
               return;
             } else if (pathname === '/api/resolve-media-meta') {
               const { default: handler } = await import('./api/resolve-media-meta.js');
+              await handler(req, res);
+              return;
+            } else if (pathname === '/api/tiktok-verify-bot') {
+              const { default: handler } = await import('./api/tiktok-verify-bot.js');
               await handler(req, res);
               return;
             }

@@ -76,6 +76,7 @@ import {
 import { verifyPlatformAccountForTask } from '../../services/platformProfileSyncService';
 import { verifyYouTubeSubscription, verifyYouTubeVideoLike, verifyYouTubeComment, getYouTubeOAuthToken } from '../../services/youtubeApiService';
 import { verifyFacebookTaskAction, getFacebookOAuthToken } from '../../services/facebookApiService';
+import { takeTikTokBotSnapshot, verifyTikTokWithBot } from '../../services/tiktokBotVerifier';
 
 
 interface UnifiedFeedItem {
@@ -155,6 +156,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     openedAt: number;               // Timestamp khi mở TikTok / Facebook / YouTube
     minConfirmAt: number;           // Thời điểm sớm nhất được bấm Confirm
     platform?: 'tiktok' | 'youtube' | 'facebook';
+    botToken?: string;              // Mã đối soát HMAC T0 của Bot chống gian lận TikTok
   } | null>(null);
   // Countdown cho nút Confirm
   const [confirmCountdown, setConfirmCountdown] = useState<number>(0);
@@ -987,7 +989,23 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       minConfirmAt
     });
 
-    showToast(`🌐 Đang mở ${itemPlatformDisplayName}! Bấm ${itemPlatform === 'youtube' ? 'Đăng Ký' : itemPlatform === 'facebook' ? 'Theo Dõi' : 'Follow'} kênh, đợi ${MIN_CONFIRM_SECONDS['follow']}s rồi bấm XÁC NHẬN để đối soát và nhận +200 Xu.`);
+    // Chụp snapshot T0 từ Bot kiểm soát chống gian lận TikTok (so sánh Đang Follow / Follower thật)
+    if (itemPlatform === 'tiktok') {
+      takeTikTokBotSnapshot({
+        action: 'follow',
+        userHandle,
+        targetHandle: cleanHandle,
+        targetUrl: realChannelUrl
+      }).then((snap) => {
+        if (snap.ok && snap.verificationToken) {
+          setPendingVerification((prev) =>
+            prev && prev.openedAt === openedAt ? { ...prev, botToken: snap.verificationToken } : prev
+          );
+        }
+      });
+    }
+
+    showToast(`🌐 Đang mở ${itemPlatformDisplayName}! Bấm ${itemPlatform === 'youtube' ? 'Đăng Ký' : itemPlatform === 'facebook' ? 'Theo Dõi' : 'Follow'} kênh, đợi ${MIN_CONFIRM_SECONDS['follow']}s rồi bấm XÁC NHẬN để đối soát thật.`);
   };
 
 
@@ -1053,7 +1071,23 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       openedAt,
       minConfirmAt: openedAt + MIN_CONFIRM_SECONDS['like'] * 1000
     });
-    showToast(`❤️ Đã mở video ${itemPlatformDisplayName}! Thả tim xong (đợi 30s), bấm XÁC NHẬN để nhận +100 Xu.`);
+
+    if (itemPlatform === 'tiktok') {
+      takeTikTokBotSnapshot({
+        action: 'like',
+        userHandle,
+        targetHandle: cleanHandle,
+        targetUrl: videoTargetUrl
+      }).then((snap) => {
+        if (snap.ok && snap.verificationToken) {
+          setPendingVerification((prev) =>
+            prev && prev.openedAt === openedAt ? { ...prev, botToken: snap.verificationToken } : prev
+          );
+        }
+      });
+    }
+
+    showToast(`❤️ Đã mở video ${itemPlatformDisplayName}! Thả tim thật xong (đợi 30s), bấm XÁC NHẬN để Bot đối soát.`);
   };
 
 
@@ -1151,16 +1185,43 @@ export const TikTokFeedRunnerModal: React.FC = () => {
         });
         res = { success: fbRes.success, coinsEarned: pv.coinsToEarn, txHash: fbRes.txHash || 'FB_ACT', message: fbRes.message };
       } else {
-        if (pv.action === 'follow') {
-          res = await syncTikTokFollow(currentItem.channelHandle, userHandle);
-        } else if (pv.action === 'like') {
-          res = await syncTikTokLike(pv.itemId, userHandle);
-        } else if (pv.action === 'comment') {
-          res = await syncTikTokComment(pv.itemId, pv.commentText || '', userHandle);
-        } else if (pv.action === 'share') {
-          res = syncShareToFacebook(pv.tiktokUrl, currentItem.channelHandle, userHandle);
+        // TIKTOK: BẮT BUỘC ĐỐI SOÁT QUA BOT KIỂM SOÁT CHỐNG GIAN LẬN SERVER-SIDE (T1 vs T0)
+        const botVerdict = await verifyTikTokWithBot({
+          verificationToken: pv.botToken,
+          commentText: pv.commentText
+        });
+        if (!botVerdict.verified) {
+          if (botVerdict.fraudDetected) {
+            applyFraudPenalty(userHandle, 15, ['TIKTOK_BOT_NO_REAL_ACTION']);
+            triggerImmediateFraudAlert({
+              title: 'BOT KIỂM SOÁT PHÁT HIỆN GIAN LẬN TIKTOK',
+              reason: botVerdict.reason,
+              anomalyType: 'BOT_SPEED_DETECTED',
+              channelHandle: currentItem.channelHandle,
+              penaltyPoints: 15
+            });
+          }
+          res = {
+            success: false,
+            coinsEarned: 0,
+            message: botVerdict.reason
+          };
         } else {
-          res = { success: true, coinsEarned: pv.coinsToEarn, message: '✅ Xác nhận thành công!', txHash: 'VERIFIED' };
+          if (pv.action === 'follow') {
+            await syncTikTokFollow(currentItem.channelHandle, userHandle);
+          } else if (pv.action === 'like') {
+            await syncTikTokLike(pv.itemId, userHandle);
+          } else if (pv.action === 'comment') {
+            await syncTikTokComment(pv.itemId, pv.commentText || '', userHandle);
+          } else if (pv.action === 'share') {
+            syncShareToFacebook(pv.tiktokUrl, currentItem.channelHandle, userHandle);
+          }
+          res = {
+            success: true,
+            coinsEarned: pv.coinsToEarn,
+            txHash: botVerdict.botProofHash || 'BOT_TT_VERIFIED',
+            message: botVerdict.reason
+          };
         }
       }
 
@@ -1207,27 +1268,16 @@ export const TikTokFeedRunnerModal: React.FC = () => {
     }
   };
 
-  // CƠ CHẾ BÙ NHIỆM VỤ ĐA THIẾT BỊ (XỬ LÝ KHI THIẾT BỊ GẶP HẠN CHẾ PHÁT VIDEO NỀN PHIÊN LIVE)
+  // MỞ TRỰC TIẾP PHIÊN LIVE TRÊN TIKTOK (TUYỆT ĐỐI KHÔNG CỘNG XU MIỄN PHÍ CHỐNG GIAN LẬN)
   const handleCompensateLiveTask = () => {
     if (!currentItem) return;
-    const reward = claimTaskAction(currentItem.id, 'watch');
-    const earned = reward || currentItem.rewardCoins || 300;
-    setSessionCoinsEarned(prev => prev + earned);
-    setTaskClaimedMap(prev => ({
-      ...prev,
-      [currentItem.id]: { ...(prev[currentItem.id] || {}), watch: true }
-    }));
-    showToast(`⚡ ĐÃ BÙ TIẾN ĐỘ NHIỆM VỤ: Bảo lưu & cộng +${earned} Xu vào ví thành công!`);
-    setInModalAlert({
-      message: `⚡ Đã bù nhiệm vụ phiên live (+${earned} Xu)`,
-      sub: `Hệ thống đã nhận diện thiết bị và bảo lưu tiến độ cho tài khoản [${itemPerformerAccount}].`
-    });
     const cleanHandle = currentItem.channelHandle.replace(/^@+/, '');
     const liveUrl = currentItem.targetUrl && currentItem.targetUrl.startsWith('http')
       ? currentItem.targetUrl
       : `https://www.tiktok.com/@${cleanHandle}/live`;
+    showToast('🔴 Đang mở trực tiếp phòng Live trên TikTok. Xem đủ thời gian quy định để nhận Xu!');
     if (typeof window !== 'undefined') {
-      window.open(liveUrl, '_blank');
+      window.open(liveUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -1325,6 +1375,21 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       openedAt,
       minConfirmAt: openedAt + MIN_CONFIRM_SECONDS['comment'] * 1000
     });
+
+    if (itemPlatform === 'tiktok') {
+      takeTikTokBotSnapshot({
+        action: 'comment',
+        userHandle,
+        targetHandle: cleanHandle,
+        targetUrl: videoTargetUrl
+      }).then((snap) => {
+        if (snap.ok && snap.verificationToken) {
+          setPendingVerification((prev) =>
+            prev && prev.openedAt === openedAt ? { ...prev, botToken: snap.verificationToken } : prev
+          );
+        }
+      });
+    }
   };
 
 
@@ -1389,7 +1454,23 @@ export const TikTokFeedRunnerModal: React.FC = () => {
       openedAt,
       minConfirmAt: openedAt + MIN_CONFIRM_SECONDS['share'] * 1000
     });
-    showToast(`🔗 Đã mở chia sẻ ${itemPlatformDisplayName}! Đợi 20s rồi xác nhận để nhận +240 Xu.`);
+
+    if (itemPlatform === 'tiktok') {
+      takeTikTokBotSnapshot({
+        action: 'share',
+        userHandle,
+        targetHandle: cleanHandle,
+        targetUrl
+      }).then((snap) => {
+        if (snap.ok && snap.verificationToken) {
+          setPendingVerification((prev) =>
+            prev && prev.openedAt === openedAt ? { ...prev, botToken: snap.verificationToken } : prev
+          );
+        }
+      });
+    }
+
+    showToast(`🔗 Đã mở chia sẻ ${itemPlatformDisplayName}! Đợi 20s rồi xác nhận để Bot đối soát.`);
   };
 
 
@@ -1566,178 +1647,114 @@ export const TikTokFeedRunnerModal: React.FC = () => {
           </div>
         )}
 
-        {/* Top Header Floating Controls (Safe Area Notch / Dynamic Island) */}
-        <div className="absolute top-0 inset-x-0 z-30 pt-[max(env(safe-area-inset-top,0px),0.75rem)] px-2.5 pb-2.5 sm:p-3 bg-gradient-to-b from-black/95 via-black/80 to-transparent space-y-2">
-          {/* Top Row: Clean Minimal Header (Mute Toggle & Close) */}
-          <div className="flex items-center justify-between gap-2 px-1">
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 border border-white/10 text-[10px] font-mono text-white/80 backdrop-blur-md">
-                {itemPlatform === 'youtube' ? (
-                  <svg className="w-3.5 h-3.5 fill-red-500 shrink-0" viewBox="0 0 24 24">
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                  </svg>
-                ) : itemPlatform === 'facebook' ? (
-                  <svg className="w-3.5 h-3.5 fill-blue-500 shrink-0" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
-                ) : (
-                  <svg className="w-3 h-3 fill-rose-500 shrink-0" viewBox="0 0 24 24">
-                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.3 6.3 0 0 0 1.93-4.57V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76c-.31-.02-.62-.05-.94-.07z" />
-                  </svg>
-                )}
-                <span className="font-bold text-white tracking-wide">{itemPlatformDisplayName} Video Runner</span>
-                <span className="text-slate-400 font-bold">({currentIndex + 1}/{combinedFeed.length})</span>
+        {/* Top Header Floating Controls — SIÊU GỌN, ZERO CHỒNG LẤP (Tài khoản + Loa + Bộ lọc gọn + Đóng) */}
+        <div className="absolute top-0 inset-x-0 z-30 pt-[max(env(safe-area-inset-top,0px),0.75rem)] px-3 pb-2.5 bg-gradient-to-b from-black/95 via-black/75 to-transparent space-y-2">
+          {/* Row 1: Nền tảng + Tài khoản làm nhiệm vụ | Loa Có Tiếng/Bật Tiếng + Đóng */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0 px-2.5 py-1.5 rounded-full bg-black/75 border border-white/15 backdrop-blur-md">
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-black uppercase shrink-0 ${
+                itemPlatform === 'youtube' ? 'bg-red-600 text-white' :
+                itemPlatform === 'facebook' ? 'bg-blue-600 text-white' :
+                'bg-rose-600 text-white'
+              }`}>
+                {itemPlatformDisplayName}
               </span>
-
-              {(() => {
-                const userHandle = itemPerformerAccount || user.email || '@user';
-                const trust = getTrustProfile(userHandle);
-                const badge = getTrustScoreBadge(trust.trustScore);
-                return (
-                  <div 
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/70 border border-white/10 text-[10px] font-mono backdrop-blur-md cursor-pointer hover:border-white/30 transition-all"
-                    title={`Điểm uy tín: ${trust.trustScore}/100 - Đã hoàn thành ${trust.totalActions} nhiệm vụ hợp lệ`}
-                  >
-                    <span>{badge.emoji}</span>
-                    <span className="font-bold text-white font-mono">{trust.trustScore}</span>
-                    <span className={`text-[9px] font-bold ${
-                      badge.colorClass === 'emerald' ? 'text-emerald-400' :
-                      badge.colorClass === 'cyan' ? 'text-cyan-400' :
-                      badge.colorClass === 'yellow' ? 'text-yellow-400' :
-                      badge.colorClass === 'orange' ? 'text-orange-400' : 'text-rose-400'
-                    }`}>
-                      {badge.label}
-                    </span>
-                  </div>
-                );
-              })()}
-
-              {(() => {
-                const itemMedia = parseMediaUrl(currentItem?.targetUrl || currentItem?.videoUrl || '', currentItem?.channelHandle);
-                if (itemMedia.isTikTok && itemMedia.videoId) {
-                  return (
-                    <button
-                      onClick={() => setPlayerMode(playerMode === 'embed' ? 'stream' : 'embed')}
-                      className="px-2.5 py-1 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white text-[9px] font-mono font-bold border border-rose-400/40 backdrop-blur-md transition-all flex items-center gap-1 shadow-md cursor-pointer"
-                      title={playerMode === 'embed' ? 'Đang phát TikTok Gốc (Bấm để chuyển sang Stream HD)' : 'Đang phát Stream HD (Bấm để chuyển sang TikTok Gốc)'}
-                    >
-                      {playerMode === 'embed' ? '🎬 TikTok Gốc' : '⚡ Stream HD'}
-                    </button>
-                  );
-                }
-                return null;
-              })()}
+              <span className="text-[11px] font-mono truncate text-slate-200 max-w-[125px] sm:max-w-[165px]">
+                <strong className={isItemAccountConnected ? 'text-emerald-400' : 'text-rose-400'}>
+                  {itemPerformerAccount}
+                </strong>
+              </span>
+              {!isItemAccountConnected ? (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); openConnect(); }}
+                  className="px-2 py-0.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[9px] font-bold shrink-0 cursor-pointer"
+                >
+                  Kết nối
+                </button>
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              )}
             </div>
 
-
-            {/* Right Buttons: Mute Toggle & Close */}
+            {/* Right: Loa Bật/Tắt Tiếng rõ ràng & Đóng */}
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => {
+                  try {
+                    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+                    if (AudioCtx) {
+                      const ctx = new AudioCtx();
+                      if (ctx.state === 'suspended') ctx.resume();
+                    }
+                  } catch {}
                   const nextMuted = !isMuted;
                   setIsMuted(nextMuted);
                   if (videoRef.current) {
                     videoRef.current.muted = nextMuted;
+                    if (!nextMuted) videoRef.current.volume = 1.0;
                   }
-                  showToast(nextMuted ? '🔇 Đã tắt âm thanh' : '🔊 Đã bật âm thanh video sống động');
+                  showToast(nextMuted ? '🔇 Đã tắt âm thanh' : '🔊 Đã bật âm thanh');
                 }}
-                className="w-10 h-10 rounded-full bg-black/80 hover:bg-white/20 text-white backdrop-blur-md transition-all cursor-pointer border border-white/20 active:scale-90 flex items-center justify-center shadow-lg shrink-0"
+                className={`px-2.5 py-1.5 rounded-full backdrop-blur-md transition-all cursor-pointer border active:scale-95 flex items-center gap-1.5 shadow-lg shrink-0 ${
+                  isMuted
+                    ? 'bg-rose-600/85 hover:bg-rose-500 text-white border-rose-300/40 animate-pulse'
+                    : 'bg-emerald-600/85 hover:bg-emerald-500 text-white border-emerald-300/40'
+                }`}
                 title={isMuted ? 'Bấm để bật âm thanh' : 'Bấm để tắt tiếng'}
               >
-                {isMuted ? <VolumeX className="h-4.5 w-4.5 text-rose-400" /> : <Volume2 className="h-4.5 w-4.5 text-emerald-400" />}
+                {isMuted ? <VolumeX className="h-3.5 w-3.5 text-white" /> : <Volume2 className="h-3.5 w-3.5 text-white" />}
+                <span className="text-[10px] font-mono font-bold">
+                  {isMuted ? 'Bật Tiếng' : 'Có Tiếng'}
+                </span>
               </button>
               <button
                 type="button"
                 onClick={closeFeedRunner}
-                className="w-10 h-10 rounded-full bg-black/80 hover:bg-rose-600 text-white backdrop-blur-md transition-all cursor-pointer border border-white/20 active:scale-90 flex items-center justify-center shadow-lg shrink-0"
-                title="Thoát khỏi trình lướt video"
+                className="w-8 h-8 rounded-full bg-black/80 hover:bg-rose-600 text-white backdrop-blur-md transition-all cursor-pointer border border-white/20 active:scale-90 flex items-center justify-center shadow-lg shrink-0"
+                title="Đóng trình phát"
               >
-                <X className="h-5 w-5 stroke-[2.5]" />
+                <X className="h-4 w-4 stroke-[2.5]" />
               </button>
             </div>
           </div>
 
-          {/* Row 2: CATEGORY TABS (TẤT CẢ, LÀM NHIỆM VỤ, LIVE STREAM, FOLLOW CHÉO) */}
-          <div className="flex items-center gap-1.5 p-1 bg-black/60 rounded-2xl border border-white/10 backdrop-blur-md text-[10px] font-mono overflow-x-auto no-scrollbar scroll-smooth">
+          {/* Row 2: Bộ lọc gọn 3 tab (Tất Cả / Nhiệm Vụ / Live) */}
+          <div className="flex items-center gap-1.5 text-[10px] font-mono overflow-x-auto no-scrollbar">
             <button
               onClick={() => { setFilterMode('all'); setCurrentIndex(0); }}
-              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                filterMode === 'all' 
-                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md ring-1 ring-cyan-400/50' 
-                  : 'text-slate-300 hover:text-white bg-white/5'
+              className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                filterMode === 'all'
+                  ? 'bg-cyan-600 text-white shadow'
+                  : 'bg-black/60 text-slate-300 hover:text-white border border-white/10'
               }`}
             >
-              <span>⚡ Tất Cả ({countAll})</span>
+              Tất Cả ({countAll})
             </button>
-
             <button
               onClick={() => { setFilterMode('missions'); setCurrentIndex(0); }}
-              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                filterMode === 'missions' 
-                  ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md ring-1 ring-rose-400/50' 
-                  : 'text-slate-300 hover:text-white bg-white/5'
+              className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                filterMode === 'missions'
+                  ? 'bg-rose-600 text-white shadow'
+                  : 'bg-black/60 text-slate-300 hover:text-white border border-white/10'
               }`}
             >
-              <span>🎯 Làm Nhiệm Vụ ({countMissions})</span>
+              Nhiệm Vụ ({countMissions})
             </button>
-
             <button
-              onClick={() => { 
-                setFilterMode('live'); 
-                setCurrentIndex(0); 
-              }}
-              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                filterMode === 'live' 
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md ring-1 ring-purple-400/50' 
-                  : 'text-slate-300 hover:text-white bg-white/5'
+              onClick={() => { setFilterMode('live'); setCurrentIndex(0); }}
+              className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                filterMode === 'live'
+                  ? 'bg-red-600 text-white shadow'
+                  : 'bg-black/60 text-slate-300 hover:text-white border border-white/10'
               }`}
             >
-              <span>🔴 Live Stream ({countLive})</span>
+              🔴 Live ({countLive})
             </button>
-
-            <button
-              onClick={() => { 
-                setFilterMode('cross_follow'); 
-                setCurrentIndex(0); 
-              }}
-              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                filterMode === 'cross_follow' 
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md ring-1 ring-emerald-400/50' 
-                  : 'text-slate-300 hover:text-white bg-white/5'
-              }`}
-            >
-              <span>🔄 Follow Chéo ({countCross})</span>
-            </button>
-          </div>
-
-          {/* Row 3: BADGE TÀI KHOẢN THỰC HIỆN NHIỆM VỤ THEO NỀN TẢNG (CHỐNG DÙNG SAI TÀI KHOẢN) */}
-          <div className="flex items-center justify-between px-3 py-1.5 rounded-2xl bg-black/80 border border-cyan-500/40 backdrop-blur-md text-[11px] font-mono shadow-md">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                itemPlatform === 'youtube' ? 'bg-red-600 text-white' :
-                itemPlatform === 'facebook' ? 'bg-blue-600 text-white' :
-                'bg-zinc-800 text-pink-400 border border-pink-500/40'
-              }`}>
-                {itemPlatformDisplayName}
-              </span>
-              <span className="text-zinc-300 truncate">
-                Tài khoản: <strong className={isItemAccountConnected ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>{itemPerformerAccount}</strong>
-              </span>
-            </div>
-            {!isItemAccountConnected ? (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); openConnect(); }}
-                className="px-2 py-0.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold shrink-0 animate-pulse cursor-pointer shadow"
-              >
-                Kết nối ngay
-              </button>
-            ) : (
-              <span className="flex items-center gap-1 text-[10px] text-emerald-400 shrink-0 font-bold">
-                <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Chính chủ
-              </span>
-            )}
+            <span className="ml-auto px-2 py-0.5 rounded-full bg-black/50 text-slate-400 text-[9px] shrink-0">
+              {currentIndex + 1}/{combinedFeed.length}
+            </span>
           </div>
         </div>
 
@@ -1846,6 +1863,7 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   title={currentItem.title}
                   isMuted={isMuted}
                   onToggleMute={() => setIsMuted(!isMuted)}
+                  hideHud={true}
                 />
               );
             }
@@ -1869,16 +1887,17 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               );
             }
 
-            // B. Kênh TikTok & Video TikTok: Phát video TikTok chính thức thật 100%
+            // B. Kênh TikTok & Video TikTok: Phát video TikTok chính thức thật 100% (hideHud=true tránh chồng thanh)
             if (itemMedia.isTikTok) {
               return (
                 <TikTokVideoEmbedPlayer
-                  key={currentItem.id + '_tt_' + (itemMedia.videoId || currentItem.channelHandle || currentItem.id) + '_' + (isMuted ? 'muted' : 'unmuted')}
+                  key={currentItem.id + '_tt_' + (itemMedia.videoId || currentItem.channelHandle || currentItem.id)}
                   videoId={itemMedia.videoId}
                   directUrl={currentItem.targetUrl || currentItem.videoUrl}
                   title={currentItem.title}
                   isMuted={isMuted}
                   onToggleMute={() => setIsMuted(!isMuted)}
+                  hideHud={true}
                 />
               );
             }
@@ -1900,12 +1919,13 @@ export const TikTokFeedRunnerModal: React.FC = () => {
 
             return (
               <TikTokVideoEmbedPlayer
-                key={currentItem.id + '_fallback_tt_' + (isMuted ? 'muted' : 'unmuted')}
+                key={currentItem.id + '_fallback_tt'}
                 videoId={itemMedia.videoId}
                 directUrl={currentItem.targetUrl || currentItem.videoUrl}
                 title={currentItem.title}
                 isMuted={isMuted}
                 onToggleMute={() => setIsMuted(!isMuted)}
+                hideHud={true}
               />
             );
           })()}
@@ -1986,12 +2006,12 @@ export const TikTokFeedRunnerModal: React.FC = () => {
               )}
             </div>
 
-            {/* Creator Logo + Real Channel Name + Verified Badge (Bấm để nhảy về đúng kênh YouTube/Facebook/TikTok thật) */}
+            {/* Creator Logo + Real Channel Name + Quick Open Link (Siêu gọn, lọc bỏ toàn bộ badge thừa) */}
             <div className="flex items-center gap-2 flex-wrap">
               <div 
                 onClick={handleOpenTikTokApp}
                 className="flex items-center gap-2 cursor-pointer group"
-                title={`Bấm để mở trang ${itemPlatform === 'youtube' ? 'YouTube' : itemPlatform === 'facebook' ? 'Facebook' : 'TikTok'} chính thức của kênh ${effectiveChannelName}`}
+                title={`Mở kênh ${effectiveChannelName} trên ${itemPlatformDisplayName}`}
               >
                 <div className="relative shrink-0">
                   <img
@@ -2011,54 +2031,35 @@ export const TikTokFeedRunnerModal: React.FC = () => {
                   </span>
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-white font-black text-sm drop-shadow-md tracking-wide group-hover:text-cyan-300 transition-colors truncate max-w-[180px] sm:max-w-[220px]">
+                  <div className="flex items-center gap-1">
+                    <span className="text-white font-black text-sm drop-shadow-md tracking-wide group-hover:text-cyan-300 transition-colors truncate max-w-[165px] sm:max-w-[210px]">
                       {effectiveChannelName}
                     </span>
-                    <CheckCircle2 className="h-4 w-4 text-[#20D5EC] fill-[#20D5EC]/20 shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-[#20D5EC] fill-[#20D5EC]/20 shrink-0" />
                   </div>
                   {effectiveChannelHandle && effectiveChannelHandle !== effectiveChannelName && (
-                    <div className="text-[10px] text-cyan-200/90 font-mono truncate max-w-[180px]">
+                    <div className="text-[10px] text-cyan-200/90 font-mono truncate max-w-[165px]">
                       {effectiveChannelHandle}
                     </div>
                   )}
                 </div>
-                {currentItem.campaignCategory === 'partner' ? (
-                  <span className="px-1.5 py-0.5 rounded-full bg-amber-500/30 border border-amber-400/40 text-[9px] font-bold text-amber-300 backdrop-blur-sm">
-                    Đối tác VIP
-                  </span>
-                ) : (
-                  <span className="px-1.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/30 text-[9px] font-bold text-cyan-300 backdrop-blur-sm">
-                    Chiến dịch thật
-                  </span>
-                )}
               </div>
 
               <button
                 type="button"
                 onClick={handleOpenTikTokApp}
-                className="px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 hover:opacity-90 text-white text-[10px] font-mono font-bold flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer"
-                title={`Mở ứng dụng hoặc trang web ${itemPlatform === 'youtube' ? 'YouTube' : itemPlatform === 'facebook' ? 'Facebook' : 'TikTok'} thật của kênh này`}
+                className="px-2 py-0.5 rounded-full bg-white/15 hover:bg-rose-600 text-white text-[10px] font-mono font-bold flex items-center gap-1 backdrop-blur-md border border-white/20 transition-all active:scale-95 cursor-pointer"
+                title={`Mở ${itemPlatformDisplayName}`}
               >
-                <ExternalLink className="w-3 h-3" />
-                <span>Mở {itemPlatform === 'youtube' ? 'YouTube' : itemPlatform === 'facebook' ? 'Facebook' : 'TikTok'}</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+                <span>Mở {itemPlatformDisplayName}</span>
               </button>
             </div>
 
-            {/* Campaign Caption */}
-            <p className="text-white text-xs font-medium leading-relaxed drop-shadow-md line-clamp-2">
+            {/* Campaign Caption gọn 1 dòng */}
+            <p className="text-white/90 text-xs font-medium leading-snug drop-shadow-md line-clamp-1">
               {effectiveItemTitle}
             </p>
-
-            {/* Music Sound Tag (Chỉ hiện cho video thường) */}
-            {currentItem.kind !== 'livestream' && (
-              <div className="flex items-center gap-1.5 text-[11px] text-white/90 font-medium">
-                <Music className="h-3.5 w-3.5 text-[#FE2C55] animate-spin-slow shrink-0" />
-                <span className="truncate drop-shadow-md">
-                  Âm thanh gốc - {effectiveChannelName} • {itemPlatformDisplayName}
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Right Action Bar (Chỉ hiển thị trên Video Thường, ẩn khi Livestream hoặc Embed để không đè màn hình, chỉ hiện DUY NHẤT 1 nút tương ứng với loại chiến dịch) */}

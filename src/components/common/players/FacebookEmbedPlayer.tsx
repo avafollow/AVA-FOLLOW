@@ -8,6 +8,7 @@ export interface FacebookEmbedPlayerProps {
   isMuted?: boolean;
   onToggleMute?: () => void;
   className?: string;
+  hideHud?: boolean;
 }
 
 /**
@@ -20,7 +21,8 @@ export const FacebookEmbedPlayer: React.FC<FacebookEmbedPlayerProps> = ({
   title = 'Facebook Video',
   isMuted = false,
   onToggleMute,
-  className = ''
+  className = '',
+  hideHud = false
 }) => {
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -196,43 +198,45 @@ export const FacebookEmbedPlayer: React.FC<FacebookEmbedPlayerProps> = ({
 
   return (
     <div className={`relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-3xl ${className}`}>
-      {/* Top Floating Controls */}
-      <div className="absolute top-3 inset-x-3 z-30 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-blue-500/40 text-[10px] font-mono font-bold text-blue-300 shadow-lg pointer-events-auto">
-          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-          <span>FACEBOOK VIDEO</span>
-        </div>
+      {/* Top Floating Controls (Ẩn khi hideHud=true để không đè lên header của Preview/Feed) */}
+      {!hideHud && (
+        <div className="absolute top-3 inset-x-3 z-30 flex items-center justify-between pointer-events-none">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-blue-500/40 text-[10px] font-mono font-bold text-blue-300 shadow-lg pointer-events-auto">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <span>FACEBOOK VIDEO</span>
+          </div>
 
-        <div className="flex items-center gap-1.5 pointer-events-auto">
-          {/* Nút Bật/Tắt Âm Thanh Trực Tiếp */}
-          <button
-            type="button"
-            onClick={handleToggleSound}
-            className={`py-1 px-2.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1.5 ${
-              internalMuted 
-                ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 hover:bg-rose-500/40 animate-pulse' 
-                : 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/40'
-            }`}
-            title={internalMuted ? 'Bấm để bật âm thanh video Facebook' : 'Bấm để tắt tiếng'}
-          >
-            {internalMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-300" />}
-            <span className="text-[10px] font-mono font-bold">
-              {internalMuted ? 'Bật Tiếng' : 'Âm Thanh Bật'}
-            </span>
-          </button>
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            {/* Nút Bật/Tắt Âm Thanh Trực Tiếp */}
+            <button
+              type="button"
+              onClick={handleToggleSound}
+              className={`py-1 px-2.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1.5 ${
+                internalMuted 
+                  ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 hover:bg-rose-500/40 animate-pulse' 
+                  : 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/40'
+              }`}
+              title={internalMuted ? 'Bấm để bật âm thanh video Facebook' : 'Bấm để tắt tiếng'}
+            >
+              {internalMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-300" />}
+              <span className="text-[10px] font-mono font-bold">
+                {internalMuted ? 'Bật Tiếng' : 'Âm Thanh Bật'}
+              </span>
+            </button>
 
-          {/* Mở Facebook ngoài */}
-          <a
-            href={normalizedUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="p-1.5 rounded-full bg-black/80 hover:bg-blue-600 text-white backdrop-blur-md transition-all cursor-pointer border border-white/20 active:scale-95 flex items-center justify-center shadow-lg"
-            title="Mở trên Facebook để nghe âm thanh gốc"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+            {/* Mở Facebook ngoài */}
+            <a
+              href={normalizedUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="p-1.5 rounded-full bg-black/80 hover:bg-blue-600 text-white backdrop-blur-md transition-all cursor-pointer border border-white/20 active:scale-95 flex items-center justify-center shadow-lg"
+              title="Mở trên Facebook để nghe âm thanh gốc"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Floating Center Prompt if Muted - Chạm để bật âm thanh tức thì */}
       {internalMuted && (

@@ -136,6 +136,13 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
 
   const toggleMute = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') ctx.resume();
+      }
+    } catch {}
     setIsMuted(prev => !prev);
   };
 
@@ -218,6 +225,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             title={mediaInfo.title}
             isMuted={isMuted}
             onToggleMute={toggleMute}
+            hideHud={true}
             className="pb-16"
           />
         ) : mediaInfo.isTikTok || url.includes('tiktok.com') || (!isYouTube && !isFacebook && !isDirectVideo) ? (
@@ -229,6 +237,7 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
             title={resolvedMeta?.videoTitle || mediaInfo.title}
             isMuted={isMuted}
             onToggleMute={toggleMute}
+            hideHud={true}
           />
         ) : (
           /* TAB 5: TRÌNH PHÁT VIDEO TRỰC TIẾP */
@@ -274,14 +283,21 @@ export const TikTokVideoPreviewPlayer: React.FC<TikTokVideoPreviewPlayerProps> =
               </button>
             )}
 
-            {/* Sound Mute/Unmute */}
+            {/* Sound Mute/Unmute (Hiển thị rõ ràng Có Tiếng / Bật Tiếng) */}
             <button
               type="button"
               onClick={toggleMute}
-              className="p-2 rounded-full bg-black/70 hover:bg-black/95 text-white backdrop-blur-md border border-white/15 transition-transform active:scale-95 cursor-pointer shadow-lg"
-              title={isMuted ? 'Bật âm thanh' : 'Tắt tiếng'}
+              className={`px-2.5 py-1.5 rounded-full backdrop-blur-md border transition-all active:scale-95 cursor-pointer shadow-lg flex items-center gap-1.5 ${
+                isMuted
+                  ? 'bg-rose-600/80 hover:bg-rose-500 text-white border-rose-300/40 animate-pulse'
+                  : 'bg-emerald-600/85 hover:bg-emerald-500 text-white border-emerald-300/40'
+              }`}
+              title={isMuted ? 'Bấm để bật âm thanh' : 'Bấm để tắt tiếng'}
             >
-              {isMuted ? <VolumeX className="w-4 h-4 text-slate-300" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
+              <span className="text-[10px] font-mono font-bold">
+                {isMuted ? 'Bật Tiếng' : 'Có Tiếng'}
+              </span>
             </button>
 
             {/* Fullscreen Button */}

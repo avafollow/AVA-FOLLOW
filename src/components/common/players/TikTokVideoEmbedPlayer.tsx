@@ -24,14 +24,15 @@ export interface TikTokVideoEmbedPlayerProps {
   onToggleMute?: () => void;
   className?: string;
   autoPlay?: boolean;
+  hideHud?: boolean;
 }
 
 /**
  * Trình phát Video TikTok Đa Thiết Bị (iOS Safari, iPadOS, Android Chrome, macOS, Windows)
  * 1. Tự động phân giải mọi định dạng link (vt.tiktok.com, vm.tiktok.com, tiktok.com/t/..., /video/, /photo/, m.tiktok.com/v/).
- * 2. Luồng 1 (Ưu tiên siêu mượt đa thiết bị): Luồng MP4 thật của chính video TikTok đó qua proxy hỗ trợ Range 206 (iOS/iPad).
+ * 2. Luồng 1 (Ưu tiên siêu mượt & Bật Tiếng 100% đa thiết bị): Luồng MP4 thật của chính video TikTok đó qua proxy Range 206.
  * 3. Luồng 2 (Chuẩn chính thức TikTok 2026): Trình phát chính thức https://www.tiktok.com/player/v1/{videoId}?embed_from=oembed.
- * 4. Nút chuyển đổi qua lại 1 chạm giữa MP4 Siêu Mượt và TikTok Player, không che khuất nút bấm video.
+ * 4. Hỗ trợ hideHud để không bị trùng thanh điều khiển khi nhúng trong Xem Trước hoặc Feed.
  */
 export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   videoId,
@@ -40,7 +41,8 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   isMuted = true,
   onToggleMute,
   className = '',
-  autoPlay = true
+  autoPlay = true,
+  hideHud = false
 }) => {
   const [resolvedId, setResolvedId] = useState<string | null>(
     videoId || (directUrl ? extractTikTokVideoId(directUrl) : null)
@@ -57,7 +59,7 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
   const [hasIframeError, setHasIframeError] = useState<boolean>(false);
   const [internalMuted, setInternalMuted] = useState<boolean>(isMuted);
   const [isPlaying, setIsPlaying] = useState<boolean>(autoPlay);
-  const [playerMode, setPlayerMode] = useState<'official' | 'direct'>('official');
+  const [playerMode, setPlayerMode] = useState<'official' | 'direct'>('direct');
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -88,12 +90,25 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
 
   useEffect(() => {
     setInternalMuted(isMuted);
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+      videoRef.current.defaultMuted = isMuted;
+      if (!isMuted) {
+        videoRef.current.volume = 1.0;
+        if (videoRef.current.paused) {
+          videoRef.current.play().catch(() => {});
+        }
+      }
+    }
   }, [isMuted]);
 
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.muted = internalMuted;
       videoRef.current.defaultMuted = internalMuted;
+      if (!internalMuted) {
+        videoRef.current.volume = 1.0;
+      }
     }
   }, [internalMuted]);
 
@@ -215,59 +230,61 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
     <div
       className={`relative w-full h-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-3xl select-none ${className}`}
     >
-      {/* 1. TOP HUD BAR: Chế độ phát & Âm thanh (gọn trên cùng, không che nút phát của TikTok) */}
-      <div className="absolute top-3 inset-x-3 z-30 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-1.5 pointer-events-auto">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-rose-500/40 text-[10px] font-mono font-bold text-rose-300 shadow-lg">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-            <span>TIKTOK VIDEO</span>
+      {/* 1. TOP HUD BAR: Chỉ hiện khi không bật hideHud để tránh đè lên header của Preview / Feed */}
+      {!hideHud && (
+        <div className="absolute top-3 inset-x-3 z-30 flex items-center justify-between pointer-events-none">
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-rose-500/40 text-[10px] font-mono font-bold text-rose-300 shadow-lg">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <span>TIKTOK VIDEO</span>
+            </div>
+
+            {directMp4Src && officialPlayerUrl && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPlayerMode((prev) => (prev === 'official' ? 'direct' : 'official'));
+                }}
+                className="px-2.5 py-1 rounded-full bg-black/80 hover:bg-white/20 text-white text-[9px] font-mono font-bold border border-white/20 backdrop-blur-md flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-md"
+                title="Đổi giữa TikTok Player chính thức và Luồng MP4 Siêu Mượt"
+              >
+                <RefreshCw className="w-2.5 h-2.5 text-cyan-300" />
+                <span>{showDirectMp4 ? 'MP4 Mượt' : 'TikTok Player'}</span>
+              </button>
+            )}
           </div>
 
-          {directMp4Src && officialPlayerUrl && (
+          <div className="flex items-center gap-1.5 pointer-events-auto">
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setPlayerMode((prev) => (prev === 'official' ? 'direct' : 'official'));
-              }}
-              className="px-2.5 py-1 rounded-full bg-black/80 hover:bg-white/20 text-white text-[9px] font-mono font-bold border border-white/20 backdrop-blur-md flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-md"
-              title="Đổi giữa TikTok Player chính thức và Luồng MP4 Siêu Mượt"
+              onClick={handleToggleSound}
+              className={`py-1 px-2.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1.5 ${
+                internalMuted
+                  ? 'bg-rose-500/30 text-rose-200 border-rose-500/50 hover:bg-rose-500/45'
+                  : 'bg-emerald-500/30 text-emerald-200 border-emerald-500/50 hover:bg-emerald-500/45'
+              }`}
+              title={internalMuted ? 'Bấm để bật âm thanh video TikTok' : 'Bấm để tắt tiếng'}
             >
-              <RefreshCw className="w-2.5 h-2.5 text-cyan-300" />
-              <span>{showDirectMp4 ? 'MP4 Mượt' : 'TikTok Player'}</span>
+              {internalMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              <span className="text-[10px] font-mono font-bold">
+                {internalMuted ? 'Bật Tiếng' : 'Có Tiếng'}
+              </span>
             </button>
-          )}
-        </div>
 
-        <div className="flex items-center gap-1.5 pointer-events-auto">
-          <button
-            type="button"
-            onClick={handleToggleSound}
-            className={`py-1 px-2.5 rounded-full backdrop-blur-md border transition-transform active:scale-95 cursor-pointer shadow-lg flex items-center gap-1.5 ${
-              internalMuted
-                ? 'bg-rose-500/30 text-rose-200 border-rose-500/50 hover:bg-rose-500/45'
-                : 'bg-emerald-500/30 text-emerald-200 border-emerald-500/50 hover:bg-emerald-500/45'
-            }`}
-            title={internalMuted ? 'Bấm để bật âm thanh video TikTok' : 'Bấm để tắt tiếng'}
-          >
-            {internalMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-            <span className="text-[10px] font-mono font-bold">
-              {internalMuted ? 'Bật Tiếng' : 'Có Tiếng'}
-            </span>
-          </button>
-
-          <a
-            href={finalOpenUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="p-1.5 rounded-full bg-black/80 hover:bg-rose-600 text-white backdrop-blur-md transition-all cursor-pointer border border-white/20 active:scale-95 flex items-center justify-center shadow-lg"
-            title="Mở trực tiếp trên TikTok"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+            <a
+              href={finalOpenUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="p-1.5 rounded-full bg-black/80 hover:bg-rose-600 text-white backdrop-blur-md transition-all cursor-pointer border border-white/20 active:scale-95 flex items-center justify-center shadow-lg"
+              title="Mở trực tiếp trên TikTok"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 2. KHUNG PHÁT VIDEO CHÍNH THỨC */}
       <div className="relative w-full h-full flex-1 bg-black flex items-center justify-center overflow-hidden">
@@ -303,7 +320,7 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
         ) : showOfficialIframe ? (
           <iframe
             ref={iframeRef}
-            key={`tt-player-v1-${effectiveId}`}
+            key={`tt-player-v1-${effectiveId}-${internalMuted ? 'm' : 'u'}`}
             src={officialPlayerUrl!}
             title={displayTitle}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
@@ -375,17 +392,19 @@ export const TikTokVideoEmbedPlayer: React.FC<TikTokVideoEmbedPlayerProps> = ({
         )}
       </div>
 
-      {/* 3. BOTTOM STATUS STRIP */}
-      <div className="absolute bottom-0 inset-x-0 z-20 px-3 py-2 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-center justify-between text-[10px] font-mono pointer-events-none">
-        <div className="text-white/90 font-bold flex items-center gap-1.5 truncate max-w-[65%]">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-          <span className="truncate">{displayName}</span>
+      {/* 3. BOTTOM STATUS STRIP (Ẩn khi hideHud=true để giao diện Feed/Preview siêu gọn) */}
+      {!hideHud && (
+        <div className="absolute bottom-0 inset-x-0 z-20 px-3 py-2 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-center justify-between text-[10px] font-mono pointer-events-none">
+          <div className="text-white/90 font-bold flex items-center gap-1.5 truncate max-w-[65%]">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+            <span className="truncate">{displayName}</span>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 flex items-center gap-1 shrink-0">
+            <ShieldCheck className="w-3 h-3 text-emerald-400" />
+            <span>{showDirectMp4 ? 'MP4 Thật' : 'TikTok 2026'}</span>
+          </span>
         </div>
-        <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 flex items-center gap-1 shrink-0">
-          <ShieldCheck className="w-3 h-3 text-emerald-400" />
-          <span>{showDirectMp4 ? 'MP4 Thật' : 'TikTok 2026'}</span>
-        </span>
-      </div>
+      )}
     </div>
   );
 };

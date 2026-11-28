@@ -49,6 +49,7 @@ import {
   getYouTubeOAuthToken
 } from '../../services/youtubeApiService';
 import { verifyFacebookTaskAction, getFacebookOAuthToken } from '../../services/facebookApiService';
+import { takeTikTokBotSnapshot, verifyTikTokWithBot } from '../../services/tiktokBotVerifier';
 
 export const TikTokTaskRunnerModal: React.FC = () => {
   const { 
@@ -203,6 +204,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
   const [pendingFraudAction, setPendingFraudAction] = useState<'follow' | 'like' | 'comment' | 'share' | null>(null);
   const [pendingActionStartTime, setPendingActionStartTime] = useState<number>(0);
   const [pendingCommentText, setPendingCommentText] = useState<string>('');
+  const pendingBotTokenRef = useRef<string | undefined>(undefined);
 
   // Lấy chính xác tài khoản đang làm nhiệm vụ theo nền tảng
   const performerAccount = taskPlatform === 'youtube'
@@ -269,6 +271,24 @@ export const TikTokTaskRunnerModal: React.FC = () => {
           });
           isVerified = res.success;
           verifyMsg = res.message;
+        } else {
+          // TIKTOK: BẮT BUỘC ĐỐI SOÁT QUA BOT KIỂM SOÁT CHỐNG GIAN LẬN (T1 vs T0)
+          const botRes = await verifyTikTokWithBot({
+            verificationToken: pendingBotTokenRef.current,
+            commentText: pendingCommentText
+          });
+          isVerified = botRes.verified;
+          verifyMsg = botRes.reason;
+          if (!botRes.verified && botRes.fraudDetected) {
+            triggerImmediateFraudAlert({
+              title: 'BOT KIỂM SOÁT PHÁT HIỆN GIAN LẬN TIKTOK',
+              reason: botRes.reason,
+              anomalyType: 'BOT_SPEED_DETECTED',
+              channelHandle: runnerTask.channelHandle,
+              penaltyPoints: 15
+            });
+          }
+          pendingBotTokenRef.current = undefined;
         }
 
         if (!isVerified) {
@@ -366,7 +386,23 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     lastTapRef.current = now;
   };
 
-  // 1. Follow / Subscribe Kênh (Bắt buộc kết nối tài khoản thật + mở app thật)
+  // Helper chụp snapshot T0 từ Bot chống gian lận TikTok trước khi mở app
+  const startTikTokBotMonitor = (action: 'follow' | 'like' | 'comment' | 'share') => {
+    if (taskPlatform !== 'tiktok') return;
+    pendingBotTokenRef.current = undefined;
+    takeTikTokBotSnapshot({
+      action,
+      userHandle: performerAccount,
+      targetHandle: runnerTask.channelHandle,
+      targetUrl: runnerTask.targetUrl || getDestinationUrl()
+    }).then((snap) => {
+      if (snap.ok && snap.verificationToken) {
+        pendingBotTokenRef.current = snap.verificationToken;
+      }
+    });
+  };
+
+  // 1. Follow / Subscribe Kênh (Bắt buộc kết nối tài khoản thật + mở app thật + Bot giám sát)
   const handleFollowAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
 
@@ -377,20 +413,15 @@ export const TikTokTaskRunnerModal: React.FC = () => {
       return;
     }
 
-    if (taskPlatform === 'tiktok' && isChannelFollowed(runnerTask.channelHandle)) {
-      showToast(`ℹ️ Bạn đã từng ${actionFollowName} kênh ${runnerTask.channelHandle} rồi. Thao tác đã được ghi nhận tự động!`);
-      claimTaskAction(runnerTask.id, 'follow');
-      return;
-    }
-
     if (!claimedActions.follow) {
+      startTikTokBotMonitor('follow');
       setPendingFraudAction('follow');
       setPendingActionStartTime(Date.now());
       window.open(getDestinationUrl(), '_blank', 'noopener,noreferrer');
     }
   };
 
-  // 2. Thả Tim / Thích Video (Bắt buộc kết nối tài khoản thật + mở app thật)
+  // 2. Thả Tim / Thích Video (Bắt buộc kết nối tài khoản thật + mở app thật + Bot giám sát)
   const handleLikeAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
 
@@ -402,13 +433,14 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     }
 
     if (!claimedActions.like) {
+      startTikTokBotMonitor('like');
       setPendingFraudAction('like');
       setPendingActionStartTime(Date.now());
       window.open(getDestinationUrl(), '_blank', 'noopener,noreferrer');
     }
   };
 
-  // 3. Bình luận Video (Copy text + mở app thật để Paste)
+  // 3. Bình luận Video (Copy text + mở app thật để Paste + Bot giám sát)
   const handleCommentAction = (commentText: string) => {
     if (!commentText.trim()) return;
 
@@ -421,6 +453,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     
     // ĐÓNG BĂNG 60 LỚP: BẮT BUỘC COPY VÀ MỞ ỨNG DỤNG ĐỂ DÁN
     navigator.clipboard.writeText(commentText).catch(() => {});
+    startTikTokBotMonitor('comment');
     
     setIsSubmitting(true);
     setTimeout(() => {
@@ -436,7 +469,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     }, 1000);
   };
 
-  // 4. Chia sẻ Video (Bắt buộc kết nối tài khoản thật + mở app thật)
+  // 4. Chia sẻ Video (Bắt buộc kết nối tài khoản thật + mở app thật + Bot giám sát)
   const handleShareAction = (e?: React.MouseEvent) => {
     e?.stopPropagation();
 
@@ -448,6 +481,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
     }
 
     if (!claimedActions.share) {
+      startTikTokBotMonitor('share');
       setPendingFraudAction('share');
       setPendingActionStartTime(Date.now());
       window.open(getDestinationUrl(), '_blank', 'noopener,noreferrer');
@@ -685,6 +719,7 @@ export const TikTokTaskRunnerModal: React.FC = () => {
                   title={runnerTask.title}
                   isMuted={isMuted}
                   onToggleMute={() => setIsMuted(!isMuted)}
+                  hideHud={true}
                 />
               );
             }
@@ -692,12 +727,13 @@ export const TikTokTaskRunnerModal: React.FC = () => {
             if (mediaInfo?.isTikTok) {
               return (
                 <TikTokVideoEmbedPlayer
-                  key={runnerTask.id + '_tt_' + (mediaInfo.videoId || runnerTask.channelHandle || runnerTask.id) + '_' + (isMuted ? 'muted' : 'unmuted')}
+                  key={runnerTask.id + '_tt_' + (mediaInfo.videoId || runnerTask.channelHandle || runnerTask.id)}
                   videoId={mediaInfo.videoId}
                   directUrl={runnerTask.targetUrl || runnerTask.videoPreviewUrl}
                   title={runnerTask.title}
                   isMuted={isMuted}
                   onToggleMute={() => setIsMuted(!isMuted)}
+                  hideHud={true}
                 />
               );
             }
@@ -718,12 +754,13 @@ export const TikTokTaskRunnerModal: React.FC = () => {
 
             return (
               <TikTokVideoEmbedPlayer
-                key={runnerTask.id + '_fallback_tt_' + (isMuted ? 'muted' : 'unmuted')}
+                key={runnerTask.id + '_fallback_tt'}
                 videoId={mediaInfo?.videoId}
                 directUrl={runnerTask.targetUrl || runnerTask.videoPreviewUrl}
                 title={runnerTask.title}
                 isMuted={isMuted}
                 onToggleMute={() => setIsMuted(!isMuted)}
+                hideHud={true}
               />
             );
           })()}

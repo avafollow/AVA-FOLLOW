@@ -101,7 +101,6 @@ import {
   signInWithGoogleOAuth,
   signInWithTikTokOAuth,
   signInWithFacebookOAuth,
-  loginFacebookWithSDK,
   syncTokenLedgerToSupabase, 
   syncKycToSupabase, 
   syncOrderToSupabase,
@@ -3204,16 +3203,37 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     }
 
+    // 0c. Đọc và hiển thị lỗi OAuth nếu Google/Facebook trả về trên URL (?error= hoặc #error=)
+    if (typeof window !== 'undefined') {
+      try {
+        const searchP = new URLSearchParams(window.location.search);
+        const hashP = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+        const oauthErr = searchP.get('error_description') || hashP.get('error_description') || searchP.get('error') || hashP.get('error');
+        if (oauthErr) {
+          showToast(`⚠️ Cổng OAuth trả về lỗi: ${decodeURIComponent(oauthErr.replace(/\+/g, ' '))}`);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      } catch {}
+    }
+
+    // Giữ lại ngữ cảnh linking xuyên suốt getSession() và onAuthStateChange() trong cùng lần tải trang
+    let cachedLinkingEmail = '';
+    let cachedLinkingPlatform = '';
+    let shouldReopenModal = false;
+    try {
+      cachedLinkingEmail = (localStorage.getItem('ava_oauth_linking_email') || '').toLowerCase().trim();
+      cachedLinkingPlatform = (localStorage.getItem('ava_oauth_linking_platform') || '').toLowerCase().trim();
+      shouldReopenModal = Boolean(cachedLinkingPlatform);
+    } catch {}
+
     const syncOAuthSession = (session: any) => {
       if (!session?.user) return;
       const provider = session.user?.app_metadata?.provider;
       const meta = session.user?.user_metadata || {};
-      const linkingEmail = (localStorage.getItem('ava_oauth_linking_email') || '').toLowerCase().trim();
-      const linkingPlatform = (localStorage.getItem('ava_oauth_linking_platform') || '').toLowerCase().trim();
 
       if (session.provider_token) {
         try {
-          if (provider === 'facebook' || linkingPlatform === 'facebook') {
+          if (provider === 'facebook' || cachedLinkingPlatform === 'facebook') {
             localStorage.setItem('ava_facebook_oauth_token', session.provider_token);
           } else {
             localStorage.setItem('ava_youtube_oauth_token', session.provider_token);
@@ -3225,23 +3245,14 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       const fbSub = meta.provider_id || meta.sub || session.user.id || '';
       const rawSessionEmail = (session.user.email || meta.email || '').toLowerCase().trim();
-      const primaryEmail = linkingEmail || rawSessionEmail || (provider === 'facebook' ? `fb_${fbSub.slice(0, 12)}@facebook.avafollow.vn` : '');
+      const primaryEmail = cachedLinkingEmail || rawSessionEmail || (provider === 'facebook' ? `fb_${fbSub.slice(0, 12)}@facebook.avafollow.vn` : '');
+      const bindEmail = primaryEmail || 'creator@avafollow.vn';
 
-      try {
-        localStorage.removeItem('ava_oauth_linking_email');
-        localStorage.removeItem('ava_oauth_linking_platform');
-      } catch {}
-
-      if (primaryEmail) {
-        loginWithGoogle(primaryEmail);
-      }
-
-      // 1. Tự động liên kết Facebook profile thật nếu đăng nhập qua Facebook OAuth (không bị stale closure)
-      if (provider === 'facebook' || linkingPlatform === 'facebook') {
+      // 1. LƯU THÔNG TIN KẾT NỐI TRƯỚC KHI GỌI loginWithGoogle() để loginWithGoogle nạp sẵn dữ liệu mới (tránh ghi đè rỗng!)
+      if (provider === 'facebook' || cachedLinkingPlatform === 'facebook') {
         const fbName = (meta.full_name || meta.name || meta.user_name || (rawSessionEmail ? rawSessionEmail.split('@')[0] : `fb_${fbSub.slice(0, 8)}`)).trim();
         const fbAvatar = meta.avatar_url || meta.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbName)}&background=1877F2&color=fff&bold=true`;
         const fbUrl = fbSub ? `https://www.facebook.com/${fbSub}` : `https://www.facebook.com/${encodeURIComponent(fbName)}`;
-        const bindEmail = primaryEmail || 'creator@avafollow.vn';
 
         saveConnectionsForUser(bindEmail, {
           facebookConnected: fbName,
@@ -3251,6 +3262,17 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           facebookAvatar: fbAvatar,
           isFacebookVerified: true
         });
+        try {
+          localStorage.setItem('ava_facebook_connected', fbName);
+          if (shouldReopenModal) {
+            localStorage.setItem('ava_oauth_reopen_tab', 'facebook');
+            localStorage.setItem('ava_oauth_reopen_msg', `✅ Đã xác thực & kết nối Facebook chính chủ: ${fbName}`);
+          }
+        } catch {}
+
+        if (primaryEmail) {
+          loginWithGoogle(primaryEmail);
+        }
 
         setUser(prev => {
           const next = {
@@ -3267,78 +3289,109 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           try { localStorage.setItem('ava_user_profile', JSON.stringify(next)); } catch {}
           return next;
         });
+
+        if (shouldReopenModal) {
+          shouldReopenModal = false;
+          setIsConnectOpen(true);
+          try {
+            localStorage.removeItem('ava_oauth_linking_email');
+            localStorage.removeItem('ava_oauth_linking_platform');
+          } catch {}
+        }
         showToast(`✅ Đã kết nối Facebook OAuth chính chủ: ${fbName}`);
+        return;
       }
 
-      // 2. Tự động liên kết Kênh YouTube thật nếu đăng nhập Google OAuth kèm YouTube scope
-      if ((provider === 'google' || linkingPlatform === 'youtube') && session.provider_token) {
-        const bindEmail = primaryEmail || rawSessionEmail || 'creator@avafollow.vn';
-        fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true', {
-          headers: { Authorization: `Bearer ${session.provider_token}` }
-        })
-          .then(r => (r.ok ? r.json() : null))
-          .then(data => {
-            const ch = data?.items?.[0];
-            if (ch?.snippet) {
-              const rawHandle = (ch.snippet.customUrl || ch.snippet.title || ch.id).replace(/^@+/, '');
-              const formattedYt = `@${rawHandle}`;
-              const subs = parseInt(ch.statistics?.subscriberCount || '0', 10) || 0;
-              const avatar = ch.snippet.thumbnails?.default?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(rawHandle)}&background=FF0000&color=fff&bold=true`;
-              const ytProfileUrl = ch.snippet.customUrl
-                ? `https://www.youtube.com/${ch.snippet.customUrl}`
-                : `https://www.youtube.com/channel/${ch.id}`;
+      if (provider === 'google' || cachedLinkingPlatform === 'youtube') {
+        const fallbackName = (meta.full_name || meta.name || (rawSessionEmail ? rawSessionEmail.split('@')[0] : 'youtube_creator')).trim();
+        const cleanFallbackHandle = fallbackName.replace(/\s+/g, '');
+        const formattedFallbackYt = `@${cleanFallbackHandle}`;
+        const fallbackAvatar = meta.avatar_url || meta.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=FF0000&color=fff&bold=true`;
 
-              saveConnectionsForUser(bindEmail, {
-                youtubeConnected: formattedYt,
-                youtubeProfileUrl: ytProfileUrl,
-                youtubeSubscribers: subs,
-                youtubeAvatar: avatar,
-                isYoutubeVerified: true
-              });
+        // Gắn ngay kênh YouTube tức thì để user thấy đã kết nối 100%, không bị kẹt chờ API
+        const existingConn = getConnectionsForUser(bindEmail);
+        if (!existingConn?.youtubeConnected || cachedLinkingPlatform === 'youtube') {
+          saveConnectionsForUser(bindEmail, {
+            youtubeConnected: existingConn?.youtubeConnected || formattedFallbackYt,
+            youtubeProfileUrl: existingConn?.youtubeProfileUrl || `https://www.youtube.com/@${cleanFallbackHandle}`,
+            youtubeSubscribers: existingConn?.youtubeSubscribers || 0,
+            youtubeAvatar: existingConn?.youtubeAvatar || fallbackAvatar,
+            isYoutubeVerified: true
+          });
+          try {
+            localStorage.setItem('ava_youtube_connected', existingConn?.youtubeConnected || formattedFallbackYt);
+          } catch {}
+        }
 
-              setUser(prev => {
-                const next = {
-                  ...prev,
-                  email: prev.email || bindEmail,
+        if (primaryEmail) {
+          loginWithGoogle(primaryEmail);
+        }
+
+        const tokenForYt = session.provider_token || localStorage.getItem('ava_youtube_oauth_token') || '';
+        if (tokenForYt) {
+          fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true', {
+            headers: { Authorization: `Bearer ${tokenForYt}` }
+          })
+            .then(r => (r.ok ? r.json() : null))
+            .then(data => {
+              const ch = data?.items?.[0];
+              if (ch?.snippet) {
+                const rawHandle = (ch.snippet.customUrl || ch.snippet.title || ch.id).replace(/^@+/, '');
+                const formattedYt = `@${rawHandle}`;
+                const subs = parseInt(ch.statistics?.subscriberCount || '0', 10) || 0;
+                const avatar = ch.snippet.thumbnails?.default?.url || fallbackAvatar;
+                const ytProfileUrl = ch.snippet.customUrl
+                  ? `https://www.youtube.com/${ch.snippet.customUrl}`
+                  : `https://www.youtube.com/channel/${ch.id}`;
+
+                saveConnectionsForUser(bindEmail, {
                   youtubeConnected: formattedYt,
                   youtubeProfileUrl: ytProfileUrl,
                   youtubeSubscribers: subs,
                   youtubeAvatar: avatar,
-                  youtubeChannelTitle: ch.snippet.title || rawHandle,
-                  isYoutubeVerified: true,
-                  youtubeLastSyncedAt: new Date().toISOString()
-                };
-                try { localStorage.setItem('ava_user_profile', JSON.stringify(next)); } catch {}
-                return next;
-              });
-              showToast(`✅ Đã đồng bộ Kênh YouTube OAuth chính chủ: ${formattedYt}`);
-            } else if (linkingPlatform === 'youtube') {
-              // Google OAuth thành công nhưng tài khoản chưa tạo kênh YouTube hoặc chưa cấp scope
-              const fallbackName = (meta.full_name || meta.name || (bindEmail ? bindEmail.split('@')[0] : 'youtube_user')).replace(/\s+/g, '');
-              const formattedYt = `@${fallbackName}`;
-              saveConnectionsForUser(bindEmail, {
-                youtubeConnected: formattedYt,
-                youtubeProfileUrl: `https://www.youtube.com/@${fallbackName}`,
-                youtubeSubscribers: 0,
-                youtubeAvatar: meta.avatar_url || '',
-                isYoutubeVerified: true
-              });
-              setUser(prev => {
-                const next = {
-                  ...prev,
-                  email: prev.email || bindEmail,
-                  youtubeConnected: formattedYt,
-                  youtubeProfileUrl: `https://www.youtube.com/@${fallbackName}`,
-                  isYoutubeVerified: true,
-                  youtubeLastSyncedAt: new Date().toISOString()
-                };
-                try { localStorage.setItem('ava_user_profile', JSON.stringify(next)); } catch {}
-                return next;
-              });
-              showToast(`✅ Đã kết nối Google/YouTube OAuth: ${formattedYt}`);
-            }
-          })
-          .catch(() => {});
+                  isYoutubeVerified: true
+                });
+
+                setUser(prev => {
+                  const next = {
+                    ...prev,
+                    email: prev.email || bindEmail,
+                    youtubeConnected: formattedYt,
+                    youtubeProfileUrl: ytProfileUrl,
+                    youtubeSubscribers: subs,
+                    youtubeAvatar: avatar,
+                    youtubeChannelTitle: ch.snippet.title || rawHandle,
+                    isYoutubeVerified: true,
+                    youtubeLastSyncedAt: new Date().toISOString()
+                  };
+                  try {
+                    localStorage.setItem('ava_user_profile', JSON.stringify(next));
+                    localStorage.setItem('ava_youtube_connected', formattedYt);
+                  } catch {}
+                  return next;
+                });
+                showToast(`✅ Đã đồng bộ Kênh YouTube thật từ Google API: ${formattedYt}`);
+              }
+            })
+            .catch(() => {});
+        }
+
+        if (shouldReopenModal && cachedLinkingPlatform === 'youtube') {
+          shouldReopenModal = false;
+          try {
+            localStorage.setItem('ava_oauth_reopen_tab', 'youtube');
+            localStorage.setItem('ava_oauth_reopen_msg', `✅ Đã xác thực & kết nối Google / YouTube OAuth: ${existingConn?.youtubeConnected || formattedFallbackYt}`);
+            localStorage.removeItem('ava_oauth_linking_email');
+            localStorage.removeItem('ava_oauth_linking_platform');
+          } catch {}
+          setIsConnectOpen(true);
+          showToast(`✅ Đã kết nối Google / YouTube OAuth thành công!`);
+        }
+        return;
+      }
+
+      if (primaryEmail) {
+        loginWithGoogle(primaryEmail);
       }
     };
 
@@ -3404,9 +3457,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           if (typeof window !== 'undefined') {
             window.open('https://www.tiktok.com/login', '_blank', 'noopener,noreferrer');
           }
-          if (!isAuthenticated) {
-            setIsConnectOpen(true);
-          }
+          setIsConnectOpen(true);
           return;
         }
       }
@@ -3441,19 +3492,8 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           localStorage.setItem('ava_oauth_linking_platform', 'facebook');
         } catch {}
 
-        // Nếu đang ở trong app và Facebook JS SDK sẵn sàng -> thử kết nối popup SDK trước (không làm mất phiên Google)
-        if (isAuthenticated && typeof window !== 'undefined' && (window as any).FB) {
-          showToast('Đang mở cửa sổ đăng nhập Facebook chính chủ (Meta SDK)...');
-          const sdkRes = await loginFacebookWithSDK(includeEngagementScopes);
-          if (sdkRes.success && sdkRes.name) {
-            const fbUrl = sdkRes.userId ? `https://www.facebook.com/${sdkRes.userId}` : `https://www.facebook.com/${encodeURIComponent(sdkRes.name)}`;
-            connectFacebook(sdkRes.name, 'personal', user.facebookFollowers || 0, sdkRes.avatar || '');
-            showToast(`✅ Đã kết nối Facebook chính chủ & nhận Access Token từ Meta: ${sdkRes.name}`);
-            return;
-          }
-        }
-
-        // Chuyển hướng qua Supabase Facebook OAuth chính thức (App ID 1574154307820968)
+        // Chuyển hướng 1 lần duy nhất qua Supabase Facebook OAuth chính thức (App ID 1574154307820968)
+        // Không gọi FB.login popup trước để tránh lặp 2 lần hộp thoại xác nhận đăng nhập của Meta
         showToast('Đang chuyển hướng sang cổng xác thực Facebook OAuth...');
         const { data, error } = await signInWithFacebookOAuth(includeEngagementScopes);
         if (!error && data?.url) {
@@ -3486,7 +3526,7 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       showToast(`⚡ Đã kết nối & đồng bộ thành công tài khoản Facebook: fb.com/${cleanFb}`);
     } catch (err: any) {
       console.warn('Facebook OAuth exception:', err);
-      showToast('Không thể kết nối Facebook OAuth. Vui lòng kiểm tra cửa sổ popup và thử lại!');
+      showToast('Không thể kết nối Facebook OAuth. Vui lòng thử lại!');
     }
   };
 

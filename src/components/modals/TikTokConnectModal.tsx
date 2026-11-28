@@ -86,6 +86,20 @@ export const TikTokConnectModal: React.FC = () => {
   // Sync state whenever modal opens or user profile changes
   useEffect(() => {
     if (isConnectOpen) {
+      try {
+        const reopenTab = localStorage.getItem('ava_oauth_reopen_tab') as 'tiktok' | 'facebook' | 'youtube' | null;
+        const reopenMsg = localStorage.getItem('ava_oauth_reopen_msg');
+        if (reopenTab && ['tiktok', 'facebook', 'youtube'].includes(reopenTab)) {
+          setActiveTab(reopenTab);
+          localStorage.removeItem('ava_oauth_reopen_tab');
+        }
+        if (reopenMsg) {
+          setSuccessBanner(reopenMsg);
+          localStorage.removeItem('ava_oauth_reopen_msg');
+          setTimeout(() => setSuccessBanner(null), 5000);
+        }
+      } catch {}
+
       setHandle(user.tiktokConnected || '');
       setTtFollowers(user.tiktokFollowers ? String(user.tiktokFollowers) : '');
       setTtAvatar(user.tiktokAvatar || user.avatar || '');

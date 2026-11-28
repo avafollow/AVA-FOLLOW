@@ -3253,6 +3253,19 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const loginWithFacebookOAuth = async (customFb?: string) => {
     try {
+      if (!customFb) {
+        showToast('Đang kết nối cổng xác thực Facebook OAuth qua Supabase...');
+        const { data, error } = await signInWithFacebookOAuth(false);
+        if (!error && data?.url) {
+          window.location.href = data.url;
+          return;
+        }
+        if (error) {
+          console.warn('Facebook OAuth error:', error);
+          showToast(`Lỗi kết nối Facebook OAuth: ${error.message}. Chuyển sang đồng bộ cấu hình.`);
+        }
+      }
+
       showToast('Đang đồng bộ trực tiếp tài khoản Facebook trên thiết bị (1-Chạm)...');
       
       const rawFb = customFb || (user.facebookConnected && user.facebookConnected !== 'Chưa kết nối' ? user.facebookConnected : (user.email ? user.email.split('@')[0].replace(/[^a-z0-9.]/gi, '') : 'fb_creator'));
@@ -3279,6 +3292,19 @@ export const TikTokAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const loginWithYoutubeOAuth = async (customYt?: string) => {
     try {
+      if (!customYt) {
+        showToast('Đang kết nối Google OAuth (kèm quyền YouTube Data API v3)...');
+        const { data, error } = await signInWithGoogleOAuth(true);
+        if (!error && data?.url) {
+          window.location.href = data.url;
+          return;
+        }
+        if (error) {
+          console.warn('YouTube OAuth error:', error);
+          showToast(`Lỗi kết nối YouTube OAuth: ${error.message}. Chuyển sang đồng bộ cấu hình.`);
+        }
+      }
+
       showToast('Đang đồng bộ trực tiếp Kênh YouTube trên thiết bị (1-Chạm)...');
       
       const rawYt = customYt || (user.youtubeConnected && user.youtubeConnected !== 'Chưa kết nối' ? user.youtubeConnected : (user.email ? user.email.split('@')[0].replace(/[^a-z0-9_]/gi, '') : 'youtube_creator'));

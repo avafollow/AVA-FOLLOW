@@ -4,7 +4,13 @@
  * Hỗ trợ các đối tượng: Page (feed, comments, mentions, live_videos), User, Permissions
  */
 
-const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || 'ava_facebook_webhook_2026_secure';
+const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || 'THIENVUAAPP';
+const ACCEPTED_VERIFY_TOKENS = new Set([
+  FB_VERIFY_TOKEN,
+  'THIENVUAAPP',
+  'ava_facebook_webhook_2026_secure',
+  'avafollow'
+]);
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,12 +24,13 @@ export default async function handler(req, res) {
   // 1. GET Request: Meta Webhook Handshake / Xác minh mã
   if (req.method === 'GET') {
     const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
+    const token = (req.query['hub.verify_token'] || '').toString().trim();
     const challenge = req.query['hub.challenge'];
 
-    if (mode === 'subscribe' && (token === FB_VERIFY_TOKEN || token === 'ava_facebook_webhook_2026_secure' || token === 'avafollow')) {
-      console.log('✅ [FACEBOOK WEBHOOK VERIFIED SUCCESSFULLY]');
-      return res.status(200).send(challenge);
+    if (mode === 'subscribe' && ACCEPTED_VERIFY_TOKENS.has(token)) {
+      console.log('✅ [FACEBOOK WEBHOOK VERIFIED SUCCESSFULLY]', { token });
+      res.setHeader('Content-Type', 'text/plain');
+      return res.status(200).send(String(challenge || ''));
     } else {
       console.warn('❌ [FACEBOOK WEBHOOK VERIFY FAILED]: Invalid verify token', { token, expected: FB_VERIFY_TOKEN });
       return res.status(403).json({ error: 'Verification failed: invalid token' });
